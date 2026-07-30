@@ -14,24 +14,9 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/helpers/dates";
+import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
+import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import type { TeamMemberReport } from "@/types/team";
-
-// Missing reports sort first (most actionable for a manager), then
-// submitted reports by submission time — the "sort by submission time"
-// behavior this feature asked for, applied within the submitted group.
-function sortMembers(members: TeamMemberReport[]) {
-  return [...members].sort((a, b) => {
-    if (!a.report && b.report) return -1;
-    if (a.report && !b.report) return 1;
-    if (a.report && b.report) {
-      return (
-        new Date(b.report.submitted_at).getTime() -
-        new Date(a.report.submitted_at).getTime()
-      );
-    }
-    return a.fullName.localeCompare(b.fullName);
-  });
-}
 
 function ReportDetails({ report }: { report: TeamMemberReport["report"] }) {
   if (!report) {
@@ -80,7 +65,7 @@ export function TeamReportList({ members }: { members: TeamMemberReport[] }) {
         )
       : members;
 
-    return sortMembers(matches);
+    return sortTeamMembersBySubmission(matches);
   }, [members, query]);
 
   const toggleExpanded = (employeeId: string) => {
@@ -141,7 +126,10 @@ export function TeamReportList({ members }: { members: TeamMemberReport[] }) {
                         }
                       >
                         <TableCell className="font-medium">
-                          {member.fullName}
+                          <EmployeeNameLink
+                            employeeId={member.employeeId}
+                            fullName={member.fullName}
+                          />
                         </TableCell>
                         <TableCell>
                           <StatusBadge report={member.report} />
@@ -183,35 +171,35 @@ export function TeamReportList({ members }: { members: TeamMemberReport[] }) {
               return (
                 <div
                   key={member.employeeId}
-                  className="rounded-lg border border-border"
+                  className="rounded-lg border border-border p-3"
                 >
+                  <div className="flex items-center justify-between gap-2">
+                    <EmployeeNameLink
+                      employeeId={member.employeeId}
+                      fullName={member.fullName}
+                      className="text-sm font-medium hover:underline"
+                    />
+                    <StatusBadge report={member.report} />
+                  </div>
                   <button
                     type="button"
                     disabled={!member.report}
                     onClick={() => toggleExpanded(member.employeeId)}
-                    className="flex w-full flex-col gap-2 p-3 text-left disabled:cursor-default"
+                    className="mt-2 flex w-full items-center justify-between text-xs text-muted-foreground disabled:cursor-default"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium">
-                        {member.fullName}
-                      </span>
-                      <StatusBadge report={member.report} />
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>
-                        {member.report
-                          ? `Submitted ${formatDateTime(member.report.submitted_at)}`
-                          : "No report today"}
-                      </span>
-                      {member.report && (
-                        <ChevronDown
-                          className={cn(
-                            "size-4 transition-transform",
-                            isExpanded && "rotate-180",
-                          )}
-                        />
-                      )}
-                    </div>
+                    <span>
+                      {member.report
+                        ? `Submitted ${formatDateTime(member.report.submitted_at)}`
+                        : "No report today"}
+                    </span>
+                    {member.report && (
+                      <ChevronDown
+                        className={cn(
+                          "size-4 transition-transform",
+                          isExpanded && "rotate-180",
+                        )}
+                      />
+                    )}
                   </button>
                   {isExpanded && <ReportDetails report={member.report} />}
                 </div>

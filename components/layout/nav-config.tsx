@@ -1,4 +1,4 @@
-import { Home, ShieldCheck } from "lucide-react";
+import { FileText, Home, ShieldCheck, UserX } from "lucide-react";
 import type { ReactNode } from "react";
 import type { UserRole } from "@/types/profile";
 
@@ -23,6 +23,18 @@ export const navItems: NavItem[] = [
     href: "/",
     icon: <Home className="size-4" />,
     roles: ["employee", "manager", "admin"],
+  },
+  {
+    label: "Team Reports",
+    href: "/manager/team-reports",
+    icon: <FileText className="size-4" />,
+    roles: ["manager"],
+  },
+  {
+    label: "Missing Reports",
+    href: "/manager/missing-reports",
+    icon: <UserX className="size-4" />,
+    roles: ["manager"],
   },
   {
     label: "Admin",

@@ -5,7 +5,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-function SummaryCard({ label, value }: { label: string; value: number }) {
+function SummaryCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -17,19 +23,31 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
 }
 
 export function ManagerSummaryCards({
-  totalEmployees,
+  teamSize,
   submittedToday,
   missingToday,
+  completionPercentage,
+  averageSubmissionTime,
+  lateSubmissions,
 }: {
-  totalEmployees: number;
+  teamSize: number;
   submittedToday: number;
   missingToday: number;
+  completionPercentage: number;
+  averageSubmissionTime: string | null;
+  lateSubmissions: number;
 }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
-      <SummaryCard label="Total Employees" value={totalEmployees} />
-      <SummaryCard label="Reports Submitted Today" value={submittedToday} />
-      <SummaryCard label="Missing Reports Today" value={missingToday} />
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <SummaryCard label="Team Size" value={teamSize} />
+      <SummaryCard label="Submitted Today" value={submittedToday} />
+      <SummaryCard label="Missing Today" value={missingToday} />
+      <SummaryCard label="Completion" value={`${completionPercentage}%`} />
+      <SummaryCard
+        label="Avg. Submission Time"
+        value={averageSubmissionTime ?? "—"}
+      />
+      <SummaryCard label="Late Submissions" value={lateSubmissions} />
     </div>
   );
 }

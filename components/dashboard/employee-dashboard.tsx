@@ -1,8 +1,10 @@
 import { Building2 } from "lucide-react";
 import { getReportHistory, getTodayReport } from "@/lib/supabase/queries/reports";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
-import { formatLongDate } from "@/lib/helpers/dates";
+import { formatDate, formatLongDate } from "@/lib/helpers/dates";
+import { computeReportStats } from "@/lib/helpers/report-stats";
 import { Badge } from "@/components/ui/badge";
+import { StatCard } from "@/components/analytics/stat-card";
 import { RecentReportsCard } from "@/components/reports/recent-reports-card";
 import { SubmitReportCard } from "@/components/reports/submit-report-card";
 import { TodayStatusCard } from "@/components/reports/today-status-card";
@@ -16,6 +18,7 @@ export async function EmployeeDashboard({
     getTodayReport(),
     getReportHistory(),
   ]);
+  const stats = computeReportStats(reportHistory);
   const today = formatLongDate(new Date());
 
   return (
@@ -36,6 +39,22 @@ export async function EmployeeDashboard({
       <div className="grid gap-4 md:grid-cols-2">
         <TodayStatusCard report={todayReport} />
         <SubmitReportCard alreadySubmitted={!!todayReport} />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <StatCard label="Current Streak" value={stats.currentStreak} unit="days" />
+        <StatCard label="This Month" value={stats.reportsThisMonth} unit="reports" />
+        <StatCard label="Completion (30d)" value={`${stats.completionPercentage}%`} />
+        <StatCard
+          label="Avg. Submission Time"
+          value={stats.averageSubmissionTime ?? "—"}
+        />
+        <StatCard
+          label="Last Submitted"
+          value={
+            stats.lastSubmittedDate ? formatDate(stats.lastSubmittedDate) : "—"
+          }
+        />
       </div>
 
       <RecentReportsCard reports={reportHistory} />
