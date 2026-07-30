@@ -22,7 +22,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
               isActive && "bg-muted text-foreground",
             )}
           >
-            <item.icon className="size-4" />
+            {item.icon}
             {item.label}
           </Link>
         );

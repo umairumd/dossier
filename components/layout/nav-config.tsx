@@ -1,10 +1,15 @@
-import { Home, type LucideIcon } from "lucide-react";
+import { Home } from "lucide-react";
+import type { ReactNode } from "react";
 import type { UserRole } from "@/types/profile";
 
 export interface NavItem {
   label: string;
   href: string;
-  icon: LucideIcon;
+  // A pre-rendered element, not a component reference: NavItem[] crosses
+  // from server components (Sidebar, TopNav) into the client NavLinks
+  // component as a prop, and a raw component/function isn't serializable
+  // across that boundary — only an already-built element is.
+  icon: ReactNode;
   roles: UserRole[];
 }
 
@@ -16,7 +21,7 @@ export const navItems: NavItem[] = [
   {
     label: "Home",
     href: "/",
-    icon: Home,
+    icon: <Home className="size-4" />,
     roles: ["employee", "manager", "admin"],
   },
 ];
