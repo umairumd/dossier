@@ -6,15 +6,13 @@ import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 import { formatLongDate } from "@/lib/helpers/dates";
 import { averageSubmissionTime } from "@/lib/helpers/time";
-import { isLateSubmission } from "@/lib/helpers/report-status";
+import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ActivityFeed } from "@/components/analytics/activity-feed";
 import { CompletionTrendCard } from "@/components/analytics/completion-trend-card";
 import { ManagerSummaryCards } from "@/components/manager/manager-summary-cards";
-import { QuickActions } from "@/components/manager/quick-actions";
 import { TeamHighlights } from "@/components/manager/team-highlights";
-import { TeamReportList } from "@/components/manager/team-report-list";
 
 function hasReport(
   member: TeamMemberReport,
@@ -22,6 +20,10 @@ function hasReport(
   return member.report !== null;
 }
 
+// Home is awareness only — reviewing/filtering/opening individual
+// reports is Team Reports' job (and Missing Reports' job for
+// non-submitters); this page never embeds that interactive table, only
+// the numbers and trends that summarize it.
 export async function ManagerDashboard({
   profile,
 }: {
@@ -37,8 +39,8 @@ export async function ManagerDashboard({
   const missingToday = teamSize - submittedToday;
   const completionPercentage =
     teamSize === 0 ? 0 : Math.round((submittedToday / teamSize) * 100);
-  const lateSubmissions = submittedMembers.filter((member) =>
-    isLateSubmission(member.report.submitted_at),
+  const lateSubmissions = submittedMembers.filter(
+    (member) => getSubmissionStatus(member.report.submitted_at) === "late",
   ).length;
   const today = formatLongDate(new Date());
 
@@ -68,8 +70,6 @@ export async function ManagerDashboard({
         lateSubmissions={lateSubmissions}
       />
 
-      <QuickActions />
-
       <CompletionTrendCard
         title="Team Completion Trend"
         description={`Last 7 days · ${insights.weeklyCompletionPercentage}% weekly completion`}
@@ -81,8 +81,6 @@ export async function ManagerDashboard({
         longestStreaks={insights.longestStreaks}
         frequentlyMissing={insights.frequentlyMissing}
       />
-
-      <TeamReportList members={members} />
 
       <Card>
         <CardHeader>

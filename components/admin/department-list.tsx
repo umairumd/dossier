@@ -19,6 +19,7 @@ import {
 import { ArchiveDepartmentButton } from "@/components/admin/archive-department-button";
 import { DepartmentStatusBadge } from "@/components/admin/department-status-badge";
 import { EditDepartmentSheet } from "@/components/admin/edit-department-sheet";
+import { PermanentlyDeleteDepartmentButton } from "@/components/admin/permanently-delete-department-button";
 import type { DepartmentListItem, ManagerCandidate } from "@/types/department";
 
 type StatusFilter = "active" | "archived";
@@ -98,6 +99,12 @@ export function DepartmentList({
                       name={department.name}
                       isArchived={!!department.archived_at}
                     />
+                    {department.archived_at && (
+                      <PermanentlyDeleteDepartmentButton
+                        departmentId={department.id}
+                        name={department.name}
+                      />
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

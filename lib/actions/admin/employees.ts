@@ -250,6 +250,52 @@ export async function restoreEmployee(
   return { success: true };
 }
 
+// Permanent delete: only allowed once already archived (checked
+// server-side, not just gated in the UI). Deletes the auth.users row via
+// the Admin API — profiles.id -> auth.users.id and
+// daily_reports.author_id -> profiles.id both cascade (on delete
+// cascade, set at creation), so this removes the profile and every
+// report they ever submitted in one operation. This is the one
+// operation in this app that erases history rather than preserving it —
+// deliberately, since it's the only way to free up their email address
+// for re-inviting (an archived-but-not-deleted auth user still owns
+// their email, which is exactly the problem this action exists to solve).
+export async function permanentlyDeleteEmployee(
+  employeeId: string,
+): Promise<EmployeeActionResult> {
+  await requireAdminUser();
+
+  const supabase = await createClient();
+  const { data: profile, error: fetchError } = await supabase
+    .from("profiles")
+    .select("archived_at")
+    .eq("id", employeeId)
+    .maybeSingle();
+
+  if (fetchError || !profile) {
+    return { success: false, error: "Employee not found." };
+  }
+
+  if (!profile.archived_at) {
+    return {
+      success: false,
+      error: "Only archived employees can be permanently deleted.",
+    };
+  }
+
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.auth.admin.deleteUser(employeeId);
+
+  if (error) {
+    return { success: false, error: "Failed to permanently delete employee." };
+  }
+
+  revalidatePath("/admin/employees");
+  revalidatePath("/admin/departments");
+
+  return { success: true };
+}
+
 // Re-inviting an email that already exists but hasn't confirmed yet (still
 // "Invited" or "Pending") issues a fresh token for the same auth.users row
 // rather than erroring — GoTrue only rejects generateLink(type: "invite")

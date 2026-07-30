@@ -1,4 +1,16 @@
-import { FileText, Home, ShieldCheck, UserX } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  Building2,
+  FileText,
+  Home,
+  History,
+  KeyRound,
+  Mail,
+  User,
+  UserX,
+  Users,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import type { UserRole } from "@/types/profile";
 
@@ -13,33 +25,123 @@ export interface NavItem {
   roles: UserRole[];
 }
 
-// Intentionally minimal: only routes that exist today. Role-scoped
-// dashboard/report/admin entries get added here once those milestones
-// build the pages they'd point to — an empty nav is better than a link to
-// nowhere.
-export const navItems: NavItem[] = [
+export interface NavSection {
+  // Empty title = no header rendered (used for the always-visible Home
+  // item, which doesn't belong under any capability grouping).
+  title: string;
+  items: NavItem[];
+}
+
+// Navigation is organized by BUSINESS CAPABILITY (Reports, People,
+// Organization, Settings), not by role. Every item still declares which
+// roles see it — AppShell filters items per role and drops any section
+// that ends up empty — but the section names themselves never mention
+// Admin/Manager/Employee. This is deliberate: a capability nav scales to
+// a future role without inventing a new nav section, since it's the
+// *contents* of "People" or "Reports" that change per role, not the
+// taxonomy itself.
+export const navSections: NavSection[] = [
   {
-    label: "Home",
-    href: "/",
-    icon: <Home className="size-4" />,
-    roles: ["employee", "manager", "admin"],
+    title: "",
+    items: [
+      {
+        label: "Home",
+        href: "/",
+        icon: <Home className="size-4" />,
+        roles: ["employee", "manager", "admin"],
+      },
+    ],
   },
   {
-    label: "Team Reports",
-    href: "/manager/team-reports",
-    icon: <FileText className="size-4" />,
-    roles: ["manager"],
+    title: "Reports",
+    items: [
+      {
+        label: "Daily Report",
+        href: "/reports",
+        icon: <FileText className="size-4" />,
+        roles: ["employee"],
+      },
+      {
+        label: "Report History",
+        href: "/reports/history",
+        icon: <History className="size-4" />,
+        roles: ["employee"],
+      },
+      {
+        label: "Team Reports",
+        href: "/manager/team-reports",
+        icon: <FileText className="size-4" />,
+        roles: ["manager"],
+      },
+      {
+        label: "Missing Reports",
+        href: "/manager/missing-reports",
+        icon: <UserX className="size-4" />,
+        roles: ["manager"],
+      },
+      {
+        label: "Analytics",
+        href: "/admin/analytics",
+        icon: <BarChart3 className="size-4" />,
+        roles: ["admin"],
+      },
+    ],
   },
   {
-    label: "Missing Reports",
-    href: "/manager/missing-reports",
-    icon: <UserX className="size-4" />,
-    roles: ["manager"],
+    title: "People",
+    items: [
+      {
+        label: "Team Members",
+        href: "/manager/team",
+        icon: <Users className="size-4" />,
+        roles: ["manager"],
+      },
+      {
+        label: "Employees",
+        href: "/admin/employees",
+        icon: <Users className="size-4" />,
+        roles: ["admin"],
+      },
+      {
+        label: "Departments",
+        href: "/admin/departments",
+        icon: <Building2 className="size-4" />,
+        roles: ["admin"],
+      },
+    ],
   },
   {
-    label: "Admin",
-    href: "/admin",
-    icon: <ShieldCheck className="size-4" />,
-    roles: ["admin"],
+    title: "Organization",
+    items: [
+      {
+        label: "Invitations",
+        href: "/admin/invitations",
+        icon: <Mail className="size-4" />,
+        roles: ["admin"],
+      },
+      {
+        label: "Activity",
+        href: "/admin/activity",
+        icon: <Activity className="size-4" />,
+        roles: ["admin"],
+      },
+    ],
+  },
+  {
+    title: "Settings",
+    items: [
+      {
+        label: "Profile",
+        href: "/settings/profile",
+        icon: <User className="size-4" />,
+        roles: ["employee", "manager", "admin"],
+      },
+      {
+        label: "Account",
+        href: "/settings/account",
+        icon: <KeyRound className="size-4" />,
+        roles: ["employee", "manager", "admin"],
+      },
+    ],
   },
 ];

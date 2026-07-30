@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/table";
 import { formatDate, formatDateTime } from "@/lib/helpers/dates";
 import { truncate } from "@/lib/helpers/text";
+import { getReportField } from "@/lib/reports/fields";
 import type { DailyReport } from "@/types/report";
 
 const PREVIEW_LENGTH = 60;
@@ -20,8 +21,8 @@ export function ReportHistoryTable({ reports }: { reports: DailyReport[] }) {
           <TableRow>
             <TableHead>Submitted</TableHead>
             <TableHead>Completed</TableHead>
-            <TableHead>Accomplishments</TableHead>
-            <TableHead>Blockers</TableHead>
+            <TableHead>{getReportField("content").label}</TableHead>
+            <TableHead>{getReportField("blockers").label}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

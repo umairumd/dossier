@@ -10,6 +10,7 @@ import {
   validateReportInput,
   type ReportFieldErrors,
 } from "@/lib/validations/report";
+import { getReportField } from "@/lib/reports/fields";
 
 export function ReportForm({ onSubmitted }: { onSubmitted: () => void }) {
   const [content, setContent] = useState("");
@@ -50,7 +51,7 @@ export function ReportForm({ onSubmitted }: { onSubmitted: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="content">What did you work on today?</Label>
+        <Label htmlFor="content">{getReportField("content").prompt}</Label>
         <Textarea
           id="content"
           value={content}
@@ -65,7 +66,7 @@ export function ReportForm({ onSubmitted }: { onSubmitted: () => void }) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="blockers">Blockers</Label>
+        <Label htmlFor="blockers">{getReportField("blockers").prompt}</Label>
         <Textarea
           id="blockers"
           value={blockers}
@@ -79,7 +80,9 @@ export function ReportForm({ onSubmitted }: { onSubmitted: () => void }) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="additionalNotes">Additional Notes</Label>
+        <Label htmlFor="additionalNotes">
+          {getReportField("additional_notes").prompt}
+        </Label>
         <Textarea
           id="additionalNotes"
           value={additionalNotes}

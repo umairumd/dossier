@@ -31,6 +31,7 @@ export function ConfirmActionDialog({
   successMessage,
   errorMessage,
   action,
+  onSuccess,
 }: {
   trigger: React.ReactNode;
   title: string;
@@ -40,6 +41,11 @@ export function ConfirmActionDialog({
   successMessage: string;
   errorMessage: string;
   action: () => Promise<ActionResult>;
+  // For actions where the current page's record ceases to exist
+  // afterward (e.g. permanent delete from a detail page) — the list-page
+  // callers rely on revalidatePath alone, since a row just disappearing
+  // from a still-valid list is enough.
+  onSuccess?: () => void;
 }) {
   const [, startTransition] = useTransition();
 
@@ -53,6 +59,7 @@ export function ConfirmActionDialog({
       }
 
       toast.success(successMessage);
+      onSuccess?.();
     });
   };
 
