@@ -28,7 +28,23 @@ export async function updateSession(request: NextRequest) {
   // Refreshes the auth token if expired. Required by the official Supabase
   // SSR setup even before any auth UI exists — omitting this causes sessions
   // to silently expire once auth is added in a later milestone.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isLoginRoute = request.nextUrl.pathname.startsWith("/login");
+
+  if (!user && !isLoginRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (user && isLoginRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }
