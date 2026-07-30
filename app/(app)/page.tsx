@@ -1,10 +1,5 @@
 import { getCurrentProfileWithDepartment } from "@/lib/supabase/queries/profile";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AdminDashboard } from "@/components/dashboard/admin-dashboard";
 import { EmployeeDashboard } from "@/components/dashboard/employee-dashboard";
 import { ManagerDashboard } from "@/components/dashboard/manager-dashboard";
 
@@ -22,16 +17,7 @@ export default async function DashboardPage() {
   }
 
   if (profile.role === "admin") {
-    return (
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle>Welcome, {profile.full_name}</CardTitle>
-          <CardDescription>
-            The admin dashboard hasn&apos;t been built yet.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
+    return <AdminDashboard />;
   }
 
   return <EmployeeDashboard profile={profile} />;

@@ -11,14 +11,14 @@ import {
 } from "@/components/ui/sheet";
 import { NavLinks } from "@/components/layout/nav-links";
 import { UserMenu } from "@/components/layout/user-menu";
-import type { NavItem } from "@/components/layout/nav-config";
+import type { NavSection } from "@/components/layout/nav-config";
 import type { Profile } from "@/types/profile";
 
 export function TopNav({
-  items,
+  sections,
   profile,
 }: {
-  items: NavItem[];
+  sections: NavSection[];
   profile: Profile;
 }) {
   return (
@@ -39,7 +39,7 @@ export function TopNav({
             <SheetTitle>Inoma Hub</SheetTitle>
           </SheetHeader>
           <div className="px-4">
-            <NavLinks items={items} />
+            <NavLinks sections={sections} />
           </div>
         </SheetContent>
       </Sheet>

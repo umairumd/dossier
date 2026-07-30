@@ -68,3 +68,17 @@ export const getCurrentProfileWithDepartment = cache(
     return (profile as unknown as ProfileWithDepartment) ?? null;
   },
 );
+
+// Email lives on auth.users, not profiles — but this is the requesting
+// user's OWN session, so it's available directly from getUser(), unlike
+// the admin employee list (which needs the service-role Admin API to see
+// *other* users' emails). No new privileged access required.
+export const getCurrentUserEmail = cache(async (): Promise<string | null> => {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return user?.email ?? null;
+});

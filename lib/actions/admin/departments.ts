@@ -163,3 +163,46 @@ export async function restoreDepartment(
 
   return { success: true };
 }
+
+// Permanent delete: only allowed once already archived (checked
+// server-side). Safe to run even if an archived employee's department_id
+// still points here — profiles.department_id -> departments.id is
+// ON DELETE SET NULL (see the migration accompanying this feature), so
+// that reference is cleared automatically rather than blocking the delete.
+export async function permanentlyDeleteDepartment(
+  departmentId: string,
+): Promise<DepartmentActionResult> {
+  await requireAdminUser();
+
+  const supabase = await createClient();
+  const { data: department, error: fetchError } = await supabase
+    .from("departments")
+    .select("archived_at")
+    .eq("id", departmentId)
+    .maybeSingle();
+
+  if (fetchError || !department) {
+    return { success: false, error: "Department not found." };
+  }
+
+  if (!department.archived_at) {
+    return {
+      success: false,
+      error: "Only archived departments can be permanently deleted.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("departments")
+    .delete()
+    .eq("id", departmentId);
+
+  if (error) {
+    return { success: false, error: "Failed to permanently delete department." };
+  }
+
+  revalidatePath("/admin/departments");
+  revalidatePath("/admin/employees");
+
+  return { success: true };
+}

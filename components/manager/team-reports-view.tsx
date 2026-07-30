@@ -20,30 +20,31 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/helpers/dates";
-import { isLateSubmission } from "@/lib/helpers/report-status";
+import {
+  getSubmissionStatus,
+  SUBMISSION_STATUS_LABELS,
+  type SubmissionStatus,
+} from "@/lib/reports/submission-status";
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 
-type StatusFilter = "all" | "submitted" | "missing" | "late";
+type StatusFilter = "all" | SubmissionStatus;
 
-function memberStatus(member: TeamMemberReport): Exclude<StatusFilter, "all"> {
-  if (!member.report) {
-    return "missing";
-  }
-  return isLateSubmission(member.report.submitted_at) ? "late" : "submitted";
+function memberStatus(member: TeamMemberReport): SubmissionStatus {
+  return getSubmissionStatus(member.report?.submitted_at ?? null);
 }
 
-function StatusBadge({ status }: { status: Exclude<StatusFilter, "all"> }) {
-  if (status === "missing") {
-    return <Badge variant="secondary">Missing</Badge>;
+function StatusBadge({ status }: { status: SubmissionStatus }) {
+  if (status === "missed") {
+    return <Badge variant="secondary">{SUBMISSION_STATUS_LABELS.missed}</Badge>;
   }
   if (status === "late") {
-    return <Badge variant="destructive">Late</Badge>;
+    return <Badge variant="destructive">{SUBMISSION_STATUS_LABELS.late}</Badge>;
   }
-  return <Badge>Submitted</Badge>;
+  return <Badge>{SUBMISSION_STATUS_LABELS.on_time}</Badge>;
 }
 
 export function TeamReportsView({
@@ -120,9 +121,9 @@ export function TeamReportsView({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="submitted">Submitted</SelectItem>
-            <SelectItem value="missing">Missing</SelectItem>
-            <SelectItem value="late">Late</SelectItem>
+            <SelectItem value="on_time">{SUBMISSION_STATUS_LABELS.on_time}</SelectItem>
+            <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
+            <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
           </SelectContent>
         </Select>
       </div>

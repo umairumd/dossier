@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { computeReportStats, type ReportStatsInput } from "@/lib/helpers/report-stats";
+import { dateNDaysAgo } from "@/lib/helpers/dates";
 import { getTeamEmployeeRoster } from "@/lib/supabase/queries/manager/team";
 import type { ActivityItem } from "@/types/activity";
 import type {
@@ -17,10 +18,6 @@ const RECENT_ACTIVITY_SIZE = 8;
 // which is an acceptable trade-off for "one query for the whole team"
 // instead of unbounded history per person.
 const INSIGHTS_WINDOW_DAYS = 90;
-
-function dateNDaysAgo(n: number): string {
-  return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
-}
 
 // One query for the whole team's report history (bounded to 90 days),
 // reused to compute the 7-day trend AND every member's streak/completion

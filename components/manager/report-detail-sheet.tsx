@@ -10,6 +10,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { formatDateTime } from "@/lib/helpers/dates";
+import { getReportField } from "@/lib/reports/fields";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 
@@ -46,19 +47,21 @@ export function ReportDetailSheet({
             </SheetHeader>
             <div className="flex flex-col gap-4 px-4 pb-4 text-sm">
               <div>
-                <p className="font-medium">Accomplishments</p>
+                <p className="font-medium">{getReportField("content").label}</p>
                 <p className="text-muted-foreground">
                   {current.report.content}
                 </p>
               </div>
               <div>
-                <p className="font-medium">Blockers</p>
+                <p className="font-medium">{getReportField("blockers").label}</p>
                 <p className="text-muted-foreground">
                   {current.report.blockers ?? "None reported"}
                 </p>
               </div>
               <div>
-                <p className="font-medium">Tomorrow&apos;s Plan</p>
+                <p className="font-medium">
+                  {getReportField("additional_notes").label}
+                </p>
                 <p className="text-muted-foreground">
                   {current.report.additional_notes ?? "None reported"}
                 </p>

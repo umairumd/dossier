@@ -14,6 +14,7 @@ import { ArchiveEmployeeButton } from "@/components/admin/archive-employee-butto
 import { EditEmployeeSheet } from "@/components/admin/edit-employee-sheet";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
 import { EmployeeStatusButton } from "@/components/admin/employee-status-button";
+import { PermanentlyDeleteEmployeeButton } from "@/components/admin/permanently-delete-employee-button";
 import { ResendInvitationButton } from "@/components/admin/resend-invitation-button";
 import { ReportHistoryCards } from "@/components/reports/report-history-cards";
 import { ReportHistoryTable } from "@/components/reports/report-history-table";
@@ -74,6 +75,13 @@ export default async function EmployeeDetailPage({
             fullName={employee.full_name}
             isArchived={employee.status === "archived"}
           />
+          {employee.status === "archived" && (
+            <PermanentlyDeleteEmployeeButton
+              employeeId={employee.id}
+              fullName={employee.full_name}
+              redirectTo="/admin/employees"
+            />
+          )}
         </div>
       </div>
 

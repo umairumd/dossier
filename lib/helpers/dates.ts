@@ -46,3 +46,9 @@ export function daysBetweenDateStrings(from: string, to: string): number {
   const toMs = Date.parse(`${to}T00:00:00Z`);
   return Math.round((toMs - fromMs) / 86_400_000);
 }
+
+// report_date-shaped string for "n days before today" — shared by every
+// trend/insights query (manager and admin) that builds an N-day series.
+export function dateNDaysAgo(n: number): string {
+  return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+}

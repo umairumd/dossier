@@ -19,3 +19,10 @@ export interface TeamInsights {
   frequentlyMissing: TeamMemberStanding[];
   recentActivity: ActivityItem[];
 }
+
+// Shared shape for the admin analytics page's weekly/monthly trends —
+// same CompletionTrendPoint the manager dashboard's chart already uses.
+export interface OrganizationTrends {
+  weeklyTrend: CompletionTrendPoint[];
+  monthlyTrend: CompletionTrendPoint[];
+}
