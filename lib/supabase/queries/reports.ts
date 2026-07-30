@@ -1,10 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { todayDateString } from "@/lib/helpers/dates";
 import type { DailyReport } from "@/types/report";
-
-function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 // Only checks whether *today's* report exists (for the dashboard's status
 // card and to disable the submit action) — not report history, which is a

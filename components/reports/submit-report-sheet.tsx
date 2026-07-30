@@ -25,7 +25,7 @@ export function SubmitReportSheet({
       <SheetTrigger asChild>
         <Button disabled={alreadySubmitted}>
           <FileText />
-          {alreadySubmitted ? "Report Submitted" : "Submit Report"}
+          {alreadySubmitted ? "Report Submitted" : "Continue Today's Report"}
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md">
