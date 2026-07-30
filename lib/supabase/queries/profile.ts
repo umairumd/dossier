@@ -20,7 +20,7 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   // (see /no-profile) is an expected state, not an error condition.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, role, department_id, created_at")
+    .select("id, full_name, role, department_id, is_active, created_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -51,7 +51,12 @@ export const getCurrentProfileWithDepartment = cache(
     const { data: profile } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, role, department_id, created_at, department:departments(name)",
+        // profiles and departments have two FKs between them
+        // (profiles.department_id -> departments.id, and
+        // departments.manager_id -> profiles.id), so PostgREST can't infer
+        // which one to embed without the explicit !constraint hint —
+        // omitting it throws PGRST201 ("more than one relationship found").
+        "id, full_name, role, department_id, is_active, created_at, department:departments!profiles_department_id_fkey(name)",
       )
       .eq("id", user.id)
       .maybeSingle();

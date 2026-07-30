@@ -18,5 +18,9 @@ export default async function AppLayout({
     redirect("/no-profile");
   }
 
+  if (!profile.is_active) {
+    redirect("/deactivated");
+  }
+
   return <AppShell profile={profile}>{children}</AppShell>;
 }
