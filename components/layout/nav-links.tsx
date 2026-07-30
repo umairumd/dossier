@@ -11,7 +11,10 @@ export function NavLinks({ items }: { items: NavItem[] }) {
   return (
     <nav className="flex flex-col gap-0.5">
       {items.map((item) => {
-        const isActive = pathname === item.href;
+        const isActive =
+          item.href === "/"
+            ? pathname === "/"
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
         return (
           <Link
