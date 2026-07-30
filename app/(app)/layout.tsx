@@ -10,7 +10,12 @@ export default async function AppLayout({
   const profile = await getCurrentProfile();
 
   if (!profile) {
-    redirect("/login");
+    // Not "/login" — the user has a valid session (the proxy already
+    // guarantees that for any route reaching this layout); redirecting to
+    // /login would immediately bounce back to "/" and loop forever. A
+    // signed-in user with no profile is a distinct state that needs its
+    // own page, not a login prompt they've already passed.
+    redirect("/no-profile");
   }
 
   return <AppShell profile={profile}>{children}</AppShell>;

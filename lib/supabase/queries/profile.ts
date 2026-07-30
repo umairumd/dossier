@@ -16,11 +16,13 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
     return null;
   }
 
+  // maybeSingle(), not single(): a signed-in user with no profile row yet
+  // (see /no-profile) is an expected state, not an error condition.
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, full_name, role, department_id, created_at")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   return (profile as Profile) ?? null;
 });
@@ -52,7 +54,7 @@ export const getCurrentProfileWithDepartment = cache(
         "id, full_name, role, department_id, created_at, department:departments(name)",
       )
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     // Supabase infers embedded to-one relations as arrays from the select
     // string alone (it can't know department_id's FK is one-to-one without
