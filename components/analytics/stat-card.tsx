@@ -5,7 +5,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { TrendIndicator } from "@/components/analytics/trend-indicator";
 
 // The one stat-card shape reused across the employee, manager, and admin
 // dashboards — previously each dashboard hand-rolled its own
@@ -14,14 +13,10 @@ export function StatCard({
   label,
   value,
   unit,
-  trend,
-  positiveIsGood = true,
 }: {
   label: string;
   value: string | number;
   unit?: string;
-  trend?: number;
-  positiveIsGood?: boolean;
 }): ReactNode {
   return (
     <Card>
@@ -35,9 +30,6 @@ export function StatCard({
             </span>
           )}
         </div>
-        {trend !== undefined && (
-          <TrendIndicator value={trend} positiveIsGood={positiveIsGood} />
-        )}
       </CardHeader>
     </Card>
   );

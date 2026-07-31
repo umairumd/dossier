@@ -2,13 +2,13 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { computeReportStats, type ReportStatsInput } from "@/lib/helpers/report-stats";
 import { dateNDaysAgo } from "@/lib/helpers/dates";
+import {
+  buildCompletionTrend,
+  buildSubmittersByDate,
+} from "@/lib/helpers/completion-trend";
 import { getTeamEmployeeRoster } from "@/lib/supabase/queries/manager/team";
 import type { ActivityItem } from "@/types/activity";
-import type {
-  CompletionTrendPoint,
-  TeamInsights,
-  TeamMemberStanding,
-} from "@/types/team-insights";
+import type { TeamInsights, TeamMemberStanding } from "@/types/team-insights";
 
 const TREND_DAYS = 7;
 const LEADERBOARD_SIZE = 3;
@@ -52,28 +52,19 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
   const allReports =
     (reports as (ReportStatsInput & { id: string; author_id: string })[]) ?? [];
 
-  const submittersByDate = new Map<string, Set<string>>();
+  const submittersByDate = buildSubmittersByDate(allReports);
+
+  // Grouped by author for the streak/completion computation below — a
+  // different shape than submittersByDate (which only needs to know
+  // "who submitted," not "with what content"), so kept as its own pass.
   const reportsByAuthor = new Map<string, ReportStatsInput[]>();
-
   for (const report of allReports) {
-    const submitters = submittersByDate.get(report.report_date) ?? new Set();
-    submitters.add(report.author_id);
-    submittersByDate.set(report.report_date, submitters);
-
     const authorReports = reportsByAuthor.get(report.author_id) ?? [];
     authorReports.push(report);
     reportsByAuthor.set(report.author_id, authorReports);
   }
 
-  const trend: CompletionTrendPoint[] = [];
-  for (let daysAgo = TREND_DAYS - 1; daysAgo >= 0; daysAgo -= 1) {
-    const date = dateNDaysAgo(daysAgo);
-    const submitterCount = submittersByDate.get(date)?.size ?? 0;
-    trend.push({
-      date,
-      completionPercentage: Math.round((submitterCount / roster.length) * 100),
-    });
-  }
+  const trend = buildCompletionTrend(TREND_DAYS, submittersByDate, roster.length);
 
   const weeklyCompletionPercentage = Math.round(
     trend.reduce((sum, point) => sum + point.completionPercentage, 0) /

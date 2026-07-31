@@ -33,8 +33,11 @@ import type { TeamMemberReport } from "@/types/team";
 
 type StatusFilter = "all" | SubmissionStatus;
 
-function memberStatus(member: TeamMemberReport): SubmissionStatus {
-  return getSubmissionStatus(member.report?.submitted_at ?? null);
+function memberStatus(
+  member: TeamMemberReport,
+  deadlineHourUtc: number,
+): SubmissionStatus {
+  return getSubmissionStatus(member.report?.submitted_at ?? null, deadlineHourUtc);
 }
 
 function StatusBadge({ status }: { status: SubmissionStatus }) {
@@ -50,9 +53,11 @@ function StatusBadge({ status }: { status: SubmissionStatus }) {
 export function TeamReportsView({
   members,
   departmentName,
+  deadlineHourUtc,
 }: {
   members: TeamMemberReport[];
   departmentName: string;
+  deadlineHourUtc: number;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -70,12 +75,12 @@ export function TeamReportsView({
 
     if (statusFilter !== "all") {
       result = result.filter(
-        (member) => memberStatus(member) === statusFilter,
+        (member) => memberStatus(member, deadlineHourUtc) === statusFilter,
       );
     }
 
     return sortTeamMembersBySubmission(result);
-  }, [members, query, statusFilter]);
+  }, [members, query, statusFilter, deadlineHourUtc]);
 
   const submittedMembers = useMemo(
     () =>
@@ -145,15 +150,35 @@ export function TeamReportsView({
               </TableHeader>
               <TableBody>
                 {filtered.map((member) => {
-                  const status = memberStatus(member);
+                  const status = memberStatus(member, deadlineHourUtc);
 
+                  // A clickable <tr> has no native keyboard equivalent —
+                  // role="button" + tabIndex + onKeyDown make it operable
+                  // by keyboard/screen-reader users, matching the mobile
+                  // card view below, which already used a real <button>.
                   return (
                     <TableRow
                       key={member.employeeId}
                       className={member.report ? "cursor-pointer" : undefined}
+                      role={member.report ? "button" : undefined}
+                      tabIndex={member.report ? 0 : undefined}
+                      aria-label={
+                        member.report
+                          ? `View ${member.fullName}'s report`
+                          : undefined
+                      }
                       onClick={() =>
                         member.report && openReport(member.employeeId)
                       }
+                      onKeyDown={(event) => {
+                        if (
+                          member.report &&
+                          (event.key === "Enter" || event.key === " ")
+                        ) {
+                          event.preventDefault();
+                          openReport(member.employeeId);
+                        }
+                      }}
                     >
                       <TableCell className="font-medium">
                         <EmployeeNameLink
@@ -178,7 +203,7 @@ export function TeamReportsView({
 
           <div className="flex flex-col gap-3 md:hidden">
             {filtered.map((member) => {
-              const status = memberStatus(member);
+              const status = memberStatus(member, deadlineHourUtc);
 
               return (
                 <div

@@ -1,5 +1,6 @@
 import { getCurrentProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { formatDate, todayDateString } from "@/lib/helpers/dates";
 import { DateFilter } from "@/components/manager/date-filter";
 import { TeamReportsView } from "@/components/manager/team-reports-view";
@@ -12,9 +13,10 @@ export default async function TeamReportsPage({
   const { date: dateParam } = await searchParams;
   const date = dateParam ?? todayDateString();
 
-  const [profile, members] = await Promise.all([
+  const [profile, members, settings] = await Promise.all([
     getCurrentProfileWithDepartment(),
     getTeamReportsForDate(date),
+    getOrganizationSettings(),
   ]);
 
   return (
@@ -32,6 +34,7 @@ export default async function TeamReportsPage({
       <TeamReportsView
         members={members}
         departmentName={profile?.department?.name ?? "Team"}
+        deadlineHourUtc={settings.reportDeadlineHourUtc}
       />
     </div>
   );
