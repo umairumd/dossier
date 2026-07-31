@@ -163,8 +163,21 @@ export const getEmployeeDetail = cache(
       return null;
     }
 
-    const authUsersById = await loadAuthUsersById();
-    const authUser = authUsersById.get(employeeId);
+    // Unlike getAllEmployees (which needs every user, so paginating
+    // listUsers() once is the efficient path), this needs exactly one —
+    // getUserById() is a single Admin API call regardless of how many
+    // accounts exist in the org, instead of walking every page of
+    // listUsers() just to find one row.
+    const { data: authUserData } = await createAdminClient().auth.admin.getUserById(
+      employeeId,
+    );
+    const authUser: AuthUserSummary | undefined = authUserData.user
+      ? {
+          email: authUserData.user.email ?? null,
+          lastSignInAt: authUserData.user.last_sign_in_at ?? null,
+          invitedAt: authUserData.user.invited_at ?? null,
+        }
+      : undefined;
 
     const { data: reports, error: reportsError } = await supabase
       .from("daily_reports")

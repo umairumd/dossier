@@ -3,6 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { dateNDaysAgo } from "@/lib/helpers/dates";
+import {
+  buildCompletionTrend,
+  buildSubmittersByDate,
+} from "@/lib/helpers/completion-trend";
 import type { OrganizationTrends } from "@/types/team-insights";
 
 const TREND_DAYS = 30;
@@ -29,32 +33,11 @@ export const getOrganizationTrends = cache(
       throw new Error("Failed to load organization report history.");
     }
 
-    const submittersByDate = new Map<string, Set<string>>();
-    for (const report of reportRows ?? []) {
-      const submitters = submittersByDate.get(report.report_date) ?? new Set();
-      submitters.add(report.author_id);
-      submittersByDate.set(report.report_date, submitters);
-    }
-
-    function buildTrend(days: number) {
-      const points = [];
-      for (let daysAgo = days - 1; daysAgo >= 0; daysAgo -= 1) {
-        const date = dateNDaysAgo(daysAgo);
-        const submitterCount = submittersByDate.get(date)?.size ?? 0;
-        points.push({
-          date,
-          completionPercentage:
-            activeEmployeeCount === 0
-              ? 0
-              : Math.round((submitterCount / activeEmployeeCount) * 100),
-        });
-      }
-      return points;
-    }
+    const submittersByDate = buildSubmittersByDate(reportRows ?? []);
 
     return {
-      weeklyTrend: buildTrend(7),
-      monthlyTrend: buildTrend(30),
+      weeklyTrend: buildCompletionTrend(7, submittersByDate, activeEmployeeCount),
+      monthlyTrend: buildCompletionTrend(30, submittersByDate, activeEmployeeCount),
     };
   },
 );

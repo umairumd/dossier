@@ -1,6 +1,7 @@
 import { Building2 } from "lucide-react";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
 import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
@@ -29,9 +30,10 @@ export async function ManagerDashboard({
 }: {
   profile: ProfileWithDepartment;
 }) {
-  const [members, insights] = await Promise.all([
+  const [members, insights, settings] = await Promise.all([
     getTeamReportsForDate(),
     getTeamInsights(),
+    getOrganizationSettings(),
   ]);
   const teamSize = members.length;
   const submittedMembers = members.filter(hasReport);
@@ -40,7 +42,11 @@ export async function ManagerDashboard({
   const completionPercentage =
     teamSize === 0 ? 0 : Math.round((submittedToday / teamSize) * 100);
   const lateSubmissions = submittedMembers.filter(
-    (member) => getSubmissionStatus(member.report.submitted_at) === "late",
+    (member) =>
+      getSubmissionStatus(
+        member.report.submitted_at,
+        settings.reportDeadlineHourUtc,
+      ) === "late",
   ).length;
   const today = formatLongDate(new Date());
 
