@@ -7,13 +7,11 @@ This guide explains how to set up a complete demo environment for testing Inoma 
 ## Quick Start
 
 ```bash
-# Set environment variables
-export SUPABASE_URL="https://your-project.supabase.co"
-export SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
-
-# Run the demo seeder
+# Run the demo seeder (automatically loads .env.local)
 npm run seed-demo
 ```
+
+The script automatically loads environment variables from `.env.local` — no manual exports needed.
 
 ---
 
@@ -95,25 +93,25 @@ Only generates reports for existing demo users (skips user creation).
 ## Prerequisites
 
 1. **Supabase Project** with migrations applied
-2. **Environment Variables** set:
-   - `SUPABASE_URL` — Your Supabase project URL
-   - `SUPABASE_SERVICE_ROLE_KEY` — Service role key (from Dashboard → Settings → API)
+2. **Environment file** (`.env.local`) with required variables
 
-### Setting Environment Variables
+### Setting Up Environment Variables
 
-**Option 1: Export in shell**
+Create a `.env.local` file in your project root:
+
 ```bash
-export SUPABASE_URL="https://xxx.supabase.co"
-export SUPABASE_SERVICE_ROLE_KEY="eyJ..."
+# .env.local (automatically loaded, not committed to git)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-**Option 2: Create `.env.local`**
-```bash
-# .env.local (don't commit this file!)
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
-```
-Then load with: `source .env.local && npm run seed-demo`
+Get these values from: **Supabase Dashboard → Project Settings → API**
+
+The scripts automatically load environment variables from these files (in priority order):
+1. `.env.local` (highest priority)
+2. `.env.development.local`
+3. `.env.development`
+4. `.env` (lowest priority)
 
 ---
 
@@ -178,8 +176,8 @@ SELECT id, email FROM profiles WHERE email LIKE '%@demo.inoma.local';
 
 ## Troubleshooting
 
-### "Missing environment variables"
-Ensure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set in your shell.
+### "Missing required environment variables"
+Create a `.env.local` file in your project root with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. See [Prerequisites](#prerequisites) above.
 
 ### "Failed to create user: email_exists"
 The user already exists. This is fine — the seeder will continue with other users.
