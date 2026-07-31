@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "seed-demo": "npx tsx scripts/seed-demo.ts",
+    "seed-demo:reset": "npx tsx scripts/seed-demo.ts --reset",
+    "recovery": "npx tsx scripts/recovery-cli.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

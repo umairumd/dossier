@@ -8,7 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { SendReminderButton } from "@/components/manager/send-reminder-button";
 import { formatDate } from "@/lib/helpers/dates";
 import type { MissingReportRow } from "@/types/missing-report";
 
@@ -51,15 +50,12 @@ export function MissingReportsTable({
                 : "Never"}
             </TableCell>
             <TableCell>{row.daysMissed ?? "—"}</TableCell>
-            <TableCell>
-              <div className="flex items-center justify-end gap-2">
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/manager/employees/${row.employeeId}`}>
-                    View
-                  </Link>
-                </Button>
-                <SendReminderButton fullName={row.fullName} />
-              </div>
+            <TableCell className="text-right">
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/manager/employees/${row.employeeId}`}>
+                  View Profile
+                </Link>
+              </Button>
             </TableCell>
           </TableRow>
         ))}

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { friendlyAuthErrorMessage } from "@/lib/helpers/auth-error-messages";
 
 export async function login(formData: FormData) {
   const email = formData.get("email");
@@ -15,7 +16,9 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    redirect(
+      `/login?error=${encodeURIComponent(friendlyAuthErrorMessage(error.message))}`,
+    );
   }
 
   redirect("/");

@@ -3,6 +3,11 @@
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ConfirmActionDialog } from "@/components/admin/confirm-action-dialog";
 import { permanentlyDeleteEmployee } from "@/lib/actions/admin/employees";
 
@@ -19,12 +24,33 @@ export function PermanentlyDeleteEmployeeButton({
   employeeId,
   fullName,
   redirectTo,
+  isSelf,
 }: {
   employeeId: string;
   fullName: string;
   redirectTo?: string;
+  isSelf: boolean;
 }) {
   const router = useRouter();
+
+  // Account safety: an admin can never permanently delete their own
+  // account — disabled here in the UI as well as blocked server-side in
+  // permanentlyDeleteEmployee.
+  if (isSelf) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="destructive" size="sm" disabled>
+            <Trash2 />
+            Delete Permanently
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          You cannot permanently delete your own account.
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
 
   return (
     <ConfirmActionDialog

@@ -201,3 +201,50 @@ export const getEmployeeDetail = cache(
     };
   },
 );
+
+// Backs the "protect the last administrator" rule in
+// lib/actions/admin/employees.ts: the org must always retain at least one
+// admin who is both not deactivated and not archived, since that's the
+// only account guaranteed to still be able to sign in and administer the
+// org. Not cached — callers check this immediately before a mutation that
+// could invalidate it, so a stale count would defeat the whole point.
+export async function countActiveAdmins(): Promise<number> {
+  await requireAdminUser();
+
+  const supabase = await createClient();
+
+  const { count, error } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("role", "admin")
+    .eq("is_active", true)
+    .is("archived_at", null);
+
+  if (error) {
+    throw new Error("Failed to check administrator count.");
+  }
+
+  return count ?? 0;
+}
+
+// Used only by permanentlyDeleteEmployee's last-admin guard, which is
+// stricter than "active": deletion is irreversible, so it must never leave
+// the org with zero admin accounts at all — even an already-archived or
+// deactivated one is still a recoverable admin (restoreEmployee can bring
+// it back), whereas deleting the org's last one closes that door for good.
+export async function countAllAdmins(): Promise<number> {
+  await requireAdminUser();
+
+  const supabase = await createClient();
+
+  const { count, error } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("role", "admin");
+
+  if (error) {
+    throw new Error("Failed to check administrator count.");
+  }
+
+  return count ?? 0;
+}

@@ -1,12 +1,14 @@
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { EmployeeList } from "@/components/admin/employee-list";
 import { InviteEmployeeSheet } from "@/components/admin/invite-employee-sheet";
 
 export default async function AdminEmployeesPage() {
-  const [employees, departments] = await Promise.all([
+  const [employees, departments, profile] = await Promise.all([
     getAllEmployees(),
     getAllDepartments(),
+    getCurrentProfile(),
   ]);
 
   const departmentOptions = departments.map((department) => ({
@@ -29,7 +31,11 @@ export default async function AdminEmployeesPage() {
         <InviteEmployeeSheet departments={departmentOptions} />
       </div>
 
-      <EmployeeList employees={employees} departments={departmentOptions} />
+      <EmployeeList
+        employees={employees}
+        departments={departmentOptions}
+        currentUserId={profile?.id ?? ""}
+      />
     </div>
   );
 }
