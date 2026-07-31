@@ -2,7 +2,7 @@ import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { EmployeeList } from "@/components/admin/employee-list";
-import { InviteEmployeeSheet } from "@/components/admin/invite-employee-sheet";
+import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
 
 export default async function AdminEmployeesPage() {
   const [employees, departments, profile] = await Promise.all([
@@ -28,7 +28,7 @@ export default async function AdminEmployeesPage() {
             {employees.length === 1 ? "employee" : "employees"}
           </p>
         </div>
-        <InviteEmployeeSheet departments={departmentOptions} />
+        <InviteEmployeeDialog departments={departmentOptions} />
       </div>
 
       <EmployeeList

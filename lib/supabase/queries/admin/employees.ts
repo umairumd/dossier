@@ -22,6 +22,7 @@ interface ProfileRow {
 
 interface AuthUserSummary {
   email: string | null;
+  emailConfirmedAt: string | null;
   lastSignInAt: string | null;
   invitedAt: string | null;
 }
@@ -45,7 +46,9 @@ function computeEmployeeStatus(
     return "disabled";
   }
 
-  if (authUser?.lastSignInAt) {
+  // A user is "active" if they've signed in OR if their email is confirmed
+  // (they can sign in with password even if they haven't yet).
+  if (authUser?.lastSignInAt || authUser?.emailConfirmedAt) {
     return "active";
   }
 
@@ -79,6 +82,7 @@ async function loadAuthUsersById(): Promise<Map<string, AuthUserSummary>> {
     for (const authUser of data.users) {
       authUsersById.set(authUser.id, {
         email: authUser.email ?? null,
+        emailConfirmedAt: authUser.email_confirmed_at ?? null,
         lastSignInAt: authUser.last_sign_in_at ?? null,
         invitedAt: authUser.invited_at ?? null,
       });
@@ -174,6 +178,7 @@ export const getEmployeeDetail = cache(
     const authUser: AuthUserSummary | undefined = authUserData.user
       ? {
           email: authUserData.user.email ?? null,
+          emailConfirmedAt: authUserData.user.email_confirmed_at ?? null,
           lastSignInAt: authUserData.user.last_sign_in_at ?? null,
           invitedAt: authUserData.user.invited_at ?? null,
         }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -16,13 +18,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArchiveDepartmentButton } from "@/components/admin/archive-department-button";
+import { DepartmentActionsMenu } from "@/components/admin/department-actions-menu";
 import { DepartmentStatusBadge } from "@/components/admin/department-status-badge";
-import { EditDepartmentSheet } from "@/components/admin/edit-department-sheet";
-import { PermanentlyDeleteDepartmentButton } from "@/components/admin/permanently-delete-department-button";
 import type { DepartmentListItem, ManagerCandidate } from "@/types/department";
 
-type StatusFilter = "active" | "archived";
+type StatusFilter = "all" | "active" | "archived";
+
+const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "archived", label: "Archived" },
+];
 
 export function DepartmentList({
   departments,
@@ -31,38 +37,63 @@ export function DepartmentList({
   departments: DepartmentListItem[];
   managerCandidates: ManagerCandidate[];
 }) {
+  const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
 
-  const filtered = useMemo(
-    () =>
-      departments.filter((department) =>
-        statusFilter === "archived"
-          ? department.archived_at
-          : !department.archived_at,
-      ),
-    [departments, statusFilter],
-  );
+  const filtered = useMemo(() => {
+    const byStatus =
+      statusFilter === "all"
+        ? departments
+        : statusFilter === "archived"
+          ? departments.filter((d) => d.archived_at)
+          : departments.filter((d) => !d.archived_at);
+
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) {
+      return byStatus;
+    }
+
+    return byStatus.filter(
+      (department) =>
+        department.name.toLowerCase().includes(normalized) ||
+        department.manager_name?.toLowerCase().includes(normalized)
+    );
+  }, [departments, query, statusFilter]);
 
   return (
     <div className="flex flex-col gap-4">
-      <Select
-        value={statusFilter}
-        onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-      >
-        <SelectTrigger className="w-44">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="active">Active</SelectItem>
-          <SelectItem value="archived">Archived</SelectItem>
-        </SelectContent>
-      </Select>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search departments..."
+            className="pl-8"
+          />
+        </div>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FILTER_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {filtered.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
-          {statusFilter === "archived"
-            ? "No archived departments."
-            : "No departments yet."}
+          {departments.length === 0
+            ? "No departments yet."
+            : "No departments match your filters."}
         </p>
       ) : (
         <Table>
@@ -72,15 +103,13 @@ export function DepartmentList({
               <TableHead>Manager</TableHead>
               <TableHead>Employees</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="w-12 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.map((department) => (
               <TableRow key={department.id}>
-                <TableCell className="font-medium">
-                  {department.name}
-                </TableCell>
+                <TableCell className="font-medium">{department.name}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {department.manager_name ?? "Unassigned"}
                 </TableCell>
@@ -88,24 +117,11 @@ export function DepartmentList({
                 <TableCell>
                   <DepartmentStatusBadge archivedAt={department.archived_at} />
                 </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end gap-2">
-                    <EditDepartmentSheet
-                      department={department}
-                      managerCandidates={managerCandidates}
-                    />
-                    <ArchiveDepartmentButton
-                      departmentId={department.id}
-                      name={department.name}
-                      isArchived={!!department.archived_at}
-                    />
-                    {department.archived_at && (
-                      <PermanentlyDeleteDepartmentButton
-                        departmentId={department.id}
-                        name={department.name}
-                      />
-                    )}
-                  </div>
+                <TableCell className="text-right">
+                  <DepartmentActionsMenu
+                    department={department}
+                    managerCandidates={managerCandidates}
+                  />
                 </TableCell>
               </TableRow>
             ))}

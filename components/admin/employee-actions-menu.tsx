@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Archive,
   ArchiveRestore,
+  Link2,
   MoreHorizontal,
   Pencil,
   Power,
@@ -43,7 +44,8 @@ import {
 } from "@/lib/actions/admin/employees";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem } from "@/types/employee";
-import { EditEmployeeSheet } from "./edit-employee-sheet";
+import { EditEmployeeDialog } from "./edit-employee-dialog";
+import { InviteLinkDialog } from "./invite-link-dialog";
 
 type DialogAction = "activate" | "deactivate" | "archive" | "restore" | "delete";
 
@@ -73,8 +75,11 @@ export function EmployeeActionsMenu({
   const [isPending, startTransition] = useTransition();
   const [dialogAction, setDialogAction] = useState<DialogAction | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [inviteLinkOpen, setInviteLinkOpen] = useState(false);
 
   const isArchived = employee.status === "archived";
+  const isPendingInvite =
+    employee.status === "invited" || employee.status === "pending";
 
   const dialogConfigs: Record<DialogAction, DialogConfig> = {
     activate: {
@@ -161,6 +166,13 @@ export function EmployeeActionsMenu({
 
           <DropdownMenuSeparator />
 
+          {isPendingInvite && employee.email && (
+            <DropdownMenuItem onSelect={() => setInviteLinkOpen(true)}>
+              <Link2 className="size-4" />
+              Invite Link
+            </DropdownMenuItem>
+          )}
+
           {!isArchived && (
             <>
               {employee.is_active ? (
@@ -225,13 +237,22 @@ export function EmployeeActionsMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <EditEmployeeSheet
+      <EditEmployeeDialog
         employee={employee}
         departments={departments}
         isSelf={isSelf}
         open={editOpen}
         onOpenChange={setEditOpen}
       />
+
+      {employee.email && (
+        <InviteLinkDialog
+          email={employee.email}
+          fullName={employee.full_name}
+          open={inviteLinkOpen}
+          onOpenChange={setInviteLinkOpen}
+        />
+      )}
 
       <AlertDialog
         open={dialogAction !== null}

@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CopyInviteLinkButton } from "@/components/admin/copy-invite-link-button";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
 import { ReportHistoryCards } from "@/components/reports/report-history-cards";
@@ -55,21 +54,12 @@ export default async function EmployeeDetailPage({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {(employee.status === "invited" || employee.status === "pending") &&
-            employee.email && (
-              <CopyInviteLinkButton
-                email={employee.email}
-                fullName={employee.full_name}
-              />
-            )}
-          <EmployeeActionsMenu
-            employee={employee}
-            departments={departmentOptions}
-            isSelf={isSelf}
-            redirectOnDelete="/admin/employees"
-          />
-        </div>
+        <EmployeeActionsMenu
+          employee={employee}
+          departments={departmentOptions}
+          isSelf={isSelf}
+          redirectOnDelete="/admin/employees"
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -101,9 +91,7 @@ export default async function EmployeeDetailPage({
               Invited
             </CardDescription>
             <CardTitle className="text-base font-medium">
-              {employee.invited_at
-                ? formatDateTime(employee.invited_at)
-                : "—"}
+              {employee.invited_at ? formatDateTime(employee.invited_at) : "—"}
             </CardTitle>
           </CardHeader>
         </Card>
