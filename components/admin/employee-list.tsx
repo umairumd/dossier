@@ -19,12 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArchiveEmployeeButton } from "@/components/admin/archive-employee-button";
-import { EditEmployeeSheet } from "@/components/admin/edit-employee-sheet";
+import { CopyInviteLinkButton } from "@/components/admin/copy-invite-link-button";
+import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
-import { EmployeeStatusButton } from "@/components/admin/employee-status-button";
-import { PermanentlyDeleteEmployeeButton } from "@/components/admin/permanently-delete-employee-button";
-import { ResendInvitationButton } from "@/components/admin/resend-invitation-button";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem, EmployeeStatus } from "@/types/employee";
 
@@ -42,9 +39,11 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
 export function EmployeeList({
   employees,
   departments,
+  currentUserId,
 }: {
   employees: EmployeeListItem[];
   departments: DepartmentOption[];
+  currentUserId: string;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -127,34 +126,20 @@ export function EmployeeList({
                 <EmployeeStatusBadge status={employee.status} />
               </TableCell>
               <TableCell>
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end gap-1">
                   {(employee.status === "invited" ||
                     employee.status === "pending") &&
                     employee.email && (
-                      <ResendInvitationButton email={employee.email} />
+                      <CopyInviteLinkButton
+                        email={employee.email}
+                        fullName={employee.full_name}
+                      />
                     )}
-                  <EditEmployeeSheet
+                  <EmployeeActionsMenu
                     employee={employee}
                     departments={departments}
+                    isSelf={employee.id === currentUserId}
                   />
-                  {employee.status !== "archived" && (
-                    <EmployeeStatusButton
-                      employeeId={employee.id}
-                      fullName={employee.full_name}
-                      isActive={employee.is_active}
-                    />
-                  )}
-                  <ArchiveEmployeeButton
-                    employeeId={employee.id}
-                    fullName={employee.full_name}
-                    isArchived={employee.status === "archived"}
-                  />
-                  {employee.status === "archived" && (
-                    <PermanentlyDeleteEmployeeButton
-                      employeeId={employee.id}
-                      fullName={employee.full_name}
-                    />
-                  )}
                 </div>
               </TableCell>
             </TableRow>

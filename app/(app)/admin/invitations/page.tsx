@@ -9,9 +9,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CopyInviteLinkButton } from "@/components/admin/copy-invite-link-button";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
 import { InviteEmployeeSheet } from "@/components/admin/invite-employee-sheet";
-import { ResendInvitationButton } from "@/components/admin/resend-invitation-button";
 
 export default async function InvitationsPage() {
   const [employees, departments] = await Promise.all([
@@ -75,7 +75,10 @@ export default async function InvitationsPage() {
                 </TableCell>
                 <TableCell className="text-right">
                   {employee.email && (
-                    <ResendInvitationButton email={employee.email} />
+                    <CopyInviteLinkButton
+                      email={employee.email}
+                      fullName={employee.full_name}
+                    />
                   )}
                 </TableCell>
               </TableRow>

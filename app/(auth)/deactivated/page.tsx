@@ -15,8 +15,9 @@ export default function DeactivatedPage() {
       <CardHeader>
         <CardTitle>Account deactivated</CardTitle>
         <CardDescription>
-          Your account has been deactivated. Contact an admin if you believe
-          this is a mistake.
+          Your account has been deactivated by your organization
+          administrator. Please contact your administrator if you believe
+          this is an error.
         </CardDescription>
       </CardHeader>
       <CardContent>

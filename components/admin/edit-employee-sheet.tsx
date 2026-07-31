@@ -31,14 +31,26 @@ import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem } from "@/types/employee";
 import type { UserRole } from "@/types/profile";
 
+interface EditEmployeeSheetProps {
+  employee: EmployeeListItem;
+  departments: DepartmentOption[];
+  isSelf: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
+}
+
 export function EditEmployeeSheet({
   employee,
   departments,
-}: {
-  employee: EmployeeListItem;
-  departments: DepartmentOption[];
-}) {
-  const [open, setOpen] = useState(false);
+  isSelf,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  showTrigger = true,
+}: EditEmployeeSheetProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [email, setEmail] = useState(employee.email ?? "");
   const [fullName, setFullName] = useState(employee.full_name);
   const [role, setRole] = useState<UserRole>(employee.role);
@@ -93,15 +105,17 @@ export function EditEmployeeSheet({
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Edit ${employee.full_name}`}
-        >
-          <Pencil />
-        </Button>
-      </SheetTrigger>
+      {showTrigger && (
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Edit ${employee.full_name}`}
+          >
+            <Pencil />
+          </Button>
+        </SheetTrigger>
+      )}
       <SheetContent className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Edit Employee</SheetTitle>
@@ -150,6 +164,7 @@ export function EditEmployeeSheet({
             <Select
               value={role}
               onValueChange={(value) => setRole(value as UserRole)}
+              disabled={isSelf}
             >
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -160,6 +175,15 @@ export function EditEmployeeSheet({
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
+            {/* Account safety: an admin can never remove their own admin
+                privileges — enforced server-side in updateEmployee, and
+                disabled here so the UI doesn't offer an action that would
+                just be rejected. */}
+            {isSelf && (
+              <p className="text-xs text-muted-foreground">
+                You cannot change your own role.
+              </p>
+            )}
           </div>
 
           {role !== "admin" && (

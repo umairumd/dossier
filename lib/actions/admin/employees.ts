@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
+import {
+  countActiveAdmins,
+  countAllAdmins,
+} from "@/lib/supabase/queries/admin/employees";
 import { getSiteUrl } from "@/lib/helpers/site-url";
 import {
   validateEditEmployeeInput,
@@ -103,12 +107,50 @@ export async function inviteEmployee(
 export async function updateEmployee(
   input: EditEmployeeInput & { id: string },
 ): Promise<EmployeeActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
   const validation = validateEditEmployeeInput(input);
 
   if (!validation.valid) {
     return { success: false, fieldErrors: validation.fieldErrors };
+  }
+
+  // Account safety: an admin can never demote themselves. Since only an
+  // admin can reach this action at all (requireAdminUser above), the
+  // caller editing their own row is necessarily an admin right now — so
+  // "target is me AND the new role isn't admin" is exactly "I'm removing
+  // my own admin privileges," with no extra lookup needed to confirm it.
+  if (input.id === admin.id && validation.value.role !== "admin") {
+    return {
+      success: false,
+      error: "You cannot remove your own admin privileges.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  // Account safety: protect the last administrator. Only relevant when
+  // this edit would move an admin OUT of the admin role — fetch their
+  // current role/status first, since "last admin" only means anything for
+  // someone who is presently one of the active admins being counted.
+  if (validation.value.role !== "admin") {
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select("role, is_active, archived_at")
+      .eq("id", input.id)
+      .maybeSingle();
+
+    if (
+      currentProfile?.role === "admin" &&
+      currentProfile.is_active &&
+      !currentProfile.archived_at &&
+      (await countActiveAdmins()) <= 1
+    ) {
+      return {
+        success: false,
+        error: "The last administrator's role cannot be changed.",
+      };
+    }
   }
 
   // Email lives on auth.users, not profiles — changing it is an Admin API
@@ -131,7 +173,6 @@ export async function updateEmployee(
     return { success: false, error: "Failed to update employee email." };
   }
 
-  const supabase = await createClient();
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -154,7 +195,37 @@ export async function setEmployeeActive(
   employeeId: string,
   isActive: boolean,
 ): Promise<EmployeeActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
+
+  // Account safety: never let an admin deactivate themselves — doing so
+  // would sign them out (see the ban-based mechanism below) with no other
+  // admin action available to undo it.
+  if (!isActive && employeeId === admin.id) {
+    return {
+      success: false,
+      error: "You cannot deactivate your own account.",
+    };
+  }
+
+  const readClient = await createClient();
+
+  // Account safety: protect the last administrator. Deactivating only
+  // matters for this invariant when the target is currently one of the
+  // active admins being counted — fetch their role first.
+  if (!isActive) {
+    const { data: targetProfile } = await readClient
+      .from("profiles")
+      .select("role")
+      .eq("id", employeeId)
+      .maybeSingle();
+
+    if (targetProfile?.role === "admin" && (await countActiveAdmins()) <= 1) {
+      return {
+        success: false,
+        error: "The last administrator cannot be deactivated.",
+      };
+    }
+  }
 
   const adminClient = createAdminClient();
   const { error: authError } = await adminClient.auth.admin.updateUserById(
@@ -191,7 +262,29 @@ export async function setEmployeeActive(
 export async function archiveEmployee(
   employeeId: string,
 ): Promise<EmployeeActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
+
+  // Account safety: never let an admin archive themselves — same
+  // reasoning as setEmployeeActive, since archiving also bans the account.
+  if (employeeId === admin.id) {
+    return { success: false, error: "You cannot archive your own account." };
+  }
+
+  const readClient = await createClient();
+
+  // Account safety: protect the last administrator.
+  const { data: targetProfile } = await readClient
+    .from("profiles")
+    .select("role")
+    .eq("id", employeeId)
+    .maybeSingle();
+
+  if (targetProfile?.role === "admin" && (await countActiveAdmins()) <= 1) {
+    return {
+      success: false,
+      error: "The last administrator cannot be archived.",
+    };
+  }
 
   const adminClient = createAdminClient();
   const { error: authError } = await adminClient.auth.admin.updateUserById(
@@ -263,12 +356,23 @@ export async function restoreEmployee(
 export async function permanentlyDeleteEmployee(
   employeeId: string,
 ): Promise<EmployeeActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
+
+  // Account safety: never let an admin permanently delete themselves. Not
+  // reachable through the normal UI flow (self-archive is already blocked
+  // above, and this action requires archived_at to be set first), but
+  // enforced here too since the server, not the UI, is the real boundary.
+  if (employeeId === admin.id) {
+    return {
+      success: false,
+      error: "You cannot permanently delete your own account.",
+    };
+  }
 
   const supabase = await createClient();
   const { data: profile, error: fetchError } = await supabase
     .from("profiles")
-    .select("archived_at")
+    .select("role, archived_at")
     .eq("id", employeeId)
     .maybeSingle();
 
@@ -280,6 +384,18 @@ export async function permanentlyDeleteEmployee(
     return {
       success: false,
       error: "Only archived employees can be permanently deleted.",
+    };
+  }
+
+  // Account safety: protect the last administrator. Deletion is
+  // irreversible, so this checks against ALL admins (not just active
+  // ones, unlike the other guards above) — even an archived admin is
+  // still recoverable via restoreEmployee, and deleting the org's last one
+  // would close that door for good.
+  if (profile.role === "admin" && (await countAllAdmins()) <= 1) {
+    return {
+      success: false,
+      error: "The last administrator cannot be permanently deleted.",
     };
   }
 
@@ -296,29 +412,40 @@ export async function permanentlyDeleteEmployee(
   return { success: true };
 }
 
+export interface RegenerateInviteLinkResult {
+  success: boolean;
+  error?: string;
+  inviteLink?: string;
+}
+
 // Re-inviting an email that already exists but hasn't confirmed yet (still
 // "Invited" or "Pending") issues a fresh token for the same auth.users row
 // rather than erroring — GoTrue only rejects generateLink(type: "invite")
 // with email_exists for an already-CONFIRMED user. The existing profile
 // (name/role/department) is untouched: handle_new_user only fires on
 // INSERT, and this doesn't create a new auth.users row.
-export async function resendInvitation(
+//
+// Returns the new invite link so it can be copied/shared manually — this is
+// the primary use case when email isn't configured. The old token is
+// invalidated by this operation.
+export async function regenerateInviteLink(
   email: string,
-): Promise<EmployeeActionResult> {
+): Promise<RegenerateInviteLinkResult> {
   await requireAdminUser();
 
   const adminClient = createAdminClient();
-  const { error } = await adminClient.auth.admin.generateLink({
+  const { data, error } = await adminClient.auth.admin.generateLink({
     type: "invite",
     email,
     options: { redirectTo: `${getSiteUrl()}/invite` },
   });
 
   if (error) {
-    return { success: false, error: "Failed to resend the invitation." };
+    return { success: false, error: "Failed to regenerate invite link." };
   }
 
   revalidatePath("/admin/employees");
+  revalidatePath("/admin/invitations");
 
-  return { success: true };
+  return { success: true, inviteLink: data.properties.action_link };
 }

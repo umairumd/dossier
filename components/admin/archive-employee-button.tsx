@@ -1,5 +1,10 @@
 import { Archive, ArchiveRestore } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ConfirmActionDialog } from "@/components/admin/confirm-action-dialog";
 import { archiveEmployee, restoreEmployee } from "@/lib/actions/admin/employees";
 
@@ -7,11 +12,30 @@ export function ArchiveEmployeeButton({
   employeeId,
   fullName,
   isArchived,
+  isSelf,
 }: {
   employeeId: string;
   fullName: string;
   isArchived: boolean;
+  isSelf: boolean;
 }) {
+  // Account safety: an admin can never archive their own account —
+  // disabled here in the UI as well as blocked server-side in
+  // archiveEmployee.
+  if (!isArchived && isSelf) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="outline" size="sm" disabled>
+            <Archive />
+            Archive
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>You cannot archive your own account.</TooltipContent>
+      </Tooltip>
+    );
+  }
+
   if (isArchived) {
     return (
       <ConfirmActionDialog

@@ -60,13 +60,13 @@ export const navSections: NavSection[] = [
         label: "Daily Report",
         href: "/reports",
         icon: <FileText className="size-4" />,
-        roles: ["employee"],
+        roles: ["employee", "manager", "admin"],
       },
       {
         label: "Report History",
         href: "/reports/history",
         icon: <History className="size-4" />,
-        roles: ["employee"],
+        roles: ["employee", "manager", "admin"],
       },
       {
         label: "Team Reports",

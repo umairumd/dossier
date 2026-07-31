@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Calendar, LogIn, Mail } from "lucide-react";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getEmployeeDetail } from "@/lib/supabase/queries/admin/employees";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { formatDateTime } from "@/lib/helpers/dates";
 import {
   Card,
@@ -10,12 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArchiveEmployeeButton } from "@/components/admin/archive-employee-button";
-import { EditEmployeeSheet } from "@/components/admin/edit-employee-sheet";
+import { CopyInviteLinkButton } from "@/components/admin/copy-invite-link-button";
+import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
-import { EmployeeStatusButton } from "@/components/admin/employee-status-button";
-import { PermanentlyDeleteEmployeeButton } from "@/components/admin/permanently-delete-employee-button";
-import { ResendInvitationButton } from "@/components/admin/resend-invitation-button";
 import { ReportHistoryCards } from "@/components/reports/report-history-cards";
 import { ReportHistoryTable } from "@/components/reports/report-history-table";
 
@@ -26,14 +24,17 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params;
 
-  const [employee, departments] = await Promise.all([
+  const [employee, departments, profile] = await Promise.all([
     getEmployeeDetail(id),
     getAllDepartments(),
+    getCurrentProfile(),
   ]);
 
   if (!employee) {
     notFound();
   }
+
+  const isSelf = employee.id === profile?.id;
 
   const departmentOptions = departments.map((department) => ({
     id: department.id,
@@ -57,31 +58,17 @@ export default async function EmployeeDetailPage({
         <div className="flex flex-wrap items-center gap-2">
           {(employee.status === "invited" || employee.status === "pending") &&
             employee.email && (
-              <ResendInvitationButton email={employee.email} />
+              <CopyInviteLinkButton
+                email={employee.email}
+                fullName={employee.full_name}
+              />
             )}
-          <EditEmployeeSheet
+          <EmployeeActionsMenu
             employee={employee}
             departments={departmentOptions}
+            isSelf={isSelf}
+            redirectOnDelete="/admin/employees"
           />
-          {employee.status !== "archived" && (
-            <EmployeeStatusButton
-              employeeId={employee.id}
-              fullName={employee.full_name}
-              isActive={employee.is_active}
-            />
-          )}
-          <ArchiveEmployeeButton
-            employeeId={employee.id}
-            fullName={employee.full_name}
-            isArchived={employee.status === "archived"}
-          />
-          {employee.status === "archived" && (
-            <PermanentlyDeleteEmployeeButton
-              employeeId={employee.id}
-              fullName={employee.full_name}
-              redirectTo="/admin/employees"
-            />
-          )}
         </div>
       </div>
 
