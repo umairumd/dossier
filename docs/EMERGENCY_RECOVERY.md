@@ -18,14 +18,17 @@ This document describes how to recover from situations where admin access is los
 
 ## Prerequisites
 
-For CLI-based recovery:
+For CLI-based recovery, ensure you have a `.env.local` file in your project root:
+
 ```bash
-# Set environment variables
-export SUPABASE_URL="https://your-project.supabase.co"
-export SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+# .env.local (automatically loaded by CLI scripts)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-Find these in: Supabase Dashboard → Project Settings → API
+Get these values from: **Supabase Dashboard → Project Settings → API**
+
+The CLI automatically loads environment variables from `.env.local` — no manual exports needed.
 
 ---
 
@@ -45,7 +48,7 @@ A deactivated user has `is_active = false` and is banned in Supabase Auth.
 
 **Using CLI:**
 ```bash
-npx tsx scripts/recovery-cli.ts reactivate admin@company.com
+npm run recovery reactivate admin@company.com
 ```
 
 **Using SQL + Dashboard:**
@@ -64,7 +67,7 @@ An archived user has `archived_at` set and is banned.
 
 **Using CLI:**
 ```bash
-npx tsx scripts/recovery-cli.ts restore admin@company.com
+npm run recovery restore admin@company.com
 ```
 
 **Using SQL + Dashboard:**
@@ -81,7 +84,7 @@ When all admins are locked out but other users can log in:
 
 **Using CLI:**
 ```bash
-npx tsx scripts/recovery-cli.ts promote trusted-user@company.com
+npm run recovery promote trusted-user@company.com
 ```
 
 **Using SQL:**
@@ -97,10 +100,7 @@ When no existing users can be promoted:
 
 **Using CLI:**
 ```bash
-npx tsx scripts/recovery-cli.ts create-admin \
-  emergency@company.com \
-  "Emergency Admin" \
-  "SecurePassword123!"
+npm run recovery create-admin emergency@company.com "Emergency Admin" "SecurePassword123!"
 ```
 
 **Using Dashboard + SQL:**
@@ -140,23 +140,25 @@ When a user is deactivated or archived, both are set. Recovery must address both
 
 ```bash
 # List all admins and their status
-npx tsx scripts/recovery-cli.ts list-admins
+npm run recovery list-admins
 
 # Promote existing user to admin
-npx tsx scripts/recovery-cli.ts promote user@company.com
+npm run recovery promote user@company.com
 
 # Reactivate deactivated user (unban + set active)
-npx tsx scripts/recovery-cli.ts reactivate user@company.com
+npm run recovery reactivate user@company.com
 
 # Restore archived user (unban + set active + clear archive)
-npx tsx scripts/recovery-cli.ts restore user@company.com
+npm run recovery restore user@company.com
 
 # Only unban (doesn't change profile)
-npx tsx scripts/recovery-cli.ts unban user@company.com
+npm run recovery unban user@company.com
 
 # Create new admin user
-npx tsx scripts/recovery-cli.ts create-admin email name password
+npm run recovery create-admin email@company.com "Full Name" "SecurePass123!"
 ```
+
+Environment variables are automatically loaded from `.env.local`.
 
 ---
 
@@ -205,4 +207,4 @@ If these procedures don't resolve your issue:
 1. Check Supabase Dashboard for Auth-level issues
 2. Review `profiles` table directly
 3. Check application logs for specific error messages
-4. Verify environment variables are set correctly
+4. Verify `.env.local` exists with correct values

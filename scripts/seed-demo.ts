@@ -4,6 +4,7 @@
  *
  * Creates a complete demo organization with departments, users, invitations,
  * and realistic report history. Idempotent - safe to run multiple times.
+ * Automatically loads environment variables from .env.local and .env files.
  *
  * Usage:
  *   npm run seed-demo
@@ -13,10 +14,6 @@
  * Options:
  *   --reset    Clear all demo data before seeding (DESTRUCTIVE)
  *   --reports  Only seed reports for existing users (skip user creation)
- *
- * Environment Variables Required:
- *   SUPABASE_URL
- *   SUPABASE_SERVICE_ROLE_KEY
  *
  * Demo Credentials (all use password: demo123!):
  *   admin@demo.inoma.local         - Demo Admin
@@ -30,19 +27,16 @@
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { initEnv } from "./lib/load-env";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Load environment variables from .env.local, .env, etc.
+initEnv(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Error: Missing environment variables");
-  console.error("Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY");
-  process.exit(1);
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
 
 // Demo password for all users
 const DEMO_PASSWORD = "demo123!";
@@ -274,6 +268,9 @@ async function assignDepartmentManagers(
 ) {
   console.log("\n👥 Assigning department managers...");
 
+  // Load all auth users to find managers by email
+  const { data: authUsers } = await client.auth.admin.listUsers();
+
   const managerAssignments: Record<string, string> = {
     Engineering: `eng.manager@${DEMO_DOMAIN}`,
     Design: `design.manager@${DEMO_DOMAIN}`,
@@ -283,22 +280,20 @@ async function assignDepartmentManagers(
     const deptId = deptMap.get(deptName);
     if (!deptId) continue;
 
-    // Find manager's profile
-    const { data: profile } = await client
-      .from("profiles")
-      .select("id")
-      .eq("email", managerEmail)
-      .maybeSingle();
+    // Find manager by email in auth users
+    const authUser = authUsers?.users.find(
+      (u) => u.email?.toLowerCase() === managerEmail.toLowerCase()
+    );
 
-    if (!profile) {
+    if (!authUser) {
       console.log(`   ⚠ Manager ${managerEmail} not found`);
       continue;
     }
 
-    // Update department
+    // Update department with the manager's user ID
     const { error } = await client
       .from("departments")
-      .update({ manager_id: profile.id })
+      .update({ manager_id: authUser.id })
       .eq("id", deptId);
 
     if (error) {
@@ -372,14 +367,18 @@ async function seedReportsForUser(
 async function seedReports(client: SupabaseClient) {
   console.log("\n📝 Seeding report history...");
 
-  // Get all confirmed demo users (not pending)
-  const { data: profiles } = await client
-    .from("profiles")
-    .select("id, email")
-    .like("email", `%@${DEMO_DOMAIN}`)
-    .neq("email", `pending@${DEMO_DOMAIN}`);
+  // Get all auth users with demo domain emails (emails are in auth.users, not profiles)
+  const { data: authUsers } = await client.auth.admin.listUsers();
 
-  if (!profiles || profiles.length === 0) {
+  // Filter to confirmed demo users (not pending)
+  const demoUsers = authUsers?.users.filter(
+    (u) =>
+      u.email?.endsWith(`@${DEMO_DOMAIN}`) &&
+      u.email !== `pending@${DEMO_DOMAIN}` &&
+      u.email_confirmed_at // Only confirmed users
+  );
+
+  if (!demoUsers || demoUsers.length === 0) {
     console.log("   No demo users found. Run without --reports flag first.");
     return;
   }
@@ -387,15 +386,15 @@ async function seedReports(client: SupabaseClient) {
   let totalCreated = 0;
   let totalSkipped = 0;
 
-  for (const profile of profiles) {
+  for (const user of demoUsers) {
     const { created, skipped } = await seedReportsForUser(
       client,
-      profile.id,
-      profile.email
+      user.id,
+      user.email!
     );
     totalCreated += created;
     totalSkipped += skipped;
-    console.log(`   ${profile.email}: ${created} created, ${skipped} skipped`);
+    console.log(`   ${user.email}: ${created} created, ${skipped} skipped`);
   }
 
   console.log(`\n   Total: ${totalCreated} reports created, ${totalSkipped} already existed`);

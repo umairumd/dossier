@@ -3,9 +3,11 @@
  * Inoma Hub Recovery CLI
  *
  * Emergency recovery tool for admin account management.
- * Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.
+ * Automatically loads environment variables from .env.local and .env files.
  *
  * Usage:
+ *   npm run recovery <command> [options]
+ *   # or directly:
  *   npx tsx scripts/recovery-cli.ts <command> [options]
  *
  * Commands:
@@ -17,60 +19,113 @@
  *   create-admin <email> <name> <password>  Create new admin user
  *
  * Examples:
- *   npx tsx scripts/recovery-cli.ts list-admins
- *   npx tsx scripts/recovery-cli.ts promote john@company.com
- *   npx tsx scripts/recovery-cli.ts reactivate locked-admin@company.com
- *   npx tsx scripts/recovery-cli.ts create-admin emergency@company.com "Emergency Admin" "SecurePass123!"
+ *   npm run recovery list-admins
+ *   npm run recovery promote john@company.com
+ *   npm run recovery create-admin emergency@company.com "Emergency Admin" "SecurePass123!"
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type User } from "@supabase/supabase-js";
+import { initEnv } from "./lib/load-env";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Load environment variables from .env.local, .env, etc.
+initEnv(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Error: Missing environment variables");
-  console.error("Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY");
-  console.error("");
-  console.error("Set them in your shell or create a .env.local file:");
-  console.error("  export SUPABASE_URL=https://your-project.supabase.co");
-  console.error("  export SUPABASE_SERVICE_ROLE_KEY=your-service-role-key");
-  process.exit(1);
-}
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
-
-interface Profile {
+// Profile row from the profiles table (no email column - emails are in auth.users)
+interface ProfileRow {
   id: string;
   full_name: string;
-  email: string;
   role: string;
   is_active: boolean;
   archived_at: string | null;
 }
 
-async function getProfileByEmail(email: string): Promise<Profile | null> {
-  const { data, error } = await supabase
+
+/**
+ * Load all auth users into a map by ID.
+ * This matches the pattern used in lib/supabase/queries/admin/employees.ts
+ */
+async function loadAuthUsersById(): Promise<Map<string, User>> {
+  const authUsersById = new Map<string, User>();
+  let page = 1;
+
+  for (;;) {
+    const { data, error } = await supabase.auth.admin.listUsers({
+      page,
+      perPage: 200,
+    });
+
+    if (error) {
+      throw new Error(`Failed to load auth users: ${error.message}`);
+    }
+
+    for (const user of data.users) {
+      authUsersById.set(user.id, user);
+    }
+
+    if (data.users.length < 200) {
+      break;
+    }
+    page += 1;
+  }
+
+  return authUsersById;
+}
+
+/**
+ * Find a user by email using the Admin API.
+ * Returns the auth user and their profile if found.
+ */
+async function findUserByEmail(
+  email: string
+): Promise<{ authUser: User; profile: ProfileRow } | null> {
+  // First, find the auth user by listing all users
+  // (Supabase Admin API doesn't have a direct getUserByEmail)
+  const authUsersById = await loadAuthUsersById();
+
+  let authUser: User | undefined;
+  for (const user of authUsersById.values()) {
+    if (user.email?.toLowerCase() === email.toLowerCase()) {
+      authUser = user;
+      break;
+    }
+  }
+
+  if (!authUser) {
+    return null;
+  }
+
+  // Now get the profile
+  const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id, full_name, email, role, is_active, archived_at")
-    .eq("email", email)
+    .select("id, full_name, role, is_active, archived_at")
+    .eq("id", authUser.id)
     .maybeSingle();
 
   if (error) {
     console.error("Database error:", error.message);
     return null;
   }
-  return data;
+
+  if (!profile) {
+    return null;
+  }
+
+  return { authUser, profile: profile as ProfileRow };
 }
 
 async function listAdmins() {
   console.log("\n📋 Listing all admin users...\n");
 
-  const { data, error } = await supabase
+  // Get all admin profiles
+  const { data: profiles, error } = await supabase
     .from("profiles")
-    .select("id, full_name, email, role, is_active, archived_at")
+    .select("id, full_name, role, is_active, archived_at")
     .eq("role", "admin")
     .order("is_active", { ascending: false });
 
@@ -79,42 +134,53 @@ async function listAdmins() {
     process.exit(1);
   }
 
-  if (!data || data.length === 0) {
+  if (!profiles || profiles.length === 0) {
     console.log("⚠️  No admin users found!");
     console.log("   Use 'create-admin' to create an emergency admin account.");
     return;
   }
 
-  console.log("ID                                   | Name                | Email                        | Status");
+  // Load auth users to get emails
+  const authUsersById = await loadAuthUsersById();
+
+  console.log(
+    "ID                                   | Name                | Email                        | Status"
+  );
   console.log("-".repeat(110));
 
-  for (const admin of data) {
+  for (const admin of profiles as ProfileRow[]) {
+    const authUser = authUsersById.get(admin.id);
+    const email = authUser?.email ?? "N/A";
+
     let status = "✅ Active";
     if (admin.archived_at) {
       status = "📦 Archived";
     } else if (!admin.is_active) {
       status = "🚫 Deactivated";
     }
+
     console.log(
-      `${admin.id} | ${admin.full_name.padEnd(19)} | ${(admin.email || "N/A").padEnd(28)} | ${status}`
+      `${admin.id} | ${admin.full_name.padEnd(19)} | ${email.padEnd(28)} | ${status}`
     );
   }
 
-  const activeCount = data.filter(
+  const activeCount = (profiles as ProfileRow[]).filter(
     (a) => a.is_active && !a.archived_at
   ).length;
   console.log("");
-  console.log(`Total: ${data.length} admin(s), ${activeCount} active`);
+  console.log(`Total: ${profiles.length} admin(s), ${activeCount} active`);
 }
 
 async function promoteToAdmin(email: string) {
   console.log(`\n🔼 Promoting ${email} to admin...\n`);
 
-  const profile = await getProfileByEmail(email);
-  if (!profile) {
+  const found = await findUserByEmail(email);
+  if (!found) {
     console.error(`❌ User not found: ${email}`);
     process.exit(1);
   }
+
+  const { profile } = found;
 
   if (profile.role === "admin") {
     console.log(`ℹ️  ${email} is already an admin.`);
@@ -140,11 +206,13 @@ async function promoteToAdmin(email: string) {
 async function reactivateUser(email: string) {
   console.log(`\n🔓 Reactivating ${email}...\n`);
 
-  const profile = await getProfileByEmail(email);
-  if (!profile) {
+  const found = await findUserByEmail(email);
+  if (!found) {
     console.error(`❌ User not found: ${email}`);
     process.exit(1);
   }
+
+  const { profile } = found;
 
   if (profile.is_active && !profile.archived_at) {
     console.log(`ℹ️  ${email} is already active.`);
@@ -179,14 +247,18 @@ async function reactivateUser(email: string) {
 async function restoreUser(email: string) {
   console.log(`\n📦 Restoring archived user ${email}...\n`);
 
-  const profile = await getProfileByEmail(email);
-  if (!profile) {
+  const found = await findUserByEmail(email);
+  if (!found) {
     console.error(`❌ User not found: ${email}`);
     process.exit(1);
   }
 
+  const { profile } = found;
+
   if (!profile.archived_at) {
-    console.log(`ℹ️  ${email} is not archived. Use 'reactivate' instead if deactivated.`);
+    console.log(
+      `ℹ️  ${email} is not archived. Use 'reactivate' instead if deactivated.`
+    );
     return;
   }
 
@@ -218,11 +290,13 @@ async function restoreUser(email: string) {
 async function unbanUser(email: string) {
   console.log(`\n🔓 Unbanning ${email} in Supabase Auth...\n`);
 
-  const profile = await getProfileByEmail(email);
-  if (!profile) {
+  const found = await findUserByEmail(email);
+  if (!found) {
     console.error(`❌ User not found: ${email}`);
     process.exit(1);
   }
+
+  const { profile } = found;
 
   const { error } = await supabase.auth.admin.updateUserById(profile.id, {
     ban_duration: "none",
@@ -234,17 +308,21 @@ async function unbanUser(email: string) {
   }
 
   console.log(`✅ ${email} has been unbanned in Supabase Auth.`);
-  console.log(`   Note: Profile is_active = ${profile.is_active}, archived_at = ${profile.archived_at || "null"}`);
+  console.log(
+    `   Note: Profile is_active = ${profile.is_active}, archived_at = ${profile.archived_at || "null"}`
+  );
 }
 
 async function createAdmin(email: string, fullName: string, password: string) {
   console.log(`\n🆕 Creating admin user ${email}...\n`);
 
-  // Check if user already exists
-  const existing = await getProfileByEmail(email);
+  // Check if user already exists by searching auth users
+  const existing = await findUserByEmail(email);
   if (existing) {
     console.error(`❌ User already exists: ${email}`);
-    console.error(`   Use 'promote' to make them an admin, or 'reactivate'/'restore' if locked out.`);
+    console.error(
+      `   Use 'promote' to make them an admin, or 'reactivate'/'restore' if locked out.`
+    );
     process.exit(1);
   }
 
@@ -272,8 +350,11 @@ async function createAdmin(email: string, fullName: string, password: string) {
     .eq("id", authData.user.id);
 
   if (profileError) {
-    console.error("⚠️  User created but failed to set admin role:", profileError.message);
-    console.error(`   Run: npx tsx scripts/recovery-cli.ts promote ${email}`);
+    console.error(
+      "⚠️  User created but failed to set admin role:",
+      profileError.message
+    );
+    console.error(`   Run: npm run recovery promote ${email}`);
     process.exit(1);
   }
 
@@ -289,7 +370,7 @@ function printUsage() {
   console.log(`
 Inoma Hub Recovery CLI
 
-Usage: npx tsx scripts/recovery-cli.ts <command> [options]
+Usage: npm run recovery <command> [options]
 
 Commands:
   list-admins                          List all admin users and their status
@@ -299,14 +380,14 @@ Commands:
   unban <email>                        Remove Supabase Auth ban only
   create-admin <email> <name> <pass>   Create new admin user
 
-Environment Variables Required:
-  SUPABASE_URL                         Your Supabase project URL
-  SUPABASE_SERVICE_ROLE_KEY            Service role key (from Supabase Dashboard)
+Environment:
+  Automatically loads from .env.local, .env.development.local, .env.development, .env
+  Required variables: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
 Examples:
-  npx tsx scripts/recovery-cli.ts list-admins
-  npx tsx scripts/recovery-cli.ts promote john@company.com
-  npx tsx scripts/recovery-cli.ts create-admin admin@company.com "Admin User" "SecurePass123!"
+  npm run recovery list-admins
+  npm run recovery promote john@company.com
+  npm run recovery create-admin admin@company.com "Admin User" "SecurePass123!"
 `);
 }
 
