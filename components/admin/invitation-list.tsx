@@ -18,35 +18,32 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DepartmentActionsMenu } from "@/components/admin/department-actions-menu";
-import { DepartmentStatusBadge } from "@/components/admin/department-status-badge";
-import type { DepartmentListItem, ManagerCandidate } from "@/types/department";
+import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
+import { InvitationActionsMenu } from "@/components/admin/invitation-actions-menu";
+import { formatDateTime } from "@/lib/helpers/dates";
+import type { EmployeeListItem } from "@/types/employee";
 
-type StatusFilter = "all" | "active" | "archived";
+type StatusFilter = "all" | "invited" | "pending";
 
 const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "active", label: "Active" },
-  { value: "archived", label: "Archived" },
+  { value: "invited", label: "Invited" },
+  { value: "pending", label: "Pending (Expired)" },
 ];
 
-export function DepartmentList({
-  departments,
-  managerCandidates,
+export function InvitationList({
+  invitations,
 }: {
-  departments: DepartmentListItem[];
-  managerCandidates: ManagerCandidate[];
+  invitations: EmployeeListItem[];
 }) {
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const filtered = useMemo(() => {
     const byStatus =
       statusFilter === "all"
-        ? departments
-        : statusFilter === "archived"
-          ? departments.filter((d) => d.archived_at)
-          : departments.filter((d) => !d.archived_at);
+        ? invitations
+        : invitations.filter((inv) => inv.status === statusFilter);
 
     const normalized = query.trim().toLowerCase();
     if (!normalized) {
@@ -54,11 +51,11 @@ export function DepartmentList({
     }
 
     return byStatus.filter(
-      (department) =>
-        department.name.toLowerCase().includes(normalized) ||
-        department.manager_name?.toLowerCase().includes(normalized)
+      (inv) =>
+        inv.full_name.toLowerCase().includes(normalized) ||
+        inv.email?.toLowerCase().includes(normalized)
     );
-  }, [departments, query, statusFilter]);
+  }, [invitations, query, statusFilter]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,7 +65,7 @@ export function DepartmentList({
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search departments..."
+            placeholder="Search invitations..."
             className="pl-8"
           />
         </div>
@@ -91,37 +88,45 @@ export function DepartmentList({
 
       {filtered.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
-          {departments.length === 0
-            ? "No departments yet."
-            : "No departments match your filters."}
+          {invitations.length === 0
+            ? "No pending invitations."
+            : "No invitations match your filters."}
         </p>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Manager</TableHead>
-              <TableHead>Employees</TableHead>
+              <TableHead>Email</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Invited</TableHead>
               <TableHead className="w-12 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((department) => (
-              <TableRow key={department.id}>
-                <TableCell className="font-medium">{department.name}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {department.manager_name ?? "Unassigned"}
+            {filtered.map((invitation) => (
+              <TableRow key={invitation.id}>
+                <TableCell className="font-medium">
+                  {invitation.full_name}
                 </TableCell>
-                <TableCell>{department.employee_count}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {invitation.email ?? "—"}
+                </TableCell>
                 <TableCell>
-                  <DepartmentStatusBadge archivedAt={department.archived_at} />
+                  <EmployeeStatusBadge status={invitation.status} />
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {invitation.invited_at
+                    ? formatDateTime(invitation.invited_at)
+                    : "—"}
                 </TableCell>
                 <TableCell className="text-right">
-                  <DepartmentActionsMenu
-                    department={department}
-                    managerCandidates={managerCandidates}
-                  />
+                  {invitation.email && (
+                    <InvitationActionsMenu
+                      email={invitation.email}
+                      fullName={invitation.full_name}
+                    />
+                  )}
                 </TableCell>
               </TableRow>
             ))}

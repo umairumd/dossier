@@ -40,7 +40,7 @@ All demo users use the password: **`demo123!`**
 | carol@demo.inoma.local | Carol Williams | Employee | Design |
 | dave@demo.inoma.local | Dave Kim | Employee | Sales |
 | eva@demo.inoma.local | Eva Martinez | Employee | Customer Support |
-| pending@demo.inoma.local | Pending Pete | Employee | Sales (Pending invite) |
+| invited@demo.inoma.local | Invited Irene | Employee | Sales (Pending invite) |
 
 ### Report History
 
@@ -149,9 +149,12 @@ The seeder is safe to run multiple times:
 
 ### Testing Invitations
 1. Sign in as admin
-2. Copy the invite link for `pending@demo.inoma.local`
-3. Open in incognito/new browser
-4. Complete the signup flow
+2. Navigate to Employees or Invitations page
+3. Click "Invite Link" for `invited@demo.inoma.local`
+4. Click "Generate Invite Link" to create a fresh link
+5. Copy the link
+6. Open in incognito/new browser
+7. Complete the signup flow (set password)
 
 ---
 

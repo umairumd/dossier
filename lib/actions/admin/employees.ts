@@ -82,13 +82,19 @@ export async function inviteEmployee(
 
   // The invite trigger (handle_new_user) already created a baseline
   // profile (role='employee', no department); this applies the role and
-  // department the admin actually chose, via the regular RLS-respecting
-  // client — the service-role client is only needed for the auth.users
-  // side above.
+  // department the admin actually chose, and stores the invite link for
+  // later retrieval. Uses the regular RLS-respecting client — the service-role
+  // client is only needed for the auth.users side above.
+  const inviteLink = data.properties.action_link;
   const supabase = await createClient();
   const { error: profileError } = await supabase
     .from("profiles")
-    .update({ full_name: fullName, role, department_id: departmentId })
+    .update({
+      full_name: fullName,
+      role,
+      department_id: departmentId,
+      pending_invite_link: inviteLink,
+    })
     .eq("id", data.user.id);
 
   if (profileError) {
@@ -101,7 +107,7 @@ export async function inviteEmployee(
 
   revalidatePath("/admin/employees");
 
-  return { success: true, inviteLink: data.properties.action_link };
+  return { success: true, inviteLink };
 }
 
 export async function updateEmployee(
@@ -418,6 +424,62 @@ export interface RegenerateInviteLinkResult {
   inviteLink?: string;
 }
 
+export interface InvitationStatus {
+  hasActiveInvitation: boolean;
+  invitedAt: string | null;
+  inviteLink: string | null;
+  expiresAt: string | null;
+}
+
+// Supabase's default invite token expiry is 24 hours.
+const INVITE_EXPIRY_HOURS = 24;
+
+export async function getInvitationStatus(
+  email: string
+): Promise<InvitationStatus> {
+  await requireAdminUser();
+
+  const adminClient = createAdminClient();
+
+  // List users and find the one with matching email
+  const { data } = await adminClient.auth.admin.listUsers();
+  const user = data.users.find(
+    (u) => u.email?.toLowerCase() === email.toLowerCase()
+  );
+
+  if (!user) {
+    return { hasActiveInvitation: false, invitedAt: null, inviteLink: null, expiresAt: null };
+  }
+
+  // User has an active invitation if:
+  // 1. They have invited_at set
+  // 2. They haven't confirmed their email yet (email_confirmed_at is null)
+  const hasActiveInvitation = !!user.invited_at && !user.email_confirmed_at;
+
+  // Get the stored invite link from the profile
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("pending_invite_link")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Calculate expiration time (24 hours from invited_at)
+  let expiresAt: string | null = null;
+  if (user.invited_at) {
+    const invitedDate = new Date(user.invited_at);
+    const expiresDate = new Date(invitedDate.getTime() + INVITE_EXPIRY_HOURS * 60 * 60 * 1000);
+    expiresAt = expiresDate.toISOString();
+  }
+
+  return {
+    hasActiveInvitation,
+    invitedAt: user.invited_at ?? null,
+    inviteLink: profile?.pending_invite_link ?? null,
+    expiresAt,
+  };
+}
+
 // Re-inviting an email that already exists but hasn't confirmed yet (still
 // "Invited" or "Pending") issues a fresh token for the same auth.users row
 // rather than erroring — GoTrue only rejects generateLink(type: "invite")
@@ -427,7 +489,7 @@ export interface RegenerateInviteLinkResult {
 //
 // Returns the new invite link so it can be copied/shared manually — this is
 // the primary use case when email isn't configured. The old token is
-// invalidated by this operation.
+// invalidated by this operation, and the new link is stored for retrieval.
 export async function regenerateInviteLink(
   email: string,
 ): Promise<RegenerateInviteLinkResult> {
@@ -444,8 +506,16 @@ export async function regenerateInviteLink(
     return { success: false, error: "Failed to regenerate invite link." };
   }
 
+  // Store the new invite link in the profile for later retrieval
+  const inviteLink = data.properties.action_link;
+  const supabase = await createClient();
+  await supabase
+    .from("profiles")
+    .update({ pending_invite_link: inviteLink })
+    .eq("id", data.user.id);
+
   revalidatePath("/admin/employees");
   revalidatePath("/admin/invitations");
 
-  return { success: true, inviteLink: data.properties.action_link };
+  return { success: true, inviteLink };
 }

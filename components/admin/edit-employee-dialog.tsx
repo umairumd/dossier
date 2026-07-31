@@ -1,9 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Copy, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogBody,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,51 +21,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
+import { updateEmployee } from "@/lib/actions/admin/employees";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { inviteEmployee } from "@/lib/actions/admin/employees";
-import {
-  validateInviteEmployeeInput,
+  validateEditEmployeeInput,
   type EmployeeFieldErrors,
 } from "@/lib/validations/employee";
 import type { DepartmentOption } from "@/types/department";
+import type { EmployeeListItem } from "@/types/employee";
 import type { UserRole } from "@/types/profile";
 
-export function InviteEmployeeSheet({
-  departments,
-}: {
+interface EditEmployeeDialogProps {
+  employee: EmployeeListItem;
   departments: DepartmentOption[];
-}) {
-  const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<UserRole>("employee");
-  const [departmentId, setDepartmentId] = useState("");
+  isSelf: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function EditEmployeeDialog({
+  employee,
+  departments,
+  isSelf,
+  open,
+  onOpenChange,
+}: EditEmployeeDialogProps) {
+  const [email, setEmail] = useState(employee.email ?? "");
+  const [fullName, setFullName] = useState(employee.full_name);
+  const [role, setRole] = useState<UserRole>(employee.role);
+  const [departmentId, setDepartmentId] = useState(
+    employee.department_id ?? ""
+  );
   const [fieldErrors, setFieldErrors] = useState<EmployeeFieldErrors>({});
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const reset = () => {
-    setEmail("");
-    setFullName("");
-    setRole("employee");
-    setDepartmentId("");
-    setFieldErrors({});
-    setInviteLink(null);
-    setCopied(false);
-  };
-
   const handleOpenChange = (next: boolean) => {
-    setOpen(next);
-    if (!next) {
-      reset();
+    onOpenChange(next);
+    if (next) {
+      setEmail(employee.email ?? "");
+      setFullName(employee.full_name);
+      setRole(employee.role);
+      setDepartmentId(employee.department_id ?? "");
+      setFieldErrors({});
     }
   };
 
@@ -70,7 +75,7 @@ export function InviteEmployeeSheet({
       role,
       departmentId: departmentId || null,
     };
-    const validation = validateInviteEmployeeInput(input);
+    const validation = validateEditEmployeeInput(input);
 
     if (!validation.valid) {
       setFieldErrors(validation.fieldErrors);
@@ -80,80 +85,37 @@ export function InviteEmployeeSheet({
     setFieldErrors({});
 
     startTransition(async () => {
-      const result = await inviteEmployee(input);
+      const result = await updateEmployee({ id: employee.id, ...input });
 
       if (!result.success) {
         setFieldErrors(result.fieldErrors ?? {});
-        toast.error(result.error ?? "Couldn't send the invitation.");
+        toast.error(result.error ?? "Couldn't update employee.");
         return;
       }
 
-      toast.success(`Invitation created for ${email}.`);
-      setInviteLink(result.inviteLink ?? null);
+      toast.success("Employee updated.");
+      onOpenChange(false);
     });
   };
 
-  const copyLink = async () => {
-    if (!inviteLink) {
-      return;
-    }
-    await navigator.clipboard.writeText(inviteLink);
-    setCopied(true);
-    toast.success("Invite link copied.");
-  };
-
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetTrigger asChild>
-        <Button>
-          <UserPlus />
-          Invite Employee
-        </Button>
-      </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>Invite Employee</SheetTitle>
-          <SheetDescription>
-            Creates their account and profile. If email isn&apos;t configured
-            for this project, share the generated link with them directly.
-          </SheetDescription>
-        </SheetHeader>
-
-        {inviteLink ? (
-          <div className="flex flex-col gap-4 px-4 pb-4">
-            <p className="text-sm text-muted-foreground">
-              Share this link with {fullName || "the new employee"} so they
-              can set a password and sign in.
-            </p>
-            <div className="flex items-center gap-2">
-              <Input value={inviteLink} readOnly className="text-xs" />
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={copyLink}
-                aria-label="Copy invite link"
-              >
-                {copied ? <Check /> : <Copy />}
-              </Button>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-            >
-              Done
-            </Button>
-          </div>
-        ) : (
-          <form
-            onSubmit={handleSubmit}
-            className="flex flex-col gap-4 px-4 pb-4"
-          >
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Employee</DialogTitle>
+          <DialogDescription>
+            <span className="flex items-center gap-2">
+              {employee.email ?? employee.full_name}
+              <EmployeeStatusBadge status={employee.status} />
+            </span>
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <DialogBody>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="invite-email">Email</Label>
+              <Label htmlFor={`edit-email-${employee.id}`}>Email</Label>
               <Input
-                id="invite-email"
+                id={`edit-email-${employee.id}`}
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -165,9 +127,9 @@ export function InviteEmployeeSheet({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="invite-name">Full name</Label>
+              <Label htmlFor={`edit-name-${employee.id}`}>Full name</Label>
               <Input
-                id="invite-name"
+                id={`edit-name-${employee.id}`}
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
                 aria-invalid={!!fieldErrors.fullName}
@@ -184,6 +146,7 @@ export function InviteEmployeeSheet({
               <Select
                 value={role}
                 onValueChange={(value) => setRole(value as UserRole)}
+                disabled={isSelf}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -194,6 +157,11 @@ export function InviteEmployeeSheet({
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
+              {isSelf && (
+                <p className="text-xs text-muted-foreground">
+                  You cannot change your own role.
+                </p>
+              )}
             </div>
 
             {role !== "admin" && (
@@ -222,12 +190,26 @@ export function InviteEmployeeSheet({
               </div>
             )}
 
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Sending..." : "Send Invitation"}
+            <p className="text-xs text-muted-foreground">
+              Use Activate/Deactivate or Archive/Restore from the actions menu
+              to change account access.
+            </p>
+          </DialogBody>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isPending}
+            >
+              Cancel
             </Button>
-          </form>
-        )}
-      </SheetContent>
-    </Sheet>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

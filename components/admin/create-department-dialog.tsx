@@ -4,23 +4,25 @@ import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogBody,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { createDepartment } from "@/lib/actions/admin/departments";
 import {
   validateDepartmentName,
   type DepartmentFieldErrors,
 } from "@/lib/validations/department";
 
-export function CreateDepartmentSheet() {
+export function CreateDepartmentDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [fieldErrors, setFieldErrors] = useState<DepartmentFieldErrors>({});
@@ -59,41 +61,50 @@ export function CreateDepartmentSheet() {
   };
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetTrigger asChild>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
         <Button>
-          <Plus />
+          <Plus className="size-4" />
           New Department
         </Button>
-      </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-sm">
-        <SheetHeader>
-          <SheetTitle>New Department</SheetTitle>
-          <SheetDescription>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>New Department</DialogTitle>
+          <DialogDescription>
             Create a department to assign employees to.
-          </SheetDescription>
-        </SheetHeader>
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-4 px-4 pb-4"
-        >
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="department-name">Name</Label>
-            <Input
-              id="department-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              aria-invalid={!!fieldErrors.name}
-            />
-            {fieldErrors.name && (
-              <p className="text-sm text-destructive">{fieldErrors.name}</p>
-            )}
-          </div>
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Creating..." : "Create Department"}
-          </Button>
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <DialogBody>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="department-name">Name</Label>
+              <Input
+                id="department-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                aria-invalid={!!fieldErrors.name}
+              />
+              {fieldErrors.name && (
+                <p className="text-sm text-destructive">{fieldErrors.name}</p>
+              )}
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Creating..." : "Create Department"}
+            </Button>
+          </DialogFooter>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

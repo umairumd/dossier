@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/card";
 import { StatCard } from "@/components/analytics/stat-card";
 import { ActivityFeed } from "@/components/analytics/activity-feed";
-import { InviteEmployeeSheet } from "@/components/admin/invite-employee-sheet";
-import { CreateDepartmentSheet } from "@/components/admin/create-department-sheet";
+import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
+import { CreateDepartmentDialog } from "@/components/admin/create-department-dialog";
 
 const HOME_ACTIVITY_LIMIT = 8;
 
@@ -70,8 +70,8 @@ export async function AdminDashboard() {
           Quick Actions
         </h2>
         <div className="flex flex-wrap gap-2">
-          <InviteEmployeeSheet departments={departmentOptions} />
-          <CreateDepartmentSheet />
+          <InviteEmployeeDialog departments={departmentOptions} />
+          <CreateDepartmentDialog />
         </div>
       </div>
     </div>

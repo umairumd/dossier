@@ -15,15 +15,16 @@
  *   --reset    Clear all demo data before seeding (DESTRUCTIVE)
  *   --reports  Only seed reports for existing users (skip user creation)
  *
- * Demo Credentials (all use password: demo123!):
- *   admin@demo.inoma.local         - Demo Admin
- *   eng.manager@demo.inoma.local   - Sarah Chen (Engineering Manager)
+ * Demo Credentials (password: demo123!):
+ *   admin@demo.inoma.local          - Demo Admin
+ *   eng.manager@demo.inoma.local    - Sarah Chen (Engineering Manager)
  *   design.manager@demo.inoma.local - Marcus Johnson (Design Manager)
- *   alice@demo.inoma.local         - Alice Rivera (Engineering)
- *   bob@demo.inoma.local           - Bob Patel (Engineering)
- *   carol@demo.inoma.local         - Carol Williams (Design)
- *   dave@demo.inoma.local          - Dave Kim (Sales)
- *   eva@demo.inoma.local           - Eva Martinez (Customer Support)
+ *   alice@demo.inoma.local          - Alice Rivera (Engineering)
+ *   bob@demo.inoma.local            - Bob Patel (Engineering)
+ *   carol@demo.inoma.local          - Carol Williams (Design)
+ *   dave@demo.inoma.local           - Dave Kim (Sales)
+ *   eva@demo.inoma.local            - Eva Martinez (Customer Support)
+ *   invited@demo.inoma.local        - Invited Irene (pending - for invite testing)
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -96,10 +97,10 @@ const DEMO_USERS: DemoUser[] = [
     role: "employee",
     department: "Customer Support",
   },
-  // Pending invitation - won't be confirmed
+  // Pending invitation - for testing the invitation workflow
   {
-    email: `pending@${DEMO_DOMAIN}`,
-    fullName: "Pending Pete",
+    email: `invited@${DEMO_DOMAIN}`,
+    fullName: "Invited Irene",
     role: "employee",
     department: "Sales",
     shouldInviteOnly: true,
@@ -370,11 +371,11 @@ async function seedReports(client: SupabaseClient) {
   // Get all auth users with demo domain emails (emails are in auth.users, not profiles)
   const { data: authUsers } = await client.auth.admin.listUsers();
 
-  // Filter to confirmed demo users (not pending)
+  // Filter to confirmed demo users (exclude invited test user)
   const demoUsers = authUsers?.users.filter(
     (u) =>
       u.email?.endsWith(`@${DEMO_DOMAIN}`) &&
-      u.email !== `pending@${DEMO_DOMAIN}` &&
+      u.email !== `invited@${DEMO_DOMAIN}` &&
       u.email_confirmed_at // Only confirmed users
   );
 
@@ -455,8 +456,8 @@ Employees:
   dave@${DEMO_DOMAIN}   - Sales
   eva@${DEMO_DOMAIN}    - Customer Support
 
-Pending Invitation:
-  pending@${DEMO_DOMAIN} - Sales (not yet confirmed)
+Test Invitation (for testing invite workflow):
+  invited@${DEMO_DOMAIN} - Sales (use Invite Link to generate login link)
 
 Departments: Engineering, Design, Sales, Customer Support
 Reports: ~3 weeks of history with realistic patterns

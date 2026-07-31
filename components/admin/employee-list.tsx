@@ -19,7 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CopyInviteLinkButton } from "@/components/admin/copy-invite-link-button";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
 import type { DepartmentOption } from "@/types/department";
@@ -62,7 +61,7 @@ export function EmployeeList({
     return byStatus.filter(
       (employee) =>
         employee.full_name.toLowerCase().includes(normalized) ||
-        employee.email?.toLowerCase().includes(normalized),
+        employee.email?.toLowerCase().includes(normalized)
     );
   }, [employees, query, statusFilter]);
 
@@ -95,64 +94,54 @@ export function EmployeeList({
         </Select>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Department</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filtered.map((employee) => (
-            <TableRow key={employee.id}>
-              <TableCell className="font-medium">
-                <Link
-                  href={`/admin/employees/${employee.id}`}
-                  className="hover:underline"
-                >
-                  {employee.full_name}
-                </Link>
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {employee.email ?? "—"}
-              </TableCell>
-              <TableCell className="capitalize">{employee.role}</TableCell>
-              <TableCell>{employee.department_name ?? "Unassigned"}</TableCell>
-              <TableCell>
-                <EmployeeStatusBadge status={employee.status} />
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center justify-end gap-1">
-                  {(employee.status === "invited" ||
-                    employee.status === "pending") &&
-                    employee.email && (
-                      <CopyInviteLinkButton
-                        email={employee.email}
-                        fullName={employee.full_name}
-                      />
-                    )}
-                  <EmployeeActionsMenu
-                    employee={employee}
-                    departments={departments}
-                    isSelf={employee.id === currentUserId}
-                  />
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      {filtered.length === 0 && (
+      {filtered.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
           {employees.length === 0
             ? "No employees yet."
             : "No employees match your filters."}
         </p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Department</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-12 text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((employee) => (
+              <TableRow key={employee.id}>
+                <TableCell className="font-medium">
+                  <Link
+                    href={`/admin/employees/${employee.id}`}
+                    className="hover:underline"
+                  >
+                    {employee.full_name}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {employee.email ?? "—"}
+                </TableCell>
+                <TableCell className="capitalize">{employee.role}</TableCell>
+                <TableCell>{employee.department_name ?? "Unassigned"}</TableCell>
+                <TableCell>
+                  <EmployeeStatusBadge status={employee.status} />
+                </TableCell>
+                <TableCell className="text-right">
+                  <EmployeeActionsMenu
+                    employee={employee}
+                    departments={departments}
+                    isSelf={employee.id === currentUserId}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
     </div>
   );
