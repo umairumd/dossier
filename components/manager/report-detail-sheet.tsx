@@ -9,7 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { formatDateTime } from "@/lib/helpers/dates";
+import { LocalDateTime } from "@/components/shared/local-datetime";
 import { getReportField } from "@/lib/reports/fields";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
@@ -42,7 +42,7 @@ export function ReportDetailSheet({
               <SheetTitle>{current.fullName}</SheetTitle>
               <SheetDescription>
                 {departmentName} · Submitted{" "}
-                {formatDateTime(current.report.submitted_at)}
+                <LocalDateTime isoString={current.report.submitted_at} />
               </SheetDescription>
             </SheetHeader>
             <div className="flex flex-col gap-4 px-4 pb-4 text-sm">

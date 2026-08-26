@@ -1,5 +1,7 @@
-import { formatDate, formatDateTime } from "@/lib/helpers/dates";
+import { formatDate } from "@/lib/helpers/dates";
+import { LocalDateTime } from "@/components/shared/local-datetime";
 import { truncate } from "@/lib/helpers/text";
+import { getReportField } from "@/lib/reports/fields";
 import type { DailyReport } from "@/types/report";
 
 const PREVIEW_LENGTH = 80;
@@ -14,7 +16,7 @@ export function ReportHistoryCards({ reports }: { reports: DailyReport[] }) {
               {formatDate(report.report_date)}
             </span>
             <span className="text-xs text-muted-foreground">
-              Submitted {formatDateTime(report.submitted_at)}
+              Submitted <LocalDateTime isoString={report.submitted_at} />
             </span>
           </div>
           <p className="mt-2 text-sm">
@@ -23,6 +25,12 @@ export function ReportHistoryCards({ reports }: { reports: DailyReport[] }) {
           <p className="mt-1 text-sm text-muted-foreground">
             Blockers:{" "}
             {report.blockers ? truncate(report.blockers, PREVIEW_LENGTH) : "None"}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {getReportField("additional_notes").label}:{" "}
+            {report.additional_notes
+              ? truncate(report.additional_notes, PREVIEW_LENGTH)
+              : "—"}
           </p>
         </div>
       ))}

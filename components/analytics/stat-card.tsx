@@ -13,10 +13,12 @@ export function StatCard({
   label,
   value,
   unit,
+  hint,
 }: {
   label: string;
   value: string | number;
   unit?: string;
+  hint?: string;
 }): ReactNode {
   return (
     <Card>
@@ -30,6 +32,9 @@ export function StatCard({
             </span>
           )}
         </div>
+        {hint && (
+          <p className="text-xs font-normal text-muted-foreground">{hint}</p>
+        )}
       </CardHeader>
     </Card>
   );

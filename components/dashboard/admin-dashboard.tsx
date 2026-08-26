@@ -49,6 +49,7 @@ export async function AdminDashboard() {
         <StatCard
           label="Today's Completion"
           value={`${summary.completionPercentageToday}%`}
+          hint="Report submission rate across the org today."
         />
         <StatCard label="Archived Employees" value={summary.archivedUsers} />
       </div>
