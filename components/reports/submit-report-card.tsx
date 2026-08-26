@@ -9,15 +9,19 @@ import { SubmitReportSheet } from "@/components/reports/submit-report-sheet";
 
 export function SubmitReportCard({
   alreadySubmitted,
+  isAdmin = false,
 }: {
   alreadySubmitted: boolean;
+  isAdmin?: boolean;
 }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Submit Daily Report</CardTitle>
         <CardDescription>
-          Log today&apos;s progress for your manager to review.
+          {isAdmin
+            ? "Log today's progress."
+            : "Log today's progress for your manager to review."}
         </CardDescription>
       </CardHeader>
       <CardContent>

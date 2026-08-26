@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime } from "@/lib/helpers/dates";
+import { LocalDateTime } from "@/components/shared/local-datetime";
 import {
   getSubmissionStatus,
   SUBMISSION_STATUS_LABELS,
@@ -190,9 +190,11 @@ export function TeamReportsView({
                         <StatusBadge status={status} />
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {member.report
-                          ? formatDateTime(member.report.submitted_at)
-                          : "—"}
+                        {member.report ? (
+                          <LocalDateTime isoString={member.report.submitted_at} />
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -224,9 +226,14 @@ export function TeamReportsView({
                     onClick={() => openReport(member.employeeId)}
                     className="mt-2 w-full text-left text-xs text-muted-foreground disabled:cursor-default"
                   >
-                    {member.report
-                      ? `Submitted ${formatDateTime(member.report.submitted_at)}`
-                      : "No report"}
+                    {member.report ? (
+                      <>
+                        Submitted{" "}
+                        <LocalDateTime isoString={member.report.submitted_at} />
+                      </>
+                    ) : (
+                      "No report"
+                    )}
                   </button>
                 </div>
               );

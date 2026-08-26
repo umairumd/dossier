@@ -3,7 +3,7 @@ import { Calendar, LogIn, Mail } from "lucide-react";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getEmployeeDetail } from "@/lib/supabase/queries/admin/employees";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
-import { formatDateTime } from "@/lib/helpers/dates";
+import { LocalDateTime } from "@/components/shared/local-datetime";
 import {
   Card,
   CardContent,
@@ -91,7 +91,11 @@ export default async function EmployeeDetailPage({
               Invited
             </CardDescription>
             <CardTitle className="text-base font-medium">
-              {employee.invited_at ? formatDateTime(employee.invited_at) : "—"}
+              {employee.invited_at ? (
+                <LocalDateTime isoString={employee.invited_at} />
+              ) : (
+                "—"
+              )}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -103,9 +107,11 @@ export default async function EmployeeDetailPage({
               Last Login
             </CardDescription>
             <CardTitle className="text-base font-medium">
-              {employee.last_sign_in_at
-                ? formatDateTime(employee.last_sign_in_at)
-                : "Never"}
+              {employee.last_sign_in_at ? (
+                <LocalDateTime isoString={employee.last_sign_in_at} />
+              ) : (
+                "Never"
+              )}
             </CardTitle>
           </CardHeader>
         </Card>

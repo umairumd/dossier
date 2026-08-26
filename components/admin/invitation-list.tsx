@@ -18,17 +18,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
 import { InvitationActionsMenu } from "@/components/admin/invitation-actions-menu";
-import { formatDateTime } from "@/lib/helpers/dates";
+import { Badge } from "@/components/ui/badge";
+import { LocalDateTime } from "@/components/shared/local-datetime";
 import type { EmployeeListItem } from "@/types/employee";
 
 type StatusFilter = "all" | "invited" | "pending";
 
 const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "invited", label: "Invited" },
-  { value: "pending", label: "Pending (Expired)" },
+  { value: "invited", label: "Pending" },
+  { value: "pending", label: "Expired" },
 ];
 
 export function InvitationList({
@@ -113,12 +113,18 @@ export function InvitationList({
                   {invitation.email ?? "—"}
                 </TableCell>
                 <TableCell>
-                  <EmployeeStatusBadge status={invitation.status} />
+                  {invitation.status === "pending" ? (
+                    <Badge variant="destructive">Expired</Badge>
+                  ) : (
+                    <Badge variant="outline">Pending</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {invitation.invited_at
-                    ? formatDateTime(invitation.invited_at)
-                    : "—"}
+                  {invitation.invited_at ? (
+                    <LocalDateTime isoString={invitation.invited_at} />
+                  ) : (
+                    "—"
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   {invitation.email && (

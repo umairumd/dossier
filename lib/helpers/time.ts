@@ -1,3 +1,10 @@
+export function formatLocalDateTime(isoString: string): string {
+  return new Date(isoString).toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 const AVERAGE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
   hour: "numeric",
   minute: "2-digit",

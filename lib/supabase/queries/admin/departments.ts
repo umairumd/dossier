@@ -41,12 +41,11 @@ export const getAllDepartments = cache(
       logAndThrow("Failed to load departments.", departmentsError);
     }
 
-    // Only non-archived employees count toward headcount — an archived
-    // employee no longer belongs to the active roster.
+    // Non-archived profiles assigned to a department count toward
+    // headcount (any role, including the department manager).
     const { data: employeeCounts, error: countsError } = await supabase
       .from("profiles")
       .select("department_id")
-      .eq("role", "employee")
       .is("archived_at", null);
 
     if (countsError) {

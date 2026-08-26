@@ -24,13 +24,12 @@ import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem, EmployeeStatus } from "@/types/employee";
 
-type StatusFilter = "all" | EmployeeStatus;
+type StatusFilter = "all" | Exclude<EmployeeStatus, "pending">;
 
 const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All (except archived)" },
   { value: "active", label: "Active" },
-  { value: "invited", label: "Invited" },
-  { value: "pending", label: "Pending" },
+  { value: "invited", label: "Invited / Pending" },
   { value: "disabled", label: "Disabled" },
   { value: "archived", label: "Archived" },
 ];
@@ -51,7 +50,12 @@ export function EmployeeList({
     const byStatus =
       statusFilter === "all"
         ? employees.filter((employee) => employee.status !== "archived")
-        : employees.filter((employee) => employee.status === statusFilter);
+        : statusFilter === "invited"
+          ? employees.filter(
+              (employee) =>
+                employee.status === "invited" || employee.status === "pending",
+            )
+          : employees.filter((employee) => employee.status === statusFilter);
 
     const normalized = query.trim().toLowerCase();
     if (!normalized) {

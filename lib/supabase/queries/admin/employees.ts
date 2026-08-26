@@ -46,9 +46,9 @@ function computeEmployeeStatus(
     return "disabled";
   }
 
-  // A user is "active" if they've signed in OR if their email is confirmed
-  // (they can sign in with password even if they haven't yet).
-  if (authUser?.lastSignInAt || authUser?.emailConfirmedAt) {
+  // Active means they have actually signed in. Admin-API invites set
+  // email_confirmed_at immediately, so that field is not a signup signal.
+  if (authUser?.lastSignInAt) {
     return "active";
   }
 

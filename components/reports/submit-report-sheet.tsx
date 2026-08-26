@@ -28,16 +28,18 @@ export function SubmitReportSheet({
           {alreadySubmitted ? "Report Submitted" : "Continue Today's Report"}
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>Submit Daily Report</SheetTitle>
-          <SheetDescription>
-            Share what you worked on today. Reports can&apos;t be edited once
-            submitted.
-          </SheetDescription>
-        </SheetHeader>
-        <div className="px-4 pb-4">
-          <ReportForm onSubmitted={() => setOpen(false)} />
+      <SheetContent className="flex h-full w-full flex-col overflow-y-auto sm:max-w-md">
+        <div className="flex h-full min-h-0 flex-col">
+          <SheetHeader>
+            <SheetTitle>Submit Daily Report</SheetTitle>
+            <SheetDescription>
+              Share what you worked on today. Reports can&apos;t be edited once
+              submitted.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+            <ReportForm onSubmitted={() => setOpen(false)} />
+          </div>
         </div>
       </SheetContent>
     </Sheet>

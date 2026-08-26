@@ -7,6 +7,7 @@ import {
   buildSubmittersByDate,
 } from "@/lib/helpers/completion-trend";
 import { getTeamEmployeeRoster } from "@/lib/supabase/queries/manager/team";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import type { ActivityItem } from "@/types/activity";
 import type { TeamInsights, TeamMemberStanding } from "@/types/team-insights";
 
@@ -48,6 +49,10 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
   }
 
   const nameById = new Map(roster.map((member) => [member.id, member.full_name]));
+  const currentProfile = await getCurrentProfile();
+  if (currentProfile) {
+    nameById.set(currentProfile.id, currentProfile.full_name);
+  }
 
   const allReports =
     (reports as (ReportStatsInput & { id: string; author_id: string })[]) ?? [];

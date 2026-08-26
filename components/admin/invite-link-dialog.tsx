@@ -18,6 +18,7 @@ import {
   getInvitationStatus,
   regenerateInviteLink,
 } from "@/lib/actions/admin/employees";
+import { LocalDateTime } from "@/components/shared/local-datetime";
 
 type InviteState =
   | { type: "loading" }
@@ -127,16 +128,6 @@ export function InviteLinkDialog({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   const isExpired = (expiresAt: string | null): boolean => {
     if (!expiresAt) return false;
     return new Date(expiresAt) < new Date();
@@ -192,7 +183,7 @@ export function InviteLinkDialog({
                 <AlertCircle className="mt-0.5 size-4 text-muted-foreground" />
                 <div className="text-sm">
                   <p className="text-muted-foreground">
-                    Invited on {formatDate(state.invitedAt)}
+                    Invited on <LocalDateTime isoString={state.invitedAt} />
                   </p>
                   {state.expiresAt && (
                     <p className={`mt-1 ${isExpired(state.expiresAt) ? "text-destructive" : "text-muted-foreground"}`}>
@@ -213,7 +204,9 @@ export function InviteLinkDialog({
               <div className="rounded-md bg-muted/50 p-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Created</span>
-                  <span>{formatDate(state.invitedAt)}</span>
+                  <span>
+                    <LocalDateTime isoString={state.invitedAt} />
+                  </span>
                 </div>
                 {state.expiresAt && (
                   <div className="mt-1 flex items-center justify-between">

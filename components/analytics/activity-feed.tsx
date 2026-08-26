@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Archive, Building2, FileText, UserPlus } from "lucide-react";
-import { formatDateTime } from "@/lib/helpers/dates";
+import { LocalDateTime } from "@/components/shared/local-datetime";
 import type { ActivityItem, ActivityType } from "@/types/activity";
 
 const ICONS: Record<ActivityType, typeof UserPlus> = {
@@ -45,7 +45,7 @@ export function ActivityFeed({
             <div className="flex flex-1 flex-col gap-0.5">
               <p className="text-sm">{item.label}</p>
               <p className="text-xs text-muted-foreground">
-                {formatDateTime(item.timestamp)}
+                <LocalDateTime isoString={item.timestamp} />
               </p>
             </div>
           </div>
