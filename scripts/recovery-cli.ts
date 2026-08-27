@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Inoma Hub Recovery CLI
+ * Dossier Recovery CLI
  *
  * Emergency recovery tool for admin account management.
  * Automatically loads environment variables from .env.local and .env files.
@@ -363,12 +363,12 @@ async function createAdmin(email: string, fullName: string, password: string) {
   console.log(`   Name: ${fullName}`);
   console.log(`   ID: ${authData.user.id}`);
   console.log("");
-  console.log(`   They can now sign in at your Inoma Hub URL.`);
+  console.log(`   They can now sign in at your Dossier URL.`);
 }
 
 function printUsage() {
   console.log(`
-Inoma Hub Recovery CLI
+Dossier Recovery CLI
 
 Usage: npm run recovery <command> [options]
 

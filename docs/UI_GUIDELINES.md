@@ -1,8 +1,8 @@
-# Inoma Hub — UI Guidelines
+# Dossier — UI Guidelines
 
 ## Philosophy
 
-Inoma Hub's UI is designed to be **simple, fast, and professional**. Every interface choice serves the core use case: employees submit reports quickly, managers review them at a glance.
+Dossier's UI is designed to be **simple, fast, and professional**. Every interface choice serves the core use case: employees submit reports quickly, managers review them at a glance.
 
 ### Core Principles
 
@@ -23,8 +23,8 @@ Navigation is organized by **business capability**, not by role:
 ```
 Home                    (all roles)
 Reports
-  Daily Report         (employee)
-  Report History       (employee)
+  Daily Report         (employee, manager, admin)
+  Report History       (employee, manager, admin)
   Team Reports         (manager)
   Missing Reports      (manager)
   Analytics            (admin)

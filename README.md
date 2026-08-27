@@ -1,100 +1,93 @@
-# Inoma Hub
+# Dossier
 
-Internal operations platform for Inoma Digital. Employees submit daily
-reports; managers track team completion; admins manage people,
-departments, and organization-wide settings.
+Dossier is a daily progress tracking system for teams. Employees submit an immutable end-of-day report. Managers review department completion, missing work, and trends. Admins run the organization: people, departments, invitations, and settings.
 
-## Stack
+## Features
 
-- [Next.js 16](https://nextjs.org) (App Router) + React 19 + TypeScript
-- [Supabase](https://supabase.com) (Postgres, Auth, Row Level Security)
-- Tailwind v4 + [shadcn/ui](https://ui.shadcn.com)
-- Deployed on [Vercel](https://vercel.com)
+### Employee
 
-## Getting started
+- Submit one daily report (accomplishments, blockers, tomorrow's plan)
+- View personal report history, streak, and completion
+- Update profile name and password
 
-### 1. Environment variables
+### Manager
 
-Copy `.env.example` to `.env.local` and fill in:
+- Department dashboard: completion today, missing/late reports, streaks, activity
+- Date-filtered team reports with On Time / Late / Missed status
+- Missing-reports view and a read-only team roster
 
-| Variable | Where to find it | Notes |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project settings | Public |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase project settings | Public |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase project settings | **Server-only, never expose to the client.** Used for inviting/banning/deleting users via the Admin API. |
-| `NEXT_PUBLIC_SITE_URL` | — | Optional. Overrides the origin used for invite-link redirects. Only needed for a custom production domain — local dev and Vercel deploys resolve this automatically. |
+### Admin
 
-### 2. Database
+- Organization overview and analytics
+- Invite, edit, deactivate, archive, restore, or permanently delete people
+- Create and archive departments; assign managers
+- Invitation tracking, activity feed, report deadline setting
 
-Apply every migration in `supabase/migrations/` to your Supabase project,
-in order — either via the Supabase CLI (`supabase db push`, if you've
-linked the project) or by pasting each file into the SQL Editor in
-filename order. Migrations are the source of truth for the schema; there
-is no separate schema dump to keep in sync.
+## Tech Stack
 
-In the Supabase dashboard, add your app's `/invite` URL (both
-`http://localhost:3000/invite` and your production domain's) to
-**Authentication → URL Configuration → Redirect URLs** — without this,
-invitation links won't work.
+- Next.js 16 (App Router, React Server Components, Server Actions)
+- React 19 with React Compiler
+- TypeScript (strict)
+- Supabase (PostgreSQL, Auth, RLS, Admin API)
+- Tailwind CSS v4
+- shadcn/ui
+- Vercel (deployment)
 
-### 3. Install and run
+## Architecture
 
-```bash
-npm install
-npm run dev
-```
+Accounts are invitation-only; there is no public sign-up. Authorization is enforced in Postgres with role-scoped Row Level Security. The app has no REST API: mutations go through Server Actions. Sessions are cookie-based via `@supabase/ssr`.
 
-### 4. Your first admin account
+## Getting Started
 
-There's no public sign-up — every account starts as an invitation. To
-bootstrap the very first admin (before any admin exists to invite one),
-create a user directly in the Supabase dashboard under
-**Authentication → Users → Add user**, then in the SQL Editor:
+### Prerequisites
 
-```sql
-update public.profiles set role = 'admin' where id = '<the new user''s id>';
-```
+- Node.js 18+
+- A Supabase project
+- (Optional) Vercel account for deployment
 
-Every subsequent account should be created through the app itself
-(**People → Employees → Invite Employee**), not this manual path.
+### Setup
 
-### 5. Demo data (optional)
+1. Clone the repo.
+2. Install dependencies: `npm install`
+3. Copy `.env.example` to `.env.local` and fill in the values below.
+4. Apply every file in `supabase/migrations/` to your Supabase project (CLI `supabase db push` or SQL Editor, in filename order).
+5. Bootstrap the first admin: see [docs/DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) (section **Bootstrap First Admin**).
+6. `npm run dev`
 
-`supabase/seed.sql` seeds a handful of departments (safe to run via
-`supabase db reset` locally, or paste into the SQL Editor). It
-deliberately doesn't create people — Supabase Auth users need to go
-through the Auth API to get correctly hashed passwords, not raw SQL.
-Instead:
+### Environment Variables
 
-1. Sign in as an admin and invite a few manager/employee demo accounts.
-2. Once an account exists, use `docs/demo-reports.sql` as a template to
-   backfill two weeks of realistic-looking daily reports for it, so
-   dashboards, streaks, and completion trends aren't empty.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous (public) key |
+| `NEXT_PUBLIC_SITE_URL` | No | Optional origin override for invite-link redirects (custom domain) |
+| `NEXT_PUBLIC_VERCEL_URL` | No | Auto-set by Vercel on every deploy; no action needed |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-only. Admin API (invite/ban/delete). Never expose to the client. |
 
-## Roles
+Add your app's `/invite` URL (`http://localhost:3000/invite` and production) under **Authentication → URL Configuration → Redirect URLs** in the Supabase dashboard.
 
-- **Employee** — submits daily reports, views their own history and profile.
-- **Manager** — reviews their department's reports, sees missing/late
-  submissions and team trends; cannot manage identity/access (invite,
-  archive, change roles).
-- **Admin** — full organization management: people, departments,
-  invitations, and organization-wide settings.
+## Scripts
 
-## Deployment
+- `npm run seed-demo` / `npm run seed-demo:reset` — seed (or wipe and reseed) a demo org via `scripts/seed-demo.ts`
+- `npm run recovery` — emergency admin CLI (`scripts/recovery-cli.ts`): list/promote/reactivate/restore/unban/create-admin
 
-Deployed on Vercel. Set the same environment variables there as in
-`.env.local`. Vercel's `VERCEL_URL` is picked up automatically for
-invite-link redirects — only set `NEXT_PUBLIC_SITE_URL` if you're using a
-custom domain.
+## Documentation
 
-## Quality checks
+- [docs/DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) — setup, conventions, first admin
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — App Router, RLS, Server Actions
+- [docs/DATABASE.md](docs/DATABASE.md) — schema and migrations
+- [docs/PERMISSIONS.md](docs/PERMISSIONS.md) — roles and RLS
+- [docs/REPORT_SYSTEM.md](docs/REPORT_SYSTEM.md) — daily reports
+- [docs/PRODUCT.md](docs/PRODUCT.md) — product spec
+- [docs/UI_GUIDELINES.md](docs/UI_GUIDELINES.md) — UI and nav
+- [docs/DEMO_SETUP.md](docs/DEMO_SETUP.md) — demo seeder
+- [docs/MANUAL_TESTING_GUIDE.md](docs/MANUAL_TESTING_GUIDE.md) — QA scenarios
+- [docs/EMERGENCY_RECOVERY.md](docs/EMERGENCY_RECOVERY.md) — locked-out admin recovery
+- [docs/TEST_PLAN.md](docs/TEST_PLAN.md) — proposed test strategy
+- [docs/TECH_DEBT.md](docs/TECH_DEBT.md) — known debt
+- [docs/ROADMAP.md](docs/ROADMAP.md) — product roadmap
+- [PROJECT.md](PROJECT.md) — short project brief
 
-```bash
-npx tsc --noEmit   # TypeScript
-npx eslint .       # Lint
-npm run build      # Production build
-```
+## License
 
-These catch compile-time and type errors, not runtime/UX issues — always
-verify a change by actually using the affected flow, not just a green
-build.
+MIT

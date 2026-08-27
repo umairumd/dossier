@@ -1,8 +1,8 @@
-# Inoma Hub — Report System
+# Dossier — Report System
 
 ## Overview
 
-The daily report is the core entity of Inoma Hub. Each employee submits one report per day documenting their accomplishments, blockers, and plans. Reports are **immutable** — once submitted, they cannot be edited or deleted.
+The daily report is the core entity of Dossier. Each employee submits one report per day documenting their accomplishments, blockers, and plans. Reports are **immutable** — once submitted, they cannot be edited or deleted.
 
 ---
 

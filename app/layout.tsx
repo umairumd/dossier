@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Inoma Hub",
+  title: "Dossier",
   description: "Internal operations platform for Inoma Digital.",
 };
 

@@ -1,4 +1,4 @@
-# Inoma Hub — Manual Testing Guide
+# Dossier — Manual Testing Guide
 
 This guide provides test scenarios, QA checklists, and procedures for internal team testing.
 
@@ -26,7 +26,7 @@ All demo accounts use password: **`demo123!`**
 | Employee | carol@demo.inoma.local | Carol Williams |
 | Employee | dave@demo.inoma.local | Dave Kim |
 | Employee | eva@demo.inoma.local | Eva Martinez |
-| Pending | pending@demo.inoma.local | Pending Pete (unconfirmed) |
+| Pending | invited@demo.inoma.local | Invited Irene (pending invite) |
 
 ---
 

@@ -1,8 +1,8 @@
-# Inoma Hub — Product Roadmap
+# Dossier — Product Roadmap
 
 ## Current Status
 
-**Version:** 0.9.0 (Release Candidate 1)  
+**Version:** 0.9.0  
 **Stage:** MVP feature-complete, entering stabilization
 
 ---
@@ -375,5 +375,5 @@ None — can begin immediately
 - What notification channels do users want?
 
 ### Before Phase 7
-- Is Inoma Hub the right place for HR?
+- Is Dossier the right place for HR?
 - Should this be a separate product?

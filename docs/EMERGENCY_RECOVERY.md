@@ -1,4 +1,4 @@
-# Inoma Hub — Emergency Recovery Guide
+# Dossier — Emergency Recovery Guide
 
 This document describes how to recover from situations where admin access is lost.
 
@@ -120,7 +120,7 @@ WHERE id = 'paste-uuid-here';
 
 ## Understanding the Deactivation Mechanism
 
-Inoma Hub uses two systems for access control:
+Dossier uses two systems for access control:
 
 1. **Supabase Auth ban** — Prevents the user from logging in at all
 2. **Profile `is_active` flag** — Checked by the app after login

@@ -1,8 +1,8 @@
-# Inoma Hub — Test Plan
+# Dossier — Test Plan
 
 ## Overview
 
-This document outlines a comprehensive testing strategy for Inoma Hub. Currently, no automated tests exist. This plan covers manual QA, recommended unit tests, integration tests, and E2E tests.
+This document outlines a comprehensive testing strategy for Dossier. Currently, no automated tests exist. This plan covers manual QA, recommended unit tests, integration tests, and E2E tests.
 
 ---
 

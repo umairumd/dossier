@@ -1,8 +1,8 @@
-# Inoma Hub
+# Dossier
 
 ## Vision
 
-Inoma Hub is an internal operations platform for Inoma Digital.
+Dossier is an internal operations platform for Inoma Digital.
 
 The first MVP focuses on one problem:
 

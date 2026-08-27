@@ -1,4 +1,4 @@
-# Inoma Hub — Development Guide
+# Dossier — Development Guide
 
 ## Project Setup
 
@@ -13,7 +13,7 @@
 
 ```bash
 git clone <repository-url>
-cd inoma-hub
+cd dossier
 npm install
 ```
 
@@ -128,7 +128,7 @@ Set the same variables as `.env.local`:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-`NEXT_PUBLIC_SITE_URL` is optional — Vercel's `VERCEL_URL` is used automatically.
+`NEXT_PUBLIC_SITE_URL` is optional — Vercel's `NEXT_PUBLIC_VERCEL_URL` is used automatically.
 
 ### Supabase Configuration
 

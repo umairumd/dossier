@@ -1,6 +1,6 @@
-# Inoma Hub — Demo Environment Setup
+# Dossier — Demo Environment Setup
 
-This guide explains how to set up a complete demo environment for testing Inoma Hub.
+This guide explains how to set up a complete demo environment for testing Dossier.
 
 ---
 
