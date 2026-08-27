@@ -1,8 +1,8 @@
-# Inoma Hub — Architecture Guide
+# Dossier — Architecture Guide
 
 ## Overview
 
-Inoma Hub is a Next.js 16 application using the App Router pattern with Supabase as the backend (Postgres + Auth + RLS). The architecture prioritizes **server components by default**, **RLS as the security boundary**, and **shared business logic** between client and server.
+Dossier is a Next.js 16 application using the App Router pattern with Supabase as the backend (Postgres + Auth + RLS). The architecture prioritizes **server components by default**, **RLS as the security boundary**, and **shared business logic** between client and server.
 
 ---
 

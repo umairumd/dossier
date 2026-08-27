@@ -1,4 +1,4 @@
--- Inoma Hub Emergency Recovery Procedures
+-- Dossier Emergency Recovery Procedures
 -- ========================================
 --
 -- Use these procedures ONLY when locked out of the application.

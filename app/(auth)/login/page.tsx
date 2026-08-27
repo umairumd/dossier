@@ -21,7 +21,7 @@ export default async function LoginPage({
     <Card className="w-full max-w-sm">
       <CardHeader>
         <CardTitle>Sign in</CardTitle>
-        <CardDescription>Use your Inoma Hub account credentials.</CardDescription>
+        <CardDescription>Use your Dossier account credentials.</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={login} className="flex flex-col gap-4">

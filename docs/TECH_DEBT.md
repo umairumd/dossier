@@ -1,4 +1,4 @@
-# Inoma Hub — Technical Debt
+# Dossier — Technical Debt
 
 ## Overview
 
@@ -333,27 +333,7 @@ RLS allows managers and admins to submit their own reports, but the nav doesn't 
 
 ---
 
-### 15. Send Reminder Button is a Stub
-
-**Description:**  
-The "Send Reminder" button in the manager UI only shows a toast saying reminders aren't set up.
-
-**Impact:**
-- Confusing UX — button implies functionality that doesn't exist
-- User expectation vs reality mismatch
-
-**Location:**  
-`components/manager/send-reminder-button.tsx`
-
-**Recommendation:**
-- Remove button until notifications are implemented
-- Or relabel as "View Contact" or similar
-
-**Effort:** Trivial
-
----
-
-### 16. No Monitoring/Observability
+### 15. No Monitoring/Observability
 
 **Description:**  
 No APM, no metrics, no health checks beyond what Vercel provides.
@@ -382,7 +362,7 @@ Infrastructure
 | Critical | 2 | No tests, no DB types |
 | High | 4 | Auth/profile sync, no manager guard, UTC timezone, Auth API paging |
 | Medium | 6 | Duplicate code, empty dirs, derived feeds, invite expiry, no logging, PostgREST hints |
-| Low | 3 | Manager nav, stub button, monitoring |
+| Low | 2 | Manager nav, monitoring |
 
 ---
 

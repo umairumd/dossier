@@ -36,7 +36,7 @@ export function TopNav({
         </SheetTrigger>
         <SheetContent side="left" className="w-64">
           <SheetHeader>
-            <SheetTitle>Inoma Hub</SheetTitle>
+            <SheetTitle>Dossier</SheetTitle>
           </SheetHeader>
           <div className="px-4">
             <NavLinks sections={sections} />
@@ -45,7 +45,7 @@ export function TopNav({
       </Sheet>
 
       <span className="text-sm font-semibold tracking-tight md:hidden">
-        Inoma Hub
+        Dossier
       </span>
 
       <div className="ml-auto flex items-center gap-1">

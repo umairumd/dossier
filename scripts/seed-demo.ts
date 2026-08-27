@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Inoma Hub Demo Data Seeder
+ * Dossier Demo Data Seeder
  *
  * Creates a complete demo organization with departments, users, invitations,
  * and realistic report history. Idempotent - safe to run multiple times.
@@ -463,7 +463,7 @@ Departments: Engineering, Design, Sales, Customer Support
 Reports: ~3 weeks of history with realistic patterns
 
 Next Steps:
-1. Open your Inoma Hub URL
+1. Open your Dossier URL
 2. Sign in as admin@${DEMO_DOMAIN} with password: ${DEMO_PASSWORD}
 3. Explore the dashboard and test all features
 
@@ -476,7 +476,7 @@ async function main() {
   const shouldReset = args.includes("--reset");
   const reportsOnly = args.includes("--reports");
 
-  console.log("\n🌱 Inoma Hub Demo Seeder\n");
+  console.log("\n🌱 Dossier Demo Seeder\n");
 
   if (shouldReset) {
     await resetDemoData(supabase);

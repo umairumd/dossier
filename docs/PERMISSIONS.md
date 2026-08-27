@@ -1,8 +1,8 @@
-# Inoma Hub — Permissions & Roles
+# Dossier — Permissions & Roles
 
 ## Role Overview
 
-Inoma Hub has three roles, stored in `profiles.role`:
+Dossier has three roles, stored in `profiles.role`:
 
 | Role | Purpose | Count per Org |
 |------|---------|---------------|

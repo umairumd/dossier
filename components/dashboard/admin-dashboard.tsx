@@ -37,7 +37,7 @@ export async function AdminDashboard() {
           Organization Overview
         </h1>
         <p className="text-sm text-muted-foreground">
-          A snapshot of Inoma Hub across every department.
+          A snapshot of Dossier across every department.
         </p>
       </div>
 

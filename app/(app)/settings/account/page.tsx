@@ -36,7 +36,7 @@ export default function AccountPage() {
         <CardHeader>
           <CardTitle>Sign Out</CardTitle>
           <CardDescription>
-            Sign out of Inoma Hub on this device.
+            Sign out of Dossier on this device.
           </CardDescription>
         </CardHeader>
         <CardContent>

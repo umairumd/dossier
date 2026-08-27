@@ -1,8 +1,8 @@
-# Inoma Hub — Product Specification
+# Dossier — Product Specification
 
 ## Vision
 
-Inoma Hub is an internal operations platform for Inoma Digital, designed to create a **daily accountability loop** between employees, managers, and leadership.
+Dossier is an internal operations platform for your organization, designed to create a **daily accountability loop** between employees, managers, and leadership.
 
 The core insight: accountability is a daily habit, not a weekly meeting. When employees record what they accomplished each day and managers review it the same day, problems surface early, momentum is visible, and follow-ups happen automatically.
 
@@ -10,13 +10,13 @@ The core insight: accountability is a daily habit, not a weekly meeting. When em
 
 ## Problem Being Solved
 
-**Before Inoma Hub:**
+**Before Dossier:**
 - Managers asked "what did you work on?" via Slack, email, or standups
 - Answers were inconsistent, easily forgotten, or scattered across channels
 - Founders had no visibility into day-to-day work without attending meetings
 - No historical record made performance discussions subjective
 
-**After Inoma Hub:**
+**After Dossier:**
 - Every employee submits a structured end-of-day report
 - Managers see completion status at a glance
 - Founders have org-wide visibility without meetings
@@ -26,7 +26,7 @@ The core insight: accountability is a daily habit, not a weekly meeting. When em
 
 ## Target Users
 
-| Role | Primary Job | Inoma Hub Value |
+| Role | Primary Job | Dossier Value |
 |------|-------------|-----------------|
 | **Employee** | Submit daily report | Quick, mobile-friendly way to record accomplishments |
 | **Manager** | Review team's work | Dashboard shows who submitted, who's missing, completion trends |
@@ -144,4 +144,4 @@ When evaluating a new feature, ask:
 4. Will managers actually look at this daily?
 5. Is it simpler than the alternative?
 
-If the answer to all five is yes, it belongs in Inoma Hub. Otherwise, it's a separate product.
+If the answer to all five is yes, it belongs in Dossier. Otherwise, it's a separate product.
