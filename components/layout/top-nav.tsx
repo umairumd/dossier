@@ -34,12 +34,14 @@ export function TopNav({
             <Menu />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64">
+        <SheetContent side="left" className="w-64 flex flex-col">
           <SheetHeader>
             <SheetTitle>Dossier</SheetTitle>
           </SheetHeader>
-          <div className="px-4">
-            <NavLinks sections={sections} />
+          <div className="flex-1 overflow-y-auto">
+            <div className="px-4">
+              <NavLinks sections={sections} />
+            </div>
           </div>
         </SheetContent>
       </Sheet>

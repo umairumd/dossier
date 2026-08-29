@@ -104,7 +104,11 @@ export function InvitationList({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((invitation) => (
+            {filtered.map((invitation) => {
+              const dateToShow =
+                invitation.invited_at ?? invitation.created_at;
+
+              return (
               <TableRow key={invitation.id}>
                 <TableCell className="font-medium">
                   {invitation.full_name}
@@ -120,8 +124,8 @@ export function InvitationList({
                   )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {invitation.invited_at ? (
-                    <LocalDateTime isoString={invitation.invited_at} />
+                  {dateToShow ? (
+                    <LocalDateTime isoString={dateToShow} />
                   ) : (
                     "—"
                   )}
@@ -135,7 +139,8 @@ export function InvitationList({
                   )}
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       )}

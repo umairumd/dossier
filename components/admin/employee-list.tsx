@@ -98,6 +98,15 @@ export function EmployeeList({
         </Select>
       </div>
 
+      {filtered.some(
+        (employee) =>
+          employee.status === "invited" || employee.status === "pending",
+      ) && (
+        <p className="text-xs text-muted-foreground">
+          Invited — link sent and valid · Pending — link expired, regenerate needed
+        </p>
+      )}
+
       {filtered.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
           {employees.length === 0
