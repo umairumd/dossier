@@ -2,18 +2,23 @@
 // links must point back to this app, not wherever Supabase's project-level
 // Site URL happens to be configured).
 //
-// NEXT_PUBLIC_SITE_URL is an optional override (custom domain, etc.).
-// If unset, NEXT_PUBLIC_VERCEL_URL is used — Vercel injects it on every
-// preview and production deploy, so invite links work without dashboard
-// config. Local development falls back to http://localhost:3000.
+// Priority (server-first — NEXT_PUBLIC_* is inlined at build time and is
+// unreliable inside Server Actions):
+//   1. SITE_URL — server-only runtime override (custom domain, etc.)
+//   2. VERCEL_URL — auto-injected by Vercel at request time (no https://)
+//   3. NEXT_PUBLIC_SITE_URL — build-time fallback for client-side use
+//   4. http://localhost:3000 — local development
 export function getSiteUrl(): string {
+  // Server-only runtime vars (reliable in Server Actions)
+  if (process.env.SITE_URL) {
+    return process.env.SITE_URL;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  // Build-time fallback (client-side usage)
   if (process.env.NEXT_PUBLIC_SITE_URL) {
     return process.env.NEXT_PUBLIC_SITE_URL;
   }
-
-  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
-    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
-  }
-
   return "http://localhost:3000";
 }
