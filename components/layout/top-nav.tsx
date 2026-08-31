@@ -15,10 +15,14 @@ import type { NavSection } from "@/components/layout/nav-config";
 import type { Profile } from "@/types/profile";
 
 export function TopNav({
-  sections,
+  mainSections,
+  accountSections,
+  orgName,
   profile,
 }: {
-  sections: NavSection[];
+  mainSections: NavSection[];
+  accountSections: NavSection[];
+  orgName?: string;
   profile: Profile;
 }) {
   return (
@@ -34,14 +38,23 @@ export function TopNav({
             <Menu />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 flex flex-col">
+        <SheetContent side="left" className="flex w-64 flex-col">
           <SheetHeader>
             <SheetTitle>Dossier</SheetTitle>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto">
-            <div className="px-4">
-              <NavLinks sections={sections} />
-            </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4">
+            <NavLinks sections={mainSections} />
+          </div>
+          <div className="flex flex-col gap-1 border-t border-border p-4">
+            <NavLinks sections={accountSections} />
+
+            {orgName && (
+              <div className="mt-2 flex items-center gap-1.5 px-2.5">
+                <span className="truncate text-xs text-muted-foreground/50">
+                  {orgName}
+                </span>
+              </div>
+            )}
           </div>
         </SheetContent>
       </Sheet>

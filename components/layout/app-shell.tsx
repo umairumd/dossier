@@ -1,9 +1,10 @@
 import { navSections } from "@/components/layout/nav-config";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopNav } from "@/components/layout/top-nav";
+import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import type { Profile } from "@/types/profile";
 
-export function AppShell({
+export async function AppShell({
   profile,
   children,
 }: {
@@ -30,11 +31,24 @@ export function AppShell({
     }))
     .filter((section) => section.items.length > 0);
 
+  const mainSections = sections.filter((section) => !section.pinToBottom);
+  const accountSections = sections.filter((section) => section.pinToBottom);
+  const orgName = await getOrganizationName();
+
   return (
     <div className="flex min-h-svh">
-      <Sidebar sections={sections} />
+      <Sidebar
+        mainSections={mainSections}
+        accountSections={accountSections}
+        orgName={orgName ?? undefined}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopNav sections={sections} profile={profile} />
+        <TopNav
+          mainSections={mainSections}
+          accountSections={accountSections}
+          orgName={orgName ?? undefined}
+          profile={profile}
+        />
         <main className="flex-1 p-6">{children}</main>
       </div>
     </div>
