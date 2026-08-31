@@ -15,8 +15,12 @@ import { ReportForm } from "@/components/reports/report-form";
 
 export function SubmitReportSheet({
   alreadySubmitted,
+  triggerLabel,
+  onSubmitted,
 }: {
   alreadySubmitted: boolean;
+  triggerLabel?: string;
+  onSubmitted?: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -25,7 +29,9 @@ export function SubmitReportSheet({
       <SheetTrigger asChild>
         <Button disabled={alreadySubmitted}>
           <FileText />
-          {alreadySubmitted ? "Report Submitted" : "Continue Today's Report"}
+          {alreadySubmitted
+            ? "Report Submitted"
+            : (triggerLabel ?? "Continue Today's Report")}
         </Button>
       </SheetTrigger>
       <SheetContent className="flex h-full w-full flex-col overflow-y-auto sm:max-w-md">
@@ -38,7 +44,12 @@ export function SubmitReportSheet({
             </SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-            <ReportForm onSubmitted={() => setOpen(false)} />
+            <ReportForm
+              onSubmitted={() => {
+                setOpen(false);
+                onSubmitted?.();
+              }}
+            />
           </div>
         </div>
       </SheetContent>
