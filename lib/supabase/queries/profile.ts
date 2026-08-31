@@ -56,11 +56,15 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
     return null;
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("id, full_name, role, organization_id, is_active, created_at")
     .eq("id", user.id)
     .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
 
   if (!profile) {
     return null;

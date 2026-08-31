@@ -5,10 +5,8 @@ import {
   FileText,
   Home,
   History,
-  KeyRound,
   Mail,
   Settings,
-  User,
   UserX,
   Users,
 } from "lucide-react";
@@ -138,15 +136,9 @@ export const navSections: NavSection[] = [
     title: "Settings",
     items: [
       {
-        label: "Profile",
-        href: "/settings/profile",
-        icon: <User className="size-4" />,
-        roles: ["owner", "admin", "manager", "member"],
-      },
-      {
-        label: "Account",
-        href: "/settings/account",
-        icon: <KeyRound className="size-4" />,
+        label: "Settings",
+        href: "/settings",
+        icon: <Settings className="size-4" />,
         roles: ["owner", "admin", "manager", "member"],
       },
     ],

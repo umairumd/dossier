@@ -86,6 +86,10 @@ export function EmployeeActionsMenu({
   const [assignSupervisorsOpen, setAssignSupervisorsOpen] = useState(false);
 
   const isArchived = employee.status === "archived";
+  const isOtherOwner = employee.role === "owner" && !isSelf;
+  const canAssignDepartments =
+    !isArchived &&
+    (employee.role === "manager" || employee.role === "member");
   const isPendingInvite =
     employee.status === "invited" || employee.status === "pending";
 
@@ -157,6 +161,10 @@ export function EmployeeActionsMenu({
 
   const currentConfig = dialogAction ? dialogConfigs[dialogAction] : null;
 
+  if (isOtherOwner) {
+    return <EmployeeActionsMenuDisabled />;
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -166,13 +174,13 @@ export function EmployeeActionsMenu({
             <span className="sr-only">Actions</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem onSelect={() => setEditOpen(true)}>
             <Pencil className="size-4" />
             Edit
           </DropdownMenuItem>
 
-          {!isArchived && (
+          {canAssignDepartments && (
             <>
               <DropdownMenuItem onSelect={() => setAssignDeptOpen(true)}>
                 <Building2 className="size-4" />
@@ -197,18 +205,15 @@ export function EmployeeActionsMenu({
           {!isArchived && (
             <>
               {employee.is_active ? (
-                <DropdownMenuItem
-                  onSelect={() => setDialogAction("deactivate")}
-                  disabled={isSelf}
-                >
-                  <PowerOff className="size-4" />
-                  Deactivate
-                  {isSelf && (
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      (self)
-                    </span>
-                  )}
-                </DropdownMenuItem>
+                !isOtherOwner && (
+                  <DropdownMenuItem
+                    onSelect={() => setDialogAction("deactivate")}
+                    disabled={isSelf}
+                  >
+                    <PowerOff className="size-4" />
+                    Deactivate
+                  </DropdownMenuItem>
+                )
               ) : (
                 <DropdownMenuItem onSelect={() => setDialogAction("activate")}>
                   <Power className="size-4" />
@@ -216,18 +221,15 @@ export function EmployeeActionsMenu({
                 </DropdownMenuItem>
               )}
 
-              <DropdownMenuItem
-                onSelect={() => setDialogAction("archive")}
-                disabled={isSelf}
-              >
-                <Archive className="size-4" />
-                Archive
-                {isSelf && (
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    (self)
-                  </span>
-                )}
-              </DropdownMenuItem>
+              {!isOtherOwner && (
+                <DropdownMenuItem
+                  onSelect={() => setDialogAction("archive")}
+                  disabled={isSelf}
+                >
+                  <Archive className="size-4" />
+                  Archive
+                </DropdownMenuItem>
+              )}
             </>
           )}
 
@@ -247,11 +249,6 @@ export function EmployeeActionsMenu({
               >
                 <Trash2 className="size-4" />
                 Delete Permanently
-                {isSelf && (
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    (self)
-                  </span>
-                )}
               </DropdownMenuItem>
             </>
           )}
