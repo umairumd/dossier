@@ -20,8 +20,10 @@ export interface EmployeeListItem {
   full_name: string;
   email: string | null;
   role: UserRole;
-  department_id: string | null;
-  department_name: string | null;
+  department_ids: string[];
+  department_names: string[];
+  organization_id: string | null;
+  supervisor_ids: string[];
   is_active: boolean;
   archived_at: string | null;
   invited_at: string | null;

@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/table";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
-import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem, EmployeeStatus } from "@/types/employee";
 
 type StatusFilter = "all" | Exclude<EmployeeStatus, "pending">;
@@ -36,11 +35,9 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
 
 export function EmployeeList({
   employees,
-  departments,
   currentUserId,
 }: {
   employees: EmployeeListItem[];
-  departments: DepartmentOption[];
   currentUserId: string;
 }) {
   const [query, setQuery] = useState("");
@@ -140,14 +137,15 @@ export function EmployeeList({
                   {employee.email ?? "—"}
                 </TableCell>
                 <TableCell className="capitalize">{employee.role}</TableCell>
-                <TableCell>{employee.department_name ?? "Unassigned"}</TableCell>
+                <TableCell>
+                  {employee.department_names.join(", ") || "—"}
+                </TableCell>
                 <TableCell>
                   <EmployeeStatusBadge status={employee.status} />
                 </TableCell>
                 <TableCell className="text-right">
                   <EmployeeActionsMenu
                     employee={employee}
-                    departments={departments}
                     isSelf={employee.id === currentUserId}
                   />
                 </TableCell>

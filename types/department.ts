@@ -1,6 +1,7 @@
 export interface DepartmentListItem {
   id: string;
   name: string;
+  organization_id: string | null;
   manager_id: string | null;
   manager_name: string | null;
   employee_count: number;

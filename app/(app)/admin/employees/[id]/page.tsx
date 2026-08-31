@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { Calendar, LogIn, Mail } from "lucide-react";
-import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getEmployeeDetail } from "@/lib/supabase/queries/admin/employees";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { LocalDateTime } from "@/components/shared/local-datetime";
@@ -23,9 +22,8 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params;
 
-  const [employee, departments, profile] = await Promise.all([
+  const [employee, profile] = await Promise.all([
     getEmployeeDetail(id),
-    getAllDepartments(),
     getCurrentProfile(),
   ]);
 
@@ -34,11 +32,6 @@ export default async function EmployeeDetailPage({
   }
 
   const isSelf = employee.id === profile?.id;
-
-  const departmentOptions = departments.map((department) => ({
-    id: department.id,
-    name: department.name,
-  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,13 +43,14 @@ export default async function EmployeeDetailPage({
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span className="capitalize">{employee.role}</span>
             <span>·</span>
-            <span>{employee.department_name ?? "Unassigned"}</span>
+            <span>
+              {employee.department_names.join(", ") || "Unassigned"}
+            </span>
           </div>
         </div>
 
         <EmployeeActionsMenu
           employee={employee}
-          departments={departmentOptions}
           isSelf={isSelf}
           redirectOnDelete="/admin/employees"
         />

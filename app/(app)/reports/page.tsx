@@ -9,10 +9,12 @@ export default async function DailyReportPage() {
     getCurrentProfile(),
   ]);
 
-  const subtitle =
-    profile?.role === "admin"
-      ? "Log today's progress."
-      : "Log today's progress for your manager to review.";
+  const isPrivileged =
+    profile?.role === "owner" || profile?.role === "admin";
+
+  const subtitle = isPrivileged
+    ? "Log today's progress."
+    : "Log today's progress for your manager to review.";
 
   return (
     <div className="flex flex-col gap-6">
@@ -27,7 +29,7 @@ export default async function DailyReportPage() {
         <TodayStatusCard report={todayReport} />
         <SubmitReportCard
           alreadySubmitted={!!todayReport}
-          isAdmin={profile?.role === "admin"}
+          isAdmin={isPrivileged}
         />
       </div>
     </div>

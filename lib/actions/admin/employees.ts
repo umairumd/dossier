@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAdminUser } from "@/lib/supabase/require-admin";
+import { requireAdminUser, requireOwnerUser } from "@/lib/supabase/require-admin";
 import {
   countActiveAdmins,
   countAllAdmins,
@@ -51,7 +51,7 @@ export async function inviteEmployee(
     return { success: false, fieldErrors: validation.fieldErrors };
   }
 
-  const { email, fullName, role, departmentId } = validation.value;
+  const { email, fullName, role } = validation.value;
   const adminClient = createAdminClient();
 
   // generateLink (not inviteUserByEmail) is used deliberately: it always
@@ -81,10 +81,8 @@ export async function inviteEmployee(
   }
 
   // The invite trigger (handle_new_user) already created a baseline
-  // profile (role='employee', no department); this applies the role and
-  // department the admin actually chose, and stores the invite link for
-  // later retrieval. Uses the regular RLS-respecting client — the service-role
-  // client is only needed for the auth.users side above.
+  // profile (role='member'); this applies the role and name the admin
+  // chose. Department assignment is a separate action.
   const inviteLink = data.properties.action_link;
   const supabase = await createClient();
   const { error: profileError } = await supabase
@@ -92,7 +90,6 @@ export async function inviteEmployee(
     .update({
       full_name: fullName,
       role,
-      department_id: departmentId,
       pending_invite_link: inviteLink,
     })
     .eq("id", data.user.id);
@@ -101,7 +98,7 @@ export async function inviteEmployee(
     return {
       success: false,
       error:
-        "Invitation created, but couldn't set the employee's role/department. Edit them from the list to fix this.",
+        "Invitation created, but couldn't set the employee's role. Edit them from the list to fix this.",
     };
   }
 
@@ -121,40 +118,47 @@ export async function updateEmployee(
     return { success: false, fieldErrors: validation.fieldErrors };
   }
 
-  // Account safety: an admin can never demote themselves. Since only an
-  // admin can reach this action at all (requireAdminUser above), the
-  // caller editing their own row is necessarily an admin right now — so
-  // "target is me AND the new role isn't admin" is exactly "I'm removing
-  // my own admin privileges," with no extra lookup needed to confirm it.
-  if (input.id === admin.id && validation.value.role !== "admin") {
+  const supabase = await createClient();
+
+  // Account safety: never let someone change their own role.
+  const { data: targetForSelf } = await supabase
+    .from("profiles")
+    .select("role, is_active, archived_at")
+    .eq("id", input.id)
+    .maybeSingle();
+
+  if (
+    validation.value.role === "owner" &&
+    targetForSelf?.role !== "owner"
+  ) {
     return {
       success: false,
-      error: "You cannot remove your own admin privileges.",
+      error: "Owner cannot be assigned through this form.",
     };
   }
 
-  const supabase = await createClient();
+  if (
+    input.id === admin.id &&
+    targetForSelf &&
+    validation.value.role !== targetForSelf.role
+  ) {
+    return {
+      success: false,
+      error: "You cannot change your own role.",
+    };
+  }
 
-  // Account safety: protect the last administrator. Only relevant when
-  // this edit would move an admin OUT of the admin role — fetch their
-  // current role/status first, since "last admin" only means anything for
-  // someone who is presently one of the active admins being counted.
-  if (validation.value.role !== "admin") {
-    const { data: currentProfile } = await supabase
-      .from("profiles")
-      .select("role, is_active, archived_at")
-      .eq("id", input.id)
-      .maybeSingle();
-
+  // Account safety: protect the last owner.
+  if (validation.value.role !== "owner") {
     if (
-      currentProfile?.role === "admin" &&
-      currentProfile.is_active &&
-      !currentProfile.archived_at &&
+      targetForSelf?.role === "owner" &&
+      targetForSelf.is_active &&
+      !targetForSelf.archived_at &&
       (await countActiveAdmins()) <= 1
     ) {
       return {
         success: false,
-        error: "The last administrator's role cannot be changed.",
+        error: "The last owner's role cannot be changed.",
       };
     }
   }
@@ -184,7 +188,6 @@ export async function updateEmployee(
     .update({
       full_name: validation.value.fullName,
       role: validation.value.role,
-      department_id: validation.value.departmentId,
     })
     .eq("id", input.id);
 
@@ -225,10 +228,10 @@ export async function setEmployeeActive(
       .eq("id", employeeId)
       .maybeSingle();
 
-    if (targetProfile?.role === "admin" && (await countActiveAdmins()) <= 1) {
+    if (targetProfile?.role === "owner" && (await countActiveAdmins()) <= 1) {
       return {
         success: false,
-        error: "The last administrator cannot be deactivated.",
+        error: "The last owner cannot be deactivated.",
       };
     }
   }
@@ -285,10 +288,10 @@ export async function archiveEmployee(
     .eq("id", employeeId)
     .maybeSingle();
 
-  if (targetProfile?.role === "admin" && (await countActiveAdmins()) <= 1) {
+  if (targetProfile?.role === "owner" && (await countActiveAdmins()) <= 1) {
     return {
       success: false,
-      error: "The last administrator cannot be archived.",
+      error: "The last owner cannot be archived.",
     };
   }
 
@@ -362,12 +365,7 @@ export async function restoreEmployee(
 export async function permanentlyDeleteEmployee(
   employeeId: string,
 ): Promise<EmployeeActionResult> {
-  const admin = await requireAdminUser();
-
-  // Account safety: never let an admin permanently delete themselves. Not
-  // reachable through the normal UI flow (self-archive is already blocked
-  // above, and this action requires archived_at to be set first), but
-  // enforced here too since the server, not the UI, is the real boundary.
+  const admin = await requireOwnerUser();
   if (employeeId === admin.id) {
     return {
       success: false,
@@ -398,10 +396,10 @@ export async function permanentlyDeleteEmployee(
   // ones, unlike the other guards above) — even an archived admin is
   // still recoverable via restoreEmployee, and deleting the org's last one
   // would close that door for good.
-  if (profile.role === "admin" && (await countAllAdmins()) <= 1) {
+  if (profile.role === "owner" && (await countAllAdmins()) <= 1) {
     return {
       success: false,
-      error: "The last administrator cannot be permanently deleted.",
+      error: "The last owner cannot be permanently deleted.",
     };
   }
 
@@ -414,6 +412,77 @@ export async function permanentlyDeleteEmployee(
 
   revalidatePath("/admin/employees");
   revalidatePath("/admin/departments");
+
+  return { success: true };
+}
+
+export async function assignMemberDepartments(
+  memberId: string,
+  departmentIds: string[],
+): Promise<EmployeeActionResult> {
+  await requireAdminUser();
+
+  const supabase = await createClient();
+  const { error: deleteError } = await supabase
+    .from("profile_departments")
+    .delete()
+    .eq("profile_id", memberId);
+
+  if (deleteError) {
+    return { success: false, error: "Failed to update department assignments." };
+  }
+
+  if (departmentIds.length > 0) {
+    const { error: insertError } = await supabase
+      .from("profile_departments")
+      .insert(
+        departmentIds.map((department_id) => ({
+          profile_id: memberId,
+          department_id,
+        })),
+      );
+
+    if (insertError) {
+      return { success: false, error: "Failed to update department assignments." };
+    }
+  }
+
+  revalidateEmployeePaths(memberId);
+  revalidatePath("/admin/departments");
+
+  return { success: true };
+}
+
+export async function assignMemberSupervisors(
+  memberId: string,
+  supervisorIds: string[],
+): Promise<EmployeeActionResult> {
+  await requireAdminUser();
+
+  const supabase = await createClient();
+  const { error: deleteError } = await supabase
+    .from("member_supervisors")
+    .delete()
+    .eq("member_id", memberId);
+
+  if (deleteError) {
+    return { success: false, error: "Failed to update supervisor assignments." };
+  }
+
+  if (supervisorIds.length > 0) {
+    const { error: insertError } = await supabase.from("member_supervisors").insert(
+      supervisorIds.map((supervisor_id) => ({
+        member_id: memberId,
+        supervisor_id,
+      })),
+    );
+
+    if (insertError) {
+      return { success: false, error: "Failed to update supervisor assignments." };
+    }
+  }
+
+  revalidateEmployeePaths(memberId);
 
   return { success: true };
 }

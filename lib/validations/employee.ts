@@ -1,41 +1,34 @@
 import type { UserRole } from "@/types/profile";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const VALID_ROLES: UserRole[] = ["employee", "manager", "admin"];
+// Assignable via invite/edit — owner is never granted through these forms.
+const VALID_ROLES: UserRole[] = ["member", "manager", "admin"];
 
 export interface InviteEmployeeInput {
   email: string;
   fullName: string;
   role: string;
-  departmentId: string | null;
 }
 
 export interface EditEmployeeInput {
   email: string;
   fullName: string;
   role: string;
-  departmentId: string | null;
 }
 
 export interface EmployeeFieldErrors {
   email?: string;
   fullName?: string;
   role?: string;
-  departmentId?: string;
 }
 
 function isUserRole(value: string): value is UserRole {
   return (VALID_ROLES as string[]).includes(value);
 }
 
-// Shared by invite and edit — both need "name required, role valid,
-// department required unless admin" (mirroring profiles_role_check and the
-// department-required-for-non-admins expectation), so this lives in one
-// place rather than duplicated per form.
 function validateCommonFields(input: {
   fullName: string;
   role: string;
-  departmentId: string | null;
 }): EmployeeFieldErrors {
   const fieldErrors: EmployeeFieldErrors = {};
 
@@ -45,14 +38,6 @@ function validateCommonFields(input: {
 
   if (!isUserRole(input.role)) {
     fieldErrors.role = "Select a valid role.";
-  }
-
-  if (
-    isUserRole(input.role) &&
-    input.role !== "admin" &&
-    !input.departmentId
-  ) {
-    fieldErrors.departmentId = "Select a department for this role.";
   }
 
   return fieldErrors;
@@ -77,7 +62,6 @@ export type InviteEmployeeValidationResult =
         email: string;
         fullName: string;
         role: UserRole;
-        departmentId: string | null;
       };
     }
   | { valid: false; fieldErrors: EmployeeFieldErrors };
@@ -101,7 +85,6 @@ export function validateInviteEmployeeInput(
       email: input.email.trim(),
       fullName: input.fullName.trim(),
       role: input.role as UserRole,
-      departmentId: input.role === "admin" ? null : input.departmentId,
     },
   };
 }
@@ -113,17 +96,20 @@ export type EditEmployeeValidationResult =
         email: string;
         fullName: string;
         role: UserRole;
-        departmentId: string | null;
       };
     }
   | { valid: false; fieldErrors: EmployeeFieldErrors };
 
-// Same rules as invite, including email — editing an existing employee's
-// email is supported via the Admin API (see updateEmployee).
 export function validateEditEmployeeInput(
   input: EditEmployeeInput,
 ): EditEmployeeValidationResult {
-  const fieldErrors = validateCommonFields(input);
+  const fieldErrors = validateCommonFields({
+    ...input,
+    role: input.role === "owner" ? "member" : input.role,
+  });
+  if (input.role === "owner") {
+    delete fieldErrors.role;
+  }
   const emailError = validateEmail(input.email);
   if (emailError) {
     fieldErrors.email = emailError;
@@ -139,7 +125,6 @@ export function validateEditEmployeeInput(
       email: input.email.trim(),
       fullName: input.fullName.trim(),
       role: input.role as UserRole,
-      departmentId: input.role === "admin" ? null : input.departmentId,
     },
   };
 }

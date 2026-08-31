@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireAdminUser } from "@/lib/supabase/require-admin";
+import { requireOwnerUser } from "@/lib/supabase/require-admin";
 
 export interface UpdateReportDeadlineResult {
   success: boolean;
@@ -12,7 +12,7 @@ export interface UpdateReportDeadlineResult {
 export async function updateReportDeadline(
   hourUtc: number,
 ): Promise<UpdateReportDeadlineResult> {
-  const admin = await requireAdminUser();
+  const admin = await requireOwnerUser();
 
   if (!Number.isInteger(hourUtc) || hourUtc < 0 || hourUtc > 23) {
     return { success: false, error: "Enter an hour between 0 and 23." };

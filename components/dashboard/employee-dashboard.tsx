@@ -33,7 +33,7 @@ export async function EmployeeDashboard({
           <span>{today}</span>
           <Badge variant="outline">
             <Building2 />
-            {profile.department?.name ?? "Unassigned"}
+            {profile.department_names.join(", ") || "Unassigned"}
           </Badge>
         </div>
       </div>

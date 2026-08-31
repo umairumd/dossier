@@ -21,7 +21,7 @@ export const getOrganizationTrends = cache(
     const supabase = await createClient();
     const employees = await getAllEmployees();
     const activeEmployeeCount = employees.filter(
-      (employee) => employee.role === "employee" && employee.status === "active",
+      (employee) => employee.role === "member" && employee.status === "active",
     ).length;
 
     const { data: reportRows, error } = await supabase

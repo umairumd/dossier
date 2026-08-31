@@ -1,10 +1,12 @@
-export type UserRole = "employee" | "manager" | "admin";
+export type UserRole = "owner" | "admin" | "manager" | "member";
 
 export interface Profile {
   id: string;
   full_name: string;
   role: UserRole;
-  department_id: string | null;
+  organization_id: string | null;
+  department_ids: string[];
+  supervisor_ids: string[];
   is_active: boolean;
   created_at: string;
 }

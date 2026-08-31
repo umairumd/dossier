@@ -2,9 +2,49 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types/profile";
 
-// Wrapped in React's cache() because both (app)/layout.tsx (for the shell's
-// nav/user menu) and each page below it call this per request — without
-// caching, that's a duplicate profiles query on every navigation.
+async function loadDepartmentAndSupervisorIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  profileId: string,
+): Promise<{ department_ids: string[]; supervisor_ids: string[] }> {
+  const [{ data: memberships }, { data: supervisors }] = await Promise.all([
+    supabase
+      .from("profile_departments")
+      .select("department_id")
+      .eq("profile_id", profileId),
+    supabase
+      .from("member_supervisors")
+      .select("supervisor_id")
+      .eq("member_id", profileId),
+  ]);
+
+  return {
+    department_ids: (memberships ?? []).map((row) => row.department_id),
+    supervisor_ids: (supervisors ?? []).map((row) => row.supervisor_id),
+  };
+}
+
+async function loadDepartmentNames(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  departmentIds: string[],
+): Promise<string[]> {
+  if (departmentIds.length === 0) {
+    return [];
+  }
+
+  const { data: departments } = await supabase
+    .from("departments")
+    .select("id, name")
+    .in("id", departmentIds);
+
+  const nameById = new Map(
+    (departments ?? []).map((department) => [department.id, department.name]),
+  );
+
+  return departmentIds
+    .map((id) => nameById.get(id))
+    .filter((name): name is string => Boolean(name));
+}
+
 export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
 
@@ -16,63 +56,48 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
     return null;
   }
 
-  // maybeSingle(), not single(): a signed-in user with no profile row yet
-  // (see /no-profile) is an expected state, not an error condition.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, role, department_id, is_active, created_at")
+    .select("id, full_name, role, organization_id, is_active, created_at")
     .eq("id", user.id)
     .maybeSingle();
 
-  return (profile as Profile) ?? null;
+  if (!profile) {
+    return null;
+  }
+
+  const { department_ids, supervisor_ids } =
+    await loadDepartmentAndSupervisorIds(supabase, user.id);
+
+  return {
+    ...(profile as Omit<Profile, "department_ids" | "supervisor_ids">),
+    department_ids,
+    supervisor_ids,
+  };
 });
 
 export interface ProfileWithDepartment extends Profile {
-  department: { name: string } | null;
+  department_names: string[];
 }
 
-// Same single profile lookup as getCurrentProfile, just with the
-// department name embedded via the FK relation — not a second fetch, and
-// not "report data," so it stays within this milestone's data-fetching
-// scope (the employee dashboard needs to show a department name, not
-// just the department_id UUID).
 export const getCurrentProfileWithDepartment = cache(
   async (): Promise<ProfileWithDepartment | null> => {
-    const supabase = await createClient();
+    const profile = await getCurrentProfile();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    if (!profile) {
       return null;
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select(
-        // profiles and departments have two FKs between them
-        // (profiles.department_id -> departments.id, and
-        // departments.manager_id -> profiles.id), so PostgREST can't infer
-        // which one to embed without the explicit !constraint hint —
-        // omitting it throws PGRST201 ("more than one relationship found").
-        "id, full_name, role, department_id, is_active, created_at, department:departments!profiles_department_id_fkey(name)",
-      )
-      .eq("id", user.id)
-      .maybeSingle();
+    const supabase = await createClient();
+    const department_names = await loadDepartmentNames(
+      supabase,
+      profile.department_ids,
+    );
 
-    // Supabase infers embedded to-one relations as arrays from the select
-    // string alone (it can't know department_id's FK is one-to-one without
-    // generated Database types) — the department_id FK guarantees at most
-    // one row, so this cast reflects the true cardinality, not a bypass.
-    return (profile as unknown as ProfileWithDepartment) ?? null;
+    return { ...profile, department_names };
   },
 );
 
-// Email lives on auth.users, not profiles — but this is the requesting
-// user's OWN session, so it's available directly from getUser(), unlike
-// the admin employee list (which needs the service-role Admin API to see
-// *other* users' emails). No new privileged access required.
 export const getCurrentUserEmail = cache(async (): Promise<string | null> => {
   const supabase = await createClient();
 

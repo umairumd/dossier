@@ -32,7 +32,9 @@ export default async function ManagerEmployeeOverviewPage({
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span className="capitalize">{overview.role}</span>
           <span>·</span>
-          <span>{overview.department_name ?? "Unassigned"}</span>
+          <span>
+            {overview.department_names.join(", ") || "Unassigned"}
+          </span>
         </div>
       </div>
 

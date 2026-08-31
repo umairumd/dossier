@@ -1,6 +1,5 @@
 import { getOrganizationSummary } from "@/lib/supabase/queries/admin/overview";
 import { getRecentActivity } from "@/lib/supabase/queries/admin/activity";
-import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import {
   Card,
   CardContent,
@@ -19,16 +18,10 @@ const HOME_ACTIVITY_LIMIT = 8;
 // reachable directly in case it's bookmarked) — one component, not two
 // parallel implementations of the same org overview.
 export async function AdminDashboard() {
-  const [summary, recentActivity, departments] = await Promise.all([
+  const [summary, recentActivity] = await Promise.all([
     getOrganizationSummary(),
     getRecentActivity(HOME_ACTIVITY_LIMIT),
-    getAllDepartments(),
   ]);
-
-  const departmentOptions = departments.map((department) => ({
-    id: department.id,
-    name: department.name,
-  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -71,7 +64,7 @@ export async function AdminDashboard() {
           Quick Actions
         </h2>
         <div className="flex flex-wrap gap-2">
-          <InviteEmployeeDialog departments={departmentOptions} />
+          <InviteEmployeeDialog />
           <CreateDepartmentDialog />
         </div>
       </div>

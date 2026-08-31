@@ -22,7 +22,7 @@ export default async function MissingReportsPage() {
 
       <MissingReportsTable
         rows={rows}
-        departmentName={profile?.department?.name ?? "Team"}
+        departmentName={profile?.department_names[0] ?? "Team"}
       />
     </div>
   );

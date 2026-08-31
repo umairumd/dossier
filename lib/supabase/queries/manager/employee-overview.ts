@@ -8,7 +8,6 @@ interface ProfileRow {
   id: string;
   full_name: string;
   role: TeamMemberOverview["role"];
-  department: { name: string } | null;
 }
 
 // No requireManagerUser()-style guard here, unlike the admin equivalents:
@@ -32,9 +31,7 @@ export const getTeamMemberOverview = cache(
 
     const { data: profile, error } = await supabase
       .from("profiles")
-      .select(
-        "id, full_name, role, department:departments!profiles_department_id_fkey(name)",
-      )
+      .select("id, full_name, role")
       .eq("id", employeeId)
       .maybeSingle();
 
@@ -59,6 +56,22 @@ export const getTeamMemberOverview = cache(
       throw new Error("Failed to load employee reports.");
     }
 
+    const { data: memberships } = await supabase
+      .from("profile_departments")
+      .select("department_id, departments(name)")
+      .eq("profile_id", employeeId);
+
+    const department_names = (memberships ?? [])
+      .map((row) => {
+        const embedded = row.departments as unknown as
+          | { name: string }
+          | { name: string }[]
+          | null;
+        const department = Array.isArray(embedded) ? embedded[0] : embedded;
+        return department?.name;
+      })
+      .filter((name): name is string => Boolean(name));
+
     const allReports = (reports as DailyReport[]) ?? [];
     const stats = computeReportStats(allReports);
     const profileRow = profile as unknown as ProfileRow;
@@ -67,7 +80,7 @@ export const getTeamMemberOverview = cache(
       id: profileRow.id,
       full_name: profileRow.full_name,
       role: profileRow.role,
-      department_name: profileRow.department?.name ?? null,
+      department_names,
       report_count: allReports.length,
       recent_reports: allReports.slice(0, 10),
       current_streak: stats.currentStreak,

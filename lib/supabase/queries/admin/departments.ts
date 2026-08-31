@@ -29,11 +29,7 @@ export const getAllDepartments = cache(
     const { data: departments, error: departmentsError } = await supabase
       .from("departments")
       .select(
-        // Two FKs exist between departments and profiles
-        // (departments.manager_id -> profiles.id, and
-        // profiles.department_id -> departments.id) — the !constraint hint
-        // picks the manager_id one; without it PostgREST throws PGRST201.
-        "id, name, manager_id, archived_at, created_at, manager:profiles!departments_manager_id_fkey(full_name)",
+        "id, name, organization_id, manager_id, archived_at, created_at, manager:profiles!departments_manager_id_fkey(full_name)",
       )
       .order("name", { ascending: true });
 
@@ -41,30 +37,34 @@ export const getAllDepartments = cache(
       logAndThrow("Failed to load departments.", departmentsError);
     }
 
-    // Non-archived profiles assigned to a department count toward
-    // headcount (any role, including the department manager).
-    const { data: employeeCounts, error: countsError } = await supabase
-      .from("profiles")
-      .select("department_id")
-      .is("archived_at", null);
+    const { data: memberships, error: countsError } = await supabase
+      .from("profile_departments")
+      .select("department_id, profiles(archived_at)");
 
     if (countsError) {
       logAndThrow("Failed to load department employee counts.", countsError);
     }
 
     const countByDepartment = new Map<string, number>();
-    for (const row of employeeCounts ?? []) {
-      if (row.department_id) {
-        countByDepartment.set(
-          row.department_id,
-          (countByDepartment.get(row.department_id) ?? 0) + 1,
-        );
+    for (const row of memberships ?? []) {
+      const embedded = row.profiles as unknown as
+        | { archived_at: string | null }
+        | { archived_at: string | null }[]
+        | null;
+      const profile = Array.isArray(embedded) ? embedded[0] : embedded;
+      if (profile?.archived_at) {
+        continue;
       }
+      countByDepartment.set(
+        row.department_id,
+        (countByDepartment.get(row.department_id) ?? 0) + 1,
+      );
     }
 
     interface DepartmentRow {
       id: string;
       name: string;
+      organization_id: string | null;
       manager_id: string | null;
       archived_at: string | null;
       created_at: string;
@@ -76,6 +76,7 @@ export const getAllDepartments = cache(
     ).map((department) => ({
       id: department.id,
       name: department.name,
+      organization_id: department.organization_id,
       manager_id: department.manager_id,
       manager_name: department.manager?.full_name ?? null,
       employee_count: countByDepartment.get(department.id) ?? 0,
@@ -118,15 +119,21 @@ export const countActiveDepartmentMembers = async (
 
   const supabase = await createClient();
 
-  const { count, error } = await supabase
-    .from("profiles")
-    .select("id", { count: "exact", head: true })
-    .eq("department_id", departmentId)
-    .is("archived_at", null);
+  const { data: rows, error } = await supabase
+    .from("profile_departments")
+    .select("profile_id, profiles(archived_at)")
+    .eq("department_id", departmentId);
 
   if (error) {
     logAndThrow("Failed to check department membership.", error);
   }
 
-  return count ?? 0;
+  return (rows ?? []).filter((row) => {
+    const embedded = row.profiles as unknown as
+      | { archived_at: string | null }
+      | { archived_at: string | null }[]
+      | null;
+    const profile = Array.isArray(embedded) ? embedded[0] : embedded;
+    return !profile?.archived_at;
+  }).length;
 };

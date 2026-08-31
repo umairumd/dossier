@@ -33,7 +33,7 @@ export default async function TeamReportsPage({
 
       <TeamReportsView
         members={members}
-        departmentName={profile?.department?.name ?? "Team"}
+        departmentName={profile?.department_names[0] ?? "Team"}
         deadlineHourUtc={settings.reportDeadlineHourUtc}
       />
     </div>
