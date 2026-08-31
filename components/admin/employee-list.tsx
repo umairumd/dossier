@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/table";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
+import { getRoleLabel } from "@/lib/helpers/role-labels";
+import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem, EmployeeStatus } from "@/types/employee";
 
 type StatusFilter = "all" | Exclude<EmployeeStatus, "pending">;
@@ -36,9 +38,13 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
 export function EmployeeList({
   employees,
   currentUserId,
+  departments,
+  candidates,
 }: {
   employees: EmployeeListItem[];
   currentUserId: string;
+  departments: DepartmentOption[];
+  candidates: EmployeeListItem[];
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -136,7 +142,7 @@ export function EmployeeList({
                 <TableCell className="text-muted-foreground">
                   {employee.email ?? "—"}
                 </TableCell>
-                <TableCell className="capitalize">{employee.role}</TableCell>
+                <TableCell>{getRoleLabel(employee.role)}</TableCell>
                 <TableCell>
                   {employee.department_names.join(", ") || "—"}
                 </TableCell>
@@ -147,6 +153,8 @@ export function EmployeeList({
                   <EmployeeActionsMenu
                     employee={employee}
                     isSelf={employee.id === currentUserId}
+                    departments={departments}
+                    candidates={candidates}
                   />
                 </TableCell>
               </TableRow>

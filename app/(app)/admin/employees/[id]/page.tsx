@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
-import { Calendar, LogIn, Mail } from "lucide-react";
-import { getEmployeeDetail } from "@/lib/supabase/queries/admin/employees";
+import { Building2, Calendar, LogIn, Mail, UserCheck } from "lucide-react";
+import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
+import { getAllEmployees, getEmployeeDetail } from "@/lib/supabase/queries/admin/employees";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import {
@@ -14,6 +15,7 @@ import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
 import { ReportHistoryCards } from "@/components/reports/report-history-cards";
 import { ReportHistoryTable } from "@/components/reports/report-history-table";
+import { getRoleLabel } from "@/lib/helpers/role-labels";
 
 export default async function EmployeeDetailPage({
   params,
@@ -22,9 +24,11 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params;
 
-  const [employee, profile] = await Promise.all([
+  const [employee, profile, allDepartments, employees] = await Promise.all([
     getEmployeeDetail(id),
     getCurrentProfile(),
+    getAllDepartments(),
+    getAllEmployees(),
   ]);
 
   if (!employee) {
@@ -32,6 +36,13 @@ export default async function EmployeeDetailPage({
   }
 
   const isSelf = employee.id === profile?.id;
+  const departments = allDepartments
+    .filter((department) => department.archived_at === null)
+    .map((department) => ({ id: department.id, name: department.name }));
+  const candidates = employees.filter((item) => item.id !== employee.id);
+  const supervisorNames = candidates
+    .filter((candidate) => employee.supervisor_ids.includes(candidate.id))
+    .map((candidate) => candidate.full_name);
 
   return (
     <div className="flex flex-col gap-6">
@@ -41,7 +52,7 @@ export default async function EmployeeDetailPage({
             {employee.full_name}
           </h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span className="capitalize">{employee.role}</span>
+            <span>{getRoleLabel(employee.role)}</span>
             <span>·</span>
             <span>
               {employee.department_names.join(", ") || "Unassigned"}
@@ -52,11 +63,13 @@ export default async function EmployeeDetailPage({
         <EmployeeActionsMenu
           employee={employee}
           isSelf={isSelf}
+          departments={departments}
+          candidates={candidates}
           redirectOnDelete="/admin/employees"
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardDescription className="flex items-center gap-1.5">
@@ -106,6 +119,30 @@ export default async function EmployeeDetailPage({
               ) : (
                 "Never"
               )}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardDescription className="flex items-center gap-1.5">
+              <Building2 className="size-3.5" />
+              Departments
+            </CardDescription>
+            <CardTitle className="text-base font-medium">
+              {employee.department_names.join(", ") || "Unassigned"}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardDescription className="flex items-center gap-1.5">
+              <UserCheck className="size-3.5" />
+              Reports To
+            </CardDescription>
+            <CardTitle className="text-base font-medium">
+              {supervisorNames.join(", ") || "—"}
             </CardTitle>
           </CardHeader>
         </Card>

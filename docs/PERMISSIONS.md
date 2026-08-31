@@ -2,13 +2,14 @@
 
 ## Role Overview
 
-Dossier has three roles, stored in `profiles.role`:
+Dossier has four roles, stored in `profiles.role`:
 
 | Role | Purpose | Count per Org |
 |------|---------|---------------|
-| **Employee** | Submits daily reports | Many |
-| **Manager** | Reviews their department's reports | One per department |
-| **Admin** | Manages the organization | At least one (protected) |
+| **Owner** | Full organization control, including settings | At least one (protected) |
+| **HR Admin** | People and department operations | Many |
+| **Manager** | Reviews their team's reports | Many |
+| **Member** | Submits daily reports | Many |
 
 ---
 
@@ -16,7 +17,7 @@ Dossier has three roles, stored in `profiles.role`:
 
 ### Data Access
 
-| Resource | Employee | Manager | Admin |
+| Resource | Member | Manager | Admin |
 |----------|----------|---------|-------|
 | Own profile | Read, Update (name only) | Read, Update (name only) | Read, Update (name only) |
 | Department profiles | — | Read (own dept) | Read (all) |
@@ -29,7 +30,7 @@ Dossier has three roles, stored in `profiles.role`:
 
 ### Actions
 
-| Action | Employee | Manager | Admin |
+| Action | Member | Manager | Admin |
 |--------|----------|---------|-------|
 | Submit daily report | Yes | Yes (RLS) | Yes (RLS) |
 | View report history | Own only | Own + dept | All |
@@ -52,9 +53,9 @@ Dossier has three roles, stored in `profiles.role`:
 
 ---
 
-## Employee Role
+## Member Role
 
-### What Employees Can Do
+### What Members Can Do
 
 **Reports:**
 - Submit one daily report per day
@@ -67,13 +68,13 @@ Dossier has three roles, stored in `profiles.role`:
 - Change their password
 
 **Navigation:**
-- Home (Employee Dashboard)
+- Home (Member Dashboard)
 - Reports → Daily Report
 - Reports → Report History
 - Settings → Profile
 - Settings → Account
 
-### What Employees Cannot Do
+### What Members Cannot Do
 
 - View other employees' reports
 - View the team roster
@@ -83,15 +84,15 @@ Dossier has three roles, stored in `profiles.role`:
 ### RLS Enforcement
 
 ```sql
--- Employees can only read their own profile
+-- Members can only read their own profile
 create policy profiles_select_own on profiles for select
   using (id = auth.uid());
 
--- Employees can only read their own reports
+-- Members can only read their own reports
 create policy daily_reports_select_own on daily_reports for select
   using (author_id = auth.uid());
 
--- Employees can only insert reports for themselves
+-- Members can only insert reports for themselves
 create policy daily_reports_insert_own on daily_reports for insert
   with check (author_id = auth.uid());
 ```
@@ -158,7 +159,7 @@ create policy daily_reports_select_department_as_manager on daily_reports for se
 ### Manager Visibility Logic
 
 A manager sees employees where:
-1. `profiles.role = 'employee'`
+1. `profiles.role = 'member'`
 2. `profiles.department_id = manager's department_id`
 3. `profiles.archived_at IS NULL`
 
@@ -329,7 +330,7 @@ Options for the future:
 2. Verify `departments.manager_id` points to the manager
 3. The sync trigger should handle this, but check both values
 
-### Employee Can't Submit Report
+### Member Can't Submit Report
 
 1. Check `profiles.is_active = true`
 2. Check `profiles.archived_at IS NULL`
