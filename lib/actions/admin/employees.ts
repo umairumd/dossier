@@ -61,7 +61,6 @@ export async function inviteEmployee(
   // delivery actually working. redirectTo points at our own acceptance
   // page — without it, Supabase falls back to the project's default Site
   // URL, which has no idea how to exchange the invite token.
-  console.log("[DEBUG invite URL]", getSiteUrl());
   const { data, error } = await adminClient.auth.admin.generateLink({
     type: "invite",
     email,
