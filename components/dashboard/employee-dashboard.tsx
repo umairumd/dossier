@@ -1,13 +1,14 @@
-import { Building2 } from "lucide-react";
+import { Building2, Flame } from "lucide-react";
 import { getReportHistory, getTodayReport } from "@/lib/supabase/queries/reports";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { formatLongDate } from "@/lib/helpers/dates";
 import { computeReportStats } from "@/lib/helpers/report-stats";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/analytics/stat-card";
+import { ActivityStrip } from "@/components/dashboard/activity-strip";
+import { TodayReportCard } from "@/components/dashboard/today-report-card";
 import { RecentReportsCard } from "@/components/reports/recent-reports-card";
-import { SubmitReportCard } from "@/components/reports/submit-report-card";
-import { TodayStatusCard } from "@/components/reports/today-status-card";
 
 const RECENT_PREVIEW_SIZE = 5;
 
@@ -16,12 +17,14 @@ export async function EmployeeDashboard({
 }: {
   profile: ProfileWithDepartment;
 }) {
-  const [todayReport, reportHistory] = await Promise.all([
+  const [todayReport, reportHistory, settings] = await Promise.all([
     getTodayReport(),
     getReportHistory(),
+    getOrganizationSettings(),
   ]);
   const stats = computeReportStats(reportHistory);
   const today = formatLongDate(new Date());
+  const deadlineHour = String(settings.reportDeadlineHourUtc).padStart(2, "0");
 
   return (
     <div className="flex flex-col gap-6">
@@ -38,14 +41,30 @@ export async function EmployeeDashboard({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <TodayStatusCard report={todayReport} />
-        <SubmitReportCard alreadySubmitted={!!todayReport} />
-      </div>
+      <TodayReportCard
+        todayReport={todayReport}
+        deadlineHint={`Due by ${deadlineHour}:00 UTC`}
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <StatCard label="Current Streak" value={stats.currentStreak} unit="days" />
-        <StatCard label="Monthly Completion" value={`${stats.completionPercentage}%`} />
+      <ActivityStrip reports={reportHistory} />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Current Streak"
+          value={stats.currentStreak}
+          unit="days"
+          icon={<Flame className="size-3.5" />}
+          valueClassName="text-4xl font-bold"
+        />
+        <StatCard
+          label="This Month"
+          value={stats.reportsThisMonth}
+          unit="reports"
+        />
+        <StatCard
+          label="30-day completion"
+          value={`${stats.completionPercentage}%`}
+        />
       </div>
 
       <RecentReportsCard

@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 // The one stat-card shape reused across the employee, manager, and admin
 // dashboards — previously each dashboard hand-rolled its own
@@ -14,18 +15,25 @@ export function StatCard({
   value,
   unit,
   hint,
+  icon,
+  valueClassName,
 }: {
   label: string;
   value: string | number;
   unit?: string;
   hint?: string;
+  icon?: ReactNode;
+  valueClassName?: string;
 }): ReactNode {
   return (
     <Card>
       <CardHeader>
-        <CardDescription>{label}</CardDescription>
+        <CardDescription className="flex items-center gap-1.5">
+          {icon}
+          {label}
+        </CardDescription>
         <div className="flex items-baseline gap-2">
-          <CardTitle className="text-3xl">{value}</CardTitle>
+          <CardTitle className={cn("text-3xl", valueClassName)}>{value}</CardTitle>
           {unit && (
             <span className="text-sm font-normal text-muted-foreground">
               {unit}
