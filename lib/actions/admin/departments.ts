@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireAdminUser } from "@/lib/supabase/require-admin";
+import { requireAdminUser, requireOwnerUser } from "@/lib/supabase/require-admin";
 import { countActiveDepartmentMembers } from "@/lib/supabase/queries/admin/departments";
 import {
   validateDepartmentName,
@@ -172,7 +172,7 @@ export async function restoreDepartment(
 export async function permanentlyDeleteDepartment(
   departmentId: string,
 ): Promise<DepartmentActionResult> {
-  await requireAdminUser();
+  await requireOwnerUser();
 
   const supabase = await createClient();
   const { data: department, error: fetchError } = await supabase

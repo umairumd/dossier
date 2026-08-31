@@ -28,19 +28,13 @@ import {
   validateInviteEmployeeInput,
   type EmployeeFieldErrors,
 } from "@/lib/validations/employee";
-import type { DepartmentOption } from "@/types/department";
 import type { UserRole } from "@/types/profile";
 
-export function InviteEmployeeDialog({
-  departments,
-}: {
-  departments: DepartmentOption[];
-}) {
+export function InviteEmployeeDialog() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<UserRole>("employee");
-  const [departmentId, setDepartmentId] = useState("");
+  const [role, setRole] = useState<UserRole>("member");
   const [fieldErrors, setFieldErrors] = useState<EmployeeFieldErrors>({});
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -49,8 +43,7 @@ export function InviteEmployeeDialog({
   const reset = () => {
     setEmail("");
     setFullName("");
-    setRole("employee");
-    setDepartmentId("");
+    setRole("member");
     setFieldErrors({});
     setInviteLink(null);
     setCopied(false);
@@ -66,12 +59,7 @@ export function InviteEmployeeDialog({
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const input = {
-      email,
-      fullName,
-      role,
-      departmentId: departmentId || null,
-    };
+    const input = { email, fullName, role };
     const validation = validateInviteEmployeeInput(input);
 
     if (!validation.valid) {
@@ -120,7 +108,7 @@ export function InviteEmployeeDialog({
           <DialogDescription>
             {inviteLink
               ? "Share this link with the employee so they can set a password and sign in."
-              : "Creates their account and profile. If email isn't configured for this project, share the generated link with them directly."}
+              : "Creates their account and profile. Assign departments afterward from their profile. If email isn't configured for this project, share the generated link with them directly."}
           </DialogDescription>
         </DialogHeader>
 
@@ -202,38 +190,12 @@ export function InviteEmployeeDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="member">Member</SelectItem>
                     <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="admin">Admin (HR)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              {role !== "admin" && (
-                <div className="flex flex-col gap-1.5">
-                  <Label>Department</Label>
-                  <Select value={departmentId} onValueChange={setDepartmentId}>
-                    <SelectTrigger
-                      className="w-full"
-                      aria-invalid={!!fieldErrors.departmentId}
-                    >
-                      <SelectValue placeholder="Select a department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((department) => (
-                        <SelectItem key={department.id} value={department.id}>
-                          {department.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {fieldErrors.departmentId && (
-                    <p className="text-sm text-destructive">
-                      {fieldErrors.departmentId}
-                    </p>
-                  )}
-                </div>
-              )}
             </DialogBody>
             <DialogFooter>
               <Button

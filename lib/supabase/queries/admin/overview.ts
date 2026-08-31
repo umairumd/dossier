@@ -22,7 +22,7 @@ export const getOrganizationSummary = cache(
       getAllDepartments(),
     ]);
 
-    const staff = employees.filter((employee) => employee.role === "employee");
+    const staff = employees.filter((employee) => employee.role === "member");
     const activeStaff = staff.filter((employee) => employee.status === "active");
     const managers = employees.filter(
       (employee) =>

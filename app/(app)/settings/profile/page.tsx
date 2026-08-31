@@ -42,7 +42,9 @@ export default async function ProfilePage() {
             initialFullName={profile.full_name}
             email={email}
             role={profile.role}
-            departmentName={profile.department?.name ?? "Unassigned"}
+            departmentName={
+              profile.department_names.join(", ") || "Unassigned"
+            }
           />
         </CardContent>
       </Card>

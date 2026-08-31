@@ -11,7 +11,7 @@ export default async function AdminLayout({
   // alone can't stop a direct API call from a non-admin session.
   const profile = await getCurrentProfile();
 
-  if (profile?.role !== "admin") {
+  if (!["owner", "admin"].includes(profile?.role ?? "")) {
     redirect("/");
   }
 

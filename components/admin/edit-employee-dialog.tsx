@@ -27,13 +27,11 @@ import {
   validateEditEmployeeInput,
   type EmployeeFieldErrors,
 } from "@/lib/validations/employee";
-import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem } from "@/types/employee";
 import type { UserRole } from "@/types/profile";
 
 interface EditEmployeeDialogProps {
   employee: EmployeeListItem;
-  departments: DepartmentOption[];
   isSelf: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,7 +39,6 @@ interface EditEmployeeDialogProps {
 
 export function EditEmployeeDialog({
   employee,
-  departments,
   isSelf,
   open,
   onOpenChange,
@@ -49,9 +46,6 @@ export function EditEmployeeDialog({
   const [email, setEmail] = useState(employee.email ?? "");
   const [fullName, setFullName] = useState(employee.full_name);
   const [role, setRole] = useState<UserRole>(employee.role);
-  const [departmentId, setDepartmentId] = useState(
-    employee.department_id ?? ""
-  );
   const [fieldErrors, setFieldErrors] = useState<EmployeeFieldErrors>({});
   const [isPending, startTransition] = useTransition();
 
@@ -61,7 +55,6 @@ export function EditEmployeeDialog({
       setEmail(employee.email ?? "");
       setFullName(employee.full_name);
       setRole(employee.role);
-      setDepartmentId(employee.department_id ?? "");
       setFieldErrors({});
     }
   };
@@ -69,12 +62,7 @@ export function EditEmployeeDialog({
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const input = {
-      email,
-      fullName,
-      role,
-      departmentId: departmentId || null,
-    };
+    const input = { email, fullName, role };
     const validation = validateEditEmployeeInput(input);
 
     if (!validation.valid) {
@@ -152,9 +140,12 @@ export function EditEmployeeDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="employee">Employee</SelectItem>
+                  {employee.role === "owner" && (
+                    <SelectItem value="owner">Owner</SelectItem>
+                  )}
+                  <SelectItem value="member">Member</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="admin">Admin (HR)</SelectItem>
                 </SelectContent>
               </Select>
               {isSelf && (
@@ -163,32 +154,6 @@ export function EditEmployeeDialog({
                 </p>
               )}
             </div>
-
-            {role !== "admin" && (
-              <div className="flex flex-col gap-1.5">
-                <Label>Department</Label>
-                <Select value={departmentId} onValueChange={setDepartmentId}>
-                  <SelectTrigger
-                    className="w-full"
-                    aria-invalid={!!fieldErrors.departmentId}
-                  >
-                    <SelectValue placeholder="Select a department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((department) => (
-                      <SelectItem key={department.id} value={department.id}>
-                        {department.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {fieldErrors.departmentId && (
-                  <p className="text-sm text-destructive">
-                    {fieldErrors.departmentId}
-                  </p>
-                )}
-              </div>
-            )}
 
             <p className="text-xs text-muted-foreground">
               Use Activate/Deactivate or Archive/Restore from the actions menu

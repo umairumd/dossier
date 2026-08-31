@@ -13,11 +13,10 @@ interface ProfileRow {
   id: string;
   full_name: string;
   role: EmployeeListItem["role"];
-  department_id: string | null;
+  organization_id: string | null;
   is_active: boolean;
   archived_at: string | null;
   created_at: string;
-  department: { name: string } | null;
 }
 
 interface AuthUserSummary {
@@ -106,8 +105,10 @@ function toEmployeeListItem(
     full_name: profile.full_name,
     email: authUser?.email ?? null,
     role: profile.role,
-    department_id: profile.department_id,
-    department_name: profile.department?.name ?? null,
+    department_ids: [],
+    department_names: [],
+    organization_id: profile.organization_id,
+    supervisor_ids: [],
     is_active: profile.is_active,
     archived_at: profile.archived_at,
     invited_at: authUser?.invitedAt ?? null,
@@ -117,11 +118,69 @@ function toEmployeeListItem(
   };
 }
 
+async function attachMemberships(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  items: EmployeeListItem[],
+): Promise<EmployeeListItem[]> {
+  if (items.length === 0) {
+    return items;
+  }
+
+  const ids = items.map((item) => item.id);
+
+  const [
+    { data: memberships, error: membershipError },
+    { data: supervisors, error: supervisorError },
+    { data: departments, error: departmentError },
+  ] = await Promise.all([
+    supabase
+      .from("profile_departments")
+      .select("profile_id, department_id")
+      .in("profile_id", ids),
+    supabase
+      .from("member_supervisors")
+      .select("member_id, supervisor_id")
+      .in("member_id", ids),
+    supabase.from("departments").select("id, name"),
+  ]);
+
+  if (membershipError || supervisorError || departmentError) {
+    throw new Error("Failed to load employee department assignments.");
+  }
+
+  const nameByDepartmentId = new Map(
+    (departments ?? []).map((department) => [department.id, department.name]),
+  );
+
+  const departmentIdsByProfile = new Map<string, string[]>();
+  for (const row of memberships ?? []) {
+    const list = departmentIdsByProfile.get(row.profile_id) ?? [];
+    list.push(row.department_id);
+    departmentIdsByProfile.set(row.profile_id, list);
+  }
+
+  const supervisorIdsByMember = new Map<string, string[]>();
+  for (const row of supervisors ?? []) {
+    const list = supervisorIdsByMember.get(row.member_id) ?? [];
+    list.push(row.supervisor_id);
+    supervisorIdsByMember.set(row.member_id, list);
+  }
+
+  return items.map((item) => {
+    const department_ids = departmentIdsByProfile.get(item.id) ?? [];
+    return {
+      ...item,
+      department_ids,
+      department_names: department_ids
+        .map((id) => nameByDepartmentId.get(id))
+        .filter((name): name is string => Boolean(name)),
+      supervisor_ids: supervisorIdsByMember.get(item.id) ?? [],
+    };
+  });
+}
+
 const PROFILE_SELECT =
-  // See lib/supabase/queries/profile.ts: two FKs exist between profiles
-  // and departments, so the embed must name which one via !constraint or
-  // PostgREST throws PGRST201.
-  "id, full_name, role, department_id, is_active, archived_at, created_at, department:departments!profiles_department_id_fkey(name)";
+  "id, full_name, role, organization_id, is_active, archived_at, created_at";
 
 // requireAdminUser() runs first specifically because this function is the
 // reason the service-role client exists in a read path (email/status come
@@ -142,9 +201,11 @@ export const getAllEmployees = cache(async (): Promise<EmployeeListItem[]> => {
 
   const authUsersById = await loadAuthUsersById();
 
-  return ((profiles as unknown as ProfileRow[]) ?? []).map((profile) =>
+  const items = ((profiles as unknown as ProfileRow[]) ?? []).map((profile) =>
     toEmployeeListItem(profile, authUsersById.get(profile.id)),
   );
+
+  return attachMemberships(supabase, items);
 });
 
 export const getEmployeeDetail = cache(
@@ -199,20 +260,21 @@ export const getEmployeeDetail = cache(
 
     const allReports = (reports as DailyReport[]) ?? [];
 
+    const [item] = await attachMemberships(supabase, [
+      toEmployeeListItem(profile as unknown as ProfileRow, authUser),
+    ]);
+
     return {
-      ...toEmployeeListItem(profile as unknown as ProfileRow, authUser),
+      ...item,
       report_count: allReports.length,
       recent_reports: allReports.slice(0, 10),
     };
   },
 );
 
-// Backs the "protect the last administrator" rule in
+// Backs the "protect the last owner" rule in
 // lib/actions/admin/employees.ts: the org must always retain at least one
-// admin who is both not deactivated and not archived, since that's the
-// only account guaranteed to still be able to sign in and administer the
-// org. Not cached — callers check this immediately before a mutation that
-// could invalidate it, so a stale count would defeat the whole point.
+// owner who is both not deactivated and not archived.
 export async function countActiveAdmins(): Promise<number> {
   await requireAdminUser();
 
@@ -221,7 +283,7 @@ export async function countActiveAdmins(): Promise<number> {
   const { count, error } = await supabase
     .from("profiles")
     .select("id", { count: "exact", head: true })
-    .eq("role", "admin")
+    .eq("role", "owner")
     .eq("is_active", true)
     .is("archived_at", null);
 
@@ -245,7 +307,7 @@ export async function countAllAdmins(): Promise<number> {
   const { count, error } = await supabase
     .from("profiles")
     .select("id", { count: "exact", head: true })
-    .eq("role", "admin");
+    .eq("role", "owner");
 
   if (error) {
     throw new Error("Failed to check administrator count.");

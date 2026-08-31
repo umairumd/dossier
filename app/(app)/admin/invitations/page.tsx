@@ -1,22 +1,13 @@
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
-import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { InvitationList } from "@/components/admin/invitation-list";
 import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
 
 export default async function InvitationsPage() {
-  const [employees, departments] = await Promise.all([
-    getAllEmployees(),
-    getAllDepartments(),
-  ]);
+  const employees = await getAllEmployees();
 
   const pending = employees.filter(
     (employee) => employee.status === "invited" || employee.status === "pending"
   );
-
-  const departmentOptions = departments.map((department) => ({
-    id: department.id,
-    name: department.name,
-  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -28,7 +19,7 @@ export default async function InvitationsPage() {
             {pending.length === 1 ? "invitation" : "invitations"}
           </p>
         </div>
-        <InviteEmployeeDialog departments={departmentOptions} />
+        <InviteEmployeeDialog />
       </div>
 
       <InvitationList invitations={pending} />

@@ -42,7 +42,6 @@ import {
   restoreEmployee,
   setEmployeeActive,
 } from "@/lib/actions/admin/employees";
-import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem } from "@/types/employee";
 import { EditEmployeeDialog } from "./edit-employee-dialog";
 import { InviteLinkDialog } from "./invite-link-dialog";
@@ -60,14 +59,12 @@ interface DialogConfig {
 
 interface EmployeeActionsMenuProps {
   employee: EmployeeListItem;
-  departments: DepartmentOption[];
   isSelf: boolean;
   redirectOnDelete?: string;
 }
 
 export function EmployeeActionsMenu({
   employee,
-  departments,
   isSelf,
   redirectOnDelete,
 }: EmployeeActionsMenuProps) {
@@ -239,7 +236,6 @@ export function EmployeeActionsMenu({
 
       <EditEmployeeDialog
         employee={employee}
-        departments={departments}
         isSelf={isSelf}
         open={editOpen}
         onOpenChange={setEditOpen}

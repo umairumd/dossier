@@ -5,7 +5,7 @@ export interface TeamMemberOverview {
   id: string;
   full_name: string;
   role: UserRole;
-  department_name: string | null;
+  department_names: string[];
   report_count: number;
   recent_reports: DailyReport[];
   current_streak: number;

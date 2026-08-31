@@ -16,7 +16,7 @@ export default async function DashboardPage() {
     return <ManagerDashboard profile={profile} />;
   }
 
-  if (profile.role === "admin") {
+  if (profile.role === "owner" || profile.role === "admin") {
     return <AdminDashboard />;
   }
 
