@@ -10,7 +10,9 @@ export default async function DailyReportPage() {
   ]);
 
   const isPrivileged =
-    profile?.role === "owner" || profile?.role === "admin";
+    profile?.role === "owner" ||
+    profile?.role === "admin" ||
+    profile?.role === "manager";
 
   const subtitle = isPrivileged
     ? "Log today's progress."

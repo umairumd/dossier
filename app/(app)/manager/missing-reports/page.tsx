@@ -1,11 +1,13 @@
 import { getCurrentProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { getMissingReportsToday } from "@/lib/supabase/queries/manager/missing-reports";
+import { getTeamEmployeeRoster } from "@/lib/supabase/queries/manager/team";
 import { MissingReportsTable } from "@/components/manager/missing-reports-table";
 
 export default async function MissingReportsPage() {
-  const [profile, rows] = await Promise.all([
+  const [profile, rows, roster] = await Promise.all([
     getCurrentProfileWithDepartment(),
     getMissingReportsToday(),
+    getTeamEmployeeRoster(),
   ]);
 
   return (
@@ -23,6 +25,7 @@ export default async function MissingReportsPage() {
       <MissingReportsTable
         rows={rows}
         departmentName={profile?.department_names[0] ?? "Team"}
+        teamSize={roster.length}
       />
     </div>
   );

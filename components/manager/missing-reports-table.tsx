@@ -14,14 +14,18 @@ import type { MissingReportRow } from "@/types/missing-report";
 export function MissingReportsTable({
   rows,
   departmentName,
+  teamSize,
 }: {
   rows: MissingReportRow[];
   departmentName: string;
+  teamSize: number;
 }) {
   if (rows.length === 0) {
     return (
       <p className="py-10 text-center text-sm text-muted-foreground">
-        Everyone on your team has submitted a report today.
+        {teamSize === 0
+          ? "No team members are assigned to your department yet."
+          : "Everyone on your team has submitted a report today."}
       </p>
     );
   }
