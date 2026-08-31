@@ -19,14 +19,16 @@ export function EmployeeNameLink({
   employeeId,
   fullName,
   className,
+  basePath = "/manager/employees",
 }: {
   employeeId: string;
   fullName: string;
   className?: string;
+  basePath?: string;
 }) {
   return (
     <Link
-      href={`/manager/employees/${employeeId}`}
+      href={`${basePath}/${employeeId}`}
       onClick={(event) => event.stopPropagation()}
       className={className ?? "hover:underline"}
     >

@@ -54,10 +54,14 @@ export function TeamReportsView({
   members,
   departmentName,
   deadlineHourUtc,
+  adminView = false,
+  emptyMessage,
 }: {
   members: TeamMemberReport[];
   departmentName: string;
   deadlineHourUtc: number;
+  adminView?: boolean;
+  emptyMessage?: string;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -100,10 +104,11 @@ export function TeamReportsView({
     }
   };
 
-  const emptyMessage =
-    members.length === 0
+  const resolvedEmptyMessage =
+    emptyMessage ??
+    (members.length === 0
       ? "No employees are assigned to your department yet."
-      : "No reports match your filters.";
+      : "No reports match your filters.");
 
   return (
     <div className="flex flex-col gap-4">
@@ -135,7 +140,7 @@ export function TeamReportsView({
 
       {filtered.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
-          {emptyMessage}
+          {resolvedEmptyMessage}
         </p>
       ) : (
         <>
@@ -184,6 +189,9 @@ export function TeamReportsView({
                         <EmployeeNameLink
                           employeeId={member.employeeId}
                           fullName={member.fullName}
+                          basePath={
+                            adminView ? "/admin/employees" : "/manager/employees"
+                          }
                         />
                       </TableCell>
                       <TableCell>
@@ -217,6 +225,9 @@ export function TeamReportsView({
                       employeeId={member.employeeId}
                       fullName={member.fullName}
                       className="text-sm font-medium hover:underline"
+                      basePath={
+                        adminView ? "/admin/employees" : "/manager/employees"
+                      }
                     />
                     <StatusBadge status={status} />
                   </div>

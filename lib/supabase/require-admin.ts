@@ -55,3 +55,30 @@ export async function requireOwnerUser() {
 
   return user;
 }
+
+export async function requireSupervisorUser() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not authenticated.");
+  }
+
+  const { count, error } = await supabase
+    .from("member_supervisors")
+    .select("member_id", { count: "exact", head: true })
+    .eq("supervisor_id", user.id);
+
+  if (error) {
+    throw new Error("Not authorized.");
+  }
+
+  if ((count ?? 0) === 0) {
+    throw new Error("Not authorized.");
+  }
+
+  return user;
+}
