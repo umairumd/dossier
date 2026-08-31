@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { ReportHistoryCards } from "@/components/reports/report-history-cards";
 import { ReportHistoryTable } from "@/components/reports/report-history-table";
+import { getRoleLabel } from "@/lib/helpers/role-labels";
 
 export default async function ManagerEmployeeOverviewPage({
   params,
@@ -30,7 +31,7 @@ export default async function ManagerEmployeeOverviewPage({
           {overview.full_name}
         </h1>
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span className="capitalize">{overview.role}</span>
+          <span>{getRoleLabel(overview.role)}</span>
           <span>·</span>
           <span>
             {overview.department_names.join(", ") || "Unassigned"}

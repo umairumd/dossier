@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import {
   Card,
@@ -9,7 +11,14 @@ import {
 import { ReportDeadlineForm } from "@/components/admin/report-deadline-form";
 
 export default async function OrganizationSettingsPage() {
-  const settings = await getOrganizationSettings();
+  const [profile, settings] = await Promise.all([
+    getCurrentProfile(),
+    getOrganizationSettings(),
+  ]);
+
+  if (profile?.role !== "owner") {
+    redirect("/");
+  }
 
   return (
     <div className="flex flex-col gap-6">
