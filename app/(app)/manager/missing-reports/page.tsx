@@ -24,7 +24,7 @@ export default async function MissingReportsPage() {
 
       <MissingReportsTable
         rows={rows}
-        departmentName={profile?.department_names[0] ?? "Team"}
+        departmentName={profile?.department_names.join(", ") || "Team"}
         teamSize={roster.length}
       />
     </div>

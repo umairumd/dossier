@@ -54,7 +54,7 @@ export async function ManagerDashboard({
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">
-          {profile.department_names[0] ?? "Team"} Dashboard
+          {profile.department_names.join(", ") || "Team"} Dashboard
         </h1>
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span>{today}</span>
