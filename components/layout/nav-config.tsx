@@ -13,6 +13,8 @@ import {
 import type { ReactNode } from "react";
 import type { UserRole } from "@/types/profile";
 
+const ALL_ROLES: UserRole[] = ["owner", "admin", "manager", "member"];
+
 export interface NavItem {
   label: string;
   href: string;
@@ -22,6 +24,8 @@ export interface NavItem {
   // across that boundary — only an already-built element is.
   icon: ReactNode;
   roles: UserRole[];
+  // When true, AppShell also requires profile.is_supervisor.
+  requiresSupervisor?: boolean;
 }
 
 export interface NavSection {
@@ -31,14 +35,10 @@ export interface NavSection {
   items: NavItem[];
 }
 
-// Navigation is organized by BUSINESS CAPABILITY (Reports, People,
-// Organization, Settings), not by role. Every item still declares which
-// roles see it — AppShell filters items per role and drops any section
-// that ends up empty — but the section names themselves never mention
-// Admin/Manager/Employee. This is deliberate: a capability nav scales to
-// a future role without inventing a new nav section, since it's the
-// *contents* of "People" or "Reports" that change per role, not the
-// taxonomy itself.
+// Navigation is organized by BUSINESS CAPABILITY (My Work, My Team,
+// Organization, Account), not by role. Every item still declares which
+// roles see it — AppShell filters items per role (and supervisor flag)
+// and drops any section that ends up empty.
 export const navSections: NavSection[] = [
   {
     title: "",
@@ -47,25 +47,30 @@ export const navSections: NavSection[] = [
         label: "Home",
         href: "/",
         icon: <Home className="size-4" />,
-        roles: ["owner", "admin", "manager", "member"],
+        roles: ALL_ROLES,
       },
     ],
   },
   {
-    title: "Reports",
+    title: "My Work",
     items: [
       {
         label: "Daily Report",
         href: "/reports",
         icon: <FileText className="size-4" />,
-        roles: ["owner", "admin", "manager", "member"],
+        roles: ALL_ROLES,
       },
       {
         label: "Report History",
         href: "/reports/history",
         icon: <History className="size-4" />,
-        roles: ["owner", "admin", "manager", "member"],
+        roles: ALL_ROLES,
       },
+    ],
+  },
+  {
+    title: "My Team",
+    items: [
       {
         label: "Team Reports",
         href: "/manager/team-reports",
@@ -79,21 +84,40 @@ export const navSections: NavSection[] = [
         roles: ["manager"],
       },
       {
-        label: "Analytics",
-        href: "/admin/analytics",
-        icon: <BarChart3 className="size-4" />,
-        roles: ["owner", "admin"],
-      },
-    ],
-  },
-  {
-    title: "People",
-    items: [
-      {
         label: "Team Members",
         href: "/manager/team",
         icon: <Users className="size-4" />,
         roles: ["manager"],
+      },
+      {
+        label: "My Reports (supervised)",
+        href: "/supervisor/team",
+        icon: <FileText className="size-4" />,
+        roles: ALL_ROLES,
+        requiresSupervisor: true,
+      },
+    ],
+  },
+  {
+    title: "Organization",
+    items: [
+      {
+        label: "Reports",
+        href: "/admin/org-reports",
+        icon: <FileText className="size-4" />,
+        roles: ["owner", "admin"],
+      },
+      {
+        label: "Missing Reports",
+        href: "/admin/org-missing",
+        icon: <UserX className="size-4" />,
+        roles: ["owner", "admin"],
+      },
+      {
+        label: "Analytics",
+        href: "/admin/analytics",
+        icon: <BarChart3 className="size-4" />,
+        roles: ["owner", "admin"],
       },
       {
         label: "Employees",
@@ -107,11 +131,6 @@ export const navSections: NavSection[] = [
         icon: <Building2 className="size-4" />,
         roles: ["owner", "admin"],
       },
-    ],
-  },
-  {
-    title: "Organization",
-    items: [
       {
         label: "Invitations",
         href: "/admin/invitations",
@@ -124,22 +143,22 @@ export const navSections: NavSection[] = [
         icon: <Activity className="size-4" />,
         roles: ["owner", "admin"],
       },
-      {
-        label: "Org Settings",
-        href: "/admin/settings",
-        icon: <Settings className="size-4" />,
-        roles: ["owner"],
-      },
     ],
   },
   {
-    title: "Settings",
+    title: "Account",
     items: [
       {
         label: "Settings",
         href: "/settings",
         icon: <Settings className="size-4" />,
-        roles: ["owner", "admin", "manager", "member"],
+        roles: ALL_ROLES,
+      },
+      {
+        label: "Organization",
+        href: "/admin/settings",
+        icon: <Settings className="size-4" />,
+        roles: ["owner"],
       },
     ],
   },

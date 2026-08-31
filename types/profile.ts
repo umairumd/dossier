@@ -7,6 +7,7 @@ export interface Profile {
   organization_id: string | null;
   department_ids: string[];
   supervisor_ids: string[];
+  is_supervisor: boolean;
   is_active: boolean;
   created_at: string;
 }

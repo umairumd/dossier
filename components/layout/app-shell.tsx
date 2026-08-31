@@ -18,7 +18,15 @@ export function AppShell({
   const sections = navSections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => item.roles.includes(profile.role)),
+      items: section.items.filter((item) => {
+        if (!item.roles.includes(profile.role)) {
+          return false;
+        }
+        if (item.requiresSupervisor && !profile.is_supervisor) {
+          return false;
+        }
+        return true;
+      }),
     }))
     .filter((section) => section.items.length > 0);
 
