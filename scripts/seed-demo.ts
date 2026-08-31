@@ -2,114 +2,130 @@
 /**
  * Dossier Demo Data Seeder
  *
- * Creates a complete demo organization with departments, users, invitations,
- * and realistic report history. Idempotent - safe to run multiple times.
- * Automatically loads environment variables from .env.local and .env files.
+ * Seeds Inoma Digital with departments, RBAC users, junction-table
+ * assignments, and report history. Idempotent — safe to run multiple times.
  *
  * Usage:
  *   npm run seed-demo
- *   # or directly:
  *   npx tsx scripts/seed-demo.ts
  *
  * Options:
- *   --reset    Clear all demo data before seeding (DESTRUCTIVE)
- *   --reports  Only seed reports for existing users (skip user creation)
- *
- * Demo Credentials (password: demo123!):
- *   admin@demo.inoma.local          - Demo Admin
- *   eng.manager@demo.inoma.local    - Sarah Chen (Engineering Manager)
- *   design.manager@demo.inoma.local - Marcus Johnson (Design Manager)
- *   alice@demo.inoma.local          - Alice Rivera (Engineering)
- *   bob@demo.inoma.local            - Bob Patel (Engineering)
- *   carol@demo.inoma.local          - Carol Williams (Design)
- *   dave@demo.inoma.local           - Dave Kim (Sales)
- *   eva@demo.inoma.local            - Eva Martinez (Customer Support)
- *   invited@demo.inoma.local        - Invited Irene (pending - for invite testing)
+ *   --reset    Delete @dossier-demo.com users before seeding (DESTRUCTIVE)
+ *   --reports  Only seed reports for existing users
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { initEnv } from "./lib/load-env";
 
-// Load environment variables from .env.local, .env, etc.
 initEnv(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
+  { auth: { autoRefreshToken: false, persistSession: false } },
 );
 
-// Demo password for all users
 const DEMO_PASSWORD = "demo123!";
+const DEMO_DOMAIN = "dossier-demo.com";
+const ORG_SLUG = "inoma-digital";
 
-// Demo domain - using .local to prevent accidental real emails
-const DEMO_DOMAIN = "demo.inoma.local";
+type DemoRole = "owner" | "admin" | "manager" | "member";
 
 interface DemoUser {
   email: string;
   fullName: string;
-  role: "admin" | "manager" | "employee";
+  role: DemoRole;
   department?: string;
-  shouldInviteOnly?: boolean; // Create as pending invitation, not confirmed
+  supervisorEmail?: string;
+  shouldInviteOnly?: boolean;
 }
 
 const DEMO_USERS: DemoUser[] = [
-  { email: `admin@${DEMO_DOMAIN}`, fullName: "Demo Admin", role: "admin" },
   {
-    email: `eng.manager@${DEMO_DOMAIN}`,
+    email: `owner@${DEMO_DOMAIN}`,
+    fullName: "Alex Morgan",
+    role: "owner",
+  },
+  {
+    email: `hr@${DEMO_DOMAIN}`,
+    fullName: "Jordan Smith",
+    role: "admin",
+  },
+  {
+    email: `eng.lead@${DEMO_DOMAIN}`,
     fullName: "Sarah Chen",
     role: "manager",
     department: "Engineering",
   },
   {
-    email: `design.manager@${DEMO_DOMAIN}`,
+    email: `design.lead@${DEMO_DOMAIN}`,
     fullName: "Marcus Johnson",
     role: "manager",
     department: "Design",
   },
   {
+    email: `sales.lead@${DEMO_DOMAIN}`,
+    fullName: "David Park",
+    role: "manager",
+    department: "Sales",
+  },
+  {
     email: `alice@${DEMO_DOMAIN}`,
     fullName: "Alice Rivera",
-    role: "employee",
+    role: "member",
     department: "Engineering",
+    supervisorEmail: `eng.lead@${DEMO_DOMAIN}`,
   },
   {
     email: `bob@${DEMO_DOMAIN}`,
     fullName: "Bob Patel",
-    role: "employee",
+    role: "member",
     department: "Engineering",
+    supervisorEmail: `eng.lead@${DEMO_DOMAIN}`,
   },
   {
     email: `carol@${DEMO_DOMAIN}`,
     fullName: "Carol Williams",
-    role: "employee",
+    role: "member",
     department: "Design",
+    supervisorEmail: `design.lead@${DEMO_DOMAIN}`,
   },
   {
     email: `dave@${DEMO_DOMAIN}`,
     fullName: "Dave Kim",
-    role: "employee",
+    role: "member",
     department: "Sales",
+    supervisorEmail: `sales.lead@${DEMO_DOMAIN}`,
   },
   {
     email: `eva@${DEMO_DOMAIN}`,
     fullName: "Eva Martinez",
-    role: "employee",
+    role: "member",
     department: "Customer Support",
   },
-  // Pending invitation - for testing the invitation workflow
   {
     email: `invited@${DEMO_DOMAIN}`,
-    fullName: "Invited Irene",
-    role: "employee",
-    department: "Sales",
+    fullName: "Invited Member",
+    role: "member",
+    department: "Engineering",
     shouldInviteOnly: true,
   },
 ];
 
-const DEPARTMENTS = ["Engineering", "Design", "Sales", "Customer Support"];
+const DEPARTMENTS = [
+  "Engineering",
+  "Design",
+  "Sales",
+  "Customer Support",
+  "HR",
+];
 
-// Sample report content for realistic data
+const MANAGER_BY_DEPARTMENT: Record<string, string> = {
+  Engineering: `eng.lead@${DEMO_DOMAIN}`,
+  Design: `design.lead@${DEMO_DOMAIN}`,
+  Sales: `sales.lead@${DEMO_DOMAIN}`,
+};
+
 const ACCOMPLISHMENTS = [
   "Completed code review for authentication module and fixed 3 security issues.",
   "Implemented new dashboard widgets for real-time analytics display.",
@@ -139,7 +155,7 @@ const BLOCKERS = [
   "Blocked on database migration scheduled for tomorrow.",
   "Awaiting legal approval for new terms of service.",
   "Dependency on backend team to complete API changes.",
-  null, // No blocker
+  null,
   null,
   null,
   null,
@@ -157,6 +173,19 @@ const TOMORROW_PLANS = [
   "Write documentation for new API endpoints.",
 ];
 
+function demoSiteUrl(): string {
+  if (process.env.SITE_URL) {
+    return process.env.SITE_URL;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
+  }
+  return "http://localhost:3000";
+}
+
 function randomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -167,15 +196,59 @@ function randomTime(baseHour: number, variance: number): string {
   return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}:00`;
 }
 
+async function listAllAuthUsers(client: SupabaseClient) {
+  const users = [];
+  let page = 1;
+
+  for (;;) {
+    const { data, error } = await client.auth.admin.listUsers({
+      page,
+      perPage: 200,
+    });
+
+    if (error) {
+      throw new Error(`Failed to list users: ${error.message}`);
+    }
+
+    users.push(...data.users);
+
+    if (data.users.length < 200) {
+      break;
+    }
+    page += 1;
+  }
+
+  return users;
+}
+
+async function ensureOrganization(client: SupabaseClient): Promise<string> {
+  console.log("\n🏢 Looking up organization...");
+
+  const { data, error } = await client
+    .from("organizations")
+    .select("id, name")
+    .eq("slug", ORG_SLUG)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error(
+      `Organization slug '${ORG_SLUG}' not found. Apply RBAC migrations first.`,
+    );
+  }
+
+  console.log(`   ✓ ${data.name} (${ORG_SLUG})`);
+  return data.id;
+}
+
 async function ensureDepartments(
-  client: SupabaseClient
+  client: SupabaseClient,
+  organizationId: string,
 ): Promise<Map<string, string>> {
   console.log("\n📁 Ensuring departments exist...");
 
   const deptMap = new Map<string, string>();
 
   for (const name of DEPARTMENTS) {
-    // Try to find existing
     const { data: existing } = await client
       .from("departments")
       .select("id")
@@ -183,15 +256,18 @@ async function ensureDepartments(
       .maybeSingle();
 
     if (existing) {
+      await client
+        .from("departments")
+        .update({ organization_id: organizationId })
+        .eq("id", existing.id);
       deptMap.set(name, existing.id);
       console.log(`   ✓ ${name} (exists)`);
       continue;
     }
 
-    // Create new
     const { data: created, error } = await client
       .from("departments")
-      .insert({ name })
+      .insert({ name, organization_id: organizationId })
       .select("id")
       .single();
 
@@ -210,95 +286,176 @@ async function ensureDepartments(
 async function createDemoUser(
   client: SupabaseClient,
   user: DemoUser,
-  deptMap: Map<string, string>
+  organizationId: string,
 ): Promise<string | null> {
-  // Check if user already exists
-  const { data: existingUsers } = await client.auth.admin.listUsers();
-  const existing = existingUsers?.users.find((u) => u.email === user.email);
+  const existingUsers = await listAllAuthUsers(client);
+  const existing = existingUsers.find((u) => u.email === user.email);
 
   if (existing) {
-    console.log(`   ✓ ${user.email} (exists)`);
+    const { error: profileError } = await client
+      .from("profiles")
+      .update({
+        full_name: user.fullName,
+        role: user.role,
+        organization_id: organizationId,
+      })
+      .eq("id", existing.id);
+
+    if (profileError) {
+      console.error(
+        `   ⚠ ${user.email} exists but profile update failed:`,
+        profileError.message,
+      );
+    } else {
+      console.log(`   ✓ ${user.email} (exists)`);
+    }
     return existing.id;
   }
 
-  // Create user
-  const { data: authData, error: authError } =
-    await client.auth.admin.createUser({
+  if (user.shouldInviteOnly) {
+    const { data, error } = await client.auth.admin.generateLink({
+      type: "invite",
       email: user.email,
-      password: DEMO_PASSWORD,
-      email_confirm: !user.shouldInviteOnly,
-      user_metadata: { full_name: user.fullName },
+      options: {
+        data: { full_name: user.fullName },
+        redirectTo: `${demoSiteUrl()}/invite`,
+      },
     });
+
+    if (error || !data.user) {
+      console.error(
+        `   ✗ Failed to invite ${user.email}:`,
+        error?.message ?? "no user",
+      );
+      return null;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const { error: profileError } = await client
+      .from("profiles")
+      .update({
+        full_name: user.fullName,
+        role: user.role,
+        organization_id: organizationId,
+        pending_invite_link: data.properties.action_link,
+      })
+      .eq("id", data.user.id);
+
+    if (profileError) {
+      console.error(
+        `   ⚠ Invited ${user.email} but profile update failed:`,
+        profileError.message,
+      );
+    }
+
+    console.log(`   + ${user.email} (invite pending)`);
+    return data.user.id;
+  }
+
+  const { data: authData, error: authError } = await client.auth.admin.createUser({
+    email: user.email,
+    password: DEMO_PASSWORD,
+    email_confirm: true,
+    user_metadata: { full_name: user.fullName },
+  });
 
   if (authError) {
     console.error(`   ✗ Failed to create ${user.email}:`, authError.message);
     return null;
   }
 
-  // Wait for trigger to create profile
   await new Promise((resolve) => setTimeout(resolve, 300));
-
-  // Update profile with role and department
-  const departmentId = user.department ? deptMap.get(user.department) : null;
 
   const { error: profileError } = await client
     .from("profiles")
     .update({
-      role: user.role,
-      department_id: departmentId,
       full_name: user.fullName,
+      role: user.role,
+      organization_id: organizationId,
     })
     .eq("id", authData.user.id);
 
   if (profileError) {
     console.error(
       `   ⚠ Created ${user.email} but profile update failed:`,
-      profileError.message
+      profileError.message,
     );
   }
 
-  console.log(
-    `   + ${user.email} (${user.role}${user.shouldInviteOnly ? ", pending" : ""})`
-  );
+  console.log(`   + ${user.email} (${user.role})`);
   return authData.user.id;
 }
 
-async function assignDepartmentManagers(
+async function assignDepartments(
   client: SupabaseClient,
-  deptMap: Map<string, string>
+  emailToId: Map<string, string>,
+  deptMap: Map<string, string>,
 ) {
-  console.log("\n👥 Assigning department managers...");
+  console.log("\n🏷  Assigning departments...");
 
-  // Load all auth users to find managers by email
-  const { data: authUsers } = await client.auth.admin.listUsers();
-
-  const managerAssignments: Record<string, string> = {
-    Engineering: `eng.manager@${DEMO_DOMAIN}`,
-    Design: `design.manager@${DEMO_DOMAIN}`,
-  };
-
-  for (const [deptName, managerEmail] of Object.entries(managerAssignments)) {
-    const deptId = deptMap.get(deptName);
-    if (!deptId) continue;
-
-    // Find manager by email in auth users
-    const authUser = authUsers?.users.find(
-      (u) => u.email?.toLowerCase() === managerEmail.toLowerCase()
-    );
-
-    if (!authUser) {
-      console.log(`   ⚠ Manager ${managerEmail} not found`);
+  for (const user of DEMO_USERS) {
+    if (!user.department) {
       continue;
     }
 
-    // Update department with the manager's user ID
+    const profileId = emailToId.get(user.email);
+    const departmentId = deptMap.get(user.department);
+
+    if (!profileId || !departmentId) {
+      console.log(`   ⚠ Skipped ${user.email} (missing profile or department)`);
+      continue;
+    }
+
+    const { data: existing } = await client
+      .from("profile_departments")
+      .select("profile_id")
+      .eq("profile_id", profileId)
+      .eq("department_id", departmentId)
+      .maybeSingle();
+
+    if (existing) {
+      console.log(`   ✓ ${user.email} → ${user.department}`);
+      continue;
+    }
+
+    const { error } = await client.from("profile_departments").insert({
+      profile_id: profileId,
+      department_id: departmentId,
+    });
+
+    if (error) {
+      console.error(
+        `   ✗ Failed to assign ${user.email} to ${user.department}:`,
+        error.message,
+      );
+      continue;
+    }
+
+    console.log(`   + ${user.email} → ${user.department}`);
+  }
+
+  console.log("\n👥 Assigning department managers...");
+
+  for (const [deptName, managerEmail] of Object.entries(MANAGER_BY_DEPARTMENT)) {
+    const deptId = deptMap.get(deptName);
+    const managerId = emailToId.get(managerEmail);
+
+    if (!deptId || !managerId) {
+      console.log(`   ⚠ Manager for ${deptName} not found`);
+      continue;
+    }
+
     const { error } = await client
       .from("departments")
-      .update({ manager_id: authUser.id })
+      .update({ manager_id: managerId })
       .eq("id", deptId);
 
     if (error) {
-      console.error(`   ✗ Failed to assign manager to ${deptName}:`, error.message);
+      console.error(
+        `   ✗ Failed to assign manager to ${deptName}:`,
+        error.message,
+      );
       continue;
     }
 
@@ -306,11 +463,59 @@ async function assignDepartmentManagers(
   }
 }
 
+async function assignSupervisors(
+  client: SupabaseClient,
+  emailToId: Map<string, string>,
+) {
+  console.log("\n🔗 Assigning supervisors...");
+
+  for (const user of DEMO_USERS) {
+    if (!user.supervisorEmail) {
+      continue;
+    }
+
+    const memberId = emailToId.get(user.email);
+    const supervisorId = emailToId.get(user.supervisorEmail);
+
+    if (!memberId || !supervisorId) {
+      console.log(`   ⚠ Skipped supervisor for ${user.email}`);
+      continue;
+    }
+
+    const { data: existing } = await client
+      .from("member_supervisors")
+      .select("member_id")
+      .eq("member_id", memberId)
+      .eq("supervisor_id", supervisorId)
+      .maybeSingle();
+
+    if (existing) {
+      console.log(`   ✓ ${user.email} ← ${user.supervisorEmail}`);
+      continue;
+    }
+
+    const { error } = await client.from("member_supervisors").insert({
+      member_id: memberId,
+      supervisor_id: supervisorId,
+    });
+
+    if (error) {
+      console.error(
+        `   ✗ Failed to assign supervisor for ${user.email}:`,
+        error.message,
+      );
+      continue;
+    }
+
+    console.log(`   + ${user.email} ← ${user.supervisorEmail}`);
+  }
+}
+
 async function seedReportsForUser(
   client: SupabaseClient,
   userId: string,
   email: string,
-  daysBack: number = 21
+  daysBack: number = 21,
 ) {
   let created = 0;
   let skipped = 0;
@@ -319,16 +524,13 @@ async function seedReportsForUser(
     const date = new Date();
     date.setDate(date.getDate() - d);
 
-    // Skip weekends
     const dayOfWeek = date.getDay();
     if (dayOfWeek === 0 || dayOfWeek === 6) continue;
 
-    // ~15% chance to skip (simulate missed reports)
     if (Math.random() < 0.15 && d > 0) continue;
 
     const reportDate = date.toISOString().split("T")[0];
 
-    // Check if report exists
     const { data: existing } = await client
       .from("daily_reports")
       .select("id")
@@ -341,7 +543,6 @@ async function seedReportsForUser(
       continue;
     }
 
-    // Generate submission time (business hours with some late submissions)
     const isLate = Math.random() < 0.2;
     const submittedAt = `${reportDate}T${randomTime(isLate ? 18 : 9, isLate ? 4 : 8)}Z`;
 
@@ -368,19 +569,18 @@ async function seedReportsForUser(
 async function seedReports(client: SupabaseClient) {
   console.log("\n📝 Seeding report history...");
 
-  // Get all auth users with demo domain emails (emails are in auth.users, not profiles)
-  const { data: authUsers } = await client.auth.admin.listUsers();
+  const authUsers = await listAllAuthUsers(client);
+  const invitedEmail = `invited@${DEMO_DOMAIN}`;
 
-  // Filter to confirmed demo users (exclude invited test user)
-  const demoUsers = authUsers?.users.filter(
+  const demoUsers = authUsers.filter(
     (u) =>
       u.email?.endsWith(`@${DEMO_DOMAIN}`) &&
-      u.email !== `invited@${DEMO_DOMAIN}` &&
-      u.email_confirmed_at // Only confirmed users
+      u.email !== invitedEmail &&
+      u.email_confirmed_at,
   );
 
-  if (!demoUsers || demoUsers.length === 0) {
-    console.log("   No demo users found. Run without --reports flag first.");
+  if (demoUsers.length === 0) {
+    console.log("   No confirmed demo users found. Run without --reports first.");
     return;
   }
 
@@ -391,42 +591,38 @@ async function seedReports(client: SupabaseClient) {
     const { created, skipped } = await seedReportsForUser(
       client,
       user.id,
-      user.email!
+      user.email!,
     );
     totalCreated += created;
     totalSkipped += skipped;
     console.log(`   ${user.email}: ${created} created, ${skipped} skipped`);
   }
 
-  console.log(`\n   Total: ${totalCreated} reports created, ${totalSkipped} already existed`);
+  console.log(
+    `\n   Total: ${totalCreated} reports created, ${totalSkipped} already existed`,
+  );
 }
 
 async function resetDemoData(client: SupabaseClient) {
   console.log("\n🗑️  Resetting demo data...");
-  console.log("   WARNING: This will delete all demo users and their reports!\n");
+  console.log("   WARNING: This will delete all @dossier-demo.com users!\n");
 
-  // Find all demo users
-  const { data: users } = await client.auth.admin.listUsers();
-  const demoUsers = users?.users.filter((u) =>
-    u.email?.endsWith(`@${DEMO_DOMAIN}`)
-  );
+  const users = await listAllAuthUsers(client);
+  const demoUsers = users.filter((u) => u.email?.endsWith(`@${DEMO_DOMAIN}`));
 
-  if (!demoUsers || demoUsers.length === 0) {
+  if (demoUsers.length === 0) {
     console.log("   No demo users to delete.");
-    return;
-  }
-
-  for (const user of demoUsers) {
-    // Delete user (cascades to profile and reports)
-    const { error } = await client.auth.admin.deleteUser(user.id);
-    if (error) {
-      console.error(`   ✗ Failed to delete ${user.email}:`, error.message);
-      continue;
+  } else {
+    for (const user of demoUsers) {
+      const { error } = await client.auth.admin.deleteUser(user.id);
+      if (error) {
+        console.error(`   ✗ Failed to delete ${user.email}:`, error.message);
+        continue;
+      }
+      console.log(`   - Deleted ${user.email}`);
     }
-    console.log(`   - Deleted ${user.email}`);
   }
 
-  // Reset department managers for demo departments
   await client
     .from("departments")
     .update({ manager_id: null })
@@ -435,39 +631,41 @@ async function resetDemoData(client: SupabaseClient) {
   console.log("   ✓ Demo data reset complete");
 }
 
-async function printSummary() {
+function printSummary() {
   console.log("\n" + "=".repeat(60));
   console.log("DEMO ENVIRONMENT READY");
   console.log("=".repeat(60));
   console.log(`
-Demo Credentials (all use password: ${DEMO_PASSWORD})
+Credentials (password: ${DEMO_PASSWORD} unless noted)
 
-Admin:
-  admin@${DEMO_DOMAIN}
+Owner:
+  owner@${DEMO_DOMAIN}  - Alex Morgan
+
+HR Admin:
+  hr@${DEMO_DOMAIN}     - Jordan Smith
 
 Managers:
-  eng.manager@${DEMO_DOMAIN}    - Engineering
-  design.manager@${DEMO_DOMAIN} - Design
+  eng.lead@${DEMO_DOMAIN}    - Sarah Chen (Engineering)
+  design.lead@${DEMO_DOMAIN} - Marcus Johnson (Design)
+  sales.lead@${DEMO_DOMAIN}  - David Park (Sales)
 
-Employees:
-  alice@${DEMO_DOMAIN}  - Engineering
-  bob@${DEMO_DOMAIN}    - Engineering
-  carol@${DEMO_DOMAIN}  - Design
-  dave@${DEMO_DOMAIN}   - Sales
-  eva@${DEMO_DOMAIN}    - Customer Support
+Members:
+  alice@${DEMO_DOMAIN}  - Alice Rivera (Engineering, supervisor: Sarah Chen)
+  bob@${DEMO_DOMAIN}    - Bob Patel (Engineering, supervisor: Sarah Chen)
+  carol@${DEMO_DOMAIN}  - Carol Williams (Design, supervisor: Marcus Johnson)
+  dave@${DEMO_DOMAIN}   - Dave Kim (Sales, supervisor: David Park)
+  eva@${DEMO_DOMAIN}    - Eva Martinez (Customer Support, no supervisor)
 
-Test Invitation (for testing invite workflow):
-  invited@${DEMO_DOMAIN} - Sales (use Invite Link to generate login link)
+Pending:
+  invited@${DEMO_DOMAIN} - Invited Member (Engineering)
+                           Sign in via stored invite link, not password.
 
-Departments: Engineering, Design, Sales, Customer Support
-Reports: ~3 weeks of history with realistic patterns
+Departments: Engineering, Design, Sales, Customer Support, HR
+Reports: ~3 weeks of weekday history for confirmed users
 
-Next Steps:
+Next:
 1. Open your Dossier URL
-2. Sign in as admin@${DEMO_DOMAIN} with password: ${DEMO_PASSWORD}
-3. Explore the dashboard and test all features
-
-For details, see: docs/DEMO_SETUP.md
+2. Sign in as owner@${DEMO_DOMAIN} with ${DEMO_PASSWORD}
 `);
 }
 
@@ -481,30 +679,33 @@ async function main() {
   if (shouldReset) {
     await resetDemoData(supabase);
     if (args.length === 1) {
-      console.log("\nReset complete. Run again without --reset to seed fresh data.");
+      console.log(
+        "\nReset complete. Run again without --reset to seed fresh data.",
+      );
       return;
     }
   }
 
   if (!reportsOnly) {
-    // Ensure departments exist
-    const deptMap = await ensureDepartments(supabase);
+    const organizationId = await ensureOrganization(supabase);
+    const deptMap = await ensureDepartments(supabase, organizationId);
 
-    // Create users
     console.log("\n👤 Creating demo users...");
+    const emailToId = new Map<string, string>();
+
     for (const user of DEMO_USERS) {
-      await createDemoUser(supabase, user, deptMap);
+      const id = await createDemoUser(supabase, user, organizationId);
+      if (id) {
+        emailToId.set(user.email, id);
+      }
     }
 
-    // Assign managers to departments
-    await assignDepartmentManagers(supabase, deptMap);
+    await assignDepartments(supabase, emailToId, deptMap);
+    await assignSupervisors(supabase, emailToId);
   }
 
-  // Seed reports
   await seedReports(supabase);
-
-  // Print summary
-  await printSummary();
+  printSummary();
 }
 
 main().catch((error) => {

@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import {
   Archive,
   ArchiveRestore,
+  Building2,
   Link2,
   MoreHorizontal,
   Pencil,
   Power,
   PowerOff,
   Trash2,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -42,7 +44,10 @@ import {
   restoreEmployee,
   setEmployeeActive,
 } from "@/lib/actions/admin/employees";
+import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem } from "@/types/employee";
+import { AssignDepartmentsDialog } from "./assign-departments-dialog";
+import { AssignSupervisorsDialog } from "./assign-supervisors-dialog";
 import { EditEmployeeDialog } from "./edit-employee-dialog";
 import { InviteLinkDialog } from "./invite-link-dialog";
 
@@ -60,12 +65,16 @@ interface DialogConfig {
 interface EmployeeActionsMenuProps {
   employee: EmployeeListItem;
   isSelf: boolean;
+  departments: DepartmentOption[];
+  candidates: EmployeeListItem[];
   redirectOnDelete?: string;
 }
 
 export function EmployeeActionsMenu({
   employee,
   isSelf,
+  departments,
+  candidates,
   redirectOnDelete,
 }: EmployeeActionsMenuProps) {
   const router = useRouter();
@@ -73,6 +82,8 @@ export function EmployeeActionsMenu({
   const [dialogAction, setDialogAction] = useState<DialogAction | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [inviteLinkOpen, setInviteLinkOpen] = useState(false);
+  const [assignDeptOpen, setAssignDeptOpen] = useState(false);
+  const [assignSupervisorsOpen, setAssignSupervisorsOpen] = useState(false);
 
   const isArchived = employee.status === "archived";
   const isPendingInvite =
@@ -161,6 +172,19 @@ export function EmployeeActionsMenu({
             Edit
           </DropdownMenuItem>
 
+          {!isArchived && (
+            <>
+              <DropdownMenuItem onSelect={() => setAssignDeptOpen(true)}>
+                <Building2 className="size-4" />
+                Assign Departments
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setAssignSupervisorsOpen(true)}>
+                <Users className="size-4" />
+                Assign Supervisors
+              </DropdownMenuItem>
+            </>
+          )}
+
           <DropdownMenuSeparator />
 
           {isPendingInvite && employee.email && (
@@ -239,6 +263,20 @@ export function EmployeeActionsMenu({
         isSelf={isSelf}
         open={editOpen}
         onOpenChange={setEditOpen}
+      />
+
+      <AssignDepartmentsDialog
+        employee={employee}
+        departments={departments}
+        open={assignDeptOpen}
+        onOpenChange={setAssignDeptOpen}
+      />
+
+      <AssignSupervisorsDialog
+        employee={employee}
+        candidates={candidates}
+        open={assignSupervisorsOpen}
+        onOpenChange={setAssignSupervisorsOpen}
       />
 
       {employee.email && (

@@ -264,7 +264,7 @@ export default function FeatureLoading() {
   label: "New Feature",
   href: "/feature",
   icon: <SomeIcon className="size-4" />,
-  roles: ["admin"], // or ["employee", "manager", "admin"]
+  roles: ["owner", "admin", "manager", "member"]
 },
 ```
 

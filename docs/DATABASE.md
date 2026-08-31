@@ -98,7 +98,7 @@ Departments are the fundamental organizational boundary. A manager's visibility 
 |--------|------|----------|---------|-------------|
 | `id` | `uuid` | No | — | PK and FK to auth.users(id) |
 | `full_name` | `text` | No | — | Display name |
-| `role` | `text` | No | — | 'employee' \| 'manager' \| 'admin' |
+| `role` | `text` | No | — | 'owner' \| 'admin' \| 'manager' \| 'member' |
 | `department_id` | `uuid` | Yes | `null` | FK to departments; null for admins |
 | `is_active` | `boolean` | No | `true` | Mirrors auth ban status |
 | `archived_at` | `timestamptz` | Yes | `null` | When archived (soft delete) |
@@ -107,7 +107,7 @@ Departments are the fundamental organizational boundary. A manager's visibility 
 
 **Constraints:**
 - `profiles_pkey`: Primary key on id
-- `profiles_role_check`: role IN ('employee', 'manager', 'admin')
+- `profiles_role_check`: role IN ('owner', 'admin', 'manager', 'member')
 - `profiles_department_id_fkey`: FK to departments(id) ON DELETE SET NULL
 
 **Triggers:**
@@ -222,7 +222,7 @@ begin
   values (
     new.id,
     coalesce(new.raw_user_meta_data ->> 'full_name', new.email, 'New user'),
-    'employee'
+    'member'
   )
   on conflict (id) do nothing;
   return new;
@@ -230,7 +230,7 @@ end;
 $$;
 ```
 
-**Purpose:** Automatically creates a profile row when an auth.users row is inserted. Defaults to role='employee' with no department.
+**Purpose:** Automatically creates a profile row when an auth.users row is inserted. Defaults to role='member' with no department.
 
 ### `enforce_department_manager_role()`
 
