@@ -9,12 +9,18 @@ import { todayDateString } from "@/lib/helpers/dates";
 // client-side over pre-fetched data — the server re-fetches
 // getTeamReportsForDate for the new date, so this never has to load
 // multiple days of history up front just to support picking one.
-export function DateFilter({ date }: { date: string }) {
+export function DateFilter({
+  date,
+  pathname = "/manager/team-reports",
+}: {
+  date: string;
+  pathname?: string;
+}) {
   const router = useRouter();
   const today = todayDateString();
 
   const goToDate = (nextDate: string) => {
-    router.push(`/manager/team-reports?date=${nextDate}`);
+    router.push(`${pathname}?date=${nextDate}`);
   };
 
   return (

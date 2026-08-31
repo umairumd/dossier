@@ -15,16 +15,20 @@ export function MissingReportsTable({
   rows,
   departmentName,
   teamSize,
+  basePath = "/manager/employees",
+  emptyTeamMessage = "No team members are assigned to your department yet.",
 }: {
   rows: MissingReportRow[];
   departmentName: string;
   teamSize: number;
+  basePath?: string;
+  emptyTeamMessage?: string;
 }) {
   if (rows.length === 0) {
     return (
       <p className="py-10 text-center text-sm text-muted-foreground">
         {teamSize === 0
-          ? "No team members are assigned to your department yet."
+          ? emptyTeamMessage
           : "Everyone on your team has submitted a report today."}
       </p>
     );
@@ -56,7 +60,7 @@ export function MissingReportsTable({
             <TableCell>{row.daysMissed ?? "—"}</TableCell>
             <TableCell className="text-right">
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/manager/employees/${row.employeeId}`}>
+                <Link href={`${basePath}/${row.employeeId}`}>
                   View Profile
                 </Link>
               </Button>
