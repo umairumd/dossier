@@ -192,7 +192,7 @@ export function InviteEmployeeDialog() {
                   <SelectContent>
                     <SelectItem value="member">Member</SelectItem>
                     <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="admin">Admin (HR)</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

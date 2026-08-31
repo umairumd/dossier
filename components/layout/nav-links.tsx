@@ -19,8 +19,8 @@ export function NavLinks({ sections }: { sections: NavSection[] }) {
           )}
           {section.items.map((item) => {
             const isActive =
-              item.href === "/"
-                ? pathname === "/"
+              item.href === "/" || item.href === "/reports"
+                ? pathname === item.href
                 : pathname === item.href ||
                   pathname.startsWith(`${item.href}/`);
 

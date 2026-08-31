@@ -128,6 +128,16 @@ export async function updateEmployee(
     .maybeSingle();
 
   if (
+    input.id !== admin.id &&
+    targetForSelf?.role === "owner"
+  ) {
+    return {
+      success: false,
+      error: "Owner accounts cannot be edited.",
+    };
+  }
+
+  if (
     validation.value.role === "owner" &&
     targetForSelf?.role !== "owner"
   ) {
