@@ -14,6 +14,7 @@ export const getOrgRosterSize = cache(async (): Promise<number> => {
   const { count, error } = await adminClient
     .from("profiles")
     .select("id", { count: "exact", head: true })
+    .eq("has_onboarded", true)
     .is("archived_at", null);
 
   if (error) {
@@ -34,6 +35,7 @@ export const getOrgReportsForDate = cache(
         adminClient
           .from("profiles")
           .select("id, full_name")
+          .eq("has_onboarded", true)
           .is("archived_at", null)
           .order("full_name", { ascending: true }),
         adminClient

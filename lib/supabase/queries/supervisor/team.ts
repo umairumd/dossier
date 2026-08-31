@@ -43,6 +43,7 @@ export const getSupervisedMembers = cache(
       .from("profiles")
       .select("id, full_name")
       .in("id", memberIds)
+      .eq("has_onboarded", true)
       .is("archived_at", null)
       .order("full_name", { ascending: true });
 

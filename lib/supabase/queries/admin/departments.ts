@@ -39,7 +39,7 @@ export const getAllDepartments = cache(
 
     const { data: memberships, error: countsError } = await supabase
       .from("profile_departments")
-      .select("department_id, profiles(archived_at)");
+      .select("department_id, profiles(archived_at, has_onboarded)");
 
     if (countsError) {
       logAndThrow("Failed to load department employee counts.", countsError);
@@ -48,11 +48,11 @@ export const getAllDepartments = cache(
     const countByDepartment = new Map<string, number>();
     for (const row of memberships ?? []) {
       const embedded = row.profiles as unknown as
-        | { archived_at: string | null }
-        | { archived_at: string | null }[]
+        | { archived_at: string | null; has_onboarded: boolean }
+        | { archived_at: string | null; has_onboarded: boolean }[]
         | null;
       const profile = Array.isArray(embedded) ? embedded[0] : embedded;
-      if (profile?.archived_at) {
+      if (profile?.archived_at || !profile?.has_onboarded) {
         continue;
       }
       countByDepartment.set(

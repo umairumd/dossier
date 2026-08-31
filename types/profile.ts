@@ -9,5 +9,6 @@ export interface Profile {
   supervisor_ids: string[];
   is_supervisor: boolean;
   is_active: boolean;
+  has_onboarded: boolean;
   created_at: string;
 }

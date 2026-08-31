@@ -32,6 +32,7 @@ export const getTeamEmployeeRoster = cache(
     const { data: employees, error } = await supabase
       .from("profiles")
       .select("id, full_name")
+      .eq("has_onboarded", true)
       .is("archived_at", null)
       .order("full_name", { ascending: true });
 

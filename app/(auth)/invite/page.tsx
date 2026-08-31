@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { markOnboarded } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -114,6 +115,8 @@ export default function InvitePage() {
       setIsSubmitting(false);
       return;
     }
+
+    await markOnboarded();
 
     // Full navigation, not the client router: guarantees the dashboard's
     // first request carries the just-established session cookies rather
