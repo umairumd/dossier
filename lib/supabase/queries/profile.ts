@@ -5,21 +5,31 @@ import type { Profile } from "@/types/profile";
 async function loadDepartmentAndSupervisorIds(
   supabase: Awaited<ReturnType<typeof createClient>>,
   profileId: string,
-): Promise<{ department_ids: string[]; supervisor_ids: string[] }> {
-  const [{ data: memberships }, { data: supervisors }] = await Promise.all([
-    supabase
-      .from("profile_departments")
-      .select("department_id")
-      .eq("profile_id", profileId),
-    supabase
-      .from("member_supervisors")
-      .select("supervisor_id")
-      .eq("member_id", profileId),
-  ]);
+): Promise<{
+  department_ids: string[];
+  supervisor_ids: string[];
+  is_supervisor: boolean;
+}> {
+  const [{ data: memberships }, { data: supervisors }, { count: supervisedCount }] =
+    await Promise.all([
+      supabase
+        .from("profile_departments")
+        .select("department_id")
+        .eq("profile_id", profileId),
+      supabase
+        .from("member_supervisors")
+        .select("supervisor_id")
+        .eq("member_id", profileId),
+      supabase
+        .from("member_supervisors")
+        .select("member_id", { count: "exact", head: true })
+        .eq("supervisor_id", profileId),
+    ]);
 
   return {
     department_ids: (memberships ?? []).map((row) => row.department_id),
     supervisor_ids: (supervisors ?? []).map((row) => row.supervisor_id),
+    is_supervisor: (supervisedCount ?? 0) > 0,
   };
 }
 
@@ -70,13 +80,17 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
     return null;
   }
 
-  const { department_ids, supervisor_ids } =
+  const { department_ids, supervisor_ids, is_supervisor } =
     await loadDepartmentAndSupervisorIds(supabase, user.id);
 
   return {
-    ...(profile as Omit<Profile, "department_ids" | "supervisor_ids">),
+    ...(profile as Omit<
+      Profile,
+      "department_ids" | "supervisor_ids" | "is_supervisor"
+    >),
     department_ids,
     supervisor_ids,
+    is_supervisor,
   };
 });
 
