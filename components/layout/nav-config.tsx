@@ -1,14 +1,15 @@
 import {
-  Activity,
-  BarChart3,
   Building2,
   FileText,
   Home,
   History,
+  LayoutList,
   Mail,
   Settings,
+  UserCheck,
   UserX,
   Users,
+  Zap,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { UserRole } from "@/types/profile";
@@ -33,10 +34,14 @@ export interface NavSection {
   // item, which doesn't belong under any capability grouping).
   title: string;
   items: NavItem[];
+  // Footer cluster (Settings / Organization). Title is empty so NavLinks
+  // does not render an "Account" heading; AppShell pins this block to the
+  // bottom of the sidebar / mobile sheet.
+  pinToBottom?: boolean;
 }
 
 // Navigation is organized by BUSINESS CAPABILITY (My Work, My Team,
-// Organization, Account), not by role. Every item still declares which
+// Monitor, Manage, Account), not by role. Every item still declares which
 // roles see it — AppShell filters items per role (and supervisor flag)
 // and drops any section that ends up empty.
 export const navSections: NavSection[] = [
@@ -72,53 +77,40 @@ export const navSections: NavSection[] = [
     title: "My Team",
     items: [
       {
-        label: "Team Reports",
-        href: "/manager/team-reports",
-        icon: <FileText className="size-4" />,
-        roles: ["manager"],
-      },
-      {
-        label: "Missing Reports",
+        label: "Missing Today",
         href: "/manager/missing-reports",
         icon: <UserX className="size-4" />,
         roles: ["manager"],
       },
       {
-        label: "Team Members",
-        href: "/manager/team",
-        icon: <Users className="size-4" />,
-        roles: ["manager"],
-      },
-      {
-        label: "My Reports (supervised)",
+        label: "Supervisees",
         href: "/supervisor/team",
-        icon: <FileText className="size-4" />,
+        icon: <UserCheck className="size-4" />,
         roles: ALL_ROLES,
         requiresSupervisor: true,
       },
     ],
   },
   {
-    title: "Organization",
+    title: "Monitor",
     items: [
       {
-        label: "Reports",
+        label: "Daily Reports",
         href: "/admin/org-reports",
-        icon: <FileText className="size-4" />,
+        icon: <LayoutList className="size-4" />,
         roles: ["owner", "admin"],
       },
       {
-        label: "Missing Reports",
+        label: "Missing Today",
         href: "/admin/org-missing",
         icon: <UserX className="size-4" />,
         roles: ["owner", "admin"],
       },
-      {
-        label: "Analytics",
-        href: "/admin/analytics",
-        icon: <BarChart3 className="size-4" />,
-        roles: ["owner", "admin"],
-      },
+    ],
+  },
+  {
+    title: "Manage",
+    items: [
       {
         label: "Employees",
         href: "/admin/employees",
@@ -140,13 +132,14 @@ export const navSections: NavSection[] = [
       {
         label: "Activity",
         href: "/admin/activity",
-        icon: <Activity className="size-4" />,
+        icon: <Zap className="size-4" />,
         roles: ["owner", "admin"],
       },
     ],
   },
   {
-    title: "Account",
+    title: "",
+    pinToBottom: true,
     items: [
       {
         label: "Settings",
@@ -157,7 +150,7 @@ export const navSections: NavSection[] = [
       {
         label: "Organization",
         href: "/admin/settings",
-        icon: <Settings className="size-4" />,
+        icon: <Building2 className="size-4" />,
         roles: ["owner"],
       },
     ],
