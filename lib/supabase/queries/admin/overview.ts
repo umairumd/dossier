@@ -23,22 +23,39 @@ export const getOrganizationSummary = cache(
     ]);
 
     const staff = employees.filter((employee) => employee.role === "member");
-    const activeStaff = staff.filter((employee) => employee.status === "active");
     const managers = employees.filter(
       (employee) =>
         employee.role === "manager" && employee.status !== "archived",
     );
 
-    const { count: submittedToday, error } = await supabase
-      .from("daily_reports")
-      .select("id", { count: "exact", head: true })
-      .eq("report_date", todayDateString());
+    const { data: eligibleProfiles, error: eligibleError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("has_onboarded", true)
+      .eq("is_active", true)
+      .is("archived_at", null);
 
-    if (error) {
-      throw new Error("Failed to load today's submission count.");
+    if (eligibleError) {
+      throw new Error("Failed to load today's completion roster.");
     }
 
-    const submitted = submittedToday ?? 0;
+    const eligibleIds = (eligibleProfiles ?? []).map((profile) => profile.id);
+
+    let submitted = 0;
+
+    if (eligibleIds.length > 0) {
+      const { count: submittedToday, error } = await supabase
+        .from("daily_reports")
+        .select("id", { count: "exact", head: true })
+        .eq("report_date", todayDateString())
+        .in("author_id", eligibleIds);
+
+      if (error) {
+        throw new Error("Failed to load today's submission count.");
+      }
+
+      submitted = submittedToday ?? 0;
+    }
 
     return {
       employees: staff.length,
@@ -53,9 +70,9 @@ export const getOrganizationSummary = cache(
         .length,
       submittedToday: submitted,
       completionPercentageToday:
-        activeStaff.length === 0
+        eligibleIds.length === 0
           ? 0
-          : Math.round((submitted / activeStaff.length) * 100),
+          : Math.round((submitted / eligibleIds.length) * 100),
     };
   },
 );
