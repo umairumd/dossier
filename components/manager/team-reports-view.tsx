@@ -153,12 +153,18 @@ export function TeamReportsView({
       ) : (
         <>
           <div className="hidden md:block">
-            <Table>
+            <Table className="table-fixed w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Submitted</TableHead>
+                  <TableHead className="w-[240px] text-muted-foreground font-medium">
+                    Employee
+                  </TableHead>
+                  <TableHead className="w-[120px] text-muted-foreground font-medium">
+                    Status
+                  </TableHead>
+                  <TableHead className="w-[200px] text-muted-foreground font-medium">
+                    Submitted
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -172,7 +178,11 @@ export function TeamReportsView({
                   return (
                     <TableRow
                       key={member.employeeId}
-                      className={member.report ? "cursor-pointer" : undefined}
+                      className={
+                        member.report
+                          ? "cursor-pointer hover:bg-muted/50 transition-colors"
+                          : "hover:bg-muted/50 transition-colors"
+                      }
                       role={member.report ? "button" : undefined}
                       tabIndex={member.report ? 0 : undefined}
                       aria-label={

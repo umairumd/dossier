@@ -201,11 +201,23 @@ export const getAllEmployees = cache(async (): Promise<EmployeeListItem[]> => {
 
   const authUsersById = await loadAuthUsersById();
 
-  const items = ((profiles as unknown as ProfileRow[]) ?? []).map((profile) =>
-    toEmployeeListItem(profile, authUsersById.get(profile.id)),
+  const employees = await attachMemberships(
+    supabase,
+    ((profiles as unknown as ProfileRow[]) ?? []).map((profile) =>
+      toEmployeeListItem(profile, authUsersById.get(profile.id)),
+    ),
   );
 
-  return attachMemberships(supabase, items);
+  const ROLE_ORDER = { owner: 0, admin: 1, manager: 2, member: 3 };
+
+  employees.sort((a, b) => {
+    const roleA = ROLE_ORDER[a.role as keyof typeof ROLE_ORDER] ?? 4;
+    const roleB = ROLE_ORDER[b.role as keyof typeof ROLE_ORDER] ?? 4;
+    if (roleA !== roleB) return roleA - roleB;
+    return a.full_name.localeCompare(b.full_name);
+  });
+
+  return employees;
 });
 
 export const getEmployeeDetail = cache(

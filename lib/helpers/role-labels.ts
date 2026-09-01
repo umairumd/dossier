@@ -3,7 +3,7 @@ export function getRoleLabel(role: string): string {
     case "owner":
       return "Owner";
     case "admin":
-      return "HR Admin";
+      return "Admin";
     case "manager":
       return "Manager";
     case "member":
