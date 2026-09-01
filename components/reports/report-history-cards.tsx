@@ -2,11 +2,21 @@ import { formatDate } from "@/lib/helpers/dates";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import { truncate } from "@/lib/helpers/text";
 import { getReportField } from "@/lib/reports/fields";
+import { getSubmissionStatus } from "@/lib/reports/submission-status";
+import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import type { DailyReport } from "@/types/report";
 
 const PREVIEW_LENGTH = 80;
 
-export function ReportHistoryCards({ reports }: { reports: DailyReport[] }) {
+export function ReportHistoryCards({
+  reports,
+  deadlineHourUtc,
+}: {
+  reports: DailyReport[];
+  deadlineHourUtc?: number;
+}) {
+  const showStatus = deadlineHourUtc !== undefined;
+
   return (
     <div className="flex flex-col gap-3 md:hidden">
       {reports.map((report) => (
@@ -19,6 +29,16 @@ export function ReportHistoryCards({ reports }: { reports: DailyReport[] }) {
               Submitted <LocalDateTime isoString={report.submitted_at} />
             </span>
           </div>
+          {showStatus && (
+            <div className="mt-2">
+              <SubmissionStatusBadge
+                status={getSubmissionStatus(
+                  report.submitted_at,
+                  deadlineHourUtc,
+                )}
+              />
+            </div>
+          )}
           <p className="mt-2 text-sm">
             {truncate(report.content, PREVIEW_LENGTH)}
           </p>

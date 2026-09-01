@@ -15,9 +15,11 @@ import type { DailyReport } from "@/types/report";
 export function RecentReportsCard({
   reports,
   viewAllHref,
+  deadlineHourUtc,
 }: {
   reports: DailyReport[];
   viewAllHref?: string;
+  deadlineHourUtc?: number;
 }) {
   return (
     <Card>
@@ -46,8 +48,14 @@ export function RecentReportsCard({
           </div>
         ) : (
           <>
-            <ReportHistoryTable reports={reports} />
-            <ReportHistoryCards reports={reports} />
+            <ReportHistoryTable
+              reports={reports}
+              deadlineHourUtc={deadlineHourUtc}
+            />
+            <ReportHistoryCards
+              reports={reports}
+              deadlineHourUtc={deadlineHourUtc}
+            />
           </>
         )}
       </CardContent>

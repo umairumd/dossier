@@ -56,18 +56,24 @@ export function TeamReportsView({
   deadlineHourUtc,
   adminView = false,
   emptyMessage,
+  showFilters = true,
 }: {
   members: TeamMemberReport[];
   departmentName: string;
   deadlineHourUtc: number;
   adminView?: boolean;
   emptyMessage?: string;
+  showFilters?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const filtered = useMemo(() => {
+    if (!showFilters) {
+      return members;
+    }
+
     const normalized = query.trim().toLowerCase();
     let result = members;
 
@@ -84,7 +90,7 @@ export function TeamReportsView({
     }
 
     return sortTeamMembersBySubmission(result);
-  }, [members, query, statusFilter, deadlineHourUtc]);
+  }, [members, query, statusFilter, deadlineHourUtc, showFilters]);
 
   const submittedMembers = useMemo(
     () =>
@@ -112,31 +118,33 @@ export function TeamReportsView({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative max-w-sm flex-1">
-          <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search employees..."
-            className="pl-8"
-          />
+      {showFilters && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative max-w-sm flex-1">
+            <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search employees..."
+              className="pl-8"
+            />
+          </div>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="on_time">{SUBMISSION_STATUS_LABELS.on_time}</SelectItem>
+              <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
+              <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="on_time">{SUBMISSION_STATUS_LABELS.on_time}</SelectItem>
-            <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
-            <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      )}
 
       {filtered.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">

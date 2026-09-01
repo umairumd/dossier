@@ -7,6 +7,16 @@ import type { TeamMemberReport } from "@/types/team";
 const REPORT_SELECT =
   "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at";
 
+export interface OrgMemberReport extends TeamMemberReport {
+  departmentIds: string[];
+  departmentNames: string[];
+}
+
+export interface OrgDepartment {
+  id: string;
+  name: string;
+}
+
 export const getOrgRosterSize = cache(async (): Promise<number> => {
   await requireAdminUser();
 
@@ -25,24 +35,35 @@ export const getOrgRosterSize = cache(async (): Promise<number> => {
 });
 
 export const getOrgReportsForDate = cache(
-  async (date: string): Promise<TeamMemberReport[]> => {
+  async (
+    date: string,
+  ): Promise<{ members: OrgMemberReport[]; departments: OrgDepartment[] }> => {
     await requireAdminUser();
 
     const adminClient = createAdminClient();
 
-    const [{ data: employees, error: employeesError }, { data: reports, error: reportsError }] =
-      await Promise.all([
-        adminClient
-          .from("profiles")
-          .select("id, full_name")
-          .eq("has_onboarded", true)
-          .is("archived_at", null)
-          .order("full_name", { ascending: true }),
-        adminClient
-          .from("daily_reports")
-          .select(REPORT_SELECT)
-          .eq("report_date", date),
-      ]);
+    const [
+      { data: employees, error: employeesError },
+      { data: reports, error: reportsError },
+      { data: departments, error: departmentsError },
+    ] = await Promise.all([
+      adminClient
+        .from("profiles")
+        .select("id, full_name")
+        .eq("has_onboarded", true)
+        .eq("is_active", true)
+        .is("archived_at", null)
+        .order("full_name", { ascending: true }),
+      adminClient
+        .from("daily_reports")
+        .select(REPORT_SELECT)
+        .eq("report_date", date),
+      adminClient
+        .from("departments")
+        .select("id, name")
+        .is("archived_at", null)
+        .order("name", { ascending: true }),
+    ]);
 
     if (employeesError) {
       throw new Error("Failed to load organization employees.");
@@ -52,6 +73,40 @@ export const getOrgReportsForDate = cache(
       throw new Error("Failed to load reports for that date.");
     }
 
+    if (departmentsError) {
+      throw new Error("Failed to load departments.");
+    }
+
+    const activeDepartments = (departments ?? []) as OrgDepartment[];
+    const activeDepartmentIds = new Set(activeDepartments.map((department) => department.id));
+    const nameByDepartment = new Map(
+      activeDepartments.map((department) => [department.id, department.name]),
+    );
+
+    const employeeIds = (employees ?? []).map((employee) => employee.id);
+    const departmentIdsByProfile = new Map<string, string[]>();
+
+    if (employeeIds.length > 0) {
+      const { data: memberships, error: membershipsError } = await adminClient
+        .from("profile_departments")
+        .select("profile_id, department_id")
+        .in("profile_id", employeeIds);
+
+      if (membershipsError) {
+        throw new Error("Failed to load department assignments.");
+      }
+
+      for (const row of memberships ?? []) {
+        if (!activeDepartmentIds.has(row.department_id)) {
+          continue;
+        }
+
+        const ids = departmentIdsByProfile.get(row.profile_id) ?? [];
+        ids.push(row.department_id);
+        departmentIdsByProfile.set(row.profile_id, ids);
+      }
+    }
+
     const reportsByAuthor = new Map(
       ((reports as DailyReport[]) ?? []).map((report) => [
         report.author_id,
@@ -59,10 +114,20 @@ export const getOrgReportsForDate = cache(
       ]),
     );
 
-    return (employees ?? []).map((employee) => ({
-      employeeId: employee.id,
-      fullName: employee.full_name,
-      report: reportsByAuthor.get(employee.id) ?? null,
-    }));
+    const members: OrgMemberReport[] = (employees ?? []).map((employee) => {
+      const departmentIds = departmentIdsByProfile.get(employee.id) ?? [];
+
+      return {
+        employeeId: employee.id,
+        fullName: employee.full_name,
+        report: reportsByAuthor.get(employee.id) ?? null,
+        departmentIds,
+        departmentNames: departmentIds
+          .map((id) => nameByDepartment.get(id))
+          .filter((name): name is string => Boolean(name)),
+      };
+    });
+
+    return { members, departments: activeDepartments };
   },
 );
