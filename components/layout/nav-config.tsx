@@ -6,7 +6,6 @@ import {
   LayoutList,
   Mail,
   Settings,
-  UserCheck,
   UserX,
   Users,
   Zap,
@@ -25,8 +24,8 @@ export interface NavItem {
   // across that boundary — only an already-built element is.
   icon: ReactNode;
   roles: UserRole[];
-  // When true, AppShell also requires profile.is_supervisor.
-  requiresSupervisor?: boolean;
+  // When true, AppShell requires manager role or is_supervisor.
+  requiresTeam?: boolean;
 }
 
 export interface NavSection {
@@ -77,17 +76,18 @@ export const navSections: NavSection[] = [
     title: "My Team",
     items: [
       {
-        label: "Missing Today",
-        href: "/manager/missing-reports",
-        icon: <UserX className="size-4" />,
-        roles: ["manager"],
+        label: "Team Reports",
+        href: "/manager/team-reports",
+        icon: <FileText className="size-4" />,
+        roles: ALL_ROLES,
+        requiresTeam: true,
       },
       {
-        label: "Supervisees",
-        href: "/supervisor/team",
-        icon: <UserCheck className="size-4" />,
+        label: "Team Members",
+        href: "/manager/team",
+        icon: <Users className="size-4" />,
         roles: ALL_ROLES,
-        requiresSupervisor: true,
+        requiresTeam: true,
       },
     ],
   },

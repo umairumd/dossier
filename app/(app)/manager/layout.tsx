@@ -6,13 +6,12 @@ export default async function ManagerLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // UI-level gating only — the real security boundary is RLS: every query
-  // under /manager reads through the regular client, so a non-manager
-  // hitting these routes directly still can't see another department's
-  // data (see lib/supabase/queries/manager/*).
+  // UI-level gating only — RLS still scopes department vs supervisee data.
+  // Supervisors (any role) may use /manager team pages; verify from the
+  // profiles query, not from client-side or cookie-only role claims.
   const profile = await getCurrentProfile();
 
-  if (profile?.role !== "manager") {
+  if (profile?.role !== "manager" && !profile?.is_supervisor) {
     redirect("/");
   }
 

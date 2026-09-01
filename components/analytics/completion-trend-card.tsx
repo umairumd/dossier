@@ -48,14 +48,29 @@ export function CompletionTrendCard({
             points={trend.map((point, index) => {
               const date = new Date(`${point.date}T00:00:00Z`);
               const showLabel = !isDense || index % 5 === 0;
+              const value = point.completionPercentage;
+              let barClassName = "bg-muted";
+              if (value > 0) {
+                if (value >= 80) {
+                  barClassName = "bg-primary";
+                } else if (value >= 50) {
+                  // One-off: shadcn has no semantic warning token; yellow is not a theme variable.
+                  barClassName = "bg-yellow-500/70";
+                } else {
+                  barClassName = "bg-destructive/70";
+                }
+              }
+
               return {
                 label: showLabel
                   ? (isDense ? DAY_OF_MONTH_FORMATTER : WEEKDAY_FORMATTER).format(
                       date,
                     )
                   : "",
-                value: point.completionPercentage,
-                title: `${formatDate(point.date)}: ${point.completionPercentage}%`,
+                value,
+                barClassName,
+                valueLabel: value > 0 ? `${value}%` : undefined,
+                title: `${formatDate(point.date)}: ${value}%`,
               };
             })}
           />
