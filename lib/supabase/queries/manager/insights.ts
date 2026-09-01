@@ -7,7 +7,6 @@ import {
   buildSubmittersByDate,
 } from "@/lib/helpers/completion-trend";
 import { getTeamEmployeeRoster } from "@/lib/supabase/queries/manager/team";
-import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import type { ActivityItem } from "@/types/activity";
 import type { TeamInsights, TeamMemberStanding } from "@/types/team-insights";
 
@@ -39,20 +38,28 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
     };
   }
 
-  const { data: reports, error } = await supabase
-    .from("daily_reports")
-    .select("id, author_id, report_date, submitted_at")
-    .gte("report_date", dateNDaysAgo(INSIGHTS_WINDOW_DAYS - 1));
+  const [
+    { data: reports, error },
+    { data: nameRows, error: namesError },
+  ] = await Promise.all([
+    supabase
+      .from("daily_reports")
+      .select("id, author_id, report_date, submitted_at")
+      .gte("report_date", dateNDaysAgo(INSIGHTS_WINDOW_DAYS - 1)),
+    supabase.from("profiles").select("id, full_name"),
+  ]);
 
   if (error) {
     throw new Error("Failed to load team report history.");
   }
 
-  const nameById = new Map(roster.map((member) => [member.id, member.full_name]));
-  const currentProfile = await getCurrentProfile();
-  if (currentProfile) {
-    nameById.set(currentProfile.id, currentProfile.full_name);
+  if (namesError) {
+    throw new Error("Failed to load profile names.");
   }
+
+  const nameById = new Map(
+    (nameRows ?? []).map((row) => [row.id, row.full_name]),
+  );
 
   const allReports =
     (reports as (ReportStatsInput & { id: string; author_id: string })[]) ?? [];

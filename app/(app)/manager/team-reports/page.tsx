@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getCurrentProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import {
   getTeamReportsForDate,
@@ -8,11 +9,15 @@ import {
   getSupervisedReportsForDate,
 } from "@/lib/supabase/queries/supervisor/team";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
-import { formatDate, todayDateString } from "@/lib/helpers/dates";
+import {
+  formatDate,
+  shiftReportDate,
+  todayDateString,
+} from "@/lib/helpers/dates";
 import type { TeamMemberReport } from "@/types/team";
-import { DateFilter } from "@/components/manager/date-filter";
 import { TeamReportsView } from "@/components/manager/team-reports-view";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 export default async function TeamReportsPage({
   searchParams,
@@ -20,7 +25,11 @@ export default async function TeamReportsPage({
   searchParams: Promise<{ date?: string }>;
 }) {
   const { date: dateParam } = await searchParams;
-  const date = dateParam ?? todayDateString();
+  const today = todayDateString();
+  const date = dateParam ?? today;
+  const isToday = date >= today;
+  const previousDate = shiftReportDate(date, -1);
+  const nextDate = shiftReportDate(date, 1);
 
   const profile = await getCurrentProfileWithDepartment();
 
@@ -56,13 +65,28 @@ export default async function TeamReportsPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Team Reports
-          </h1>
-          <p className="text-sm text-muted-foreground">{formatDate(date)}</p>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Team Reports
+        </h1>
+        <div className="flex items-center gap-3 text-sm">
+          <Link
+            href={`/manager/team-reports?date=${previousDate}`}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            ← Previous
+          </Link>
+          <span className="font-medium">{formatDate(date)}</span>
+          <Link
+            href={`/manager/team-reports?date=${nextDate}`}
+            aria-disabled={isToday}
+            className={cn(
+              "text-muted-foreground hover:text-foreground",
+              isToday && "pointer-events-none opacity-40",
+            )}
+          >
+            Next →
+          </Link>
         </div>
-        <DateFilter date={date} />
       </div>
 
       <div>
