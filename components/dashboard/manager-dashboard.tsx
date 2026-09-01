@@ -1,54 +1,50 @@
+import Link from "next/link";
 import { Building2 } from "lucide-react";
+import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
 import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
-import type { DailyReport } from "@/types/report";
-import type { TeamMemberReport } from "@/types/team";
 import { formatLongDate } from "@/lib/helpers/dates";
-import { averageSubmissionTime } from "@/lib/helpers/time";
+import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ActivityFeed } from "@/components/analytics/activity-feed";
 import { CompletionTrendCard } from "@/components/analytics/completion-trend-card";
-import { ManagerSummaryCards } from "@/components/manager/manager-summary-cards";
+import { TodayReportCard } from "@/components/dashboard/today-report-card";
+import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { TeamHighlights } from "@/components/manager/team-highlights";
 
-function hasReport(
-  member: TeamMemberReport,
-): member is TeamMemberReport & { report: DailyReport } {
-  return member.report !== null;
-}
+const HOME_ROSTER_PREVIEW = 5;
 
-// Home is awareness only — reviewing/filtering/opening individual
-// reports is Team Reports' job (and Missing Reports' job for
-// non-submitters); this page never embeds that interactive table, only
-// the numbers and trends that summarize it.
 export async function ManagerDashboard({
   profile,
 }: {
   profile: ProfileWithDepartment;
 }) {
-  const [members, insights, settings] = await Promise.all([
+  const [todayReport, members, insights, settings] = await Promise.all([
+    getTodayReport(),
     getTeamReportsForDate(),
     getTeamInsights(),
     getOrganizationSettings(),
   ]);
   const teamSize = members.length;
-  const submittedMembers = members.filter(hasReport);
-  const submittedToday = submittedMembers.length;
+  const submittedToday = members.filter((member) => member.report).length;
   const missingToday = teamSize - submittedToday;
   const completionPercentage =
     teamSize === 0 ? 0 : Math.round((submittedToday / teamSize) * 100);
-  const lateSubmissions = submittedMembers.filter(
-    (member) =>
-      getSubmissionStatus(
-        member.report.submitted_at,
-        settings.reportDeadlineHourUtc,
-      ) === "late",
-  ).length;
   const today = formatLongDate(new Date());
+  const deadlineHour = String(settings.reportDeadlineHourUtc).padStart(2, "0");
+  const sortedMembers = sortTeamMembersBySubmission(members);
+  const previewMembers = sortedMembers.slice(0, HOME_ROSTER_PREVIEW);
+  const remainingCount = sortedMembers.length - previewMembers.length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,16 +61,65 @@ export async function ManagerDashboard({
         </div>
       </div>
 
-      <ManagerSummaryCards
-        teamSize={teamSize}
-        submittedToday={submittedToday}
-        missingToday={missingToday}
-        completionPercentage={completionPercentage}
-        averageSubmissionTime={averageSubmissionTime(
-          submittedMembers.map((member) => member.report.submitted_at),
-        )}
-        lateSubmissions={lateSubmissions}
+      <TodayReportCard
+        todayReport={todayReport}
+        deadlineHint={`Due by ${deadlineHour}:00 UTC`}
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Your Team Today</CardTitle>
+          <CardDescription>{today}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-6 text-sm">
+            <span>
+              <span className="font-semibold">{submittedToday}</span>
+              <span className="text-muted-foreground"> submitted</span>
+            </span>
+            <span>
+              <span className="font-semibold text-destructive">
+                {missingToday}
+              </span>
+              <span className="text-muted-foreground"> missing</span>
+            </span>
+            <span>
+              <span className="font-semibold">{completionPercentage}%</span>
+              <span className="text-muted-foreground"> completion</span>
+            </span>
+          </div>
+          <div className="mt-4 flex flex-col gap-2">
+            {previewMembers.map((member) => (
+              <div
+                key={member.employeeId}
+                className="flex items-center justify-between gap-2"
+              >
+                <span className="text-sm">{member.fullName}</span>
+                <SubmissionStatusBadge
+                  status={getSubmissionStatus(
+                    member.report?.submitted_at ?? null,
+                    settings.reportDeadlineHourUtc,
+                  )}
+                />
+              </div>
+            ))}
+          </div>
+          {remainingCount > 0 && (
+            <Link
+              href="/manager/team-reports"
+              className="mt-4 inline-block text-xs text-muted-foreground hover:text-foreground"
+            >
+              + {remainingCount} more
+            </Link>
+          )}
+          <Link
+            href="/manager/team-reports"
+            className="mt-4 block text-xs text-muted-foreground hover:text-foreground"
+          >
+            View full team reports →
+          </Link>
+        </CardContent>
+      </Card>
 
       <CompletionTrendCard
         title="Team Completion Trend"

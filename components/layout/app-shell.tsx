@@ -23,8 +23,12 @@ export async function AppShell({
         if (!item.roles.includes(profile.role)) {
           return false;
         }
-        if (item.requiresSupervisor && !profile.is_supervisor) {
-          return false;
+        if (item.requiresTeam) {
+          const hasTeam =
+            profile.role === "manager" || profile.is_supervisor;
+          if (!hasTeam) {
+            return false;
+          }
         }
         return true;
       }),

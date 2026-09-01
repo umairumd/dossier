@@ -4,6 +4,8 @@ export interface MiniBarChartPoint {
   label: string;
   value: number;
   title?: string;
+  barClassName?: string;
+  valueLabel?: string;
 }
 
 // Deliberately not a charting library — plain divs with height percentages
@@ -15,18 +17,27 @@ export function MiniBarChart({ points }: { points: MiniBarChartPoint[] }) {
   }
 
   return (
-    <div className="flex h-24 items-end gap-1.5">
+    <div className="flex h-28 items-end gap-1.5">
       {points.map((point, index) => (
         <div
           key={index}
           className="flex flex-1 flex-col items-center gap-1"
           title={point.title ?? `${point.label}: ${Math.round(point.value)}%`}
         >
+          <span
+            className={cn(
+              "h-4 text-xs",
+              point.valueLabel ? "text-muted-foreground" : "text-transparent",
+            )}
+          >
+            {point.valueLabel ?? "0"}
+          </span>
           <div className="flex h-20 w-full items-end rounded-sm bg-muted">
             <div
               className={cn(
                 "w-full rounded-sm bg-primary transition-all",
                 point.value === 0 && "bg-transparent",
+                point.barClassName,
               )}
               style={{ height: `${Math.min(100, Math.max(0, point.value))}%` }}
             />
