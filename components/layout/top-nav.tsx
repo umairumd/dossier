@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Menu } from "lucide-react";
 import { AccentPicker } from "@/components/accent-picker";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -40,7 +41,18 @@ export function TopNav({
         </SheetTrigger>
         <SheetContent side="left" className="flex w-64 flex-col">
           <SheetHeader>
-            <SheetTitle>Dossier</SheetTitle>
+            <SheetTitle className="flex items-center gap-2">
+              <Image
+                src="/logo.png"
+                alt="Dossier"
+                width={32}
+                height={32}
+                className="rounded-sm"
+              />
+              <span className="text-base font-semibold tracking-tight">
+                Dossier
+              </span>
+            </SheetTitle>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-4">
             <NavLinks sections={mainSections} />
@@ -59,9 +71,16 @@ export function TopNav({
         </SheetContent>
       </Sheet>
 
-      <span className="text-sm font-semibold tracking-tight md:hidden">
-        Dossier
-      </span>
+      <div className="flex items-center gap-2 md:hidden">
+        <Image
+          src="/logo.png"
+          alt="Dossier"
+          width={28}
+          height={28}
+          className="rounded-sm"
+        />
+        <span className="text-sm font-semibold tracking-tight">Dossier</span>
+      </div>
 
       <div className="ml-auto flex items-center gap-1">
         <AccentPicker />

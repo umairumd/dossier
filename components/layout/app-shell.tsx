@@ -53,7 +53,9 @@ export async function AppShell({
           orgName={orgName ?? undefined}
           profile={profile}
         />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6">
+          <div className="mx-auto max-w-5xl">{children}</div>
+        </main>
       </div>
     </div>
   );

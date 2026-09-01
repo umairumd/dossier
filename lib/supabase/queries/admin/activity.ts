@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
@@ -16,14 +17,21 @@ export const getRecentActivity = cache(
     await requireAdminUser();
 
     const supabase = await createClient();
+    const adminClient = createAdminClient();
 
-    const [employees, departments] = await Promise.all([
-      getAllEmployees(),
-      getAllDepartments(),
-    ]);
+    const [employees, departments, { data: profiles, error: namesError }] =
+      await Promise.all([
+        getAllEmployees(),
+        getAllDepartments(),
+        adminClient.from("profiles").select("id, full_name"),
+      ]);
+
+    if (namesError) {
+      throw new Error("Failed to load profile names.");
+    }
 
     const nameById = new Map(
-      employees.map((employee) => [employee.id, employee.full_name]),
+      (profiles ?? []).map((profile) => [profile.id, profile.full_name]),
     );
 
     const invitedActivity: ActivityItem[] = employees
