@@ -24,7 +24,7 @@ export default async function OrganizationSettingsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">
-          Organization Settings
+          Organization
         </h1>
         <p className="text-sm text-muted-foreground">
           Configuration that applies across the whole organization.

@@ -27,20 +27,37 @@ export function ReportHistoryTable({
 
   return (
     <div className="hidden md:block">
-      <Table>
+      <Table className="table-fixed w-full">
         <TableHeader>
           <TableRow>
-            <TableHead>Submitted</TableHead>
-            <TableHead>Completed</TableHead>
-            {showStatus && <TableHead>Status</TableHead>}
-            <TableHead>{getReportField("content").label}</TableHead>
-            <TableHead>{getReportField("blockers").label}</TableHead>
-            <TableHead>{getReportField("additional_notes").label}</TableHead>
+            <TableHead className="w-[160px] text-muted-foreground font-medium">
+              Submitted
+            </TableHead>
+            <TableHead className="w-[160px] text-muted-foreground font-medium">
+              Completed
+            </TableHead>
+            {showStatus && (
+              <TableHead className="w-[120px] text-muted-foreground font-medium">
+                Status
+              </TableHead>
+            )}
+            <TableHead className="text-muted-foreground font-medium">
+              {getReportField("content").label}
+            </TableHead>
+            <TableHead className="text-muted-foreground font-medium">
+              {getReportField("blockers").label}
+            </TableHead>
+            <TableHead className="text-muted-foreground font-medium">
+              {getReportField("additional_notes").label}
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {reports.map((report) => (
-            <TableRow key={report.id}>
+            <TableRow
+              key={report.id}
+              className="hover:bg-muted/50 transition-colors"
+            >
               <TableCell className="whitespace-nowrap text-muted-foreground">
                 <LocalDateTime isoString={report.submitted_at} />
               </TableCell>
