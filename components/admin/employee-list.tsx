@@ -111,7 +111,7 @@ export function EmployeeList({
       )}
 
       {filtered.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">
+        <p className="py-10 text-center text-sm text-muted-foreground">
           {employees.length === 0
             ? "No employees yet."
             : "No employees match your filters."}

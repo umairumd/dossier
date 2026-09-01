@@ -52,3 +52,9 @@ export function daysBetweenDateStrings(from: string, to: string): number {
 export function dateNDaysAgo(n: number): string {
   return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 }
+
+export function shiftReportDate(date: string, deltaDays: number): string {
+  const next = new Date(`${date}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + deltaDays);
+  return next.toISOString().slice(0, 10);
+}

@@ -69,6 +69,8 @@ export const getOrganizationSummary = cache(
       archivedUsers: employees.filter((employee) => employee.status === "archived")
         .length,
       submittedToday: submitted,
+      missingToday: Math.max(eligibleIds.length - submitted, 0),
+      totalMembers: eligibleIds.length,
       completionPercentageToday:
         eligibleIds.length === 0
           ? 0

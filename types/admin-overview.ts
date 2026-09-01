@@ -5,5 +5,7 @@ export interface OrganizationSummary {
   pendingInvites: number;
   archivedUsers: number;
   submittedToday: number;
+  missingToday: number;
+  totalMembers: number;
   completionPercentageToday: number;
 }

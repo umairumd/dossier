@@ -6,7 +6,6 @@ import {
   LayoutList,
   Mail,
   Settings,
-  UserX,
   Users,
   Zap,
 } from "lucide-react";
@@ -98,12 +97,6 @@ export const navSections: NavSection[] = [
         label: "Daily Reports",
         href: "/admin/org-reports",
         icon: <LayoutList className="size-4" />,
-        roles: ["owner", "admin"],
-      },
-      {
-        label: "Missing Today",
-        href: "/admin/org-missing",
-        icon: <UserX className="size-4" />,
         roles: ["owner", "admin"],
       },
     ],
