@@ -15,7 +15,7 @@ export default async function ActivityPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <div className="sticky top-0 z-10 -mx-6 -mt-6 flex flex-col gap-1 border-b border-border bg-background px-6 pt-6 pb-4">
         <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
         <p className="text-sm text-muted-foreground">
           Invitations, archives, new departments, and submitted reports across

@@ -10,7 +10,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { LocalDateTime } from "@/components/shared/local-datetime";
-import { getReportField } from "@/lib/reports/fields";
+import { EmployeeNameLink } from "@/components/manager/employee-name-link";
+import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
+import { REPORT_FIELDS } from "@/lib/reports/fields";
+import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 
@@ -25,11 +28,15 @@ export function ReportDetailSheet({
   departmentName,
   index,
   onIndexChange,
+  deadlineHourUtc,
+  adminView = false,
 }: {
   members: SubmittedMember[];
   departmentName: string;
   index: number | null;
   onIndexChange: (index: number | null) => void;
+  deadlineHourUtc: number;
+  adminView?: boolean;
 }) {
   const current = index !== null ? members[index] : null;
 
@@ -39,33 +46,43 @@ export function ReportDetailSheet({
         {index !== null && current && (
           <>
             <SheetHeader>
-              <SheetTitle>{current.fullName}</SheetTitle>
-              <SheetDescription>
-                {departmentName} · Submitted{" "}
+              <div className="flex items-start justify-between gap-3">
+                <SheetTitle className="text-lg font-semibold">
+                  {current.fullName}
+                </SheetTitle>
+                <EmployeeNameLink
+                  employeeId={current.employeeId}
+                  fullName="View Profile →"
+                  basePath={
+                    adminView ? "/admin/employees" : "/manager/employees"
+                  }
+                  className="shrink-0 text-sm text-primary hover:underline"
+                />
+              </div>
+              <SheetDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span>{departmentName}</span>
+                <SubmissionStatusBadge
+                  status={getSubmissionStatus(
+                    current.report.submitted_at,
+                    deadlineHourUtc,
+                  )}
+                />
                 <LocalDateTime isoString={current.report.submitted_at} />
               </SheetDescription>
             </SheetHeader>
             <div className="flex flex-col gap-4 px-4 pb-4 text-sm">
-              <div>
-                <p className="font-medium">{getReportField("content").label}</p>
-                <p className="text-muted-foreground">
-                  {current.report.content}
-                </p>
-              </div>
-              <div>
-                <p className="font-medium">{getReportField("blockers").label}</p>
-                <p className="text-muted-foreground">
-                  {current.report.blockers ?? "None reported"}
-                </p>
-              </div>
-              <div>
-                <p className="font-medium">
-                  {getReportField("additional_notes").label}
-                </p>
-                <p className="text-muted-foreground">
-                  {current.report.additional_notes ?? "None reported"}
-                </p>
-              </div>
+              {REPORT_FIELDS.map((field) => {
+                const value = current.report[field.key];
+
+                return (
+                  <div key={field.key}>
+                    <p className="font-medium">{field.label}</p>
+                    <p className="text-muted-foreground">
+                      {value ?? "None reported"}
+                    </p>
+                  </div>
+                );
+              })}
 
               <div className="flex items-center justify-between border-t border-border pt-4">
                 <Button

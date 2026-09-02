@@ -1,16 +1,20 @@
 import { getCurrentProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { getTeamEmployeeRoster } from "@/lib/supabase/queries/manager/team";
 import { getSupervisedMembers } from "@/lib/supabase/queries/supervisor/team";
+import { createClient } from "@/lib/supabase/server";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 function MemberList({
   members,
   emptyMessage,
+  managerIds,
 }: {
   members: { id: string; full_name: string }[];
   emptyMessage: string;
+  managerIds?: Set<string>;
 }) {
   if (members.length === 0) {
     return (
@@ -25,12 +29,20 @@ function MemberList({
       <CardContent>
         <ul className="flex flex-col divide-y divide-border">
           {members.map((member) => (
-            <li key={member.id} className="py-2.5 first:pt-0 last:pb-0">
+            <li
+              key={member.id}
+              className="flex items-center py-2.5 first:pt-0 last:pb-0"
+            >
               <EmployeeNameLink
                 employeeId={member.id}
                 fullName={member.full_name}
                 className="text-sm font-medium hover:underline"
               />
+              {managerIds?.has(member.id) && (
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  Manager
+                </Badge>
+              )}
             </li>
           ))}
         </ul>
@@ -51,6 +63,21 @@ export default async function TeamMembersPage() {
       : Promise.resolve([]),
   ]);
 
+  const managerIds = new Set<string>();
+  if (profile && profile.department_ids.length > 0) {
+    const supabase = await createClient();
+    const { data: departments } = await supabase
+      .from("departments")
+      .select("id, manager_id")
+      .in("id", profile.department_ids);
+
+    for (const department of departments ?? []) {
+      if (department.manager_id) {
+        managerIds.add(department.manager_id);
+      }
+    }
+  }
+
   const isDeptManager =
     profile?.role === "manager" && deptMembers.length > 0;
   const deptMemberIds = new Set(deptMembers.map((member) => member.id));
@@ -69,7 +96,7 @@ export default async function TeamMembersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <div className="sticky top-0 z-10 -mx-6 -mt-6 flex flex-col gap-1 border-b border-border bg-background px-6 pt-6 pb-4">
         <h1 className="text-2xl font-semibold tracking-tight">
           Team Members
         </h1>
@@ -85,6 +112,7 @@ export default async function TeamMembersPage() {
         <MemberList
           members={section1Members}
           emptyMessage="No team members assigned yet."
+          managerIds={isDeptManager ? managerIds : undefined}
         />
       </div>
 
