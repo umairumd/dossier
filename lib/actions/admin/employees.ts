@@ -413,6 +413,23 @@ export async function permanentlyDeleteEmployee(
     };
   }
 
+  const { count: reportCount, error: reportCountError } = await supabase
+    .from("daily_reports")
+    .select("id", { count: "exact", head: true })
+    .eq("author_id", employeeId);
+
+  if (reportCountError) {
+    return { success: false, error: "Failed to check employee reports." };
+  }
+
+  if ((reportCount ?? 0) > 0) {
+    return {
+      success: false,
+      error:
+        "This employee has submitted reports and cannot be permanently deleted. Archive them instead to preserve report history.",
+    };
+  }
+
   const adminClient = createAdminClient();
   const { error } = await adminClient.auth.admin.deleteUser(employeeId);
 

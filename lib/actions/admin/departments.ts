@@ -13,6 +13,7 @@ export interface DepartmentActionResult {
   success: boolean;
   error?: string;
   fieldErrors?: DepartmentFieldErrors;
+  memberCount?: number;
 }
 
 export async function createDepartment(
@@ -109,26 +110,12 @@ export async function assignDepartmentManager(
   return { success: true };
 }
 
-// Blocks the archive if anyone (employee or manager) still has
-// department_id pointing here and isn't themselves archived — reassign or
-// archive them first. This is a pre-check, not an RLS/DB constraint: the
-// schema doesn't forbid an orphaned department_id, but leaving one behind
-// would silently strand those profiles' RLS scoping against an archived
-// department.
-export async function archiveDepartment(
+// archiveDepartment warns (returns memberCount) when active members are
+// still assigned via profile_departments. archiveDepartmentForce skips
+// that check after the admin confirms in the UI.
+async function performArchive(
   departmentId: string,
 ): Promise<DepartmentActionResult> {
-  await requireAdminUser();
-
-  const memberCount = await countActiveDepartmentMembers(departmentId);
-
-  if (memberCount > 0) {
-    return {
-      success: false,
-      error: `Can't archive: ${memberCount} ${memberCount === 1 ? "person is" : "people are"} still assigned to this department. Reassign or archive them first.`,
-    };
-  }
-
   const supabase = await createClient();
   const { error } = await supabase
     .from("departments")
@@ -142,6 +129,32 @@ export async function archiveDepartment(
   revalidatePath("/admin/departments");
 
   return { success: true };
+}
+
+export async function archiveDepartment(
+  departmentId: string,
+): Promise<DepartmentActionResult> {
+  await requireAdminUser();
+
+  const memberCount = await countActiveDepartmentMembers(departmentId);
+
+  if (memberCount > 0) {
+    return {
+      success: false,
+      error: `This department has ${memberCount} active member(s). Remove them from the department before archiving, or they will become unassigned.`,
+      memberCount,
+    };
+  }
+
+  return performArchive(departmentId);
+}
+
+export async function archiveDepartmentForce(
+  departmentId: string,
+): Promise<DepartmentActionResult> {
+  await requireAdminUser();
+
+  return performArchive(departmentId);
 }
 
 export async function restoreDepartment(

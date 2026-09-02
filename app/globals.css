@@ -211,6 +211,21 @@
   --sidebar-ring: #f43f5e;
 }
 
+/* Auth pages set data-accent="default" on a subtree so stored accents on
+ * <html> don't color login (and other unauthenticated) primary buttons.
+ * These selectors must live on the subtree, not :root — html already
+ * carries the user's accent. */
+[data-accent="default"] {
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.708 0 0);
+}
+.dark [data-accent="default"] {
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --ring: oklch(0.556 0 0);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

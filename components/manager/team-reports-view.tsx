@@ -276,6 +276,8 @@ export function TeamReportsView({
         departmentName={departmentName}
         index={openIndex}
         onIndexChange={setOpenIndex}
+        deadlineHourUtc={deadlineHourUtc}
+        adminView={adminView}
       />
     </div>
   );

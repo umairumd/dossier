@@ -12,7 +12,7 @@ export default async function ReportHistoryPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
+      <div className="sticky top-0 z-10 -mx-6 -mt-6 flex flex-col gap-1 border-b border-border bg-background px-6 pt-6 pb-4">
         <h1 className="text-2xl font-semibold tracking-tight">
           Report History
         </h1>

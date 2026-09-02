@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import { Menu } from "lucide-react";
 import { AccentPicker } from "@/components/accent-picker";
@@ -26,9 +29,11 @@ export function TopNav({
   orgName?: string;
   profile: Profile;
 }) {
+  const [open, setOpen] = useState(false);
+
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
-      <Sheet>
+      <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button
             variant="ghost"
@@ -55,10 +60,16 @@ export function TopNav({
             </SheetTitle>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-4">
-            <NavLinks sections={mainSections} />
+            <NavLinks
+              sections={mainSections}
+              onNavigate={() => setOpen(false)}
+            />
           </div>
           <div className="flex flex-col gap-1 border-t border-border p-4">
-            <NavLinks sections={accountSections} />
+            <NavLinks
+              sections={accountSections}
+              onNavigate={() => setOpen(false)}
+            />
 
             {orgName && (
               <div className="mt-2 flex items-center gap-1.5 px-2.5">

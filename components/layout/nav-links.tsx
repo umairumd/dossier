@@ -5,7 +5,13 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { NavSection } from "@/components/layout/nav-config";
 
-export function NavLinks({ sections }: { sections: NavSection[] }) {
+export function NavLinks({
+  sections,
+  onNavigate,
+}: {
+  sections: NavSection[];
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
@@ -28,6 +34,7 @@ export function NavLinks({ sections }: { sections: NavSection[] }) {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => onNavigate?.()}
                 className={cn(
                   "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
                   isActive && "bg-muted text-foreground",

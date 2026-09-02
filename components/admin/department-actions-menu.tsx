@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   archiveDepartment,
+  archiveDepartmentForce,
   permanentlyDeleteDepartment,
   restoreDepartment,
 } from "@/lib/actions/admin/departments";
@@ -42,7 +43,11 @@ interface DialogConfig {
   description: string;
   confirmLabel: string;
   confirmVariant: "default" | "destructive";
-  action: () => Promise<{ success: boolean; error?: string }>;
+  action: () => Promise<{
+    success: boolean;
+    error?: string;
+    memberCount?: number;
+  }>;
   successMessage: string;
 }
 
@@ -57,6 +62,9 @@ export function DepartmentActionsMenu({
 }: DepartmentActionsMenuProps) {
   const [isPending, startTransition] = useTransition();
   const [dialogAction, setDialogAction] = useState<DialogAction | null>(null);
+  const [memberWarningCount, setMemberWarningCount] = useState<number | null>(
+    null,
+  );
   const [editOpen, setEditOpen] = useState(false);
 
   const isArchived = !!department.archived_at;
@@ -64,7 +72,7 @@ export function DepartmentActionsMenu({
   const dialogConfigs: Record<DialogAction, DialogConfig> = {
     archive: {
       title: "Archive department?",
-      description: `${department.name} will no longer be assignable to employees. This can be undone at any time. If anyone is still assigned to it, archiving will be blocked until they're reassigned or archived.`,
+      description: `${department.name} will no longer be assignable to employees. This can be undone at any time. If anyone is still assigned, you will be asked to confirm before they become unassigned.`,
       confirmLabel: "Archive",
       confirmVariant: "destructive",
       action: () => archiveDepartment(department.id),
@@ -97,6 +105,14 @@ export function DepartmentActionsMenu({
       const result = await config.action();
 
       if (!result.success) {
+        if (dialogAction === "archive" && result.memberCount) {
+          setDialogAction(null);
+          window.setTimeout(() => {
+            setMemberWarningCount(result.memberCount ?? null);
+          }, 150);
+          return;
+        }
+
         toast.error(result.error ?? "Action failed.");
         setDialogAction(null);
         return;
@@ -104,6 +120,21 @@ export function DepartmentActionsMenu({
 
       toast.success(config.successMessage);
       setDialogAction(null);
+    });
+  };
+
+  const handleForceArchive = () => {
+    startTransition(async () => {
+      const result = await archiveDepartmentForce(department.id);
+
+      if (!result.success) {
+        toast.error(result.error ?? "Action failed.");
+        setMemberWarningCount(null);
+        return;
+      }
+
+      toast.success("Department archived.");
+      setMemberWarningCount(null);
     });
   };
 
@@ -178,6 +209,31 @@ export function DepartmentActionsMenu({
               disabled={isPending}
             >
               {isPending ? "Working..." : currentConfig?.confirmLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={memberWarningCount !== null}
+        onOpenChange={(open) => !open && setMemberWarningCount(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive department with members?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This department has {memberWarningCount} active members who will
+              become unassigned. Are you sure you want to archive it?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleForceArchive}
+              disabled={isPending}
+            >
+              {isPending ? "Working..." : "Archive Anyway"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
