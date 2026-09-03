@@ -64,6 +64,7 @@ export const getTeamReportingRoster = cache(
       .select("id, full_name, designation, is_remote")
       .eq("has_onboarded", true)
       .is("archived_at", null)
+      .neq("role", "owner")
       .order("full_name", { ascending: true });
 
     if (error) {

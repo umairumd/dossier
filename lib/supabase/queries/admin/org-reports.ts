@@ -25,7 +25,8 @@ export const getOrgRosterSize = cache(async (): Promise<number> => {
     .from("profiles")
     .select("id", { count: "exact", head: true })
     .eq("has_onboarded", true)
-    .is("archived_at", null);
+    .is("archived_at", null)
+    .neq("role", "owner");
 
   if (error) {
     throw new Error("Failed to load organization roster size.");
@@ -53,6 +54,7 @@ export const getOrgReportsForDate = cache(
         .eq("has_onboarded", true)
         .eq("is_active", true)
         .is("archived_at", null)
+        .neq("role", "owner")
         .order("full_name", { ascending: true }),
       adminClient
         .from("daily_reports")

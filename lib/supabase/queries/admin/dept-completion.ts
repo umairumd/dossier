@@ -36,7 +36,8 @@ export const getDeptCompletionToday = cache(
         .select("id")
         .eq("has_onboarded", true)
         .eq("is_active", true)
-        .is("archived_at", null),
+        .is("archived_at", null)
+        .neq("role", "owner"),
       adminClient.from("profile_departments").select("department_id, profile_id"),
     ]);
 
