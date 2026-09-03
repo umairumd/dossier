@@ -199,9 +199,6 @@ export default async function EmployeeDetailPage({
               reports={employee.recent_reports}
               userName={employee.full_name}
               deadline={getDeadlineContext(settings)}
-              departmentName={
-                employee.department_names.join(", ") || "Unassigned"
-              }
               adminView
             />
           )}

@@ -103,9 +103,6 @@ export default async function ManagerEmployeeOverviewPage({
                 reports={overview.recent_reports}
                 userName={overview.full_name}
                 deadline={getDeadlineContext(settings)}
-                departmentName={
-                  overview.department_names.join(", ") || "Unassigned"
-                }
               />
             </>
           )}

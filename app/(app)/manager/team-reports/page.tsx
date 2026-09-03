@@ -73,7 +73,6 @@ export default async function TeamReportsPage({
         </h2>
         <TeamReportsView
           members={section1Members}
-          departmentName={section1Label}
           deadline={getDeadlineContext(settings)}
           emptyMessage={
             isDeptManager
@@ -92,7 +91,6 @@ export default async function TeamReportsPage({
             </h2>
             <TeamReportsView
               members={exclusiveSupervisees}
-              departmentName="Also Reporting to You"
               deadline={getDeadlineContext(settings)}
               emptyMessage="No supervisees to show."
             />

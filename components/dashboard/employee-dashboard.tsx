@@ -1,5 +1,5 @@
 import { Building2, Flame } from "lucide-react";
-import { getReportHistory, getTodayReport } from "@/lib/supabase/queries/reports";
+import { getReportHistory, getReportStatsData, getTodayReport } from "@/lib/supabase/queries/reports";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { formatLongDate } from "@/lib/helpers/dates";
@@ -18,12 +18,13 @@ export async function EmployeeDashboard({
 }: {
   profile: ProfileWithDepartment;
 }) {
-  const [todayReport, reportHistory, settings] = await Promise.all([
+  const [todayReport, preview, statsRows, settings] = await Promise.all([
     getTodayReport(),
-    getReportHistory(),
+    getReportHistory(1, RECENT_PREVIEW_SIZE),
+    getReportStatsData(),
     getOrganizationSettings(),
   ]);
-  const stats = computeReportStats(reportHistory, settings.timezone);
+  const stats = computeReportStats(statsRows, settings.timezone);
   const today = formatLongDate(new Date());
   const deadline = getDeadlineContext(settings);
 
@@ -52,7 +53,7 @@ export async function EmployeeDashboard({
       />
 
       <ActivityStrip
-        reports={reportHistory}
+        reports={statsRows}
         timezone={settings.timezone}
         workingDays={settings.workingDays}
       />
@@ -78,8 +79,8 @@ export async function EmployeeDashboard({
       </div>
 
       <RecentReportsCard
-        reports={reportHistory.slice(0, RECENT_PREVIEW_SIZE)}
-        viewAllHref="/reports/history"
+        reports={preview.reports}
+        viewAllHref="/reports"
         deadline={deadline}
         userName={profile.full_name}
       />

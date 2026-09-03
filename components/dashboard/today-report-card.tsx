@@ -38,7 +38,7 @@ export function TodayReportCard({
               </p>
             </div>
             <Button variant="outline" size="sm" asChild>
-              <Link href="/reports/history">View report →</Link>
+              <Link href="/reports">View report →</Link>
             </Button>
           </div>
         ) : (

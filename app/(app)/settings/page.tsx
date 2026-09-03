@@ -3,7 +3,7 @@ import {
   getCurrentProfileWithDepartment,
   getCurrentUserEmail,
 } from "@/lib/supabase/queries/profile";
-import { getReportHistory } from "@/lib/supabase/queries/reports";
+import { getReportStatsData } from "@/lib/supabase/queries/reports";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/actions/auth";
@@ -26,10 +26,10 @@ import { ProfileForm } from "@/components/settings/profile-form";
 import { ProfileHeader } from "@/components/shared/profile-header";
 
 export default async function SettingsPage() {
-  const [profile, email, reportHistory, settings] = await Promise.all([
+  const [profile, email, statsRows, settings] = await Promise.all([
     getCurrentProfileWithDepartment(),
     getCurrentUserEmail(),
-    getReportHistory(),
+    getReportStatsData(),
     getOrganizationSettings(),
   ]);
 
@@ -49,7 +49,7 @@ export default async function SettingsPage() {
     supervisors = data ?? [];
   }
 
-  const stats = computeReportStats(reportHistory, settings.timezone);
+  const stats = computeReportStats(statsRows, settings.timezone);
 
   return (
     <div className="flex flex-col gap-6">

@@ -82,7 +82,7 @@ export const getDeptCompletionToday = cache(
       membersByDepartment.set(row.department_id, members);
     }
 
-    return (departments ?? [])
+    const rows = (departments ?? [])
       .map((department) => {
         const members = membersByDepartment.get(department.id) ?? new Set();
         const total = members.size;
@@ -105,5 +105,34 @@ export const getDeptCompletionToday = cache(
       })
       .filter((row) => row.total > 0)
       .sort((a, b) => a.completionPct - b.completionPct);
+
+    const assignedIds = new Set(
+      (memberships ?? []).map((row) => row.profile_id),
+    );
+    const unassignedIds = new Set(
+      [...eligibleIds].filter((id) => !assignedIds.has(id)),
+    );
+
+    if (unassignedIds.size > 0) {
+      let unassignedSubmitted = 0;
+
+      for (const profileId of unassignedIds) {
+        if (submittedIds.has(profileId)) {
+          unassignedSubmitted += 1;
+        }
+      }
+
+      rows.push({
+        departmentId: "__unassigned__",
+        departmentName: "Other",
+        submitted: unassignedSubmitted,
+        total: unassignedIds.size,
+        completionPct: Math.round(
+          (unassignedSubmitted / unassignedIds.size) * 100,
+        ),
+      });
+    }
+
+    return rows;
   },
 );

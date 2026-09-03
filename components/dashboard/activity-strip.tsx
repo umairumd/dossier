@@ -50,7 +50,7 @@ export function ActivityStrip({
   timezone,
   workingDays = DEFAULT_WORKING_DAYS,
 }: {
-  reports: DailyReport[];
+  reports: Pick<DailyReport, "report_date">[];
   timezone: string;
   workingDays?: number[];
 }) {
