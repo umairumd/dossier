@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
+import { EmptyState } from "@/components/shared/empty-state";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
@@ -35,9 +36,7 @@ export function TeamTodayRoster({
       </CardHeader>
       <CardContent>
         {sorted.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">
-            No teammates to show.
-          </p>
+          <EmptyState title="No teammates to show." />
         ) : (
           <Table>
             <TableHeader>

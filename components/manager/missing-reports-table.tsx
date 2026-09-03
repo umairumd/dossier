@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/helpers/dates";
+import { EmptyState } from "@/components/shared/empty-state";
 import type { MissingReportRow } from "@/types/missing-report";
 
 export function MissingReportsTable({
@@ -26,11 +27,13 @@ export function MissingReportsTable({
 }) {
   if (rows.length === 0) {
     return (
-      <p className="py-10 text-center text-sm text-muted-foreground">
-        {teamSize === 0
-          ? emptyTeamMessage
-          : "Everyone on your team has submitted a report today."}
-      </p>
+      <EmptyState
+        title={
+          teamSize === 0
+            ? emptyTeamMessage
+            : "Everyone on your team has submitted a report today."
+        }
+      />
     );
   }
 

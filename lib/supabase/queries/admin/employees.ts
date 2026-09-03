@@ -226,6 +226,36 @@ export const getAllEmployees = cache(async (): Promise<EmployeeListItem[]> => {
   return employees;
 });
 
+export async function getEmployeeLastSeen(
+  employeeIds: string[],
+): Promise<Record<string, string>> {
+  await requireAdminUser();
+
+  if (employeeIds.length === 0) {
+    return {};
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("daily_reports")
+    .select("author_id, report_date")
+    .in("author_id", employeeIds);
+
+  if (error) {
+    throw new Error("Failed to load last report dates.");
+  }
+
+  const lastSeen: Record<string, string> = {};
+  for (const row of data ?? []) {
+    const previous = lastSeen[row.author_id];
+    if (!previous || row.report_date > previous) {
+      lastSeen[row.author_id] = row.report_date;
+    }
+  }
+
+  return lastSeen;
+}
+
 export const getEmployeeDetail = cache(
   async (employeeId: string): Promise<EmployeeDetail | null> => {
     await requireAdminUser();

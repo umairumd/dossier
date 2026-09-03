@@ -3,6 +3,8 @@ import { getTeamRoster } from "@/lib/supabase/queries/manager/team";
 import { getSupervisedMembers } from "@/lib/supabase/queries/supervisor/team";
 import { createClient } from "@/lib/supabase/server";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
+import { EmptyState } from "@/components/shared/empty-state";
+import { MemberAvatar } from "@/components/shared/member-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -18,11 +20,7 @@ function MemberList({
   managerIds?: Set<string>;
 }) {
   if (members.length === 0) {
-    return (
-      <p className="py-10 text-center text-sm text-muted-foreground">
-        {emptyMessage}
-      </p>
-    );
+    return <EmptyState title={emptyMessage} />;
   }
 
   return (
@@ -34,16 +32,19 @@ function MemberList({
               key={member.id}
               className="flex items-center py-2.5 first:pt-0 last:pb-0"
             >
-              <EmployeeNameLink
-                employeeId={member.id}
-                fullName={member.full_name}
-                className="text-sm font-medium hover:underline"
-              />
-              {managerIds?.has(member.id) && (
-                <Badge variant="secondary" className="ml-2 text-xs">
-                  Manager
-                </Badge>
-              )}
+              <div className="flex items-center gap-2.5">
+                <MemberAvatar name={member.full_name} size="sm" />
+                <EmployeeNameLink
+                  employeeId={member.id}
+                  fullName={member.full_name}
+                  className="text-sm font-medium hover:underline"
+                />
+                {managerIds?.has(member.id) && (
+                  <Badge variant="secondary" className="text-xs">
+                    Manager
+                  </Badge>
+                )}
+              </div>
             </li>
           ))}
         </ul>
