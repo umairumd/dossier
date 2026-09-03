@@ -105,15 +105,15 @@ export const navSections: NavSection[] = [
     title: "Manage",
     items: [
       {
-        label: "Employees",
-        href: "/admin/employees",
-        icon: <Users className="size-4" />,
+        label: "Departments",
+        href: "/departments",
+        icon: <Building2 className="size-4" />,
         roles: ["owner", "admin"],
       },
       {
-        label: "Departments",
-        href: "/admin/departments",
-        icon: <Building2 className="size-4" />,
+        label: "Employees",
+        href: "/admin/employees",
+        icon: <Users className="size-4" />,
         roles: ["owner", "admin"],
       },
       {

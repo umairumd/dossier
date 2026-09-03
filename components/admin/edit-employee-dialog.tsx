@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,8 @@ export function EditEmployeeDialog({
   const [email, setEmail] = useState(employee.email ?? "");
   const [fullName, setFullName] = useState(employee.full_name);
   const [role, setRole] = useState<UserRole>(employee.role);
+  const [designation, setDesignation] = useState(employee.designation ?? "");
+  const [isRemote, setIsRemote] = useState(employee.is_remote ?? false);
   const [fieldErrors, setFieldErrors] = useState<EmployeeFieldErrors>({});
   const [isPending, startTransition] = useTransition();
 
@@ -55,6 +58,8 @@ export function EditEmployeeDialog({
       setEmail(employee.email ?? "");
       setFullName(employee.full_name);
       setRole(employee.role);
+      setDesignation(employee.designation ?? "");
+      setIsRemote(employee.is_remote ?? false);
       setFieldErrors({});
     }
   };
@@ -62,7 +67,7 @@ export function EditEmployeeDialog({
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const input = { email, fullName, role };
+    const input = { email, fullName, role, designation, isRemote };
     const validation = validateEditEmployeeInput(input);
 
     if (!validation.valid) {
@@ -153,6 +158,35 @@ export function EditEmployeeDialog({
                   You cannot change your own role.
                 </p>
               )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`edit-designation-${employee.id}`}>
+                Designation
+                <span className="ml-1 text-xs font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </Label>
+              <Input
+                id={`edit-designation-${employee.id}`}
+                placeholder="e.g. Graphic Designer"
+                value={designation}
+                onChange={(event) => setDesignation(event.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id={`edit_is_remote-${employee.id}`}
+                checked={isRemote}
+                onCheckedChange={(value) => setIsRemote(!!value)}
+              />
+              <Label
+                htmlFor={`edit_is_remote-${employee.id}`}
+                className="font-normal"
+              >
+                Remote employee
+              </Label>
             </div>
 
             <p className="text-xs text-muted-foreground">

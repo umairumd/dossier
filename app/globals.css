@@ -237,3 +237,15 @@
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  .card-gradient {
+    @apply bg-gradient-to-br from-primary/5 to-transparent;
+  }
+  .card-gradient-strong {
+    @apply bg-gradient-to-br from-primary/10 to-transparent;
+  }
+  .card-gradient-subtle {
+    @apply bg-gradient-to-b from-card to-card/60;
+  }
+}

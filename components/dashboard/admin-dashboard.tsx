@@ -6,6 +6,7 @@ import { getRecentActivity } from "@/lib/supabase/queries/admin/activity";
 import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { formatLongDate } from "@/lib/helpers/dates";
+import { Building2, UserPlus } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -61,7 +62,7 @@ export async function AdminDashboard() {
         deadlineHourUtc={settings.reportDeadlineHourUtc}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Total Members" value={summary.totalMembers} />
         <StatCard label="Submitted Today" value={summary.submittedToday} />
         <StatCard label="Missing Today" value={summary.missingToday} />
@@ -73,16 +74,41 @@ export async function AdminDashboard() {
 
       <DeptCompletionCard departments={deptCompletion} />
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">
           Quick Actions
         </h2>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-3">
           <InviteEmployeeDialog
             departments={departmentOptions}
             candidates={employees}
+            trigger={
+              <button type="button" className="w-full text-left">
+                <Card className="card-gradient cursor-pointer transition-colors hover:bg-muted/50">
+                  <CardContent className="flex flex-col items-center justify-center gap-2 py-6">
+                    <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+                      <UserPlus className="size-5 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium">Invite Employee</span>
+                  </CardContent>
+                </Card>
+              </button>
+            }
           />
-          <CreateDepartmentDialog />
+          <CreateDepartmentDialog
+            trigger={
+              <button type="button" className="w-full text-left">
+                <Card className="card-gradient cursor-pointer transition-colors hover:bg-muted/50">
+                  <CardContent className="flex flex-col items-center justify-center gap-2 py-6">
+                    <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+                      <Building2 className="size-5 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium">New Department</span>
+                  </CardContent>
+                </Card>
+              </button>
+            }
+          />
         </div>
       </div>
 

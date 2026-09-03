@@ -39,8 +39,8 @@ export default async function ManagerEmployeeOverviewPage({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <Card className="card-gradient">
           <CardHeader>
             <CardDescription className="flex items-center gap-1.5">
               <Flame className="size-3.5" />
@@ -55,7 +55,7 @@ export default async function ManagerEmployeeOverviewPage({
           </CardHeader>
         </Card>
 
-        <Card>
+        <Card className="card-gradient">
           <CardHeader>
             <CardDescription className="flex items-center gap-1.5">
               <Percent className="size-3.5" />
@@ -67,7 +67,7 @@ export default async function ManagerEmployeeOverviewPage({
           </CardHeader>
         </Card>
 
-        <Card>
+        <Card className="card-gradient col-span-2 lg:col-span-1">
           <CardHeader>
             <CardDescription className="flex items-center gap-1.5">
               <Timer className="size-3.5" />

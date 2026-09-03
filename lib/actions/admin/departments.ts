@@ -16,6 +16,14 @@ export interface DepartmentActionResult {
   memberCount?: number;
 }
 
+function revalidateDepartmentPaths(departmentId?: string) {
+  revalidatePath("/admin/departments");
+  revalidatePath("/departments");
+  if (departmentId) {
+    revalidatePath(`/departments/${departmentId}`);
+  }
+}
+
 export async function createDepartment(
   name: string,
 ): Promise<DepartmentActionResult> {
@@ -42,7 +50,7 @@ export async function createDepartment(
     return { success: false, error: "Failed to create department." };
   }
 
-  revalidatePath("/admin/departments");
+  revalidateDepartmentPaths();
 
   return { success: true };
 }
@@ -75,7 +83,7 @@ export async function updateDepartmentName(
     return { success: false, error: "Failed to update department." };
   }
 
-  revalidatePath("/admin/departments");
+  revalidateDepartmentPaths(id);
 
   return { success: true };
 }
@@ -84,6 +92,8 @@ export async function updateDepartmentName(
 // non-null id that isn't role='manager' is rejected by the
 // departments_manager_role_check trigger — surfaced here as a friendly
 // message instead of a raw Postgres error.
+// If the assignee is not already a member, they are added to
+// profile_departments so they can manage a team they belong to.
 export async function assignDepartmentManager(
   departmentId: string,
   managerId: string | null,
@@ -91,6 +101,30 @@ export async function assignDepartmentManager(
   await requireAdminUser();
 
   const supabase = await createClient();
+
+  if (managerId) {
+    const { data: membership, error: membershipError } = await supabase
+      .from("profile_departments")
+      .select("profile_id")
+      .eq("department_id", departmentId)
+      .eq("profile_id", managerId)
+      .maybeSingle();
+
+    if (membershipError) {
+      return { success: false, error: "Failed to assign manager." };
+    }
+
+    if (!membership) {
+      const { error: insertError } = await supabase
+        .from("profile_departments")
+        .insert({ profile_id: managerId, department_id: departmentId });
+
+      if (insertError) {
+        return { success: false, error: "Failed to add manager to this department." };
+      }
+    }
+  }
+
   const { error } = await supabase
     .from("departments")
     .update({ manager_id: managerId })
@@ -104,8 +138,93 @@ export async function assignDepartmentManager(
     };
   }
 
-  revalidatePath("/admin/departments");
+  revalidateDepartmentPaths(departmentId);
   revalidatePath("/admin/employees");
+
+  return { success: true };
+}
+
+export async function addEmployeeToDepartment(
+  employeeId: string,
+  departmentId: string,
+): Promise<DepartmentActionResult> {
+  await requireAdminUser();
+
+  const supabase = await createClient();
+
+  const { data: existing, error: existingError } = await supabase
+    .from("profile_departments")
+    .select("profile_id")
+    .eq("department_id", departmentId)
+    .eq("profile_id", employeeId)
+    .maybeSingle();
+
+  if (existingError) {
+    return { success: false, error: "Failed to add member." };
+  }
+
+  if (existing) {
+    return { success: false, error: "Already in this department" };
+  }
+
+  const { error } = await supabase.from("profile_departments").insert({
+    profile_id: employeeId,
+    department_id: departmentId,
+  });
+
+  if (error) {
+    return { success: false, error: "Failed to add member." };
+  }
+
+  revalidateDepartmentPaths(departmentId);
+  revalidatePath("/admin/employees");
+  revalidatePath(`/admin/employees/${employeeId}`);
+
+  return { success: true };
+}
+
+export async function removeEmployeeFromDepartment(
+  employeeId: string,
+  departmentId: string,
+): Promise<DepartmentActionResult> {
+  await requireAdminUser();
+
+  const supabase = await createClient();
+
+  const { data: department, error: departmentError } = await supabase
+    .from("departments")
+    .select("manager_id")
+    .eq("id", departmentId)
+    .maybeSingle();
+
+  if (departmentError || !department) {
+    return { success: false, error: "Department not found." };
+  }
+
+  if (department.manager_id === employeeId) {
+    const { error: clearError } = await supabase
+      .from("departments")
+      .update({ manager_id: null })
+      .eq("id", departmentId);
+
+    if (clearError) {
+      return { success: false, error: "Failed to remove member." };
+    }
+  }
+
+  const { error } = await supabase
+    .from("profile_departments")
+    .delete()
+    .eq("department_id", departmentId)
+    .eq("profile_id", employeeId);
+
+  if (error) {
+    return { success: false, error: "Failed to remove member." };
+  }
+
+  revalidateDepartmentPaths(departmentId);
+  revalidatePath("/admin/employees");
+  revalidatePath(`/admin/employees/${employeeId}`);
 
   return { success: true };
 }
@@ -126,7 +245,7 @@ async function performArchive(
     return { success: false, error: "Failed to archive department." };
   }
 
-  revalidatePath("/admin/departments");
+  revalidateDepartmentPaths(departmentId);
 
   return { success: true };
 }
@@ -172,7 +291,7 @@ export async function restoreDepartment(
     return { success: false, error: "Failed to restore department." };
   }
 
-  revalidatePath("/admin/departments");
+  revalidateDepartmentPaths(departmentId);
 
   return { success: true };
 }
@@ -214,7 +333,7 @@ export async function permanentlyDeleteDepartment(
     return { success: false, error: "Failed to permanently delete department." };
   }
 
-  revalidatePath("/admin/departments");
+  revalidateDepartmentPaths();
   revalidatePath("/admin/employees");
 
   return { success: true };

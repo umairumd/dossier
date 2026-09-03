@@ -25,7 +25,7 @@ export function DailyReportPanel({
 
   if (todayReport) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border-t border-r border-b border-border border-l-2 border-l-primary bg-gradient-to-r from-primary/10 to-transparent px-4 py-3">
+      <div className="flex items-center gap-3 rounded-lg border-t border-r border-b border-border border-l-2 border-l-primary card-gradient-strong px-4 py-3">
         <CheckCircle2 className="size-4 shrink-0 text-primary" />
         <div className="min-w-0 flex-1">
           <span className="text-sm font-medium">Report submitted</span>
@@ -53,7 +53,7 @@ export function DailyReportPanel({
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border-t border-r border-b border-border border-l-2 border-l-primary bg-gradient-to-r from-primary/5 to-transparent px-4 py-3 shadow-sm">
+    <div className="flex items-center gap-3 rounded-lg border-t border-r border-b border-border border-l-2 border-l-primary card-gradient px-4 py-3 shadow-sm">
       <FileText className="size-4 shrink-0 text-primary" />
       <div className="min-w-0 flex-1">
         <span className="text-sm font-medium">Submit today&apos;s report</span>

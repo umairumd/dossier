@@ -18,6 +18,8 @@ export interface EditEmployeeInput {
   email: string;
   fullName: string;
   role: string;
+  designation?: string;
+  isRemote?: boolean;
 }
 
 export interface EmployeeFieldErrors {
@@ -114,6 +116,8 @@ export type EditEmployeeValidationResult =
         email: string;
         fullName: string;
         role: UserRole;
+        designation: string | null;
+        isRemote: boolean;
       };
     }
   | { valid: false; fieldErrors: EmployeeFieldErrors };
@@ -143,6 +147,8 @@ export function validateEditEmployeeInput(
       email: input.email.trim(),
       fullName: input.fullName.trim(),
       role: input.role as UserRole,
+      designation: input.designation?.trim() || null,
+      isRemote: input.isRemote ?? false,
     },
   };
 }
