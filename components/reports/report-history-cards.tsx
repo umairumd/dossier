@@ -1,32 +1,37 @@
+"use client";
+
 import { formatDate } from "@/lib/helpers/dates";
-import { LocalDateTime } from "@/components/shared/local-datetime";
-import { truncate } from "@/lib/helpers/text";
-import { getReportField } from "@/lib/reports/fields";
+import { LocalTime } from "@/components/shared/local-time";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
+import { Button } from "@/components/ui/button";
 import type { DailyReport } from "@/types/report";
-
-const PREVIEW_LENGTH = 80;
 
 export function ReportHistoryCards({
   reports,
   deadlineHourUtc,
+  onView,
 }: {
   reports: DailyReport[];
   deadlineHourUtc?: number;
+  onView: (index: number) => void;
 }) {
   const showStatus = deadlineHourUtc !== undefined;
 
   return (
     <div className="flex flex-col gap-3 md:hidden">
-      {reports.map((report) => (
+      {reports.map((report, index) => (
         <div key={report.id} className="rounded-lg border border-border p-3">
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="font-medium">
               {formatDate(report.report_date)}
             </span>
             <span className="text-xs text-muted-foreground">
-              Submitted <LocalDateTime isoString={report.submitted_at} />
+              {report.submitted_at ? (
+                <LocalTime isoString={report.submitted_at} />
+              ) : (
+                "—"
+              )}
             </span>
           </div>
           {showStatus && (
@@ -39,19 +44,15 @@ export function ReportHistoryCards({
               />
             </div>
           )}
-          <p className="mt-2 text-sm">
-            {truncate(report.content, PREVIEW_LENGTH)}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Blockers:{" "}
-            {report.blockers ? truncate(report.blockers, PREVIEW_LENGTH) : "None"}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {getReportField("additional_notes").label}:{" "}
-            {report.additional_notes
-              ? truncate(report.additional_notes, PREVIEW_LENGTH)
-              : "—"}
-          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="mt-2 px-0"
+            onClick={() => onView(index)}
+          >
+            View
+          </Button>
         </div>
       ))}
     </div>

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Flame, Percent, Timer } from "lucide-react";
 import { getTeamMemberOverview } from "@/lib/supabase/queries/manager/employee-overview";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import {
   Card,
   CardContent,
@@ -8,8 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ReportHistoryCards } from "@/components/reports/report-history-cards";
-import { ReportHistoryTable } from "@/components/reports/report-history-table";
+import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
 
 export default async function ManagerEmployeeOverviewPage({
@@ -18,7 +18,10 @@ export default async function ManagerEmployeeOverviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const overview = await getTeamMemberOverview(id);
+  const [overview, settings] = await Promise.all([
+    getTeamMemberOverview(id),
+    getOrganizationSettings(),
+  ]);
 
   if (!overview) {
     notFound();
@@ -96,8 +99,14 @@ export default async function ManagerEmployeeOverviewPage({
             </p>
           ) : (
             <>
-              <ReportHistoryTable reports={overview.recent_reports} />
-              <ReportHistoryCards reports={overview.recent_reports} />
+              <ReportHistoryBrowser
+                reports={overview.recent_reports}
+                userName={overview.full_name}
+                deadlineHourUtc={settings.reportDeadlineHourUtc}
+                departmentName={
+                  overview.department_names.join(", ") || "Unassigned"
+                }
+              />
             </>
           )}
         </CardContent>

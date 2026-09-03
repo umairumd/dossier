@@ -72,6 +72,8 @@ export async function EmployeeDashboard({
       <RecentReportsCard
         reports={reportHistory.slice(0, RECENT_PREVIEW_SIZE)}
         viewAllHref="/reports/history"
+        deadlineHourUtc={settings.reportDeadlineHourUtc}
+        userName={profile.full_name}
       />
     </div>
   );

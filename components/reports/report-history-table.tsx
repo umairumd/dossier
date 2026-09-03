@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Table,
   TableBody,
@@ -6,22 +8,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/helpers/dates";
-import { LocalDateTime } from "@/components/shared/local-datetime";
-import { truncate } from "@/lib/helpers/text";
-import { getReportField } from "@/lib/reports/fields";
+import { LocalTime } from "@/components/shared/local-time";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import type { DailyReport } from "@/types/report";
 
-const PREVIEW_LENGTH = 60;
-
 export function ReportHistoryTable({
   reports,
   deadlineHourUtc,
+  onView,
 }: {
   reports: DailyReport[];
   deadlineHourUtc?: number;
+  onView: (index: number) => void;
 }) {
   const showStatus = deadlineHourUtc !== undefined;
 
@@ -30,37 +31,28 @@ export function ReportHistoryTable({
       <Table className="table-fixed w-full">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[160px] text-muted-foreground font-medium">
-              Submitted
-            </TableHead>
-            <TableHead className="w-[160px] text-muted-foreground font-medium">
-              Completed
+            <TableHead className="text-muted-foreground font-medium">
+              Date
             </TableHead>
             {showStatus && (
               <TableHead className="w-[120px] text-muted-foreground font-medium">
                 Status
               </TableHead>
             )}
-            <TableHead className="text-muted-foreground font-medium">
-              {getReportField("content").label}
+            <TableHead className="w-[140px] text-muted-foreground font-medium">
+              Time
             </TableHead>
-            <TableHead className="text-muted-foreground font-medium">
-              {getReportField("blockers").label}
-            </TableHead>
-            <TableHead className="text-muted-foreground font-medium">
-              {getReportField("additional_notes").label}
+            <TableHead className="w-[60px] text-right text-muted-foreground font-medium">
+              {""}
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {reports.map((report) => (
+          {reports.map((report, index) => (
             <TableRow
               key={report.id}
-              className="hover:bg-muted/50 transition-colors"
+              className="transition-colors hover:bg-muted/50"
             >
-              <TableCell className="whitespace-nowrap text-muted-foreground">
-                <LocalDateTime isoString={report.submitted_at} />
-              </TableCell>
               <TableCell className="whitespace-nowrap">
                 {formatDate(report.report_date)}
               </TableCell>
@@ -74,18 +66,22 @@ export function ReportHistoryTable({
                   />
                 </TableCell>
               )}
-              <TableCell className="max-w-xs whitespace-normal">
-                {truncate(report.content, PREVIEW_LENGTH)}
+              <TableCell className="whitespace-nowrap text-muted-foreground">
+                {report.submitted_at ? (
+                  <LocalTime isoString={report.submitted_at} />
+                ) : (
+                  "—"
+                )}
               </TableCell>
-              <TableCell className="max-w-xs whitespace-normal text-muted-foreground">
-                {report.blockers
-                  ? truncate(report.blockers, PREVIEW_LENGTH)
-                  : "—"}
-              </TableCell>
-              <TableCell className="max-w-xs whitespace-normal text-muted-foreground">
-                {report.additional_notes
-                  ? truncate(report.additional_notes, PREVIEW_LENGTH)
-                  : "—"}
+              <TableCell className="text-right">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onView(index)}
+                >
+                  View
+                </Button>
               </TableCell>
             </TableRow>
           ))}

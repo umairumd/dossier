@@ -30,6 +30,7 @@ export function ReportDetailSheet({
   onIndexChange,
   deadlineHourUtc,
   adminView = false,
+  showProfileLink = true,
 }: {
   members: SubmittedMember[];
   departmentName: string;
@@ -37,6 +38,7 @@ export function ReportDetailSheet({
   onIndexChange: (index: number | null) => void;
   deadlineHourUtc: number;
   adminView?: boolean;
+  showProfileLink?: boolean;
 }) {
   const current = index !== null ? members[index] : null;
 
@@ -48,29 +50,33 @@ export function ReportDetailSheet({
       <DialogContent className="sm:max-w-lg">
         {index !== null && current && (
           <>
-            <DialogHeader className="pr-8">
-              <div className="flex items-start justify-between gap-3">
-                <DialogTitle className="text-lg font-semibold">
-                  {current.fullName}
-                </DialogTitle>
-                <EmployeeNameLink
-                  employeeId={current.employeeId}
-                  fullName="View Profile →"
-                  basePath={
-                    adminView ? "/admin/employees" : "/manager/employees"
-                  }
-                  className="shrink-0 text-sm text-primary hover:underline"
-                />
-              </div>
-              <DialogDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span>{departmentName}</span>
-                <SubmissionStatusBadge
-                  status={getSubmissionStatus(
-                    current.report.submitted_at,
-                    deadlineHourUtc,
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold">
+                {current.fullName}
+              </DialogTitle>
+              <DialogDescription asChild>
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                  <div className="flex flex-wrap items-center gap-x-2">
+                    <span>{departmentName}</span>
+                    <SubmissionStatusBadge
+                      status={getSubmissionStatus(
+                        current.report.submitted_at,
+                        deadlineHourUtc,
+                      )}
+                    />
+                    <LocalDateTime isoString={current.report.submitted_at} />
+                  </div>
+                  {showProfileLink && (
+                    <EmployeeNameLink
+                      employeeId={current.employeeId}
+                      fullName="View Profile →"
+                      basePath={
+                        adminView ? "/admin/employees" : "/manager/employees"
+                      }
+                      className="shrink-0 text-xs text-primary hover:underline"
+                    />
                   )}
-                />
-                <LocalDateTime isoString={current.report.submitted_at} />
+                </div>
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-4 px-4 pb-4 text-sm">

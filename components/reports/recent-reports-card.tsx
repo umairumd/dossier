@@ -8,18 +8,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ReportHistoryCards } from "@/components/reports/report-history-cards";
-import { ReportHistoryTable } from "@/components/reports/report-history-table";
+import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
 import type { DailyReport } from "@/types/report";
 
 export function RecentReportsCard({
   reports,
   viewAllHref,
   deadlineHourUtc,
+  userName,
 }: {
   reports: DailyReport[];
   viewAllHref?: string;
   deadlineHourUtc?: number;
+  userName: string;
 }) {
   return (
     <Card className="card-gradient">
@@ -47,16 +48,12 @@ export function RecentReportsCard({
             </p>
           </div>
         ) : (
-          <>
-            <ReportHistoryTable
-              reports={reports}
-              deadlineHourUtc={deadlineHourUtc}
-            />
-            <ReportHistoryCards
-              reports={reports}
-              deadlineHourUtc={deadlineHourUtc}
-            />
-          </>
+          <ReportHistoryBrowser
+            reports={reports}
+            userName={userName}
+            deadlineHourUtc={deadlineHourUtc}
+            showProfileLink={false}
+          />
         )}
       </CardContent>
     </Card>
