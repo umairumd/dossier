@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/shared/empty-state";
 import { InvitationActionsMenu } from "@/components/admin/invitation-actions-menu";
 import { Badge } from "@/components/ui/badge";
 import { LocalDateTime } from "@/components/shared/local-datetime";
@@ -89,11 +90,13 @@ export function InvitationList({
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">
-          {invitations.length === 0
-            ? "No pending invitations."
-            : "No invitations match your filters."}
-        </p>
+        <EmptyState
+          title={
+            invitations.length === 0
+              ? "No pending invitations."
+              : "No invitations match your filters."
+          }
+        />
       ) : (
         <Table>
           <TableHeader>

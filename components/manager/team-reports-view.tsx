@@ -26,6 +26,7 @@ import {
 } from "@/lib/reports/submission-status";
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
+import { EmptyState } from "@/components/shared/empty-state";
 import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import type { DailyReport } from "@/types/report";
@@ -137,9 +138,7 @@ export function TeamReportsView({
       )}
 
       {filtered.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">
-          {resolvedEmptyMessage}
-        </p>
+        <EmptyState title={resolvedEmptyMessage} />
       ) : (
         <>
           <div className="hidden md:block">

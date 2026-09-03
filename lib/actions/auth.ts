@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { friendlyAuthErrorMessage } from "@/lib/helpers/auth-error-messages";
+import { getSiteUrl } from "@/lib/helpers/site-url";
 
 export async function login(formData: FormData) {
   const email = formData.get("email");
@@ -58,4 +59,20 @@ export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+export async function requestPasswordReset(
+  _prev: boolean,
+  formData: FormData,
+): Promise<boolean> {
+  const email = formData.get("email");
+
+  if (typeof email === "string" && email.length > 0) {
+    const supabase = await createClient();
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${getSiteUrl()}/reset-password`,
+    });
+  }
+
+  return true;
 }

@@ -1,5 +1,8 @@
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
-import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
+import {
+  getAllEmployees,
+  getEmployeeLastSeen,
+} from "@/lib/supabase/queries/admin/employees";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { EmployeeList } from "@/components/admin/employee-list";
@@ -13,6 +16,10 @@ export default async function AdminEmployeesPage() {
     getAllDepartments(),
     getOrganizationName(),
   ]);
+
+  const lastSeenByEmployeeId = await getEmployeeLastSeen(
+    employees.map((employee) => employee.id),
+  );
 
   const departments = allDepartments
     .filter((department) => department.archived_at === null)
@@ -42,6 +49,7 @@ export default async function AdminEmployeesPage() {
         departments={departments}
         candidates={employees}
         orgName={orgName}
+        lastSeenByEmployeeId={lastSeenByEmployeeId}
       />
     </div>
   );

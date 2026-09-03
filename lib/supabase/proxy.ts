@@ -41,8 +41,18 @@ export async function updateSession(request: NextRequest) {
   // succeeds, before a password is set) must NOT bounce away — that's the
   // one route where "authenticated" doesn't mean "done here."
   const isInviteRoute = request.nextUrl.pathname.startsWith("/invite");
+  const isForgotPasswordRoute =
+    request.nextUrl.pathname.startsWith("/forgot-password");
+  const isResetPasswordRoute =
+    request.nextUrl.pathname.startsWith("/reset-password");
 
-  if (!user && !isLoginRoute && !isInviteRoute) {
+  if (
+    !user &&
+    !isLoginRoute &&
+    !isInviteRoute &&
+    !isForgotPasswordRoute &&
+    !isResetPasswordRoute
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

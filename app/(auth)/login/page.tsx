@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { login } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +15,9 @@ import { Label } from "@/components/ui/label";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, message } = await searchParams;
 
   return (
     <div className="flex w-full max-w-sm flex-col">
@@ -38,6 +39,9 @@ export default async function LoginPage({
         <CardContent>
           <form action={login} className="flex flex-col gap-4">
             {error && <p className="text-sm text-destructive">{error}</p>}
+            {message && (
+              <p className="text-sm text-muted-foreground">{message}</p>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">Email</Label>
@@ -59,6 +63,14 @@ export default async function LoginPage({
                 required
                 autoComplete="current-password"
               />
+              <div className="flex justify-end">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </div>
 
             <Button type="submit" variant="default" className="mt-2">

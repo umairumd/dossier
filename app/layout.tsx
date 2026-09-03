@@ -19,6 +19,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Dossier",
   description: "Internal operations platform for Inoma Digital.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 // Applies the persisted accent before paint, mirroring next-themes' own

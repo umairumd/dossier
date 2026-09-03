@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/shared/empty-state";
 import { DepartmentActionsMenu } from "@/components/admin/department-actions-menu";
 import { DepartmentStatusBadge } from "@/components/admin/department-status-badge";
 import type { DepartmentListItem, ManagerCandidate } from "@/types/department";
@@ -90,11 +91,13 @@ export function DepartmentList({
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">
-          {departments.length === 0
-            ? "No departments yet."
-            : "No departments match your filters."}
-        </p>
+        <EmptyState
+          title={
+            departments.length === 0
+              ? "No departments yet."
+              : "No departments match your filters."
+          }
+        />
       ) : (
         <Table>
           <TableHeader>

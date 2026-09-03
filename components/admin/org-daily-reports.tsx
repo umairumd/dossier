@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { EmptyState } from "@/components/shared/empty-state";
 import { cn } from "@/lib/utils";
 import {
   getSubmissionStatus,
@@ -196,9 +197,7 @@ export function OrgDailyReports({
       </div>
 
       {members.length === 0 && (
-        <p className="py-10 text-center text-sm text-muted-foreground">
-          No employees in the organization yet.
-        </p>
+        <EmptyState title="No employees in the organization yet." />
       )}
 
       {sections.map((section, index) => {

@@ -21,8 +21,10 @@ import {
 } from "@/components/ui/table";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
+import { EmptyState } from "@/components/shared/empty-state";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/lib/helpers/dates";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem, EmployeeStatus } from "@/types/employee";
@@ -43,12 +45,14 @@ export function EmployeeList({
   departments,
   candidates,
   orgName,
+  lastSeenByEmployeeId,
 }: {
   employees: EmployeeListItem[];
   currentUserId: string;
   departments: DepartmentOption[];
   candidates: EmployeeListItem[];
   orgName: string | null;
+  lastSeenByEmployeeId: Record<string, string>;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -106,11 +110,13 @@ export function EmployeeList({
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">
-          {employees.length === 0
-            ? "No employees yet."
-            : "No employees match your filters."}
-        </p>
+        <EmptyState
+          title={
+            employees.length === 0
+              ? "No employees yet."
+              : "No employees match your filters."
+          }
+        />
       ) : (
         <Table>
           <TableHeader>
@@ -162,7 +168,16 @@ export function EmployeeList({
                   </div>
                 </TableCell>
                 <TableCell>
-                  {employee.department_names.join(", ") || "—"}
+                  <div className="flex flex-col gap-0.5">
+                    <span>
+                      {employee.department_names.join(", ") || "—"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {lastSeenByEmployeeId[employee.id]
+                        ? `Last report ${formatDate(lastSeenByEmployeeId[employee.id])}`
+                        : "No reports yet"}
+                    </span>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <EmployeeStatusBadge status={employee.status} />
