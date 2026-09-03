@@ -43,7 +43,6 @@ export const getSupervisedMembers = cache(
       .from("profiles")
       .select("id, full_name")
       .in("id", memberIds)
-      .eq("has_onboarded", true)
       .is("archived_at", null)
       .order("full_name", { ascending: true });
 
@@ -60,9 +59,43 @@ export const getSupervisedReportsForDate = cache(
     await requireSupervisorUser();
 
     const supabase = await createClient();
-    const employees = await getSupervisedMembers();
 
-    if (employees.length === 0) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return [];
+    }
+
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from("member_supervisors")
+      .select("member_id")
+      .eq("supervisor_id", user.id);
+
+    if (assignmentsError) {
+      throw new Error("Failed to load supervised members.");
+    }
+
+    const memberIds = (assignments ?? []).map((row) => row.member_id);
+
+    if (memberIds.length === 0) {
+      return [];
+    }
+
+    const { data: employees, error: employeesError } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", memberIds)
+      .eq("has_onboarded", true)
+      .is("archived_at", null)
+      .order("full_name", { ascending: true });
+
+    if (employeesError) {
+      throw new Error("Failed to load supervised members.");
+    }
+
+    if (!employees || employees.length === 0) {
       return [];
     }
 

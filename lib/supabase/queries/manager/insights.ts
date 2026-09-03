@@ -6,7 +6,7 @@ import {
   buildCompletionTrend,
   buildSubmittersByDate,
 } from "@/lib/helpers/completion-trend";
-import { getTeamEmployeeRoster } from "@/lib/supabase/queries/manager/team";
+import { getTeamReportingRoster } from "@/lib/supabase/queries/manager/team";
 import type { ActivityItem } from "@/types/activity";
 import type { TeamInsights, TeamMemberStanding } from "@/types/team-insights";
 
@@ -26,7 +26,7 @@ const INSIGHTS_WINDOW_DAYS = 90;
 // manager's own department, same as every other manager query.
 export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
   const supabase = await createClient();
-  const roster = await getTeamEmployeeRoster();
+  const roster = await getTeamReportingRoster();
 
   if (roster.length === 0) {
     return {

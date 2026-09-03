@@ -33,8 +33,10 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
 
 export function InvitationList({
   invitations,
+  orgName,
 }: {
   invitations: EmployeeListItem[];
+  orgName: string | null;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -135,6 +137,7 @@ export function InvitationList({
                     <InvitationActionsMenu
                       email={invitation.email}
                       fullName={invitation.full_name}
+                      orgName={orgName}
                     />
                   )}
                 </TableCell>

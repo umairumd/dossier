@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Menu } from "lucide-react";
+import { Menu, PanelLeft } from "lucide-react";
 import { AccentPicker } from "@/components/accent-picker";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,16 @@ export function TopNav({
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="hidden shrink-0 md:flex"
+        aria-label="Toggle sidebar"
+        onClick={() => window.dispatchEvent(new Event("sidebar-toggle"))}
+      >
+        <PanelLeft className="size-4" />
+      </Button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button

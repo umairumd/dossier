@@ -17,4 +17,5 @@ export interface ManagerCandidate {
 export interface DepartmentOption {
   id: string;
   name: string;
+  manager_name?: string | null;
 }

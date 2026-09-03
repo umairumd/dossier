@@ -14,7 +14,34 @@ export interface TeamRosterMember {
 // requesting manager's own department. Extracted so every manager query
 // that needs "who's on my team" (today's status, insights, the plain
 // team list) shares one definition instead of repeating this select.
-export const getTeamEmployeeRoster = cache(
+export const getTeamRoster = cache(
+  async (): Promise<TeamRosterMember[]> => {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return [];
+    }
+
+    const { data: employees, error } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("is_active", true)
+      .is("archived_at", null)
+      .order("full_name", { ascending: true });
+
+    if (error) {
+      throw new Error("Failed to load department employees.");
+    }
+
+    return employees ?? [];
+  },
+);
+
+export const getTeamReportingRoster = cache(
   async (): Promise<TeamRosterMember[]> => {
     const supabase = await createClient();
 
@@ -44,6 +71,8 @@ export const getTeamEmployeeRoster = cache(
   },
 );
 
+export const getTeamEmployeeRoster = getTeamReportingRoster;
+
 // Parameterized by date (defaults to today) so the same query backs both
 // the dashboard's today-only snapshot and the Team Reports page's date
 // filter — "today's reports" and "previous reports" are the same view at
@@ -54,7 +83,7 @@ export const getTeamReportsForDate = cache(
   async (date: string = todayDateString()): Promise<TeamMemberReport[]> => {
     const supabase = await createClient();
 
-    const employees = await getTeamEmployeeRoster();
+    const employees = await getTeamReportingRoster();
 
     if (employees.length === 0) {
       return [];

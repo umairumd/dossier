@@ -8,6 +8,10 @@ export interface InviteEmployeeInput {
   email: string;
   fullName: string;
   role: string;
+  designation?: string;
+  departmentId?: string;
+  supervisorId?: string;
+  isRemote?: boolean;
 }
 
 export interface EditEmployeeInput {
@@ -62,6 +66,10 @@ export type InviteEmployeeValidationResult =
         email: string;
         fullName: string;
         role: UserRole;
+        designation?: string;
+        departmentId?: string;
+        supervisorId?: string;
+        isRemote?: boolean;
       };
     }
   | { valid: false; fieldErrors: EmployeeFieldErrors };
@@ -85,6 +93,16 @@ export function validateInviteEmployeeInput(
       email: input.email.trim(),
       fullName: input.fullName.trim(),
       role: input.role as UserRole,
+      designation: input.designation?.trim() || undefined,
+      departmentId:
+        input.departmentId && !input.departmentId.startsWith("__")
+          ? input.departmentId
+          : undefined,
+      supervisorId:
+        input.supervisorId && !input.supervisorId.startsWith("__")
+          ? input.supervisorId
+          : undefined,
+      isRemote: input.isRemote,
     },
   };
 }

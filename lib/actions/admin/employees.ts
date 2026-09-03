@@ -51,7 +51,8 @@ export async function inviteEmployee(
     return { success: false, fieldErrors: validation.fieldErrors };
   }
 
-  const { email, fullName, role } = validation.value;
+  const { email, fullName, role, designation, departmentId, supervisorId, isRemote } =
+    validation.value;
   const adminClient = createAdminClient();
 
   // generateLink (not inviteUserByEmail) is used deliberately: it always
@@ -100,6 +101,42 @@ export async function inviteEmployee(
       error:
         "Invitation created, but couldn't set the employee's role. Edit them from the list to fix this.",
     };
+  }
+
+  const profileUpdate: Record<string, unknown> = {
+    is_remote: isRemote ?? false,
+  };
+  if (designation) {
+    profileUpdate.designation = designation;
+  }
+
+  const { error: extensionError } = await supabase
+    .from("profiles")
+    .update(profileUpdate)
+    .eq("id", data.user.id);
+
+  if (extensionError) {
+    console.error("Failed to set invite profile extensions.", extensionError);
+  }
+
+  if (departmentId) {
+    const { error: departmentError } = await supabase
+      .from("profile_departments")
+      .insert({ profile_id: data.user.id, department_id: departmentId });
+
+    if (departmentError) {
+      console.error("Failed to assign department on invite.", departmentError);
+    }
+  }
+
+  if (supervisorId) {
+    const { error: supervisorError } = await supabase
+      .from("member_supervisors")
+      .insert({ member_id: data.user.id, supervisor_id: supervisorId });
+
+    if (supervisorError) {
+      console.error("Failed to assign supervisor on invite.", supervisorError);
+    }
   }
 
   revalidatePath("/admin/employees");

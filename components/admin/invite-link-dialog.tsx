@@ -35,6 +35,7 @@ type InviteState =
 interface InviteLinkDialogProps {
   email: string;
   fullName: string;
+  orgName: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -42,6 +43,7 @@ interface InviteLinkDialogProps {
 export function InviteLinkDialog({
   email,
   fullName,
+  orgName,
   open,
   onOpenChange,
 }: InviteLinkDialogProps) {
@@ -120,10 +122,22 @@ export function InviteLinkDialog({
   const handleCopy = async () => {
     if (state.type !== "has-link") return;
 
+    const organization = orgName?.trim() || "the organization";
+    const message = [
+      `Hi ${fullName},`,
+      ``,
+      `You've been invited to join ${organization} on Dossier.`,
+      ``,
+      `Click the link below to set up your account:`,
+      state.link,
+      ``,
+      `Welcome to the team!`,
+    ].join("\n");
+
     try {
-      await navigator.clipboard.writeText(state.link);
+      await navigator.clipboard.writeText(message);
       setCopied(true);
-      toast.success("Invite link copied to clipboard.");
+      toast.success("Message copied");
     } catch {
       toast.error("Failed to copy to clipboard.");
     }
@@ -236,7 +250,7 @@ export function InviteLinkDialog({
                   type="button"
                   size="icon"
                   onClick={handleCopy}
-                  aria-label="Copy invite link"
+                  aria-label="Copy invite message"
                 >
                   {copied ? (
                     <Check className="size-4" />
@@ -265,7 +279,7 @@ export function InviteLinkDialog({
                 Regenerate
               </Button>
               <Button type="button" onClick={handleCopy}>
-                {copied ? "Copied!" : "Copy Link"}
+                {copied ? "Copied!" : "Copy Message"}
               </Button>
             </>
           ) : state.type === "loading" ? (

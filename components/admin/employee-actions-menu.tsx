@@ -67,6 +67,7 @@ interface EmployeeActionsMenuProps {
   isSelf: boolean;
   departments: DepartmentOption[];
   candidates: EmployeeListItem[];
+  orgName: string | null;
   redirectOnDelete?: string;
 }
 
@@ -75,6 +76,7 @@ export function EmployeeActionsMenu({
   isSelf,
   departments,
   candidates,
+  orgName,
   redirectOnDelete,
 }: EmployeeActionsMenuProps) {
   const router = useRouter();
@@ -280,6 +282,7 @@ export function EmployeeActionsMenu({
         <InviteLinkDialog
           email={employee.email}
           fullName={employee.full_name}
+          orgName={orgName}
           open={inviteLinkOpen}
           onOpenChange={setInviteLinkOpen}
         />

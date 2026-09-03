@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Check, Copy, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -28,22 +29,51 @@ import {
   validateInviteEmployeeInput,
   type EmployeeFieldErrors,
 } from "@/lib/validations/employee";
+import type { DepartmentOption } from "@/types/department";
+import type { EmployeeListItem } from "@/types/employee";
 import type { UserRole } from "@/types/profile";
 
-export function InviteEmployeeDialog() {
+const NONE = "__none__";
+
+function unsetIfSentinel(value: string): string | undefined {
+  if (!value || value.startsWith("__")) {
+    return undefined;
+  }
+  return value;
+}
+
+export function InviteEmployeeDialog({
+  departments,
+  candidates,
+}: {
+  departments: DepartmentOption[];
+  candidates: EmployeeListItem[];
+}) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<UserRole>("member");
+  const [designation, setDesignation] = useState("");
+  const [departmentId, setDepartmentId] = useState(NONE);
+  const [supervisorId, setSupervisorId] = useState(NONE);
+  const [isRemote, setIsRemote] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<EmployeeFieldErrors>({});
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const selectedDept = departments.find(
+    (department) => department.id === unsetIfSentinel(departmentId),
+  );
+
   const reset = () => {
     setEmail("");
     setFullName("");
     setRole("member");
+    setDesignation("");
+    setDepartmentId(NONE);
+    setSupervisorId(NONE);
+    setIsRemote(false);
     setFieldErrors({});
     setInviteLink(null);
     setCopied(false);
@@ -59,7 +89,15 @@ export function InviteEmployeeDialog() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const input = { email, fullName, role };
+    const input = {
+      email,
+      fullName,
+      role,
+      designation,
+      departmentId: unsetIfSentinel(departmentId),
+      supervisorId: unsetIfSentinel(supervisorId),
+      isRemote,
+    };
     const validation = validateInviteEmployeeInput(input);
 
     if (!validation.valid) {
@@ -70,7 +108,7 @@ export function InviteEmployeeDialog() {
     setFieldErrors({});
 
     startTransition(async () => {
-      const result = await inviteEmployee(input);
+      const result = await inviteEmployee(validation.value);
 
       if (!result.success) {
         setFieldErrors(result.fieldErrors ?? {});
@@ -108,7 +146,7 @@ export function InviteEmployeeDialog() {
           <DialogDescription>
             {inviteLink
               ? "Share this link with the employee so they can set a password and sign in."
-              : "Creates their account and profile. Assign departments afterward from their profile. If email isn't configured for this project, share the generated link with them directly."}
+              : "Creates their account and profile. If email isn't configured for this project, share the generated link with them directly."}
           </DialogDescription>
         </DialogHeader>
 
@@ -195,6 +233,89 @@ export function InviteEmployeeDialog() {
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label>
+                  Designation{" "}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </Label>
+                <Input
+                  placeholder="e.g. Graphic Designer, Senior Developer"
+                  value={designation}
+                  onChange={(event) => setDesignation(event.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Job title shown to the team
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label>
+                  Department{" "}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </Label>
+                <Select value={departmentId} onValueChange={setDepartmentId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="No department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>No department</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedDept?.manager_name && (
+                  <p className="text-xs text-muted-foreground">
+                    Manager: {selectedDept.manager_name}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label>
+                  Supervisor{" "}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </Label>
+                <Select value={supervisorId} onValueChange={setSupervisorId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>None</SelectItem>
+                    {candidates
+                      .filter((candidate) => candidate.status === "active")
+                      .map((candidate) => (
+                        <SelectItem key={candidate.id} value={candidate.id}>
+                          {candidate.full_name}
+                          {candidate.designation ? ` · ${candidate.designation}` : ""}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  This person will see their daily reports
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="is_remote"
+                  checked={isRemote}
+                  onCheckedChange={(value) => setIsRemote(!!value)}
+                />
+                <Label htmlFor="is_remote" className="font-normal">
+                  Remote employee
+                </Label>
               </div>
             </DialogBody>
             <DialogFooter>

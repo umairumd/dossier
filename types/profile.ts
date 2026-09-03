@@ -10,5 +10,8 @@ export interface Profile {
   is_supervisor: boolean;
   is_active: boolean;
   has_onboarded: boolean;
+  designation: string | null;
+  is_remote: boolean;
+  avatar_url: string | null;
   created_at: string;
 }
