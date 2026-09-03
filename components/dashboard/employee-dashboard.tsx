@@ -7,7 +7,7 @@ import { computeReportStats } from "@/lib/helpers/report-stats";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/analytics/stat-card";
 import { ActivityStrip } from "@/components/dashboard/activity-strip";
-import { TodayReportCard } from "@/components/dashboard/today-report-card";
+import { ReportBanner } from "@/components/shared/report-banner";
 import { RecentReportsCard } from "@/components/reports/recent-reports-card";
 
 const RECENT_PREVIEW_SIZE = 5;
@@ -41,9 +41,10 @@ export async function EmployeeDashboard({
         </div>
       </div>
 
-      <TodayReportCard
+      <ReportBanner
         todayReport={todayReport}
         deadlineHint={`Due by ${deadlineHour}:00 UTC`}
+        deadlineHourUtc={settings.reportDeadlineHourUtc}
       />
 
       <ActivityStrip reports={reportHistory} />
