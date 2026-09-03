@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import {
   Card,
   CardContent,
@@ -8,12 +9,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ReportDeadlineForm } from "@/components/admin/report-deadline-form";
+import { PageHeader } from "@/components/shared/page-header";
+import { OrgIdentityForm } from "@/components/admin/org-identity-form";
+import { OrgScheduleForm } from "@/components/admin/org-schedule-form";
 
 export default async function OrganizationSettingsPage() {
-  const [profile, settings] = await Promise.all([
+  const [profile, settings, orgName] = await Promise.all([
     getCurrentProfile(),
     getOrganizationSettings(),
+    getOrganizationName(),
   ]);
 
   if (profile?.role !== "owner") {
@@ -22,25 +26,33 @@ export default async function OrganizationSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Organization
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Configuration that applies across the whole organization.
-        </p>
-      </div>
+      <PageHeader title="Organization" />
 
-      <Card className="max-w-md">
+      <Card className="card-gradient">
         <CardHeader>
-          <CardTitle>Report Deadline</CardTitle>
+          <CardTitle>Identity</CardTitle>
           <CardDescription>
-            Controls when a submitted report counts as On Time vs. Late
-            across every dashboard and report list.
+            How your organization appears in Dossier.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ReportDeadlineForm initialHourUtc={settings.reportDeadlineHourUtc} />
+          <OrgIdentityForm initialName={settings.orgName ?? orgName} />
+        </CardContent>
+      </Card>
+
+      <Card className="card-gradient">
+        <CardHeader>
+          <CardTitle>Schedule</CardTitle>
+          <CardDescription>
+            Configure when reports are due and which days count as working days.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OrgScheduleForm
+            initialTimezone={settings.timezone}
+            initialWorkingDays={settings.workingDays}
+            initialDeadlineHour={settings.reportDeadlineHourLocal}
+          />
         </CardContent>
       </Card>
     </div>
