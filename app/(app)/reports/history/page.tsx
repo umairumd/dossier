@@ -1,5 +1,5 @@
 import { getReportHistory } from "@/lib/supabase/queries/reports";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { computeReportStats } from "@/lib/helpers/report-stats";
 import { RecentReportsCard } from "@/components/reports/recent-reports-card";
@@ -11,7 +11,7 @@ export default async function ReportHistoryPage() {
     getOrganizationSettings(),
     getCurrentProfile(),
   ]);
-  const stats = computeReportStats(reportHistory);
+  const stats = computeReportStats(reportHistory, settings.timezone);
 
   return (
     <div className="flex flex-col gap-6">
@@ -37,7 +37,7 @@ export default async function ReportHistoryPage() {
 
       <RecentReportsCard
         reports={reportHistory}
-        deadlineHourUtc={settings.reportDeadlineHourUtc}
+        deadline={getDeadlineContext(settings)}
         userName={profile?.full_name ?? "You"}
       />
     </div>

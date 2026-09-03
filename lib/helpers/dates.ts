@@ -58,3 +58,42 @@ export function shiftReportDate(date: string, deltaDays: number): string {
   next.setUTCDate(next.getUTCDate() + deltaDays);
   return next.toISOString().slice(0, 10);
 }
+
+export function todayInTimezone(tz: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+export function isWorkingDay(
+  dateString: string,
+  workingDays: number[],
+): boolean {
+  const date = new Date(`${dateString}T00:00:00Z`);
+  const utcDay = date.getUTCDay();
+  const isoDay = utcDay === 0 ? 7 : utcDay;
+  return workingDays.includes(isoDay);
+}
+
+export function lastNWorkingDays(
+  n: number,
+  workingDays: number[],
+  tz: string,
+): string[] {
+  const result: string[] = [];
+  const today = todayInTimezone(tz);
+  let cursor = new Date(`${today}T00:00:00Z`);
+
+  while (result.length < n) {
+    const dateStr = cursor.toISOString().slice(0, 10);
+    if (isWorkingDay(dateStr, workingDays)) {
+      result.unshift(dateStr);
+    }
+    cursor = new Date(cursor.getTime() - 86_400_000);
+  }
+
+  return result;
+}

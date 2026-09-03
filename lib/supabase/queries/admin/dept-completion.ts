@@ -1,7 +1,8 @@
 import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
-import { todayDateString } from "@/lib/helpers/dates";
+import { todayInTimezone } from "@/lib/helpers/dates";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 
 export type DeptCompletionRow = {
   departmentId: string;
@@ -18,7 +19,8 @@ export const getDeptCompletionToday = cache(
     await requireAdminUser();
 
     const adminClient = createAdminClient();
-    const today = todayDateString();
+    const settings = await getOrganizationSettings();
+    const today = todayInTimezone(settings.timezone);
 
     const [
       { data: departments, error: departmentsError },

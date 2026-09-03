@@ -4,7 +4,7 @@ import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees, getEmployeeDetail } from "@/lib/supabase/queries/admin/employees";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { formatDate } from "@/lib/helpers/dates";
 import { ProfileHeader } from "@/components/shared/profile-header";
 import {
@@ -198,7 +198,7 @@ export default async function EmployeeDetailPage({
             <ReportHistoryBrowser
               reports={employee.recent_reports}
               userName={employee.full_name}
-              deadlineHourUtc={settings.reportDeadlineHourUtc}
+              deadline={getDeadlineContext(settings)}
               departmentName={
                 employee.department_names.join(", ") || "Unassigned"
               }

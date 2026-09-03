@@ -7,20 +7,20 @@ import { SubmitReportSheet } from "@/components/reports/submit-report-sheet";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import {
-  DEFAULT_REPORT_DEADLINE_HOUR_UTC,
   getSubmissionStatus,
+  type DeadlineContext,
 } from "@/lib/reports/submission-status";
 import type { DailyReport } from "@/types/report";
 
 export function ReportBanner({
   todayReport,
   deadlineHint,
-  deadlineHourUtc = DEFAULT_REPORT_DEADLINE_HOUR_UTC,
+  deadline,
   onSubmitted,
 }: {
   todayReport: DailyReport | null;
   deadlineHint?: string;
-  deadlineHourUtc?: number;
+  deadline: DeadlineContext;
   onSubmitted?: () => void;
 }) {
   const router = useRouter();
@@ -46,7 +46,8 @@ export function ReportBanner({
               <SubmissionStatusBadge
                 status={getSubmissionStatus(
                   todayReport.submitted_at,
-                  deadlineHourUtc,
+                  deadline.deadlineHourUtc,
+                  deadline,
                 )}
               />
             </span>

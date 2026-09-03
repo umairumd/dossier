@@ -4,11 +4,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { dateNDaysAgo, todayDateString } from "@/lib/helpers/dates";
+import {
+  isWorkingDay,
+  shiftReportDate,
+  todayInTimezone,
+} from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
 import type { DailyReport } from "@/types/report";
 
 const STRIP_DAYS = 30;
+const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5];
 
 type DayTone = "submitted" | "missed" | "weekend" | "open";
 
@@ -16,13 +21,13 @@ function dayTone(
   date: string,
   today: string,
   submittedDates: Set<string>,
+  workingDays: number[],
 ): DayTone {
   if (submittedDates.has(date)) {
     return "submitted";
   }
 
-  const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
-  if (weekday === 0 || weekday === 6) {
+  if (!isWorkingDay(date, workingDays)) {
     return "weekend";
   }
 
@@ -40,11 +45,19 @@ const TONE_CLASS: Record<DayTone, string> = {
   open: "border border-border bg-transparent",
 };
 
-export function ActivityStrip({ reports }: { reports: DailyReport[] }) {
-  const today = todayDateString();
+export function ActivityStrip({
+  reports,
+  timezone,
+  workingDays = DEFAULT_WORKING_DAYS,
+}: {
+  reports: DailyReport[];
+  timezone: string;
+  workingDays?: number[];
+}) {
+  const today = todayInTimezone(timezone);
   const submittedDates = new Set(reports.map((report) => report.report_date));
   const days = Array.from({ length: STRIP_DAYS }, (_, index) =>
-    dateNDaysAgo(STRIP_DAYS - 1 - index),
+    shiftReportDate(today, -(STRIP_DAYS - 1 - index)),
   );
 
   return (
@@ -60,7 +73,7 @@ export function ActivityStrip({ reports }: { reports: DailyReport[] }) {
               title={date}
               className={cn(
                 "aspect-square rounded-sm",
-                TONE_CLASS[dayTone(date, today, submittedDates)],
+                TONE_CLASS[dayTone(date, today, submittedDates, workingDays)],
               )}
             />
           ))}
@@ -80,7 +93,7 @@ export function ActivityStrip({ reports }: { reports: DailyReport[] }) {
           </span>
           <span className="flex items-center gap-1.5">
             <span className={cn("size-2.5 rounded-sm", TONE_CLASS.weekend)} />
-            Weekend
+            Off
           </span>
         </div>
       </CardContent>

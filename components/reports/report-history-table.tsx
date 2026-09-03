@@ -14,17 +14,18 @@ import { LocalTime } from "@/components/shared/local-time";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import type { DailyReport } from "@/types/report";
+import type { DeadlineContext } from "@/lib/reports/submission-status";
 
 export function ReportHistoryTable({
   reports,
-  deadlineHourUtc,
+  deadline,
   onView,
 }: {
   reports: DailyReport[];
-  deadlineHourUtc?: number;
+  deadline?: DeadlineContext;
   onView: (index: number) => void;
 }) {
-  const showStatus = deadlineHourUtc !== undefined;
+  const showStatus = deadline !== undefined;
 
   return (
     <div className="hidden md:block">
@@ -61,7 +62,8 @@ export function ReportHistoryTable({
                   <SubmissionStatusBadge
                     status={getSubmissionStatus(
                       report.submitted_at,
-                      deadlineHourUtc,
+                      deadline.deadlineHourUtc,
+                      deadline,
                     )}
                   />
                 </TableCell>

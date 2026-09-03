@@ -6,17 +6,41 @@ export type SubmissionStatus = "on_time" | "late" | "missed";
 
 export const DEFAULT_REPORT_DEADLINE_HOUR_UTC = 17;
 
+export interface DeadlineContext {
+  deadlineHourUtc: number;
+  deadlineHourLocal: number;
+  timezone: string;
+  workingDays: number[];
+}
+
+function localHourInTimezone(isoString: string, timezone: string): number {
+  const hour = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "numeric",
+    hourCycle: "h23",
+  })
+    .formatToParts(new Date(isoString))
+    .find((part) => part.type === "hour")?.value;
+
+  return parseInt(hour ?? "0", 10);
+}
+
 // Pure function — the deadline is a parameter, not a hardcoded constant,
-// sourced from the organization_settings table (see
-// lib/supabase/queries/organization-settings.ts). Evaluated in UTC (not
-// the viewer's local time), so "late" means the same thing everywhere
-// regardless of who's looking or where the server/browser runs.
+// sourced from the organization_settings table. When ctx is provided,
+// lateness is evaluated in the org timezone against the local deadline
+// hour. Otherwise the UTC hour fallback is used.
 export function getSubmissionStatus(
   submittedAt: string | null,
   deadlineHourUtc: number = DEFAULT_REPORT_DEADLINE_HOUR_UTC,
+  ctx?: DeadlineContext,
 ): SubmissionStatus {
   if (!submittedAt) {
     return "missed";
+  }
+
+  if (ctx) {
+    const hour = localHourInTimezone(submittedAt, ctx.timezone);
+    return hour >= ctx.deadlineHourLocal ? "late" : "on_time";
   }
 
   return new Date(submittedAt).getUTCHours() >= deadlineHourUtc

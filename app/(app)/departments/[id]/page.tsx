@@ -5,7 +5,7 @@ import {
   getManagerCandidates,
 } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { formatLongDate } from "@/lib/helpers/dates";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { CompletionTrendCard } from "@/components/analytics/completion-trend-card";
@@ -41,6 +41,8 @@ export default async function DepartmentDetailPage({
   if (!detail) {
     notFound();
   }
+
+  const deadline = getDeadlineContext(settings);
 
   const memberIds = new Set(detail.members.map((member) => member.id));
   const managersInDepartment = allManagers.filter((manager) =>
@@ -247,7 +249,8 @@ export default async function DepartmentDetailPage({
                         <SubmissionStatusBadge
                           status={getSubmissionStatus(
                             submittedAt,
-                            settings.reportDeadlineHourUtc,
+                            deadline.deadlineHourUtc,
+                            deadline,
                           )}
                         />
                       ) : member.has_onboarded ? (

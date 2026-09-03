@@ -4,8 +4,9 @@ import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getRecentActivity } from "@/lib/supabase/queries/admin/activity";
 import { getTodayReport } from "@/lib/supabase/queries/reports";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { formatLongDate } from "@/lib/helpers/dates";
+import { formatDeadlineHint } from "@/lib/helpers/time";
 import { Building2, UserPlus } from "lucide-react";
 import {
   Card,
@@ -38,7 +39,7 @@ export async function AdminDashboard() {
       getAllEmployees(),
     ]);
   const today = formatLongDate(new Date());
-  const deadlineHour = String(settings.reportDeadlineHourUtc).padStart(2, "0");
+  const deadline = getDeadlineContext(settings);
   const departmentOptions = allDepartments
     .filter((department) => department.archived_at === null)
     .map((department) => ({
@@ -58,8 +59,11 @@ export async function AdminDashboard() {
 
       <ReportBanner
         todayReport={todayReport}
-        deadlineHint={`Due by ${deadlineHour}:00 UTC`}
-        deadlineHourUtc={settings.reportDeadlineHourUtc}
+        deadlineHint={formatDeadlineHint(
+          settings.reportDeadlineHourLocal,
+          settings.timezone,
+        )}
+        deadline={deadline}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

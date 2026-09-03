@@ -1,8 +1,9 @@
 import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
-import { daysBetweenDateStrings, todayDateString } from "@/lib/helpers/dates";
+import { daysBetweenDateStrings, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { getOrgRosterSize } from "@/lib/supabase/queries/admin/org-reports";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { MissingReportRow } from "@/types/missing-report";
 
 export { getOrgRosterSize as getOrgTeamSize };
@@ -11,8 +12,14 @@ export const getOrgMissingReportsToday = cache(
   async (): Promise<MissingReportRow[]> => {
     await requireAdminUser();
 
+    const settings = await getOrganizationSettings();
+    const today = todayInTimezone(settings.timezone);
+
+    if (!isWorkingDay(today, settings.workingDays)) {
+      return [];
+    }
+
     const adminClient = createAdminClient();
-    const today = todayDateString();
 
     const [{ data: employees, error: employeesError }, { data: reports, error: reportsError }] =
       await Promise.all([

@@ -16,6 +16,7 @@ import { REPORT_FIELDS } from "@/lib/reports/fields";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
+import type { DeadlineContext } from "@/lib/reports/submission-status";
 
 type SubmittedMember = TeamMemberReport & { report: DailyReport };
 
@@ -28,7 +29,7 @@ export function ReportDetailSheet({
   departmentName,
   index,
   onIndexChange,
-  deadlineHourUtc,
+  deadline,
   adminView = false,
   showProfileLink = true,
 }: {
@@ -36,7 +37,7 @@ export function ReportDetailSheet({
   departmentName: string;
   index: number | null;
   onIndexChange: (index: number | null) => void;
-  deadlineHourUtc: number;
+  deadline: DeadlineContext;
   adminView?: boolean;
   showProfileLink?: boolean;
 }) {
@@ -61,7 +62,8 @@ export function ReportDetailSheet({
                     <SubmissionStatusBadge
                       status={getSubmissionStatus(
                         current.report.submitted_at,
-                        deadlineHourUtc,
+                        deadline.deadlineHourUtc,
+                        deadline,
                       )}
                     />
                     <LocalDateTime isoString={current.report.submitted_at} />

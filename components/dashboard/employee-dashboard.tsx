@@ -1,8 +1,9 @@
 import { Building2, Flame } from "lucide-react";
 import { getReportHistory, getTodayReport } from "@/lib/supabase/queries/reports";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { formatLongDate } from "@/lib/helpers/dates";
+import { formatDeadlineHint } from "@/lib/helpers/time";
 import { computeReportStats } from "@/lib/helpers/report-stats";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/analytics/stat-card";
@@ -22,9 +23,9 @@ export async function EmployeeDashboard({
     getReportHistory(),
     getOrganizationSettings(),
   ]);
-  const stats = computeReportStats(reportHistory);
+  const stats = computeReportStats(reportHistory, settings.timezone);
   const today = formatLongDate(new Date());
-  const deadlineHour = String(settings.reportDeadlineHourUtc).padStart(2, "0");
+  const deadline = getDeadlineContext(settings);
 
   return (
     <div className="flex flex-col gap-6">
@@ -43,11 +44,18 @@ export async function EmployeeDashboard({
 
       <ReportBanner
         todayReport={todayReport}
-        deadlineHint={`Due by ${deadlineHour}:00 UTC`}
-        deadlineHourUtc={settings.reportDeadlineHourUtc}
+        deadlineHint={formatDeadlineHint(
+          settings.reportDeadlineHourLocal,
+          settings.timezone,
+        )}
+        deadline={deadline}
       />
 
-      <ActivityStrip reports={reportHistory} />
+      <ActivityStrip
+        reports={reportHistory}
+        timezone={settings.timezone}
+        workingDays={settings.workingDays}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <StatCard
@@ -72,7 +80,7 @@ export async function EmployeeDashboard({
       <RecentReportsCard
         reports={reportHistory.slice(0, RECENT_PREVIEW_SIZE)}
         viewAllHref="/reports/history"
-        deadlineHourUtc={settings.reportDeadlineHourUtc}
+        deadline={deadline}
         userName={profile.full_name}
       />
     </div>

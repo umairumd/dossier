@@ -23,6 +23,7 @@ import { LocalDateTime } from "@/components/shared/local-datetime";
 import {
   getSubmissionStatus,
   SUBMISSION_STATUS_LABELS,
+  type DeadlineContext,
   type SubmissionStatus,
 } from "@/lib/reports/submission-status";
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
@@ -37,22 +38,26 @@ type StatusFilter = "all" | SubmissionStatus;
 
 function memberStatus(
   member: TeamMemberReport,
-  deadlineHourUtc: number,
+  deadline: DeadlineContext,
 ): SubmissionStatus {
-  return getSubmissionStatus(member.report?.submitted_at ?? null, deadlineHourUtc);
+  return getSubmissionStatus(
+    member.report?.submitted_at ?? null,
+    deadline.deadlineHourUtc,
+    deadline,
+  );
 }
 
 export function TeamReportsView({
   members,
   departmentName,
-  deadlineHourUtc,
+  deadline,
   adminView = false,
   emptyMessage,
   showFilters = true,
 }: {
   members: TeamMemberReport[];
   departmentName: string;
-  deadlineHourUtc: number;
+  deadline: DeadlineContext;
   adminView?: boolean;
   emptyMessage?: string;
   showFilters?: boolean;
@@ -77,12 +82,12 @@ export function TeamReportsView({
 
     if (statusFilter !== "all") {
       result = result.filter(
-        (member) => memberStatus(member, deadlineHourUtc) === statusFilter,
+        (member) => memberStatus(member, deadline) === statusFilter,
       );
     }
 
     return sortTeamMembersBySubmission(result);
-  }, [members, query, statusFilter, deadlineHourUtc, showFilters]);
+  }, [members, query, statusFilter, deadline, showFilters]);
 
   const submittedMembers = useMemo(
     () =>
@@ -162,7 +167,7 @@ export function TeamReportsView({
               </TableHeader>
               <TableBody>
                 {filtered.map((member) => {
-                  const status = memberStatus(member, deadlineHourUtc);
+                  const status = memberStatus(member, deadline);
 
                   return (
                     <TableRow
@@ -215,7 +220,7 @@ export function TeamReportsView({
 
           <div className="flex flex-col gap-3 md:hidden">
             {filtered.map((member) => {
-              const status = memberStatus(member, deadlineHourUtc);
+              const status = memberStatus(member, deadline);
 
               return (
                 <div
@@ -260,7 +265,7 @@ export function TeamReportsView({
         departmentName={departmentName}
         index={openIndex}
         onIndexChange={setOpenIndex}
-        deadlineHourUtc={deadlineHourUtc}
+        deadline={deadline}
         adminView={adminView}
       />
     </div>

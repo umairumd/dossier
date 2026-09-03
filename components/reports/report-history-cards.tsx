@@ -6,17 +6,18 @@ import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { Button } from "@/components/ui/button";
 import type { DailyReport } from "@/types/report";
+import type { DeadlineContext } from "@/lib/reports/submission-status";
 
 export function ReportHistoryCards({
   reports,
-  deadlineHourUtc,
+  deadline,
   onView,
 }: {
   reports: DailyReport[];
-  deadlineHourUtc?: number;
+  deadline?: DeadlineContext;
   onView: (index: number) => void;
 }) {
-  const showStatus = deadlineHourUtc !== undefined;
+  const showStatus = deadline !== undefined;
 
   return (
     <div className="flex flex-col gap-3 md:hidden">
@@ -39,7 +40,8 @@ export function ReportHistoryCards({
               <SubmissionStatusBadge
                 status={getSubmissionStatus(
                   report.submitted_at,
-                  deadlineHourUtc,
+                  deadline.deadlineHourUtc,
+                  deadline,
                 )}
               />
             </div>
