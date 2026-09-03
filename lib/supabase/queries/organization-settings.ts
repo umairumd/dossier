@@ -4,7 +4,13 @@ import { DEFAULT_REPORT_DEADLINE_HOUR_UTC } from "@/lib/reports/submission-statu
 
 export interface OrganizationSettings {
   reportDeadlineHourUtc: number;
+  orgName: string | null;
+  timezone: string;
+  workingDays: number[];
+  reportDeadlineHourLocal: number;
 }
+
+const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5];
 
 // Readable by any authenticated user (submission status is computed on
 // the employee dashboard and manager reports alike, not just by admins).
@@ -17,13 +23,19 @@ export const getOrganizationSettings = cache(
 
     const { data } = await supabase
       .from("organization_settings")
-      .select("report_deadline_hour_utc")
+      .select(
+        "report_deadline_hour_utc, org_name, timezone, working_days, report_deadline_hour_local",
+      )
       .eq("id", true)
       .maybeSingle();
 
     return {
       reportDeadlineHourUtc:
         data?.report_deadline_hour_utc ?? DEFAULT_REPORT_DEADLINE_HOUR_UTC,
+      orgName: data?.org_name ?? null,
+      timezone: data?.timezone ?? "UTC",
+      workingDays: data?.working_days ?? DEFAULT_WORKING_DAYS,
+      reportDeadlineHourLocal: data?.report_deadline_hour_local ?? 17,
     };
   },
 );
