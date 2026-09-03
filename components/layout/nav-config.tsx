@@ -88,7 +88,7 @@ export const navSections: NavSection[] = [
     items: [
       {
         label: "Track Reports",
-        href: "/admin/track-reports",
+        href: "/track-reports",
         icon: <LayoutList className="size-4" />,
         roles: ["owner", "admin"],
       },
@@ -105,19 +105,19 @@ export const navSections: NavSection[] = [
       },
       {
         label: "Employees",
-        href: "/admin/employees",
+        href: "/employees",
         icon: <Users className="size-4" />,
         roles: ["owner", "admin"],
       },
       {
         label: "Invitations",
-        href: "/admin/invitations",
+        href: "/invitations",
         icon: <Mail className="size-4" />,
         roles: ["owner", "admin"],
       },
       {
         label: "Activity",
-        href: "/admin/activity",
+        href: "/activity",
         icon: <Zap className="size-4" />,
         roles: ["owner", "admin"],
       },
@@ -135,7 +135,7 @@ export const navSections: NavSection[] = [
       },
       {
         label: "Organization",
-        href: "/admin/settings",
+        href: "/organization",
         icon: <Building2 className="size-4" />,
         roles: ["owner"],
       },

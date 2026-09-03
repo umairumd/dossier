@@ -139,7 +139,7 @@ export async function assignDepartmentManager(
   }
 
   revalidateDepartmentPaths(departmentId);
-  revalidatePath("/admin/employees");
+  revalidatePath("/employees");
 
   return { success: true };
 }
@@ -177,8 +177,8 @@ export async function addEmployeeToDepartment(
   }
 
   revalidateDepartmentPaths(departmentId);
-  revalidatePath("/admin/employees");
-  revalidatePath(`/admin/employees/${employeeId}`);
+  revalidatePath("/employees");
+  revalidatePath(`/employees/${employeeId}`);
 
   return { success: true };
 }
@@ -223,8 +223,8 @@ export async function removeEmployeeFromDepartment(
   }
 
   revalidateDepartmentPaths(departmentId);
-  revalidatePath("/admin/employees");
-  revalidatePath(`/admin/employees/${employeeId}`);
+  revalidatePath("/employees");
+  revalidatePath(`/employees/${employeeId}`);
 
   return { success: true };
 }
@@ -334,7 +334,7 @@ export async function permanentlyDeleteDepartment(
   }
 
   revalidateDepartmentPaths();
-  revalidatePath("/admin/employees");
+  revalidatePath("/employees");
 
   return { success: true };
 }
