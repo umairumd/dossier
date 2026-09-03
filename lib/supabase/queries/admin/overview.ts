@@ -36,7 +36,8 @@ export const getOrganizationSummary = cache(
       .select("id")
       .eq("has_onboarded", true)
       .eq("is_active", true)
-      .is("archived_at", null);
+      .is("archived_at", null)
+      .neq("role", "owner");
 
     if (eligibleError) {
       throw new Error("Failed to load today's completion roster.");

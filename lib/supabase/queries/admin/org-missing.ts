@@ -28,6 +28,7 @@ export const getOrgMissingReportsToday = cache(
           .select("id, full_name")
           .eq("has_onboarded", true)
           .is("archived_at", null)
+          .neq("role", "owner")
           .order("full_name", { ascending: true }),
         adminClient
           .from("daily_reports")
