@@ -41,7 +41,7 @@ export const getRecentActivity = cache(
         type: "invited" as const,
         label: `${employee.full_name} was invited`,
         timestamp: employee.invited_at!,
-        href: `/admin/employees/${employee.id}`,
+        href: `/employees/${employee.id}`,
       }));
 
     const archivedActivity: ActivityItem[] = employees
@@ -51,7 +51,7 @@ export const getRecentActivity = cache(
         type: "archived" as const,
         label: `${employee.full_name} was archived`,
         timestamp: employee.archived_at!,
-        href: `/admin/employees/${employee.id}`,
+        href: `/employees/${employee.id}`,
       }));
 
     const departmentActivity: ActivityItem[] = departments.map((department) => ({
@@ -80,7 +80,7 @@ export const getRecentActivity = cache(
       type: "report_submitted" as const,
       label: `${nameById.get(report.author_id) ?? "Someone"} submitted a report`,
       timestamp: report.submitted_at,
-      href: `/admin/employees/${report.author_id}`,
+      href: `/employees/${report.author_id}`,
     }));
 
     return [

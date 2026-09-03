@@ -36,8 +36,8 @@ export interface EmployeeActionResult {
 const DEACTIVATION_BAN_DURATION = "8760h";
 
 function revalidateEmployeePaths(employeeId: string) {
-  revalidatePath("/admin/employees");
-  revalidatePath(`/admin/employees/${employeeId}`);
+  revalidatePath("/employees");
+  revalidatePath(`/employees/${employeeId}`);
 }
 
 export async function inviteEmployee(
@@ -139,7 +139,7 @@ export async function inviteEmployee(
     }
   }
 
-  revalidatePath("/admin/employees");
+  revalidatePath("/employees");
 
   return { success: true, inviteLink };
 }
@@ -478,7 +478,7 @@ export async function permanentlyDeleteEmployee(
     return { success: false, error: "Failed to permanently delete employee." };
   }
 
-  revalidatePath("/admin/employees");
+  revalidatePath("/employees");
   revalidatePath("/admin/departments");
   revalidatePath("/departments");
 
@@ -653,8 +653,8 @@ export async function regenerateInviteLink(
     .update({ pending_invite_link: inviteLink })
     .eq("id", data.user.id);
 
-  revalidatePath("/admin/employees");
-  revalidatePath("/admin/invitations");
+  revalidatePath("/employees");
+  revalidatePath("/invitations");
 
   return { success: true, inviteLink };
 }

@@ -216,7 +216,7 @@ export default async function DepartmentDetailPage({
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
                           <Link
-                            href={`/admin/employees/${member.id}`}
+                            href={`/employees/${member.id}`}
                             className="text-sm font-medium hover:underline"
                           >
                             {member.full_name}

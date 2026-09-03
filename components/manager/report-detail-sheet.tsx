@@ -81,7 +81,7 @@ export function ReportDetailSheet({
                           fullName="View Profile →"
                           basePath={
                             adminView
-                              ? "/admin/employees"
+                              ? "/employees"
                               : "/manager/employees"
                           }
                           className="text-xs text-primary hover:underline shrink-0"

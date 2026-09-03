@@ -9,7 +9,7 @@ import type { OrganizationSummary } from "@/types/admin-overview";
 
 // Admin Home's data need: headcounts + today's completion, nothing more.
 // Trend charts live on /admin/analytics and the invitation breakdown
-// lives on /admin/invitations — splitting this out (it used to compute
+// lives on /invitations — splitting this out (it used to compute
 // all three) means Home no longer pays for a 30-day report fetch it
 // never displayed.
 export const getOrganizationSummary = cache(

@@ -141,7 +141,7 @@ export function EmployeeList({
                     />
                     <div className="flex flex-col gap-0.5">
                       <Link
-                        href={`/admin/employees/${employee.id}`}
+                        href={`/employees/${employee.id}`}
                         className="font-medium hover:underline"
                       >
                         {employee.full_name}

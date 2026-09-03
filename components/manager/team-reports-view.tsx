@@ -201,7 +201,7 @@ export function TeamReportsView({
                               fullName={member.fullName}
                               basePath={
                                 adminView
-                                  ? "/admin/employees"
+                                  ? "/employees"
                                   : "/manager/employees"
                               }
                             />
@@ -274,7 +274,7 @@ export function TeamReportsView({
                           className="truncate text-sm font-medium hover:underline"
                           basePath={
                             adminView
-                              ? "/admin/employees"
+                              ? "/employees"
                               : "/manager/employees"
                           }
                         />
