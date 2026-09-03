@@ -112,6 +112,7 @@ export const getTeamReportsForDate = cache(
     return employees.map((employee) => ({
       employeeId: employee.id,
       fullName: employee.full_name,
+      designation: employee.designation,
       report: reportsByAuthor.get(employee.id) ?? null,
     }));
   },

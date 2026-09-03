@@ -5,6 +5,13 @@ export function formatLocalDateTime(isoString: string): string {
   });
 }
 
+export function formatLocalTime(isoString: string): string {
+  return new Date(isoString).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 const AVERAGE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
   hour: "numeric",
   minute: "2-digit",

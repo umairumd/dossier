@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
+import { computeReportStats } from "@/lib/helpers/report-stats";
 import type { DailyReport } from "@/types/report";
 import type {
   EmployeeDetail,
@@ -315,7 +316,8 @@ export const getEmployeeDetail = cache(
     return {
       ...item,
       report_count: allReports.length,
-      recent_reports: allReports.slice(0, 10),
+      recent_reports: allReports,
+      stats: computeReportStats(allReports),
     };
   },
 );

@@ -1,7 +1,7 @@
 import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
-import { DailyReportPanel } from "@/components/reports/daily-report-panel";
+import { ReportBanner } from "@/components/shared/report-banner";
 import { PageHeader } from "@/components/shared/page-header";
 
 export default async function DailyReportPage() {
@@ -27,7 +27,7 @@ export default async function DailyReportPage() {
         <p className="text-sm text-muted-foreground">{subtitle}</p>
       </PageHeader>
 
-      <DailyReportPanel
+      <ReportBanner
         todayReport={todayReport}
         deadlineHint={`Due by ${deadlineHour}:00 UTC`}
         deadlineHourUtc={settings.reportDeadlineHourUtc}

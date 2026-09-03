@@ -65,32 +65,30 @@ export function ReportBanner({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border-t border-r border-b border-border border-l-2 border-l-primary shadow-sm card-gradient px-4 py-3 sm:flex-row sm:items-center sm:gap-3">
-      <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
-        <FileText className="mt-0.5 size-4 shrink-0 text-primary sm:mt-0" />
-        <div className="flex min-w-0 flex-col sm:flex-row sm:items-center sm:gap-2">
-          <span className="text-sm font-medium whitespace-nowrap">
+    <div className="flex flex-row items-center gap-3 rounded-lg border-t border-r border-b border-border border-l-2 border-l-primary shadow-sm card-gradient px-4 py-3">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <FileText className="size-4 shrink-0 text-primary" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">
             Submit today&apos;s report
-          </span>
+          </p>
           {deadlineHint && (
-            <span className="text-xs text-muted-foreground">
-              · {deadlineHint}
-            </span>
+            <p className="text-xs text-muted-foreground">{deadlineHint}</p>
           )}
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-3 pl-7 sm:pl-0">
+      <div className="flex shrink-0 items-center gap-3">
+        <Link
+          href="/reports/history"
+          className="hidden text-xs text-muted-foreground transition-colors hover:text-foreground sm:block"
+        >
+          View history
+        </Link>
         <SubmitReportSheet
           alreadySubmitted={false}
           triggerLabel="Submit →"
           onSubmitted={handleSubmitted}
         />
-        <Link
-          href="/reports/history"
-          className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          View history
-        </Link>
       </div>
     </div>
   );

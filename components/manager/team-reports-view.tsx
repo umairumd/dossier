@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import {
   getSubmissionStatus,
@@ -154,52 +155,35 @@ export function TeamReportsView({
                   <TableHead className="w-[200px] text-muted-foreground font-medium">
                     Submitted
                   </TableHead>
+                  <TableHead className="w-[60px] text-right text-muted-foreground font-medium">
+                    {""}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((member) => {
                   const status = memberStatus(member, deadlineHourUtc);
 
-                  // A clickable <tr> has no native keyboard equivalent —
-                  // role="button" + tabIndex + onKeyDown make it operable
-                  // by keyboard/screen-reader users, matching the mobile
-                  // card view below, which already used a real <button>.
                   return (
                     <TableRow
                       key={member.employeeId}
-                      className={
-                        member.report
-                          ? "cursor-pointer hover:bg-muted/50 transition-colors"
-                          : "hover:bg-muted/50 transition-colors"
-                      }
-                      role={member.report ? "button" : undefined}
-                      tabIndex={member.report ? 0 : undefined}
-                      aria-label={
-                        member.report
-                          ? `View ${member.fullName}'s report`
-                          : undefined
-                      }
-                      onClick={() =>
-                        member.report && openReport(member.employeeId)
-                      }
-                      onKeyDown={(event) => {
-                        if (
-                          member.report &&
-                          (event.key === "Enter" || event.key === " ")
-                        ) {
-                          event.preventDefault();
-                          openReport(member.employeeId);
-                        }
-                      }}
+                      className="transition-colors hover:bg-muted/50"
                     >
                       <TableCell className="font-medium">
-                        <EmployeeNameLink
-                          employeeId={member.employeeId}
-                          fullName={member.fullName}
-                          basePath={
-                            adminView ? "/admin/employees" : "/manager/employees"
-                          }
-                        />
+                        <div className="flex flex-col gap-0.5">
+                          <EmployeeNameLink
+                            employeeId={member.employeeId}
+                            fullName={member.fullName}
+                            basePath={
+                              adminView ? "/admin/employees" : "/manager/employees"
+                            }
+                          />
+                          {member.designation && (
+                            <span className="text-xs text-muted-foreground">
+                              {member.designation}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <SubmissionStatusBadge status={status} />
@@ -210,6 +194,17 @@ export function TeamReportsView({
                         ) : (
                           "—"
                         )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openReport(member.employeeId)}
+                          disabled={!member.report}
+                        >
+                          View
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );

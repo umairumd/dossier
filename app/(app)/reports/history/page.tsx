@@ -1,13 +1,15 @@
 import { getReportHistory } from "@/lib/supabase/queries/reports";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { computeReportStats } from "@/lib/helpers/report-stats";
 import { RecentReportsCard } from "@/components/reports/recent-reports-card";
 import { PageHeader } from "@/components/shared/page-header";
 
 export default async function ReportHistoryPage() {
-  const [reportHistory, settings] = await Promise.all([
+  const [reportHistory, settings, profile] = await Promise.all([
     getReportHistory(),
     getOrganizationSettings(),
+    getCurrentProfile(),
   ]);
   const stats = computeReportStats(reportHistory);
 
@@ -36,6 +38,7 @@ export default async function ReportHistoryPage() {
       <RecentReportsCard
         reports={reportHistory}
         deadlineHourUtc={settings.reportDeadlineHourUtc}
+        userName={profile?.full_name ?? "You"}
       />
     </div>
   );

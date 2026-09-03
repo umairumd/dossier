@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
-import { Building2, Calendar, LogIn, Mail, UserCheck } from "lucide-react";
+import { Building2, Calendar, Mail, MapPin, UserCheck } from "lucide-react";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees, getEmployeeDetail } from "@/lib/supabase/queries/admin/employees";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
-import { LocalDateTime } from "@/components/shared/local-datetime";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { formatDate } from "@/lib/helpers/dates";
+import { ProfileHeader } from "@/components/shared/profile-header";
 import {
   Card,
   CardContent,
@@ -14,9 +16,7 @@ import {
 } from "@/components/ui/card";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
-import { ReportHistoryCards } from "@/components/reports/report-history-cards";
-import { ReportHistoryTable } from "@/components/reports/report-history-table";
-import { getRoleLabel } from "@/lib/helpers/role-labels";
+import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
 
 export default async function EmployeeDetailPage({
   params,
@@ -25,13 +25,15 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params;
 
-  const [employee, profile, allDepartments, employees, orgName] = await Promise.all([
-    getEmployeeDetail(id),
-    getCurrentProfile(),
-    getAllDepartments(),
-    getAllEmployees(),
-    getOrganizationName(),
-  ]);
+  const [employee, profile, allDepartments, employees, orgName, settings] =
+    await Promise.all([
+      getEmployeeDetail(id),
+      getCurrentProfile(),
+      getAllDepartments(),
+      getAllEmployees(),
+      getOrganizationName(),
+      getOrganizationSettings(),
+    ]);
 
   if (!employee) {
     notFound();
@@ -52,19 +54,14 @@ export default async function EmployeeDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {employee.full_name}
-          </h1>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>{getRoleLabel(employee.role)}</span>
-            <span>·</span>
-            <span>
-              {employee.department_names.join(", ") || "Unassigned"}
-            </span>
-          </div>
-        </div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <ProfileHeader
+          name={employee.full_name}
+          designation={employee.designation}
+          departmentNames={employee.department_names}
+          isRemote={employee.is_remote}
+          avatarUrl={employee.avatar_url}
+        />
 
         <EmployeeActionsMenu
           employee={employee}
@@ -95,6 +92,11 @@ export default async function EmployeeDetailPage({
             <CardTitle>
               <EmployeeStatusBadge status={employee.status} />
             </CardTitle>
+            {employee.last_sign_in_at && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Last login: {formatDate(employee.last_sign_in_at.slice(0, 10))}
+              </p>
+            )}
           </CardHeader>
         </Card>
 
@@ -102,30 +104,10 @@ export default async function EmployeeDetailPage({
           <CardHeader>
             <CardDescription className="flex items-center gap-1.5">
               <Calendar className="size-3.5" />
-              Invited
+              Member Since
             </CardDescription>
             <CardTitle className="text-base font-medium">
-              {employee.invited_at ? (
-                <LocalDateTime isoString={employee.invited_at} />
-              ) : (
-                "—"
-              )}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card className="card-gradient">
-          <CardHeader>
-            <CardDescription className="flex items-center gap-1.5">
-              <LogIn className="size-3.5" />
-              Last Login
-            </CardDescription>
-            <CardTitle className="text-base font-medium">
-              {employee.last_sign_in_at ? (
-                <LocalDateTime isoString={employee.last_sign_in_at} />
-              ) : (
-                "Never"
-              )}
+              {formatDate(employee.created_at.slice(0, 10))}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -142,7 +124,7 @@ export default async function EmployeeDetailPage({
           </CardHeader>
         </Card>
 
-        <Card className="card-gradient col-span-2 lg:col-span-1">
+        <Card className="card-gradient">
           <CardHeader>
             <CardDescription className="flex items-center gap-1.5">
               <UserCheck className="size-3.5" />
@@ -153,11 +135,54 @@ export default async function EmployeeDetailPage({
             </CardTitle>
           </CardHeader>
         </Card>
+
+        <Card className="card-gradient">
+          <CardHeader>
+            <CardDescription className="flex items-center gap-1.5">
+              {employee.is_remote ? (
+                <MapPin className="size-3.5" />
+              ) : (
+                <Building2 className="size-3.5" />
+              )}
+              Work location
+            </CardDescription>
+            <CardTitle className="text-base font-medium">
+              {employee.is_remote ? "Remote" : "On-site"}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <Card className="card-gradient">
+          <CardContent className="pt-6">
+            <p className="text-2xl font-semibold">{employee.stats.currentStreak}</p>
+            <p className="mt-1 text-xs text-muted-foreground">day streak</p>
+          </CardContent>
+        </Card>
+        <Card className="card-gradient">
+          <CardContent className="pt-6">
+            <p className="text-2xl font-semibold">
+              {employee.stats.completionPercentage}%
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              30-day completion
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="card-gradient">
+          <CardContent className="pt-6">
+            <p className="text-2xl font-semibold">
+              {employee.stats.reportsThisMonth}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">this month</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Reports</CardTitle>
+          <CardTitle>Report History</CardTitle>
           <CardDescription>
             {employee.report_count}{" "}
             {employee.report_count === 1 ? "report" : "reports"} submitted in
@@ -170,10 +195,15 @@ export default async function EmployeeDetailPage({
               No reports submitted yet.
             </p>
           ) : (
-            <>
-              <ReportHistoryTable reports={employee.recent_reports} />
-              <ReportHistoryCards reports={employee.recent_reports} />
-            </>
+            <ReportHistoryBrowser
+              reports={employee.recent_reports}
+              userName={employee.full_name}
+              deadlineHourUtc={settings.reportDeadlineHourUtc}
+              departmentName={
+                employee.department_names.join(", ") || "Unassigned"
+              }
+              adminView
+            />
           )}
         </CardContent>
       </Card>
