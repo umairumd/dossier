@@ -1,14 +1,10 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { daysBetweenDateStrings, todayDateString } from "@/lib/helpers/dates";
+import { daysBetweenDateStrings, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { MissingReportRow } from "@/types/missing-report";
 
-// Reuses getTeamReportsForDate (today) to find who's missing, then makes
-// exactly one more query for all of their prior reports — not one query
-// per missing employee — reducing to "most recent report_date per author"
-// in application code. RLS (daily_reports_select_department_as_manager)
-// still scopes that query to the manager's own department regardless.
 export const getMissingReportsToday = cache(
   async (): Promise<MissingReportRow[]> => {
     const supabase = await createClient();
@@ -21,7 +17,14 @@ export const getMissingReportsToday = cache(
       return [];
     }
 
-    const todayMembers = await getTeamReportsForDate();
+    const settings = await getOrganizationSettings();
+    const today = todayInTimezone(settings.timezone);
+
+    if (!isWorkingDay(today, settings.workingDays)) {
+      return [];
+    }
+
+    const todayMembers = await getTeamReportsForDate(today);
     const missing = todayMembers.filter((member) => !member.report);
 
     if (missing.length === 0) {
@@ -46,8 +49,6 @@ export const getMissingReportsToday = cache(
         lastSubmittedByAuthor.set(row.author_id, row.report_date);
       }
     }
-
-    const today = todayDateString();
 
     return missing.map((member) => {
       const lastSubmittedDate =

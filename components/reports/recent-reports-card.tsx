@@ -10,16 +10,17 @@ import {
 } from "@/components/ui/card";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
 import type { DailyReport } from "@/types/report";
+import type { DeadlineContext } from "@/lib/reports/submission-status";
 
 export function RecentReportsCard({
   reports,
   viewAllHref,
-  deadlineHourUtc,
+  deadline,
   userName,
 }: {
   reports: DailyReport[];
   viewAllHref?: string;
-  deadlineHourUtc?: number;
+  deadline: DeadlineContext;
   userName: string;
 }) {
   return (
@@ -51,7 +52,7 @@ export function RecentReportsCard({
           <ReportHistoryBrowser
             reports={reports}
             userName={userName}
-            deadlineHourUtc={deadlineHourUtc}
+            deadline={deadline}
             showProfileLink={false}
           />
         )}

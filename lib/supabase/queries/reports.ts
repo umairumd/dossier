@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { todayDateString } from "@/lib/helpers/dates";
+import { todayInTimezone } from "@/lib/helpers/dates";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { DailyReport } from "@/types/report";
 
 // Only checks whether *today's* report exists (for the dashboard's status
@@ -17,13 +18,15 @@ export const getTodayReport = cache(async (): Promise<DailyReport | null> => {
     return null;
   }
 
+  const settings = await getOrganizationSettings();
+
   const { data } = await supabase
     .from("daily_reports")
     .select(
       "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at",
     )
     .eq("author_id", user.id)
-    .eq("report_date", todayDateString())
+    .eq("report_date", todayInTimezone(settings.timezone))
     .maybeSingle();
 
   return (data as DailyReport) ?? null;

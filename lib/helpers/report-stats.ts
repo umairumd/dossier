@@ -1,5 +1,5 @@
 import { averageSubmissionTime } from "@/lib/helpers/time";
-import { todayDateString } from "@/lib/helpers/dates";
+import { todayDateString, todayInTimezone } from "@/lib/helpers/dates";
 import type { DailyReport } from "@/types/report";
 
 const COMPLETION_WINDOW_DAYS = 30;
@@ -14,34 +14,24 @@ export interface ReportStats {
   averageSubmissionTime: string | null;
 }
 
-// Only report_date/submitted_at are actually read — typed as a Pick, not
-// the full DailyReport, so callers that only need those two columns
-// (e.g. getTeamInsights, computing this across an entire team) don't have
-// to over-select content/blockers/additional_notes just to satisfy this
-// function's type.
 export type ReportStatsInput = Pick<DailyReport, "report_date" | "submitted_at">;
 
-// Shared by the employee's own dashboard, the manager's per-employee
-// overview, and team-wide insights — all need the exact same
-// streak/completion/average-time math applied to "one person's report
-// list," just for different viewers. `reports` should already be sorted
-// newest-first (every caller already fetches it that way for its own
-// display purposes) since lastSubmittedDate reads reports[0].
-export function computeReportStats(reports: ReportStatsInput[]): ReportStats {
+export function computeReportStats(
+  reports: ReportStatsInput[],
+  tz?: string,
+): ReportStats {
   const reportDates = new Set(reports.map((report) => report.report_date));
+  const todayStr = tz ? todayInTimezone(tz) : todayDateString();
 
-  // Current streak: consecutive days ending today with a submission.
-  // Breaks immediately (streak = 0) if today itself has no report —
-  // matching how most "streak" UIs treat a missed day, rather than
-  // reporting a stale streak from before the gap.
+  // Current streak: consecutive days ending on org-local today.
   let currentStreak = 0;
-  let cursor = new Date(`${todayDateString()}T00:00:00Z`);
+  let cursor = new Date(`${todayStr}T00:00:00Z`);
   while (reportDates.has(cursor.toISOString().slice(0, 10))) {
     currentStreak += 1;
     cursor = new Date(cursor.getTime() - 86_400_000);
   }
 
-  const today = new Date(`${todayDateString()}T00:00:00Z`);
+  const today = new Date(`${todayStr}T00:00:00Z`);
   const reportsThisMonth = reports.filter((report) => {
     const reportDate = new Date(`${report.report_date}T00:00:00Z`);
     return (

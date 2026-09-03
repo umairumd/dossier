@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { computeReportStats } from "@/lib/helpers/report-stats";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { DailyReport } from "@/types/report";
 import type {
   EmployeeDetail,
@@ -308,6 +309,7 @@ export const getEmployeeDetail = cache(
     }
 
     const allReports = (reports as DailyReport[]) ?? [];
+    const settings = await getOrganizationSettings();
 
     const [item] = await attachMemberships(supabase, [
       toEmployeeListItem(profile as unknown as ProfileRow, authUser),
@@ -317,7 +319,7 @@ export const getEmployeeDetail = cache(
       ...item,
       report_count: allReports.length,
       recent_reports: allReports,
-      stats: computeReportStats(allReports),
+      stats: computeReportStats(allReports, settings.timezone),
     };
   },
 );

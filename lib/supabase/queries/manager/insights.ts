@@ -7,6 +7,7 @@ import {
   buildSubmittersByDate,
 } from "@/lib/helpers/completion-trend";
 import { getTeamReportingRoster } from "@/lib/supabase/queries/manager/team";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { ActivityItem } from "@/types/activity";
 import type { TeamInsights, TeamMemberStanding } from "@/types/team-insights";
 
@@ -26,6 +27,7 @@ const INSIGHTS_WINDOW_DAYS = 90;
 // manager's own department, same as every other manager query.
 export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
   const supabase = await createClient();
+  const settings = await getOrganizationSettings();
   const roster = await getTeamReportingRoster();
 
   if (roster.length === 0) {
@@ -76,15 +78,27 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
     reportsByAuthor.set(report.author_id, authorReports);
   }
 
-  const trend = buildCompletionTrend(TREND_DAYS, submittersByDate, roster.length);
-
-  const weeklyCompletionPercentage = Math.round(
-    trend.reduce((sum, point) => sum + point.completionPercentage, 0) /
-      trend.length,
+  const trend = buildCompletionTrend(
+    TREND_DAYS,
+    submittersByDate,
+    roster.length,
+    settings.workingDays,
+    settings.timezone,
   );
 
+  const weeklyCompletionPercentage =
+    trend.length === 0
+      ? 0
+      : Math.round(
+          trend.reduce((sum, point) => sum + point.completionPercentage, 0) /
+            trend.length,
+        );
+
   const standings: TeamMemberStanding[] = roster.map((member) => {
-    const stats = computeReportStats(reportsByAuthor.get(member.id) ?? []);
+    const stats = computeReportStats(
+      reportsByAuthor.get(member.id) ?? [],
+      settings.timezone,
+    );
     return {
       employeeId: member.id,
       fullName: member.full_name,

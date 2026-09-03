@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Flame, Percent, Timer } from "lucide-react";
 import { getTeamMemberOverview } from "@/lib/supabase/queries/manager/employee-overview";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import {
   Card,
   CardContent,
@@ -102,7 +102,7 @@ export default async function ManagerEmployeeOverviewPage({
               <ReportHistoryBrowser
                 reports={overview.recent_reports}
                 userName={overview.full_name}
-                deadlineHourUtc={settings.reportDeadlineHourUtc}
+                deadline={getDeadlineContext(settings)}
                 departmentName={
                   overview.department_names.join(", ") || "Unassigned"
                 }

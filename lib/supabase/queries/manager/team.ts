@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { todayDateString } from "@/lib/helpers/dates";
+import { todayInTimezone } from "@/lib/helpers/dates";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 
@@ -82,8 +83,10 @@ export const getTeamEmployeeRoster = getTeamReportingRoster;
 // (daily_reports_select_department_as_manager) scopes the reports read
 // the same way the roster read is scoped.
 export const getTeamReportsForDate = cache(
-  async (date: string = todayDateString()): Promise<TeamMemberReport[]> => {
+  async (date?: string): Promise<TeamMemberReport[]> => {
     const supabase = await createClient();
+    const settings = await getOrganizationSettings();
+    const reportDate = date ?? todayInTimezone(settings.timezone);
 
     const employees = await getTeamReportingRoster();
 
@@ -96,7 +99,7 @@ export const getTeamReportsForDate = cache(
       .select(
         "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at",
       )
-      .eq("report_date", date);
+      .eq("report_date", reportDate);
 
     if (reportsError) {
       throw new Error("Failed to load reports for that date.");

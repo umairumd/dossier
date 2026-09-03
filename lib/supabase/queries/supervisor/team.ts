@@ -1,7 +1,8 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireSupervisorUser } from "@/lib/supabase/require-admin";
-import { daysBetweenDateStrings, todayDateString } from "@/lib/helpers/dates";
+import { daysBetweenDateStrings, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { TeamRosterMember } from "@/lib/supabase/queries/manager/team";
 import type { DailyReport } from "@/types/report";
 import type { MissingReportRow } from "@/types/missing-report";
@@ -133,7 +134,13 @@ export const getSupervisedMissingToday = cache(
     await requireSupervisorUser();
 
     const supabase = await createClient();
-    const today = todayDateString();
+    const settings = await getOrganizationSettings();
+    const today = todayInTimezone(settings.timezone);
+
+    if (!isWorkingDay(today, settings.workingDays)) {
+      return [];
+    }
+
     const todayMembers = await getSupervisedReportsForDate(today);
     const missing = todayMembers.filter((member) => !member.report);
 

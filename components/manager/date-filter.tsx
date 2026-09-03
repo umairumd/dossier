@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { todayDateString } from "@/lib/helpers/dates";
+import { todayInTimezone } from "@/lib/helpers/dates";
 
 // Changing the date navigates (?date=...) rather than filtering
 // client-side over pre-fetched data — the server re-fetches
@@ -12,12 +12,14 @@ import { todayDateString } from "@/lib/helpers/dates";
 export function DateFilter({
   date,
   pathname = "/manager/team-reports",
+  timezone,
 }: {
   date: string;
   pathname?: string;
+  timezone: string;
 }) {
   const router = useRouter();
-  const today = todayDateString();
+  const today = todayInTimezone(timezone);
 
   const goToDate = (nextDate: string) => {
     router.push(`${pathname}?date=${nextDate}`);

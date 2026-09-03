@@ -43,3 +43,30 @@ export function averageSubmissionTime(timestamps: string[]): string | null {
 
   return AVERAGE_TIME_FORMATTER.format(Date.UTC(2000, 0, 1, hours, minutes));
 }
+
+export function formatDeadlineHint(
+  hourLocal: number,
+  timezone: string,
+): string {
+  const period = hourLocal >= 12 ? "PM" : "AM";
+  const hour12 = hourLocal % 12 || 12;
+  const time = `Due by ${hour12}:00 ${period}`;
+
+  const abbr = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    timeZoneName: "short",
+  })
+    .formatToParts(new Date())
+    .find((part) => part.type === "timeZoneName")?.value;
+
+  if (
+    !abbr ||
+    abbr.includes("/") ||
+    /^(GMT|UTC)[+-]/.test(abbr) ||
+    abbr.startsWith("GMT")
+  ) {
+    return time;
+  }
+
+  return `${time} ${abbr}`;
+}

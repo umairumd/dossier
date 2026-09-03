@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { todayInTimezone } from "@/lib/helpers/dates";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import {
   validateReportInput,
   type ReportFieldErrors,
@@ -15,10 +17,6 @@ export interface SubmitReportResult {
 }
 
 const UNIQUE_VIOLATION = "23505";
-
-function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export async function submitDailyReport(
   input: ReportFormInput,
@@ -42,9 +40,11 @@ export async function submitDailyReport(
     };
   }
 
+  const settings = await getOrganizationSettings();
+
   const { error } = await supabase.from("daily_reports").insert({
     author_id: user.id,
-    report_date: todayDateString(),
+    report_date: todayInTimezone(settings.timezone),
     content: validation.value.content,
     blockers: validation.value.blockers,
     additional_notes: validation.value.additionalNotes,

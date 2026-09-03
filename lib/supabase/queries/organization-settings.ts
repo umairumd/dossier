@@ -1,6 +1,9 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { DEFAULT_REPORT_DEADLINE_HOUR_UTC } from "@/lib/reports/submission-status";
+import {
+  DEFAULT_REPORT_DEADLINE_HOUR_UTC,
+  type DeadlineContext,
+} from "@/lib/reports/submission-status";
 
 export interface OrganizationSettings {
   reportDeadlineHourUtc: number;
@@ -39,3 +42,14 @@ export const getOrganizationSettings = cache(
     };
   },
 );
+
+export function getDeadlineContext(
+  settings: OrganizationSettings,
+): DeadlineContext {
+  return {
+    deadlineHourUtc: settings.reportDeadlineHourUtc,
+    deadlineHourLocal: settings.reportDeadlineHourLocal,
+    timezone: settings.timezone,
+    workingDays: settings.workingDays,
+  };
+}

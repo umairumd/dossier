@@ -8,20 +8,22 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { shiftReportDate, todayDateString } from "@/lib/helpers/dates";
+import { shiftReportDate, todayInTimezone } from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
 
 export function DateNav({
   date,
   baseHref,
   label,
+  timezone,
 }: {
   date: string;
   baseHref: string;
   label?: string;
+  timezone: string;
 }) {
   const router = useRouter();
-  const today = todayDateString();
+  const today = todayInTimezone(timezone);
   const isToday = date >= today;
   const previousDate = shiftReportDate(date, -1);
   const nextDate = shiftReportDate(date, 1);

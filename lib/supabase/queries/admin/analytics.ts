@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { dateNDaysAgo } from "@/lib/helpers/dates";
 import {
   buildCompletionTrend,
@@ -19,6 +20,7 @@ export const getOrganizationTrends = cache(
     await requireAdminUser();
 
     const supabase = await createClient();
+    const settings = await getOrganizationSettings();
     const employees = await getAllEmployees();
     const activeEmployeeCount = employees.filter(
       (employee) => employee.role === "member" && employee.status === "active",
@@ -36,8 +38,20 @@ export const getOrganizationTrends = cache(
     const submittersByDate = buildSubmittersByDate(reportRows ?? []);
 
     return {
-      weeklyTrend: buildCompletionTrend(7, submittersByDate, activeEmployeeCount),
-      monthlyTrend: buildCompletionTrend(30, submittersByDate, activeEmployeeCount),
+      weeklyTrend: buildCompletionTrend(
+        7,
+        submittersByDate,
+        activeEmployeeCount,
+        settings.workingDays,
+        settings.timezone,
+      ),
+      monthlyTrend: buildCompletionTrend(
+        30,
+        submittersByDate,
+        activeEmployeeCount,
+        settings.workingDays,
+        settings.timezone,
+      ),
     };
   },
 );

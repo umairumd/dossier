@@ -3,9 +3,10 @@ import { Building2 } from "lucide-react";
 import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
 import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { formatLongDate } from "@/lib/helpers/dates";
+import { formatDeadlineHint } from "@/lib/helpers/time";
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +42,7 @@ export async function ManagerDashboard({
   const completionPercentage =
     teamSize === 0 ? 0 : Math.round((submittedToday / teamSize) * 100);
   const today = formatLongDate(new Date());
-  const deadlineHour = String(settings.reportDeadlineHourUtc).padStart(2, "0");
+  const deadline = getDeadlineContext(settings);
   const sortedMembers = sortTeamMembersBySubmission(members);
   const previewMembers = sortedMembers.slice(0, HOME_ROSTER_PREVIEW);
   const remainingCount = sortedMembers.length - previewMembers.length;
@@ -63,8 +64,11 @@ export async function ManagerDashboard({
 
       <ReportBanner
         todayReport={todayReport}
-        deadlineHint={`Due by ${deadlineHour}:00 UTC`}
-        deadlineHourUtc={settings.reportDeadlineHourUtc}
+        deadlineHint={formatDeadlineHint(
+          settings.reportDeadlineHourLocal,
+          settings.timezone,
+        )}
+        deadline={deadline}
       />
 
       <Card className="card-gradient">
@@ -99,7 +103,8 @@ export async function ManagerDashboard({
                 <SubmissionStatusBadge
                   status={getSubmissionStatus(
                     member.report?.submitted_at ?? null,
-                    settings.reportDeadlineHourUtc,
+                    deadline.deadlineHourUtc,
+                    deadline,
                   )}
                 />
               </div>

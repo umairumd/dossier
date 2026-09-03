@@ -1,6 +1,7 @@
 import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
+import { formatDeadlineHint } from "@/lib/helpers/time";
 import { ReportBanner } from "@/components/shared/report-banner";
 import { PageHeader } from "@/components/shared/page-header";
 
@@ -19,7 +20,7 @@ export default async function DailyReportPage() {
   const subtitle = isPrivileged
     ? "Log today's progress."
     : "Log today's progress for your manager to review.";
-  const deadlineHour = String(settings.reportDeadlineHourUtc).padStart(2, "0");
+  const deadline = getDeadlineContext(settings);
 
   return (
     <div className="flex flex-col gap-6">
@@ -29,8 +30,11 @@ export default async function DailyReportPage() {
 
       <ReportBanner
         todayReport={todayReport}
-        deadlineHint={`Due by ${deadlineHour}:00 UTC`}
-        deadlineHourUtc={settings.reportDeadlineHourUtc}
+        deadlineHint={formatDeadlineHint(
+          settings.reportDeadlineHourLocal,
+          settings.timezone,
+        )}
+        deadline={deadline}
       />
     </div>
   );

@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import {
   getSubmissionStatus,
   SUBMISSION_STATUS_LABELS,
+  type DeadlineContext,
   type SubmissionStatus,
 } from "@/lib/reports/submission-status";
 import type {
@@ -36,11 +37,11 @@ const STATUS_RANK: Record<SubmissionStatus, number> = {
 
 function sortByStatusThenName(
   members: OrgMemberReport[],
-  deadlineHourUtc: number,
+  deadline: DeadlineContext,
 ): OrgMemberReport[] {
   return [...members].sort((a, b) => {
-    const rankA = STATUS_RANK[getSubmissionStatus(a.report?.submitted_at ?? null, deadlineHourUtc)];
-    const rankB = STATUS_RANK[getSubmissionStatus(b.report?.submitted_at ?? null, deadlineHourUtc)];
+    const rankA = STATUS_RANK[getSubmissionStatus(a.report?.submitted_at ?? null, deadline.deadlineHourUtc, deadline)];
+    const rankB = STATUS_RANK[getSubmissionStatus(b.report?.submitted_at ?? null, deadline.deadlineHourUtc, deadline)];
     if (rankA !== rankB) {
       return rankA - rankB;
     }
@@ -62,11 +63,11 @@ function completionClass(pct: number): string {
 export function OrgDailyReports({
   members,
   departments,
-  deadlineHourUtc,
+  deadline,
 }: {
   members: OrgMemberReport[];
   departments: OrgDepartment[];
-  deadlineHourUtc: number;
+  deadline: DeadlineContext;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -86,13 +87,14 @@ export function OrgDailyReports({
         (member) =>
           getSubmissionStatus(
             member.report?.submitted_at ?? null,
-            deadlineHourUtc,
+            deadline.deadlineHourUtc,
+            deadline,
           ) === statusFilter,
       );
     }
 
-    return sortByStatusThenName(result, deadlineHourUtc);
-  }, [members, query, statusFilter, deadlineHourUtc]);
+    return sortByStatusThenName(result, deadline);
+  }, [members, query, statusFilter, deadline]);
 
   const sections = useMemo(() => {
     const byDepartment = new Map<string, OrgMemberReport[]>();
@@ -126,7 +128,7 @@ export function OrgDailyReports({
         );
         const visible = sortByStatusThenName(
           all.filter((member) => visibleIds.has(member.employeeId)),
-          deadlineHourUtc,
+          deadline,
         );
 
         return {
@@ -158,13 +160,13 @@ export function OrgDailyReports({
         completionPct: total === 0 ? 0 : Math.round((submitted / total) * 100),
         visible: sortByStatusThenName(
           unassignedAll.filter((member) => visibleIds.has(member.employeeId)),
-          deadlineHourUtc,
+          deadline,
         ),
       });
     }
 
     return departmentSections;
-  }, [members, departments, filtered, deadlineHourUtc]);
+  }, [members, departments, filtered, deadline]);
 
   const hasQuery = query.trim().length > 0;
 
@@ -231,7 +233,7 @@ export function OrgDailyReports({
               <TeamReportsView
                 members={section.visible}
                 departmentName={section.name}
-                deadlineHourUtc={deadlineHourUtc}
+                deadline={deadline}
                 adminView
                 showFilters={false}
               />

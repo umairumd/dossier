@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
-import { todayDateString } from "@/lib/helpers/dates";
+import { todayInTimezone } from "@/lib/helpers/dates";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { OrganizationSummary } from "@/types/admin-overview";
 
 // Admin Home's data need: headcounts + today's completion, nothing more.
@@ -16,6 +17,8 @@ export const getOrganizationSummary = cache(
     await requireAdminUser();
 
     const supabase = await createClient();
+
+    const settings = await getOrganizationSettings();
 
     const [employees, departments] = await Promise.all([
       getAllEmployees(),
@@ -47,7 +50,7 @@ export const getOrganizationSummary = cache(
       const { count: submittedToday, error } = await supabase
         .from("daily_reports")
         .select("id", { count: "exact", head: true })
-        .eq("report_date", todayDateString())
+        .eq("report_date", todayInTimezone(settings.timezone))
         .in("author_id", eligibleIds);
 
       if (error) {

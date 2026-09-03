@@ -7,8 +7,8 @@ import {
   getSupervisedMembers,
   getSupervisedReportsForDate,
 } from "@/lib/supabase/queries/supervisor/team";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
-import { formatDate, todayDateString } from "@/lib/helpers/dates";
+import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
+import { formatDate, todayInTimezone } from "@/lib/helpers/dates";
 import type { TeamMemberReport } from "@/types/team";
 import { DateNav } from "@/components/shared/date-nav";
 import { TeamReportsView } from "@/components/manager/team-reports-view";
@@ -20,13 +20,12 @@ export default async function TeamReportsPage({
   searchParams: Promise<{ date?: string }>;
 }) {
   const { date: dateParam } = await searchParams;
-  const today = todayDateString();
+  const profile = await getCurrentProfileWithDepartment();
+  const settings = await getOrganizationSettings();
+  const today = todayInTimezone(settings.timezone);
   const date = dateParam ?? today;
 
-  const profile = await getCurrentProfileWithDepartment();
-
-  const [settings, deptMembers, supervised] = await Promise.all([
-    getOrganizationSettings(),
+  const [deptMembers, supervised] = await Promise.all([
     profile?.role === "manager"
       ? getTeamReportsForDate(date)
       : Promise.resolve([]),
@@ -64,6 +63,7 @@ export default async function TeamReportsPage({
           date={date}
           baseHref="/manager/team-reports"
           label={formatDate(date)}
+          timezone={settings.timezone}
         />
       </div>
 
@@ -74,7 +74,7 @@ export default async function TeamReportsPage({
         <TeamReportsView
           members={section1Members}
           departmentName={section1Label}
-          deadlineHourUtc={settings.reportDeadlineHourUtc}
+          deadline={getDeadlineContext(settings)}
           emptyMessage={
             isDeptManager
               ? "No team members yet."
@@ -93,7 +93,7 @@ export default async function TeamReportsPage({
             <TeamReportsView
               members={exclusiveSupervisees}
               departmentName="Also Reporting to You"
-              deadlineHourUtc={settings.reportDeadlineHourUtc}
+              deadline={getDeadlineContext(settings)}
               emptyMessage="No supervisees to show."
             />
           </div>

@@ -2,7 +2,8 @@ import { cache } from "react";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
-import { dateNDaysAgo, todayDateString } from "@/lib/helpers/dates";
+import { dateNDaysAgo, todayInTimezone } from "@/lib/helpers/dates";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import {
   buildCompletionTrend,
   buildSubmittersByDate,
@@ -227,11 +228,12 @@ export const getDepartmentDetail = cache(
     members.sort((a, b) => a.full_name.localeCompare(b.full_name));
 
     const memberIds = members.map((member) => member.id);
+    const settings = await getOrganizationSettings();
     const submittedAtByMemberId: Record<string, string> = {};
     let trend: CompletionTrendPoint[] = buildCompletionTrend(7, new Map(), 0);
 
     if (memberIds.length > 0) {
-      const today = todayDateString();
+      const today = todayInTimezone(settings.timezone);
       const [{ data: todayReports, error: todayError }, { data: trendReports, error: trendError }] =
         await Promise.all([
           supabase
@@ -263,6 +265,8 @@ export const getDepartmentDetail = cache(
         7,
         buildSubmittersByDate(trendReports ?? []),
         members.length,
+        settings.workingDays,
+        settings.timezone,
       );
     }
 

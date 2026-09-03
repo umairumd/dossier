@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { computeReportStats } from "@/lib/helpers/report-stats";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberOverview } from "@/types/team-member-overview";
 
@@ -73,7 +74,8 @@ export const getTeamMemberOverview = cache(
       .filter((name): name is string => Boolean(name));
 
     const allReports = (reports as DailyReport[]) ?? [];
-    const stats = computeReportStats(allReports);
+    const settings = await getOrganizationSettings();
+    const stats = computeReportStats(allReports, settings.timezone);
     const profileRow = profile as unknown as ProfileRow;
 
     return {
