@@ -20,6 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
+import { MemberAvatar } from "@/components/shared/member-avatar";
+import { Badge } from "@/components/ui/badge";
 import { DepartmentActionsMenu } from "@/components/admin/department-actions-menu";
 import { DepartmentStatusBadge } from "@/components/admin/department-status-badge";
 import type { DepartmentListItem, ManagerCandidate } from "@/types/department";
@@ -114,15 +116,35 @@ export function DepartmentList({
             {filtered.map((department) => (
               <TableRow key={department.id}>
                 <TableCell>
-                  <Link
-                    href={`/departments/${department.id}`}
-                    className="font-medium hover:underline"
-                  >
-                    {department.name}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/departments/${department.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {department.name}
+                    </Link>
+                    {department.employee_count === 0 && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs border-yellow-500/50 text-yellow-500/80"
+                      >
+                        No members
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {department.manager_name ?? "Unassigned"}
+                  {department.manager_name ? (
+                    <div className="flex items-center gap-2">
+                      <MemberAvatar
+                        name={department.manager_name}
+                        size="xs"
+                      />
+                      <span>{department.manager_name}</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">Unassigned</span>
+                  )}
                 </TableCell>
                 <TableCell>{department.employee_count}</TableCell>
                 <TableCell>

@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LocalDateTime } from "@/components/shared/local-datetime";
+import { MemberAvatar } from "@/components/shared/member-avatar";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { REPORT_FIELDS } from "@/lib/reports/fields";
@@ -50,38 +51,46 @@ export function ReportDetailSheet({
         {index !== null && current && (
           <>
             <DialogHeader>
-              <div className="flex items-center gap-2">
-                <DialogTitle asChild>
-                  <div className="text-lg font-semibold leading-tight">
-                    {current.fullName}
-                  </div>
-                </DialogTitle>
-                <SubmissionStatusBadge
-                  status={getSubmissionStatus(
-                    current.report.submitted_at,
-                    deadline.deadlineHourUtc,
-                    deadline,
-                  )}
+              <div className="flex items-center gap-3">
+                <MemberAvatar
+                  name={current.fullName}
+                  avatarUrl={current.avatarUrl ?? undefined}
+                  size="md"
                 />
-              </div>
-
-              <DialogDescription asChild>
-                <div className="flex items-center justify-between gap-3">
-                  <LocalDateTime isoString={current.report.submitted_at} />
-                  {showProfileLink && (
-                    <EmployeeNameLink
-                      employeeId={current.employeeId}
-                      fullName="View Profile →"
-                      basePath={
-                        adminView
-                          ? "/admin/employees"
-                          : "/manager/employees"
-                      }
-                      className="text-xs text-primary hover:underline shrink-0"
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <DialogTitle asChild>
+                      <span className="text-lg font-semibold">
+                        {current.fullName}
+                      </span>
+                    </DialogTitle>
+                    <SubmissionStatusBadge
+                      status={getSubmissionStatus(
+                        current.report.submitted_at,
+                        deadline.deadlineHourUtc,
+                        deadline,
+                      )}
                     />
-                  )}
+                  </div>
+                  <DialogDescription asChild>
+                    <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                      <LocalDateTime isoString={current.report.submitted_at} />
+                      {showProfileLink && (
+                        <EmployeeNameLink
+                          employeeId={current.employeeId}
+                          fullName="View Profile →"
+                          basePath={
+                            adminView
+                              ? "/admin/employees"
+                              : "/manager/employees"
+                          }
+                          className="text-xs text-primary hover:underline shrink-0"
+                        />
+                      )}
+                    </div>
+                  </DialogDescription>
                 </div>
-              </DialogDescription>
+              </div>
             </DialogHeader>
             <div className="flex flex-col gap-4 px-4 pb-4 text-sm">
               {REPORT_FIELDS.map((field) => {

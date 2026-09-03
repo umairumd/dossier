@@ -15,6 +15,7 @@ export interface OrgMemberReport extends TeamMemberReport {
 export interface OrgDepartment {
   id: string;
   name: string;
+  managerId: string | null;
 }
 
 export const getOrgRosterSize = cache(async (): Promise<number> => {
@@ -50,7 +51,7 @@ export const getOrgReportsForDate = cache(
     ] = await Promise.all([
       adminClient
         .from("profiles")
-        .select("id, full_name, designation")
+        .select("id, full_name, designation, avatar_url")
         .eq("has_onboarded", true)
         .eq("is_active", true)
         .is("archived_at", null)
@@ -62,7 +63,7 @@ export const getOrgReportsForDate = cache(
         .eq("report_date", date),
       adminClient
         .from("departments")
-        .select("id, name")
+        .select("id, name, manager_id")
         .is("archived_at", null)
         .order("name", { ascending: true }),
     ]);
@@ -79,7 +80,13 @@ export const getOrgReportsForDate = cache(
       throw new Error("Failed to load departments.");
     }
 
-    const activeDepartments = (departments ?? []) as OrgDepartment[];
+    const activeDepartments: OrgDepartment[] = (departments ?? []).map(
+      (department) => ({
+        id: department.id,
+        name: department.name,
+        managerId: department.manager_id,
+      }),
+    );
     const activeDepartmentIds = new Set(activeDepartments.map((department) => department.id));
     const nameByDepartment = new Map(
       activeDepartments.map((department) => [department.id, department.name]),
@@ -123,6 +130,7 @@ export const getOrgReportsForDate = cache(
         employeeId: employee.id,
         fullName: employee.full_name,
         designation: employee.designation,
+        avatarUrl: employee.avatar_url,
         report: reportsByAuthor.get(employee.id) ?? null,
         departmentIds,
         departmentNames: departmentIds

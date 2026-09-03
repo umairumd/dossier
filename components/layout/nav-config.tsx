@@ -87,8 +87,8 @@ export const navSections: NavSection[] = [
     title: "Monitor",
     items: [
       {
-        label: "Daily Reports",
-        href: "/admin/org-reports",
+        label: "Track Reports",
+        href: "/admin/track-reports",
         icon: <LayoutList className="size-4" />,
         roles: ["owner", "admin"],
       },
