@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { AlertCircle, Check, Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -186,9 +187,15 @@ export function InviteLinkDialog({
                     Invited on <LocalDateTime isoString={state.invitedAt} />
                   </p>
                   {state.expiresAt && (
-                    <p className={`mt-1 ${isExpired(state.expiresAt) ? "text-destructive" : "text-muted-foreground"}`}>
-                      {getExpirationStatus(state.expiresAt)}
-                    </p>
+                    isExpired(state.expiresAt) ? (
+                      <div className="mt-1">
+                        <Badge variant="destructive">Expired</Badge>
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-muted-foreground">
+                        {getExpirationStatus(state.expiresAt)}
+                      </p>
+                    )
                   )}
                 </div>
               </div>
@@ -211,9 +218,11 @@ export function InviteLinkDialog({
                 {state.expiresAt && (
                   <div className="mt-1 flex items-center justify-between">
                     <span className="text-muted-foreground">Status</span>
-                    <span className={isExpired(state.expiresAt) ? "text-destructive" : ""}>
-                      {getExpirationStatus(state.expiresAt)}
-                    </span>
+                    {isExpired(state.expiresAt) ? (
+                      <Badge variant="destructive">Expired</Badge>
+                    ) : (
+                      <span>{getExpirationStatus(state.expiresAt)}</span>
+                    )}
                   </div>
                 )}
               </div>

@@ -6,7 +6,7 @@ import {
 
 export function SubmissionStatusBadge({ status }: { status: SubmissionStatus }) {
   if (status === "missed") {
-    return <Badge variant="secondary">{SUBMISSION_STATUS_LABELS.missed}</Badge>;
+    return <Badge variant="destructive">{SUBMISSION_STATUS_LABELS.missed}</Badge>;
   }
   if (status === "late") {
     return <Badge variant="destructive">{SUBMISSION_STATUS_LABELS.late}</Badge>;

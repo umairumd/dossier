@@ -87,7 +87,7 @@ export function InvitationList({
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">
+        <p className="py-10 text-center text-sm text-muted-foreground">
           {invitations.length === 0
             ? "No pending invitations."
             : "No invitations match your filters."}

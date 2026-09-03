@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -28,6 +27,7 @@ import {
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
+import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 
@@ -38,16 +38,6 @@ function memberStatus(
   deadlineHourUtc: number,
 ): SubmissionStatus {
   return getSubmissionStatus(member.report?.submitted_at ?? null, deadlineHourUtc);
-}
-
-function StatusBadge({ status }: { status: SubmissionStatus }) {
-  if (status === "missed") {
-    return <Badge variant="secondary">{SUBMISSION_STATUS_LABELS.missed}</Badge>;
-  }
-  if (status === "late") {
-    return <Badge variant="destructive">{SUBMISSION_STATUS_LABELS.late}</Badge>;
-  }
-  return <Badge>{SUBMISSION_STATUS_LABELS.on_time}</Badge>;
 }
 
 export function TeamReportsView({
@@ -147,7 +137,7 @@ export function TeamReportsView({
       )}
 
       {filtered.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">
+        <p className="py-10 text-center text-sm text-muted-foreground">
           {resolvedEmptyMessage}
         </p>
       ) : (
@@ -213,7 +203,7 @@ export function TeamReportsView({
                         />
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={status} />
+                        <SubmissionStatusBadge status={status} />
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {member.report ? (
@@ -247,7 +237,7 @@ export function TeamReportsView({
                         adminView ? "/admin/employees" : "/manager/employees"
                       }
                     />
-                    <StatusBadge status={status} />
+                    <SubmissionStatusBadge status={status} />
                   </div>
                   <button
                     type="button"
