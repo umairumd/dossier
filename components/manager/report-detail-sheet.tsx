@@ -3,12 +3,12 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
@@ -41,15 +41,18 @@ export function ReportDetailSheet({
   const current = index !== null ? members[index] : null;
 
   return (
-    <Sheet open={index !== null} onOpenChange={(next) => !next && onIndexChange(null)}>
-      <SheetContent className="w-full sm:max-w-md">
+    <Dialog
+      open={index !== null}
+      onOpenChange={(next) => !next && onIndexChange(null)}
+    >
+      <DialogContent className="sm:max-w-lg">
         {index !== null && current && (
           <>
-            <SheetHeader>
+            <DialogHeader className="pr-8">
               <div className="flex items-start justify-between gap-3">
-                <SheetTitle className="text-lg font-semibold">
+                <DialogTitle className="text-lg font-semibold">
                   {current.fullName}
-                </SheetTitle>
+                </DialogTitle>
                 <EmployeeNameLink
                   employeeId={current.employeeId}
                   fullName="View Profile →"
@@ -59,7 +62,7 @@ export function ReportDetailSheet({
                   className="shrink-0 text-sm text-primary hover:underline"
                 />
               </div>
-              <SheetDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <DialogDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span>{departmentName}</span>
                 <SubmissionStatusBadge
                   status={getSubmissionStatus(
@@ -68,8 +71,8 @@ export function ReportDetailSheet({
                   )}
                 />
                 <LocalDateTime isoString={current.report.submitted_at} />
-              </SheetDescription>
-            </SheetHeader>
+              </DialogDescription>
+            </DialogHeader>
             <div className="flex flex-col gap-4 px-4 pb-4 text-sm">
               {REPORT_FIELDS.map((field) => {
                 const value = current.report[field.key];
@@ -112,7 +115,7 @@ export function ReportDetailSheet({
             </div>
           </>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
