@@ -232,7 +232,6 @@ export function OrgDailyReports({
             ) : (
               <TeamReportsView
                 members={section.visible}
-                departmentName={section.name}
                 deadline={deadline}
                 adminView
                 showFilters={false}

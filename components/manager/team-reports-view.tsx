@@ -49,14 +49,12 @@ function memberStatus(
 
 export function TeamReportsView({
   members,
-  departmentName,
   deadline,
   adminView = false,
   emptyMessage,
   showFilters = true,
 }: {
   members: TeamMemberReport[];
-  departmentName: string;
   deadline: DeadlineContext;
   adminView?: boolean;
   emptyMessage?: string;
@@ -262,7 +260,6 @@ export function TeamReportsView({
 
       <ReportDetailSheet
         members={submittedMembers}
-        departmentName={departmentName}
         index={openIndex}
         onIndexChange={setOpenIndex}
         deadline={deadline}

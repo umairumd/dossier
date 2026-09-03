@@ -17,11 +17,13 @@ export function ReportBanner({
   deadlineHint,
   deadline,
   onSubmitted,
+  hideHistoryLink = false,
 }: {
   todayReport: DailyReport | null;
   deadlineHint?: string;
   deadline: DeadlineContext;
   onSubmitted?: () => void;
+  hideHistoryLink?: boolean;
 }) {
   const router = useRouter();
 
@@ -53,14 +55,16 @@ export function ReportBanner({
             </span>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-3 pl-7 sm:pl-0">
-          <Link
-            href="/reports/history"
-            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            View history
-          </Link>
-        </div>
+        {!hideHistoryLink && (
+          <div className="flex shrink-0 items-center gap-3 pl-7 sm:pl-0">
+            <Link
+              href="/reports"
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              View history
+            </Link>
+          </div>
+        )}
       </div>
     );
   }
@@ -79,12 +83,14 @@ export function ReportBanner({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        <Link
-          href="/reports/history"
-          className="hidden text-xs text-muted-foreground transition-colors hover:text-foreground sm:block"
-        >
-          View history
-        </Link>
+        {!hideHistoryLink && (
+          <Link
+            href="/reports"
+            className="hidden text-xs text-muted-foreground transition-colors hover:text-foreground sm:block"
+          >
+            View history
+          </Link>
+        )}
         <SubmitReportSheet
           alreadySubmitted={false}
           triggerLabel="Submit →"

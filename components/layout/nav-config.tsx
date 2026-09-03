@@ -2,7 +2,6 @@ import {
   Building2,
   FileText,
   Home,
-  History,
   LayoutList,
   Mail,
   Settings,
@@ -58,15 +57,9 @@ export const navSections: NavSection[] = [
     title: "My Work",
     items: [
       {
-        label: "Daily Report",
+        label: "My Reports",
         href: "/reports",
         icon: <FileText className="size-4" />,
-        roles: ALL_ROLES,
-      },
-      {
-        label: "Report History",
-        href: "/reports/history",
-        icon: <History className="size-4" />,
         roles: ALL_ROLES,
       },
     ],

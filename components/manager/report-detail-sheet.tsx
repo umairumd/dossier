@@ -26,7 +26,6 @@ type SubmittedMember = TeamMemberReport & { report: DailyReport };
 // not a separate unfiltered fetch.
 export function ReportDetailSheet({
   members,
-  departmentName,
   index,
   onIndexChange,
   deadline,
@@ -34,7 +33,6 @@ export function ReportDetailSheet({
   showProfileLink = true,
 }: {
   members: SubmittedMember[];
-  departmentName: string;
   index: number | null;
   onIndexChange: (index: number | null) => void;
   deadline: DeadlineContext;
@@ -52,30 +50,34 @@ export function ReportDetailSheet({
         {index !== null && current && (
           <>
             <DialogHeader>
-              <DialogTitle className="text-lg font-semibold">
-                {current.fullName}
-              </DialogTitle>
-              <DialogDescription asChild>
-                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                  <div className="flex flex-wrap items-center gap-x-2">
-                    <span>{departmentName}</span>
-                    <SubmissionStatusBadge
-                      status={getSubmissionStatus(
-                        current.report.submitted_at,
-                        deadline.deadlineHourUtc,
-                        deadline,
-                      )}
-                    />
-                    <LocalDateTime isoString={current.report.submitted_at} />
+              <div className="flex items-center gap-2">
+                <DialogTitle asChild>
+                  <div className="text-lg font-semibold leading-tight">
+                    {current.fullName}
                   </div>
+                </DialogTitle>
+                <SubmissionStatusBadge
+                  status={getSubmissionStatus(
+                    current.report.submitted_at,
+                    deadline.deadlineHourUtc,
+                    deadline,
+                  )}
+                />
+              </div>
+
+              <DialogDescription asChild>
+                <div className="flex items-center justify-between gap-3">
+                  <LocalDateTime isoString={current.report.submitted_at} />
                   {showProfileLink && (
                     <EmployeeNameLink
                       employeeId={current.employeeId}
                       fullName="View Profile →"
                       basePath={
-                        adminView ? "/admin/employees" : "/manager/employees"
+                        adminView
+                          ? "/admin/employees"
+                          : "/manager/employees"
                       }
-                      className="shrink-0 text-xs text-primary hover:underline"
+                      className="text-xs text-primary hover:underline shrink-0"
                     />
                   )}
                 </div>

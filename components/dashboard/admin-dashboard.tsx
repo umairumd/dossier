@@ -82,7 +82,7 @@ export async function AdminDashboard() {
         <h2 className="text-sm font-medium text-muted-foreground">
           Quick Actions
         </h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           <InviteEmployeeDialog
             departments={departmentOptions}
             candidates={employees}

@@ -14,14 +14,12 @@ export function ReportHistoryBrowser({
   reports,
   userName,
   deadline,
-  departmentName = "My Reports",
   adminView = false,
   showProfileLink = true,
 }: {
   reports: DailyReport[];
   userName: string;
   deadline: DeadlineContext;
-  departmentName?: string;
   adminView?: boolean;
   showProfileLink?: boolean;
 }) {
@@ -48,7 +46,6 @@ export function ReportHistoryBrowser({
       />
       <ReportDetailSheet
         members={members}
-        departmentName={departmentName}
         index={openIndex}
         onIndexChange={setOpenIndex}
         deadline={deadline}
