@@ -29,6 +29,7 @@ export function ReportHistoryBrowser({
     employeeId: report.author_id,
     fullName: userName,
     designation: null,
+    avatarUrl: null,
     report,
   }));
 

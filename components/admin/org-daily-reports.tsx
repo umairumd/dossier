@@ -5,13 +5,18 @@ import { Search } from "lucide-react";
 import { TeamReportsView } from "@/components/manager/team-reports-view";
 import { Input } from "@/components/ui/input";
 import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "@/components/shared/empty-state";
 import { cn } from "@/lib/utils";
 import {
@@ -134,6 +139,7 @@ export function OrgDailyReports({
         return {
           id: department.id,
           name: department.name,
+          managerId: department.managerId ?? undefined,
           total,
           submitted,
           completionPct,
@@ -155,6 +161,7 @@ export function OrgDailyReports({
       departmentSections.push({
         id: UNASSIGNED_ID,
         name: "No Department Assigned",
+        managerId: undefined,
         total,
         submitted,
         completionPct: total === 0 ? 0 : Math.round((submitted / total) * 100),
@@ -202,7 +209,7 @@ export function OrgDailyReports({
         <EmptyState title="No employees in the organization yet." />
       )}
 
-      {sections.map((section, index) => {
+      {sections.map((section) => {
         const emptyMessage = hasQuery
           ? "No matching people."
           : statusFilter !== "all"
@@ -210,34 +217,35 @@ export function OrgDailyReports({
             : "No employees in this department.";
 
         return (
-          <div key={section.id}>
-            {index > 0 && <Separator className="mb-6" />}
-            <div className="mb-3 flex items-baseline justify-between gap-2">
-              <h2 className="text-sm font-medium text-muted-foreground">
-                {section.name}
-              </h2>
-              <span
-                className={cn(
-                  "text-sm font-medium",
-                  completionClass(section.completionPct),
-                )}
-              >
-                {section.submitted}/{section.total} submitted
-              </span>
-            </div>
-            {section.visible.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                {emptyMessage}
-              </p>
-            ) : (
+          <Card key={section.id} className="card-gradient">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">
+                  {section.id === UNASSIGNED_ID
+                    ? section.name
+                    : `${section.name} Department`}
+                </CardTitle>
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    completionClass(section.completionPct),
+                  )}
+                >
+                  {section.submitted}/{section.total} submitted
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
               <TeamReportsView
                 members={section.visible}
                 deadline={deadline}
                 adminView
                 showFilters={false}
+                emptyMessage={emptyMessage}
+                managerId={section.managerId}
               />
-            )}
-          </div>
+            </CardContent>
+          </Card>
         );
       })}
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,7 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { LocalDateTime } from "@/components/shared/local-datetime";
+import { LocalTime } from "@/components/shared/local-time";
+import { MemberAvatar } from "@/components/shared/member-avatar";
 import {
   getSubmissionStatus,
   SUBMISSION_STATUS_LABELS,
@@ -53,39 +54,50 @@ export function TeamReportsView({
   adminView = false,
   emptyMessage,
   showFilters = true,
+  managerId,
 }: {
   members: TeamMemberReport[];
   deadline: DeadlineContext;
   adminView?: boolean;
   emptyMessage?: string;
   showFilters?: boolean;
+  managerId?: string;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const filtered = useMemo(() => {
-    if (!showFilters) {
-      return members;
-    }
-
-    const normalized = query.trim().toLowerCase();
     let result = members;
 
-    if (normalized) {
-      result = result.filter((member) =>
-        member.fullName.toLowerCase().includes(normalized),
-      );
+    if (showFilters) {
+      const normalized = query.trim().toLowerCase();
+
+      if (normalized) {
+        result = result.filter((member) =>
+          member.fullName.toLowerCase().includes(normalized),
+        );
+      }
+
+      if (statusFilter !== "all") {
+        result = result.filter(
+          (member) => memberStatus(member, deadline) === statusFilter,
+        );
+      }
+
+      result = sortTeamMembersBySubmission(result);
     }
 
-    if (statusFilter !== "all") {
-      result = result.filter(
-        (member) => memberStatus(member, deadline) === statusFilter,
-      );
+    if (managerId) {
+      result = [...result].sort((a, b) => {
+        const aIsManager = a.employeeId === managerId ? -1 : 0;
+        const bIsManager = b.employeeId === managerId ? -1 : 0;
+        return aIsManager - bIsManager;
+      });
     }
 
-    return sortTeamMembersBySubmission(result);
-  }, [members, query, statusFilter, deadline, showFilters]);
+    return result;
+  }, [members, query, statusFilter, deadline, showFilters, managerId]);
 
   const submittedMembers = useMemo(
     () =>
@@ -149,23 +161,27 @@ export function TeamReportsView({
             <Table className="table-fixed w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[240px] text-muted-foreground font-medium">
+                  <TableHead className="w-[180px] text-muted-foreground font-medium">
                     Employee
                   </TableHead>
-                  <TableHead className="w-[120px] text-muted-foreground font-medium">
-                    Status
+                  <TableHead className="w-[160px] text-sm font-medium text-muted-foreground">
+                    Designation
                   </TableHead>
-                  <TableHead className="w-[200px] text-muted-foreground font-medium">
+                  <TableHead className="w-[120px] text-muted-foreground font-medium">
+                    <div className="flex justify-center">Status</div>
+                  </TableHead>
+                  <TableHead className="w-[160px] text-right text-muted-foreground font-medium">
                     Submitted
                   </TableHead>
-                  <TableHead className="w-[60px] text-right text-muted-foreground font-medium">
-                    {""}
+                  <TableHead className="w-[60px] text-muted-foreground font-medium">
+                    <div className="flex justify-end">{""}</div>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((member) => {
                   const status = memberStatus(member, deadline);
+                  const isManager = managerId === member.employeeId;
 
                   return (
                     <TableRow
@@ -173,41 +189,59 @@ export function TeamReportsView({
                       className="transition-colors hover:bg-muted/50"
                     >
                       <TableCell className="font-medium">
-                        <div className="flex flex-col gap-0.5">
-                          <EmployeeNameLink
-                            employeeId={member.employeeId}
-                            fullName={member.fullName}
-                            basePath={
-                              adminView ? "/admin/employees" : "/manager/employees"
-                            }
+                        <div className="flex items-center gap-2">
+                          <MemberAvatar
+                            name={member.fullName}
+                            avatarUrl={member.avatarUrl ?? undefined}
+                            size="sm"
                           />
-                          {member.designation && (
-                            <span className="text-xs text-muted-foreground">
-                              {member.designation}
-                            </span>
-                          )}
+                          <div className="flex min-w-0 items-center gap-1">
+                            <EmployeeNameLink
+                              employeeId={member.employeeId}
+                              fullName={member.fullName}
+                              basePath={
+                                adminView
+                                  ? "/admin/employees"
+                                  : "/manager/employees"
+                              }
+                            />
+                            {isManager && (
+                              <Star className="size-3 shrink-0 fill-primary text-primary" />
+                            )}
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <SubmissionStatusBadge status={status} />
+                      <TableCell className="w-[160px]">
+                        <span className="text-sm text-muted-foreground">
+                          {member.designation ?? "—"}
+                        </span>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {member.report ? (
-                          <LocalDateTime isoString={member.report.submitted_at} />
-                        ) : (
-                          "—"
-                        )}
+                      <TableCell className="w-[120px]">
+                        <div className="flex justify-center">
+                          <SubmissionStatusBadge status={status} />
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openReport(member.employeeId)}
-                          disabled={!member.report}
-                        >
-                          View
-                        </Button>
+                      <TableCell className="w-[160px] text-right">
+                        <span className="text-sm text-muted-foreground">
+                          {member.report ? (
+                            <LocalTime isoString={member.report.submitted_at} />
+                          ) : (
+                            "—"
+                          )}
+                        </span>
+                      </TableCell>
+                      <TableCell className="w-[60px]">
+                        <div className="flex justify-end">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openReport(member.employeeId)}
+                            disabled={!member.report}
+                          >
+                            View
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -216,41 +250,67 @@ export function TeamReportsView({
             </Table>
           </div>
 
-          <div className="flex flex-col gap-3 md:hidden">
+          <div className="md:hidden divide-y divide-border">
             {filtered.map((member) => {
               const status = memberStatus(member, deadline);
+              const isManager = managerId === member.employeeId;
 
               return (
                 <div
                   key={member.employeeId}
-                  className="rounded-lg border border-border p-3"
+                  className="flex items-center justify-between gap-3 px-4 py-3"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <EmployeeNameLink
-                      employeeId={member.employeeId}
-                      fullName={member.fullName}
-                      className="text-sm font-medium hover:underline"
-                      basePath={
-                        adminView ? "/admin/employees" : "/manager/employees"
-                      }
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <MemberAvatar
+                      name={member.fullName}
+                      avatarUrl={member.avatarUrl ?? undefined}
+                      size="sm"
                     />
-                    <SubmissionStatusBadge status={status} />
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <EmployeeNameLink
+                          employeeId={member.employeeId}
+                          fullName={member.fullName}
+                          className="truncate text-sm font-medium hover:underline"
+                          basePath={
+                            adminView
+                              ? "/admin/employees"
+                              : "/manager/employees"
+                          }
+                        />
+                        {isManager && (
+                          <Star className="size-3 shrink-0 fill-primary text-primary" />
+                        )}
+                      </div>
+                      {member.designation && (
+                        <p className="truncate text-xs text-muted-foreground">
+                          {member.designation}
+                        </p>
+                      )}
+                      {member.report ? (
+                        <p className="text-xs text-muted-foreground">
+                          <LocalTime isoString={member.report.submitted_at} />
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          No report
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    disabled={!member.report}
-                    onClick={() => openReport(member.employeeId)}
-                    className="mt-2 w-full text-left text-xs text-muted-foreground disabled:cursor-default"
-                  >
+                  <div className="flex shrink-0 items-center gap-2">
                     {member.report ? (
-                      <>
-                        Submitted{" "}
-                        <LocalDateTime isoString={member.report.submitted_at} />
-                      </>
+                      <button
+                        type="button"
+                        onClick={() => openReport(member.employeeId)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        View
+                      </button>
                     ) : (
-                      "No report"
+                      <SubmissionStatusBadge status={status} />
                     )}
-                  </button>
+                  </div>
                 </div>
               );
             })}
