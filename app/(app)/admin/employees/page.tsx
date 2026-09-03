@@ -3,6 +3,7 @@ import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { EmployeeList } from "@/components/admin/employee-list";
 import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
+import { PageHeader } from "@/components/shared/page-header";
 
 export default async function AdminEmployeesPage() {
   const [employees, profile, allDepartments] = await Promise.all([
@@ -17,18 +18,12 @@ export default async function AdminEmployeesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="sticky top-0 z-10 -mx-6 -mt-6 flex flex-wrap items-center justify-between gap-4 border-b border-border bg-background px-6 pt-6 pb-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Employees
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {employees.length}{" "}
-            {employees.length === 1 ? "employee" : "employees"}
-          </p>
-        </div>
-        <InviteEmployeeDialog />
-      </div>
+      <PageHeader
+        title="Employees"
+        count={employees.length}
+        countLabel={employees.length === 1 ? "employee" : "employees"}
+        action={<InviteEmployeeDialog />}
+      />
 
       <EmployeeList
         employees={employees}

@@ -1,6 +1,7 @@
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { InvitationList } from "@/components/admin/invitation-list";
 import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
+import { PageHeader } from "@/components/shared/page-header";
 
 export default async function InvitationsPage() {
   const employees = await getAllEmployees();
@@ -11,16 +12,14 @@ export default async function InvitationsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="sticky top-0 z-10 -mx-6 -mt-6 flex flex-wrap items-center justify-between gap-4 border-b border-border bg-background px-6 pt-6 pb-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Invitations</h1>
-          <p className="text-sm text-muted-foreground">
-            {pending.length} pending{" "}
-            {pending.length === 1 ? "invitation" : "invitations"}
-          </p>
-        </div>
-        <InviteEmployeeDialog />
-      </div>
+      <PageHeader
+        title="Invitations"
+        count={pending.length}
+        countLabel={
+          pending.length === 1 ? "pending invitation" : "pending invitations"
+        }
+        action={<InviteEmployeeDialog />}
+      />
 
       <InvitationList invitations={pending} />
     </div>

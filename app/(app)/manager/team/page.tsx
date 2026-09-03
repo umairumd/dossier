@@ -6,6 +6,7 @@ import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { PageHeader } from "@/components/shared/page-header";
 
 function MemberList({
   members,
@@ -96,14 +97,11 @@ export default async function TeamMembersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="sticky top-0 z-10 -mx-6 -mt-6 flex flex-col gap-1 border-b border-border bg-background px-6 pt-6 pb-4">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Team Members
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {uniqueCount} {uniqueCount === 1 ? "member" : "members"}
-        </p>
-      </div>
+      <PageHeader
+        title="Team Members"
+        count={uniqueCount}
+        countLabel={uniqueCount === 1 ? "member" : "members"}
+      />
 
       <div>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">
