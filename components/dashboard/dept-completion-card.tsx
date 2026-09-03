@@ -32,7 +32,7 @@ export function DeptCompletionCard({
           Report completion by department today
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-5">
+      <CardContent className="flex flex-col gap-4">
         {departments.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             No departments with active members yet.

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,10 +32,7 @@ export function TodayReportCard({
         {todayReport ? (
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 flex-col gap-1">
-              <p className="flex items-center gap-1.5 text-lg font-semibold text-primary">
-                <CheckCircle2 className="size-5 shrink-0" />
-                Submitted
-              </p>
+              <Badge>Submitted</Badge>
               <p className="text-sm text-muted-foreground">
                 <LocalDateTime isoString={todayReport.submitted_at} />
               </p>
