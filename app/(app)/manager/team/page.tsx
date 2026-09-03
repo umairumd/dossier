@@ -1,5 +1,5 @@
 import { getCurrentProfileWithDepartment } from "@/lib/supabase/queries/profile";
-import { getTeamEmployeeRoster } from "@/lib/supabase/queries/manager/team";
+import { getTeamRoster } from "@/lib/supabase/queries/manager/team";
 import { getSupervisedMembers } from "@/lib/supabase/queries/supervisor/team";
 import { createClient } from "@/lib/supabase/server";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
@@ -57,7 +57,7 @@ export default async function TeamMembersPage() {
 
   const [deptMembers, supervisedMembers] = await Promise.all([
     profile?.role === "manager"
-      ? getTeamEmployeeRoster()
+      ? getTeamRoster()
       : Promise.resolve([]),
     profile?.is_supervisor
       ? getSupervisedMembers()

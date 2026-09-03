@@ -3,6 +3,7 @@ import { Building2, Calendar, LogIn, Mail, UserCheck } from "lucide-react";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees, getEmployeeDetail } from "@/lib/supabase/queries/admin/employees";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
+import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import {
   Card,
@@ -24,11 +25,12 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params;
 
-  const [employee, profile, allDepartments, employees] = await Promise.all([
+  const [employee, profile, allDepartments, employees, orgName] = await Promise.all([
     getEmployeeDetail(id),
     getCurrentProfile(),
     getAllDepartments(),
     getAllEmployees(),
+    getOrganizationName(),
   ]);
 
   if (!employee) {
@@ -38,7 +40,11 @@ export default async function EmployeeDetailPage({
   const isSelf = employee.id === profile?.id;
   const departments = allDepartments
     .filter((department) => department.archived_at === null)
-    .map((department) => ({ id: department.id, name: department.name }));
+    .map((department) => ({
+      id: department.id,
+      name: department.name,
+      manager_name: department.manager_name,
+    }));
   const candidates = employees.filter((item) => item.id !== employee.id);
   const supervisorNames = candidates
     .filter((candidate) => employee.supervisor_ids.includes(candidate.id))
@@ -65,6 +71,7 @@ export default async function EmployeeDetailPage({
           isSelf={isSelf}
           departments={departments}
           candidates={candidates}
+          orgName={orgName}
           redirectOnDelete="/admin/employees"
         />
       </div>

@@ -1,15 +1,14 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import Image from "next/image";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { NavLinks } from "@/components/layout/nav-links";
 import type { NavSection } from "@/components/layout/nav-config";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
 const SIDEBAR_COLLAPSED_EVENT = "sidebar-collapsed-change";
+const SIDEBAR_TOGGLE_EVENT = "sidebar-toggle";
 
 function subscribeToCollapsed(onStoreChange: () => void) {
   window.addEventListener("storage", onStoreChange);
@@ -43,10 +42,16 @@ export function Sidebar({
     getCollapsedServerSnapshot,
   );
 
-  const toggleCollapsed = useCallback(() => {
-    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(!collapsed));
-    window.dispatchEvent(new Event(SIDEBAR_COLLAPSED_EVENT));
-  }, [collapsed]);
+  useEffect(() => {
+    const handler = () => {
+      const next = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) !== "true";
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      window.dispatchEvent(new Event(SIDEBAR_COLLAPSED_EVENT));
+    };
+
+    window.addEventListener(SIDEBAR_TOGGLE_EVENT, handler);
+    return () => window.removeEventListener(SIDEBAR_TOGGLE_EVENT, handler);
+  }, []);
 
   return (
     <aside
@@ -81,19 +86,6 @@ export function Sidebar({
           )}
         </div>
         <NavLinks sections={mainSections} collapsed={collapsed} />
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn("mt-auto mb-1", collapsed ? "self-center" : "self-end")}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          onClick={toggleCollapsed}
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="size-4" />
-          ) : (
-            <PanelLeftClose className="size-4" />
-          )}
-        </Button>
       </div>
 
       <div

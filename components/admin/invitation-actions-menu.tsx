@@ -14,11 +14,13 @@ import { InviteLinkDialog } from "./invite-link-dialog";
 interface InvitationActionsMenuProps {
   email: string;
   fullName: string;
+  orgName: string | null;
 }
 
 export function InvitationActionsMenu({
   email,
   fullName,
+  orgName,
 }: InvitationActionsMenuProps) {
   const [inviteLinkOpen, setInviteLinkOpen] = useState(false);
 
@@ -42,6 +44,7 @@ export function InvitationActionsMenu({
       <InviteLinkDialog
         email={email}
         fullName={fullName}
+        orgName={orgName}
         open={inviteLinkOpen}
         onOpenChange={setInviteLinkOpen}
       />

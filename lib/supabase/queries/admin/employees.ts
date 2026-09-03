@@ -17,6 +17,9 @@ interface ProfileRow {
   is_active: boolean;
   archived_at: string | null;
   created_at: string;
+  designation: string | null;
+  is_remote: boolean;
+  avatar_url: string | null;
 }
 
 interface AuthUserSummary {
@@ -114,6 +117,9 @@ function toEmployeeListItem(
     invited_at: authUser?.invitedAt ?? null,
     last_sign_in_at: authUser?.lastSignInAt ?? null,
     status: computeEmployeeStatus(profile.is_active, profile.archived_at, authUser),
+    designation: profile.designation,
+    is_remote: profile.is_remote,
+    avatar_url: profile.avatar_url,
     created_at: profile.created_at,
   };
 }
@@ -180,7 +186,7 @@ async function attachMemberships(
 }
 
 const PROFILE_SELECT =
-  "id, full_name, role, organization_id, is_active, archived_at, created_at";
+  "id, full_name, role, organization_id, is_active, archived_at, created_at, designation, is_remote, avatar_url";
 
 // requireAdminUser() runs first specifically because this function is the
 // reason the service-role client exists in a read path (email/status come

@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/table";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
+import { MemberAvatar } from "@/components/shared/member-avatar";
+import { Badge } from "@/components/ui/badge";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem, EmployeeStatus } from "@/types/employee";
@@ -40,11 +42,13 @@ export function EmployeeList({
   currentUserId,
   departments,
   candidates,
+  orgName,
 }: {
   employees: EmployeeListItem[];
   currentUserId: string;
   departments: DepartmentOption[];
   candidates: EmployeeListItem[];
+  orgName: string | null;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -122,18 +126,41 @@ export function EmployeeList({
           <TableBody>
             {filtered.map((employee) => (
               <TableRow key={employee.id}>
-                <TableCell className="font-medium">
-                  <Link
-                    href={`/admin/employees/${employee.id}`}
-                    className="hover:underline"
-                  >
-                    {employee.full_name}
-                  </Link>
+                <TableCell>
+                  <div className="flex items-center gap-2.5">
+                    <MemberAvatar
+                      name={employee.full_name}
+                      avatarUrl={employee.avatar_url ?? undefined}
+                      size="sm"
+                    />
+                    <div className="flex flex-col gap-0.5">
+                      <Link
+                        href={`/admin/employees/${employee.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {employee.full_name}
+                      </Link>
+                      {employee.is_remote && (
+                        <Badge variant="outline" className="w-fit text-xs">
+                          Remote
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {employee.email ?? "—"}
                 </TableCell>
-                <TableCell>{getRoleLabel(employee.role)}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-0.5">
+                    <span>{getRoleLabel(employee.role)}</span>
+                    {employee.designation && (
+                      <span className="text-xs text-muted-foreground">
+                        {employee.designation}
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
                   {employee.department_names.join(", ") || "—"}
                 </TableCell>
@@ -146,6 +173,7 @@ export function EmployeeList({
                     isSelf={employee.id === currentUserId}
                     departments={departments}
                     candidates={candidates}
+                    orgName={orgName}
                   />
                 </TableCell>
               </TableRow>

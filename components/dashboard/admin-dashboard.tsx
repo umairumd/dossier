@@ -1,5 +1,7 @@
 import { getOrganizationSummary } from "@/lib/supabase/queries/admin/overview";
 import { getDeptCompletionToday } from "@/lib/supabase/queries/admin/dept-completion";
+import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
+import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getRecentActivity } from "@/lib/supabase/queries/admin/activity";
 import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
@@ -24,16 +26,25 @@ const HOME_ACTIVITY_LIMIT = 8;
 // reachable directly in case it's bookmarked) — one component, not two
 // parallel implementations of the same org overview.
 export async function AdminDashboard() {
-  const [summary, departments, recentActivity, todayReport, settings] =
+  const [summary, deptCompletion, recentActivity, todayReport, settings, allDepartments, employees] =
     await Promise.all([
       getOrganizationSummary(),
       getDeptCompletionToday(),
       getRecentActivity(HOME_ACTIVITY_LIMIT),
       getTodayReport(),
       getOrganizationSettings(),
+      getAllDepartments(),
+      getAllEmployees(),
     ]);
   const today = formatLongDate(new Date());
   const deadlineHour = String(settings.reportDeadlineHourUtc).padStart(2, "0");
+  const departmentOptions = allDepartments
+    .filter((department) => department.archived_at === null)
+    .map((department) => ({
+      id: department.id,
+      name: department.name,
+      manager_name: department.manager_name,
+    }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -60,14 +71,17 @@ export async function AdminDashboard() {
         />
       </div>
 
-      <DeptCompletionCard departments={departments} />
+      <DeptCompletionCard departments={deptCompletion} />
 
       <div className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">
           Quick Actions
         </h2>
         <div className="flex flex-wrap gap-2">
-          <InviteEmployeeDialog />
+          <InviteEmployeeDialog
+            departments={departmentOptions}
+            candidates={employees}
+          />
           <CreateDepartmentDialog />
         </div>
       </div>
