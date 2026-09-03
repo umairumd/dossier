@@ -4,10 +4,12 @@ import { useState, useTransition } from "react";
 import {
   Archive,
   ArchiveRestore,
+  Eye,
   MoreHorizontal,
   Pencil,
   Trash2,
 } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -150,6 +152,13 @@ export function DepartmentActionsMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link href={`/departments/${department.id}`}>
+              <Eye className="size-4" />
+              View Department
+            </Link>
+          </DropdownMenuItem>
+
           <DropdownMenuItem onSelect={() => setEditOpen(true)}>
             <Pencil className="size-4" />
             Edit

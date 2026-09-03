@@ -7,7 +7,7 @@ export default function EmployeeOverviewLoading() {
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-4 w-32" />
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         {Array.from({ length: 3 }).map((_, index) => (
           <Skeleton key={index} className="h-20" />
         ))}

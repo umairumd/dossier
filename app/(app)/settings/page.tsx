@@ -35,7 +35,7 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <Card className="max-w-md">
+      <Card className="max-w-md card-gradient">
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
           <CardDescription>Update your display name.</CardDescription>
@@ -52,7 +52,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="max-w-md">
+      <Card className="max-w-md card-gradient">
         <CardHeader>
           <CardTitle>Security</CardTitle>
           <CardDescription>
@@ -64,7 +64,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="max-w-md">
+      <Card className="max-w-md card-gradient">
         <CardHeader>
           <CardTitle>Session</CardTitle>
           <CardDescription>

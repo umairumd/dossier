@@ -1,5 +1,8 @@
 import { getCurrentProfileWithDepartment } from "@/lib/supabase/queries/profile";
-import { getTeamRoster } from "@/lib/supabase/queries/manager/team";
+import {
+  getTeamRoster,
+  type TeamRosterMember,
+} from "@/lib/supabase/queries/manager/team";
 import { getSupervisedMembers } from "@/lib/supabase/queries/supervisor/team";
 import { createClient } from "@/lib/supabase/server";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
@@ -15,7 +18,7 @@ function MemberList({
   emptyMessage,
   managerIds,
 }: {
-  members: { id: string; full_name: string }[];
+  members: TeamRosterMember[];
   emptyMessage: string;
   managerIds?: Set<string>;
 }) {
@@ -32,18 +35,32 @@ function MemberList({
               key={member.id}
               className="flex items-center py-2.5 first:pt-0 last:pb-0"
             >
-              <div className="flex items-center gap-2.5">
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 <MemberAvatar name={member.full_name} size="sm" />
-                <EmployeeNameLink
-                  employeeId={member.id}
-                  fullName={member.full_name}
-                  className="text-sm font-medium hover:underline"
-                />
-                {managerIds?.has(member.id) && (
-                  <Badge variant="secondary" className="text-xs">
-                    Manager
-                  </Badge>
-                )}
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <div className="flex items-center gap-2">
+                    <EmployeeNameLink
+                      employeeId={member.id}
+                      fullName={member.full_name}
+                      className="text-sm font-medium hover:underline"
+                    />
+                    {managerIds?.has(member.id) && (
+                      <Badge variant="secondary" className="text-xs">
+                        Manager
+                      </Badge>
+                    )}
+                    {member.is_remote && (
+                      <Badge variant="outline" className="text-xs">
+                        Remote
+                      </Badge>
+                    )}
+                  </div>
+                  {member.designation && (
+                    <span className="truncate text-xs text-muted-foreground">
+                      {member.designation}
+                    </span>
+                  )}
+                </div>
               </div>
             </li>
           ))}

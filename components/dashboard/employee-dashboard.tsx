@@ -49,7 +49,7 @@ export async function EmployeeDashboard({
 
       <ActivityStrip reports={reportHistory} />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <StatCard
           label="Current Streak"
           value={stats.currentStreak}
@@ -65,6 +65,7 @@ export async function EmployeeDashboard({
         <StatCard
           label="30-day completion"
           value={`${stats.completionPercentage}%`}
+          className="col-span-2 lg:col-span-1"
         />
       </div>
 

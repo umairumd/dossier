@@ -22,7 +22,7 @@ export function RecentReportsCard({
   deadlineHourUtc?: number;
 }) {
   return (
-    <Card>
+    <Card className="card-gradient">
       <CardHeader>
         <CardTitle>Recent Reports</CardTitle>
         <CardDescription>Your last few daily reports.</CardDescription>

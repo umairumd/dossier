@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { Check, Copy, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -45,9 +45,11 @@ function unsetIfSentinel(value: string): string | undefined {
 export function InviteEmployeeDialog({
   departments,
   candidates,
+  trigger,
 }: {
   departments: DepartmentOption[];
   candidates: EmployeeListItem[];
+  trigger?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -133,10 +135,12 @@ export function InviteEmployeeDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button>
-          <UserPlus className="size-4" />
-          Invite Employee
-        </Button>
+        {trigger ?? (
+          <Button>
+            <UserPlus className="size-4" />
+            Invite Employee
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -146,7 +150,7 @@ export function InviteEmployeeDialog({
           <DialogDescription>
             {inviteLink
               ? "Share this link with the employee so they can set a password and sign in."
-              : "Creates their account and profile. If email isn't configured for this project, share the generated link with them directly."}
+              : "An invite link will be generated. Share it with the employee so they can set their password and access Dossier."}
           </DialogDescription>
         </DialogHeader>
 

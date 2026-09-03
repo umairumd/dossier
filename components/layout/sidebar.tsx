@@ -78,6 +78,7 @@ export function Sidebar({
             width={32}
             height={32}
             className="rounded-sm"
+            style={{ width: 32, height: 32 }}
           />
           {!collapsed && (
             <span className="text-base font-semibold tracking-tight">

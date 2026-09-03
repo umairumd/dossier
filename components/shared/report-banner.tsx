@@ -32,54 +32,66 @@ export function ReportBanner({
 
   if (todayReport) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-gradient-to-r from-primary/10 to-transparent px-4 py-3">
-        <CheckCircle2 className="size-4 shrink-0 text-primary" />
-        <div className="min-w-0 flex-1">
-          <span className="text-sm font-medium">Report submitted</span>
-          <span className="ml-2 inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-            <span>
-              · <LocalDateTime isoString={todayReport.submitted_at} />
+      <div className="flex flex-col gap-2 rounded-lg border border-border card-gradient-strong px-4 py-3 sm:flex-row sm:items-center sm:gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
+          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary sm:mt-0" />
+          <div className="flex min-w-0 flex-col sm:flex-row sm:items-center sm:gap-2">
+            <span className="text-sm font-medium whitespace-nowrap">
+              Report submitted
             </span>
-            <SubmissionStatusBadge
-              status={getSubmissionStatus(
-                todayReport.submitted_at,
-                deadlineHourUtc,
-              )}
-            />
-          </span>
+            <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <span>
+                · <LocalDateTime isoString={todayReport.submitted_at} />
+              </span>
+              <SubmissionStatusBadge
+                status={getSubmissionStatus(
+                  todayReport.submitted_at,
+                  deadlineHourUtc,
+                )}
+              />
+            </span>
+          </div>
         </div>
-        <Link
-          href="/reports/history"
-          className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
-        >
-          View history
-        </Link>
+        <div className="flex shrink-0 items-center gap-3 pl-7 sm:pl-0">
+          <Link
+            href="/reports/history"
+            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            View history
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border-l-2 border-l-primary bg-gradient-to-r from-primary/5 to-transparent px-4 py-3 shadow-sm">
-      <FileText className="size-4 shrink-0 text-primary" />
-      <div className="min-w-0 flex-1">
-        <span className="text-sm font-medium">Submit today&apos;s report</span>
-        {deadlineHint && (
-          <span className="ml-2 text-xs text-muted-foreground">
-            · {deadlineHint}
+    <div className="flex flex-col gap-2 rounded-lg border-t border-r border-b border-border border-l-2 border-l-primary shadow-sm card-gradient px-4 py-3 sm:flex-row sm:items-center sm:gap-3">
+      <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
+        <FileText className="mt-0.5 size-4 shrink-0 text-primary sm:mt-0" />
+        <div className="flex min-w-0 flex-col sm:flex-row sm:items-center sm:gap-2">
+          <span className="text-sm font-medium whitespace-nowrap">
+            Submit today&apos;s report
           </span>
-        )}
+          {deadlineHint && (
+            <span className="text-xs text-muted-foreground">
+              · {deadlineHint}
+            </span>
+          )}
+        </div>
       </div>
-      <Link
-        href="/reports/history"
-        className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-foreground"
-      >
-        View history
-      </Link>
-      <SubmitReportSheet
-        alreadySubmitted={false}
-        triggerLabel="Submit →"
-        onSubmitted={handleSubmitted}
-      />
+      <div className="flex shrink-0 items-center gap-3 pl-7 sm:pl-0">
+        <SubmitReportSheet
+          alreadySubmitted={false}
+          triggerLabel="Submit →"
+          onSubmitted={handleSubmitted}
+        />
+        <Link
+          href="/reports/history"
+          className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          View history
+        </Link>
+      </div>
     </div>
   );
 }

@@ -63,6 +63,7 @@ export function TopNav({
                 width={32}
                 height={32}
                 className="rounded-sm"
+                style={{ width: 32, height: 32 }}
               />
               <span className="text-base font-semibold tracking-tight">
                 Dossier
@@ -99,6 +100,7 @@ export function TopNav({
           width={28}
           height={28}
           className="rounded-sm"
+          style={{ width: 28, height: 28 }}
         />
         <span className="text-sm font-semibold tracking-tight">Dossier</span>
       </div>

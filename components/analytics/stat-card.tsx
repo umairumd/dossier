@@ -17,6 +17,7 @@ export function StatCard({
   hint,
   icon,
   valueClassName,
+  className,
 }: {
   label: string;
   value: string | number;
@@ -24,9 +25,10 @@ export function StatCard({
   hint?: string;
   icon?: ReactNode;
   valueClassName?: string;
+  className?: string;
 }): ReactNode {
   return (
-    <Card className="bg-gradient-to-b from-card to-card/60">
+    <Card className={cn("card-gradient-subtle", className)}>
       <CardHeader>
         <CardDescription className="flex items-center gap-1.5">
           {icon}

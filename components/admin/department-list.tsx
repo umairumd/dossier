@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -112,7 +113,14 @@ export function DepartmentList({
           <TableBody>
             {filtered.map((department) => (
               <TableRow key={department.id}>
-                <TableCell className="font-medium">{department.name}</TableCell>
+                <TableCell>
+                  <Link
+                    href={`/departments/${department.id}`}
+                    className="font-medium hover:underline"
+                  >
+                    {department.name}
+                  </Link>
+                </TableCell>
                 <TableCell className="text-muted-foreground">
                   {department.manager_name ?? "Unassigned"}
                 </TableCell>

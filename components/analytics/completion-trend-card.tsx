@@ -37,7 +37,7 @@ export function CompletionTrendCard({
   const isDense = trend.length > 10;
 
   return (
-    <Card>
+    <Card className="card-gradient">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}

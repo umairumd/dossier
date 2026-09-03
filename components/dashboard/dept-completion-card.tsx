@@ -25,7 +25,7 @@ export function DeptCompletionCard({
   departments: DeptCompletionRow[];
 }) {
   return (
-    <Card>
+    <Card className="card-gradient">
       <CardHeader>
         <CardTitle>Department Overview</CardTitle>
         <CardDescription>

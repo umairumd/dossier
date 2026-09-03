@@ -36,6 +36,7 @@ const UNASSIGNED = "unassigned";
 interface EditDepartmentDialogProps {
   department: DepartmentListItem;
   managerCandidates: ManagerCandidate[];
+  managerNote?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -43,6 +44,7 @@ interface EditDepartmentDialogProps {
 export function EditDepartmentDialog({
   department,
   managerCandidates,
+  managerNote,
   open,
   onOpenChange,
 }: EditDepartmentDialogProps) {
@@ -136,7 +138,10 @@ export function EditDepartmentDialog({
                   ))}
                 </SelectContent>
               </Select>
-              {managerCandidates.length === 0 && (
+              {managerNote && (
+                <p className="text-xs text-muted-foreground">{managerNote}</p>
+              )}
+              {!managerNote && managerCandidates.length === 0 && (
                 <p className="text-xs text-muted-foreground">
                   No employees have the Manager role yet — assign that role to
                   someone first from the Employees page.

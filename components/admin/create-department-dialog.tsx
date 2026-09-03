@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,11 @@ import {
   type DepartmentFieldErrors,
 } from "@/lib/validations/department";
 
-export function CreateDepartmentDialog() {
+export function CreateDepartmentDialog({
+  trigger,
+}: {
+  trigger?: ReactNode;
+} = {}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [fieldErrors, setFieldErrors] = useState<DepartmentFieldErrors>({});
@@ -63,10 +67,12 @@ export function CreateDepartmentDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="size-4" />
-          New Department
-        </Button>
+        {trigger ?? (
+          <Button>
+            <Plus className="size-4" />
+            New Department
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

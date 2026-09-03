@@ -76,8 +76,8 @@ export default async function EmployeeDetailPage({
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <Card className="card-gradient">
           <CardHeader>
             <CardDescription className="flex items-center gap-1.5">
               <Mail className="size-3.5" />
@@ -89,7 +89,7 @@ export default async function EmployeeDetailPage({
           </CardHeader>
         </Card>
 
-        <Card>
+        <Card className="card-gradient">
           <CardHeader>
             <CardDescription>Status</CardDescription>
             <CardTitle>
@@ -98,7 +98,7 @@ export default async function EmployeeDetailPage({
           </CardHeader>
         </Card>
 
-        <Card>
+        <Card className="card-gradient">
           <CardHeader>
             <CardDescription className="flex items-center gap-1.5">
               <Calendar className="size-3.5" />
@@ -114,7 +114,7 @@ export default async function EmployeeDetailPage({
           </CardHeader>
         </Card>
 
-        <Card>
+        <Card className="card-gradient">
           <CardHeader>
             <CardDescription className="flex items-center gap-1.5">
               <LogIn className="size-3.5" />
@@ -130,7 +130,7 @@ export default async function EmployeeDetailPage({
           </CardHeader>
         </Card>
 
-        <Card>
+        <Card className="card-gradient">
           <CardHeader>
             <CardDescription className="flex items-center gap-1.5">
               <Building2 className="size-3.5" />
@@ -142,7 +142,7 @@ export default async function EmployeeDetailPage({
           </CardHeader>
         </Card>
 
-        <Card>
+        <Card className="card-gradient col-span-2 lg:col-span-1">
           <CardHeader>
             <CardDescription className="flex items-center gap-1.5">
               <UserCheck className="size-3.5" />

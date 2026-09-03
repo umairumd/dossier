@@ -235,6 +235,8 @@ export async function updateEmployee(
     .update({
       full_name: validation.value.fullName,
       role: validation.value.role,
+      designation: validation.value.designation,
+      is_remote: validation.value.isRemote,
     })
     .eq("id", input.id);
 
@@ -364,6 +366,7 @@ export async function archiveEmployee(
 
   revalidateEmployeePaths(employeeId);
   revalidatePath("/admin/departments");
+  revalidatePath("/departments");
 
   return { success: true };
 }
@@ -395,6 +398,7 @@ export async function restoreEmployee(
 
   revalidateEmployeePaths(employeeId);
   revalidatePath("/admin/departments");
+  revalidatePath("/departments");
 
   return { success: true };
 }
@@ -476,6 +480,7 @@ export async function permanentlyDeleteEmployee(
 
   revalidatePath("/admin/employees");
   revalidatePath("/admin/departments");
+  revalidatePath("/departments");
 
   return { success: true };
 }
@@ -513,6 +518,7 @@ export async function assignMemberDepartments(
 
   revalidateEmployeePaths(memberId);
   revalidatePath("/admin/departments");
+  revalidatePath("/departments");
 
   return { success: true };
 }

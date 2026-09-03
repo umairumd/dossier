@@ -67,7 +67,7 @@ export async function ManagerDashboard({
         deadlineHourUtc={settings.reportDeadlineHourUtc}
       />
 
-      <Card>
+      <Card className="card-gradient">
         <CardHeader>
           <CardTitle className="text-base">Your Team Today</CardTitle>
           <CardDescription>{today}</CardDescription>
