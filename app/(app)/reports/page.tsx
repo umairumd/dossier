@@ -1,12 +1,14 @@
 import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
-import { SubmitReportCard } from "@/components/reports/submit-report-card";
-import { TodayStatusCard } from "@/components/reports/today-status-card";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { DailyReportPanel } from "@/components/reports/daily-report-panel";
+import { PageHeader } from "@/components/shared/page-header";
 
 export default async function DailyReportPage() {
-  const [todayReport, profile] = await Promise.all([
+  const [todayReport, profile, settings] = await Promise.all([
     getTodayReport(),
     getCurrentProfile(),
+    getOrganizationSettings(),
   ]);
 
   const isPrivileged =
@@ -17,23 +19,19 @@ export default async function DailyReportPage() {
   const subtitle = isPrivileged
     ? "Log today's progress."
     : "Log today's progress for your manager to review.";
+  const deadlineHour = String(settings.reportDeadlineHourUtc).padStart(2, "0");
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Daily Report
-        </h1>
+      <PageHeader title="Daily Report">
         <p className="text-sm text-muted-foreground">{subtitle}</p>
-      </div>
+      </PageHeader>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <TodayStatusCard report={todayReport} />
-        <SubmitReportCard
-          alreadySubmitted={!!todayReport}
-          isAdmin={isPrivileged}
-        />
-      </div>
+      <DailyReportPanel
+        todayReport={todayReport}
+        deadlineHint={`Due by ${deadlineHour}:00 UTC`}
+        deadlineHourUtc={settings.reportDeadlineHourUtc}
+      />
     </div>
   );
 }

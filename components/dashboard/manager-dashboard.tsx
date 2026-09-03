@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import { ActivityFeed } from "@/components/analytics/activity-feed";
 import { CompletionTrendCard } from "@/components/analytics/completion-trend-card";
-import { TodayReportCard } from "@/components/dashboard/today-report-card";
+import { ReportBanner } from "@/components/shared/report-banner";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { TeamHighlights } from "@/components/manager/team-highlights";
 
@@ -61,9 +61,10 @@ export async function ManagerDashboard({
         </div>
       </div>
 
-      <TodayReportCard
+      <ReportBanner
         todayReport={todayReport}
         deadlineHint={`Due by ${deadlineHour}:00 UTC`}
+        deadlineHourUtc={settings.reportDeadlineHourUtc}
       />
 
       <Card>

@@ -16,7 +16,7 @@ import { ActivityFeed } from "@/components/analytics/activity-feed";
 import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
 import { CreateDepartmentDialog } from "@/components/admin/create-department-dialog";
 import { DeptCompletionCard } from "@/components/dashboard/dept-completion-card";
-import { TodayReportCard } from "@/components/dashboard/today-report-card";
+import { ReportBanner } from "@/components/shared/report-banner";
 
 const HOME_ACTIVITY_LIMIT = 8;
 
@@ -44,9 +44,10 @@ export async function AdminDashboard() {
         <p className="text-sm text-muted-foreground">{today}</p>
       </div>
 
-      <TodayReportCard
+      <ReportBanner
         todayReport={todayReport}
         deadlineHint={`Due by ${deadlineHour}:00 UTC`}
+        deadlineHourUtc={settings.reportDeadlineHourUtc}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

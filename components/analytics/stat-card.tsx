@@ -26,7 +26,7 @@ export function StatCard({
   valueClassName?: string;
 }): ReactNode {
   return (
-    <Card>
+    <Card className="bg-gradient-to-b from-card to-card/60">
       <CardHeader>
         <CardDescription className="flex items-center gap-1.5">
           {icon}
