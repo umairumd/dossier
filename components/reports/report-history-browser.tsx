@@ -36,17 +36,23 @@ export function ReportHistoryBrowser({
     report,
   }));
 
+  const templatesMap = new Map(
+    (templates ?? []).map((template) => [template.id, template.name]),
+  );
+
   return (
     <>
       <ReportHistoryTable
         reports={reports}
         deadline={deadline}
         onView={setOpenIndex}
+        templatesMap={templatesMap}
       />
       <ReportHistoryCards
         reports={reports}
         deadline={deadline}
         onView={setOpenIndex}
+        templatesMap={templatesMap}
       />
       <ReportDetailSheet
         members={members}

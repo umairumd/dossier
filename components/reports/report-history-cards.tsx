@@ -12,21 +12,35 @@ export function ReportHistoryCards({
   reports,
   deadline,
   onView,
+  templatesMap,
 }: {
   reports: DailyReport[];
   deadline?: DeadlineContext;
   onView: (index: number) => void;
+  templatesMap?: Map<string, string>;
 }) {
   const showStatus = deadline !== undefined;
 
   return (
     <div className="flex flex-col gap-3 md:hidden">
-      {reports.map((report, index) => (
+      {reports.map((report, index) => {
+        const templateName = report.template_id
+          ? templatesMap?.get(report.template_id)
+          : undefined;
+
+        return (
         <div key={report.id} className="rounded-lg border border-border p-3">
           <div className="flex items-center justify-between gap-2 text-sm">
-            <span className="font-medium">
-              {formatDate(report.report_date)}
-            </span>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="font-medium">
+                {formatDate(report.report_date)}
+              </span>
+              {templateName && (
+                <span className="text-xs text-muted-foreground">
+                  {templateName}
+                </span>
+              )}
+            </div>
             <span className="text-xs text-muted-foreground">
               {report.submitted_at ? (
                 <LocalTime isoString={report.submitted_at} />
@@ -56,7 +70,8 @@ export function ReportHistoryCards({
             View
           </Button>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
