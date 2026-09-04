@@ -162,6 +162,7 @@ export default async function DepartmentDetailPage({
             departmentName={detail.name}
             currentTemplateId={detail.template_id}
             templates={templates}
+            canCreate
           />
         </CardContent>
       </Card>
