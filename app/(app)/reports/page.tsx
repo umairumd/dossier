@@ -9,6 +9,7 @@ import { formatDeadlineHint } from "@/lib/helpers/time";
 import { ReportBanner } from "@/components/shared/report-banner";
 import { PageHeader } from "@/components/shared/page-header";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
+import { ReportSearch } from "@/components/reports/report-search";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
   Card,
@@ -56,59 +57,64 @@ export default async function DailyReportPage({
         <CardHeader>
           <CardTitle className="text-base">Report History</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          {reportHistory.length === 0 && page === 1 ? (
-            <EmptyState
-              title="No reports submitted yet."
-              description="Submit your first daily report above."
-              className="py-8"
-            />
-          ) : reportHistory.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-10 text-center">
-              <p className="text-sm text-muted-foreground">No more reports.</p>
-              <Link
-                href="/reports"
-                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Back to My Reports
-              </Link>
-            </div>
-          ) : (
-            <>
-              <ReportHistoryBrowser
-                reports={reportHistory}
-                deadline={deadline}
-                userName={profile?.full_name ?? ""}
-                showProfileLink={false}
+        <CardContent className="flex flex-col gap-4">
+          <ReportSearch
+            deadline={deadline}
+            userName={profile?.full_name ?? ""}
+          >
+            {reportHistory.length === 0 && page === 1 ? (
+              <EmptyState
+                title="No reports submitted yet."
+                description="Submit your first daily report above."
+                className="py-8"
               />
+            ) : reportHistory.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-center">
+                <p className="text-sm text-muted-foreground">No more reports.</p>
+                <Link
+                  href="/reports"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Back to My Reports
+                </Link>
+              </div>
+            ) : (
+              <>
+                <ReportHistoryBrowser
+                  reports={reportHistory}
+                  deadline={deadline}
+                  userName={profile?.full_name ?? ""}
+                  showProfileLink={false}
+                />
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-border px-6 py-4">
-                  <p className="text-xs text-muted-foreground">
-                    Page {page} of {totalPages}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    {page > 1 && (
-                      <Link
-                        href={`/reports?page=${page - 1}`}
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        ← Previous
-                      </Link>
-                    )}
-                    {page < totalPages && (
-                      <Link
-                        href={`/reports?page=${page + 1}`}
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        Next →
-                      </Link>
-                    )}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between border-t border-border py-4">
+                    <p className="text-xs text-muted-foreground">
+                      Page {page} of {totalPages}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      {page > 1 && (
+                        <Link
+                          href={`/reports?page=${page - 1}`}
+                          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          ← Previous
+                        </Link>
+                      )}
+                      {page < totalPages && (
+                        <Link
+                          href={`/reports?page=${page + 1}`}
+                          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          Next →
+                        </Link>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
+                )}
+              </>
+            )}
+          </ReportSearch>
         </CardContent>
       </Card>
     </div>

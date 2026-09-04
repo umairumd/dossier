@@ -2,8 +2,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { AlertCircle, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -21,7 +27,6 @@ import {
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { MemberAvatar } from "@/components/shared/member-avatar";
-import { Badge } from "@/components/ui/badge";
 import { DepartmentActionsMenu } from "@/components/admin/department-actions-menu";
 import { DepartmentStatusBadge } from "@/components/admin/department-status-badge";
 import type { DepartmentListItem, ManagerCandidate } from "@/types/department";
@@ -65,6 +70,7 @@ export function DepartmentList({
   }, [departments, query, statusFilter]);
 
   return (
+    <TooltipProvider>
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative max-w-sm flex-1">
@@ -124,12 +130,19 @@ export function DepartmentList({
                       {department.name}
                     </Link>
                     {department.employee_count === 0 && (
-                      <Badge
-                        variant="outline"
-                        className="text-xs border-yellow-500/50 text-yellow-500/80"
-                      >
-                        No members
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex shrink-0 cursor-help"
+                          >
+                            <AlertCircle className="size-4 text-yellow-500/80" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>No members assigned to this department</p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
                 </TableCell>
@@ -138,12 +151,19 @@ export function DepartmentList({
                     <div className="flex items-center gap-2">
                       <MemberAvatar
                         name={department.manager_name}
-                        size="xs"
+                        size="sm"
                       />
                       <span>{department.manager_name}</span>
                     </div>
                   ) : (
-                    <span className="text-muted-foreground">Unassigned</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                        —
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        Unassigned
+                      </span>
+                    </div>
                   )}
                 </TableCell>
                 <TableCell>{department.employee_count}</TableCell>
@@ -162,5 +182,6 @@ export function DepartmentList({
         </Table>
       )}
     </div>
+    </TooltipProvider>
   );
 }

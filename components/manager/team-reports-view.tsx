@@ -32,6 +32,12 @@ import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 
@@ -45,6 +51,21 @@ function memberStatus(
     member.report?.submitted_at ?? null,
     deadline.deadlineHourUtc,
     deadline,
+  );
+}
+
+function DepartmentManagerStar() {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex shrink-0">
+          <Star className="size-3 fill-primary text-primary" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Department manager</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -124,6 +145,7 @@ export function TeamReportsView({
       : "No reports match your filters.");
 
   return (
+    <TooltipProvider>
     <div className="flex flex-col gap-4">
       {showFilters && (
         <div className="flex flex-wrap items-center gap-2">
@@ -205,9 +227,7 @@ export function TeamReportsView({
                                   : "/manager/employees"
                               }
                             />
-                            {isManager && (
-                              <Star className="size-3 shrink-0 fill-primary text-primary" />
-                            )}
+                            {isManager && <DepartmentManagerStar />}
                           </div>
                         </div>
                       </TableCell>
@@ -278,9 +298,7 @@ export function TeamReportsView({
                               : "/manager/employees"
                           }
                         />
-                        {isManager && (
-                          <Star className="size-3 shrink-0 fill-primary text-primary" />
-                        )}
+                        {isManager && <DepartmentManagerStar />}
                       </div>
                       {member.designation && (
                         <p className="truncate text-xs text-muted-foreground">
@@ -326,5 +344,6 @@ export function TeamReportsView({
         adminView={adminView}
       />
     </div>
+    </TooltipProvider>
   );
 }

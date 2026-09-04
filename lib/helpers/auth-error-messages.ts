@@ -3,9 +3,8 @@
 // banned case actively confusing — a deactivated employee has no way to
 // know that "banned" refers to an admin action, not a security flag on
 // their account. This maps known messages to application-facing copy;
-// anything unrecognized falls through unchanged rather than being hidden,
-// so a new/unexpected Supabase error is still visible instead of silently
-// swallowed.
+// anything unrecognized maps to a generic retry message so Supabase
+// codes never reach the UI.
 export function friendlyAuthErrorMessage(message: string): string {
   const normalized = message.toLowerCase();
 
@@ -14,8 +13,8 @@ export function friendlyAuthErrorMessage(message: string): string {
   }
 
   if (normalized.includes("invalid login credentials")) {
-    return "Incorrect email or password. Please try again.";
+    return "Invalid email or password.";
   }
 
-  return message;
+  return "Something went wrong. Please try again.";
 }
