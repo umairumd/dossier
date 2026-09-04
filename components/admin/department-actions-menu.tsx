@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   Archive,
   ArchiveRestore,
@@ -62,6 +63,7 @@ export function DepartmentActionsMenu({
   department,
   managerCandidates,
 }: DepartmentActionsMenuProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [dialogAction, setDialogAction] = useState<DialogAction | null>(null);
   const [memberWarningCount, setMemberWarningCount] = useState<number | null>(
@@ -122,6 +124,10 @@ export function DepartmentActionsMenu({
 
       toast.success(config.successMessage);
       setDialogAction(null);
+
+      if (dialogAction === "archive") {
+        router.push("/departments");
+      }
     });
   };
 
@@ -137,6 +143,7 @@ export function DepartmentActionsMenu({
 
       toast.success("Department archived.");
       setMemberWarningCount(null);
+      router.push("/departments");
     });
   };
 
