@@ -1,10 +1,14 @@
 import { notFound } from "next/navigation";
-import { Building2, Calendar, Mail, MapPin, UserCheck } from "lucide-react";
+import { Building2, Calendar, FileStack, Mail, UserCheck } from "lucide-react";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees, getEmployeeDetail } from "@/lib/supabase/queries/admin/employees";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
+import {
+  getOrgTemplates,
+  getTemplateResolutionInfo,
+} from "@/lib/supabase/queries/templates";
 import { formatDate } from "@/lib/helpers/dates";
 import { ProfileHeader } from "@/components/shared/profile-header";
 import {
@@ -25,7 +29,7 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params;
 
-  const [employee, profile, allDepartments, employees, orgName, settings] =
+  const [employee, profile, allDepartments, employees, orgName, settings, templates] =
     await Promise.all([
       getEmployeeDetail(id),
       getCurrentProfile(),
@@ -33,6 +37,7 @@ export default async function EmployeeDetailPage({
       getAllEmployees(),
       getOrganizationName(),
       getOrganizationSettings(),
+      getOrgTemplates(),
     ]);
 
   if (!employee) {
@@ -52,6 +57,17 @@ export default async function EmployeeDetailPage({
     .filter((candidate) => employee.supervisor_ids.includes(candidate.id))
     .map((candidate) => candidate.full_name);
 
+  const resolution = await getTemplateResolutionInfo(
+    employee.id,
+    employee.department_ids,
+  );
+  const templateSourceLabel =
+    resolution.source === "individual"
+      ? "Individual override"
+      : resolution.source === "department"
+        ? `From ${resolution.sourceName}`
+        : "Organization default";
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -70,6 +86,9 @@ export default async function EmployeeDetailPage({
           candidates={candidates}
           orgName={orgName}
           redirectOnDelete="/employees"
+          templates={templates}
+          currentTemplateSource={resolution.source}
+          currentTemplateSourceName={resolution.sourceName}
         />
       </div>
 
@@ -139,16 +158,15 @@ export default async function EmployeeDetailPage({
         <Card className="card-gradient">
           <CardHeader>
             <CardDescription className="flex items-center gap-1.5">
-              {employee.is_remote ? (
-                <MapPin className="size-3.5" />
-              ) : (
-                <Building2 className="size-3.5" />
-              )}
-              Work location
+              <FileStack className="size-3.5" />
+              Report Template
             </CardDescription>
             <CardTitle className="text-base font-medium">
-              {employee.is_remote ? "Remote" : "On-site"}
+              {resolution.template.name}
             </CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {templateSourceLabel}
+            </p>
           </CardHeader>
         </Card>
       </div>

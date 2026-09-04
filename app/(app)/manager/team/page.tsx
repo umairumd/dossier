@@ -5,22 +5,25 @@ import {
 } from "@/lib/supabase/queries/manager/team";
 import { getSupervisedMembers } from "@/lib/supabase/queries/supervisor/team";
 import { createClient } from "@/lib/supabase/server";
-import { EmployeeNameLink } from "@/components/manager/employee-name-link";
+import { getOrgTemplates } from "@/lib/supabase/queries/templates";
+import { TeamMemberRow } from "@/components/manager/team-member-row";
+import { DeptTemplateActions } from "@/components/admin/dept-template-actions";
 import { EmptyState } from "@/components/shared/empty-state";
-import { MemberAvatar } from "@/components/shared/member-avatar";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
+import type { ReportTemplate } from "@/types/template";
 
 function MemberList({
   members,
   emptyMessage,
   managerIds,
+  templates,
 }: {
   members: TeamRosterMember[];
   emptyMessage: string;
   managerIds?: Set<string>;
+  templates: ReportTemplate[];
 }) {
   if (members.length === 0) {
     return <EmptyState illustration="team" title={emptyMessage} />;
@@ -31,38 +34,12 @@ function MemberList({
       <CardContent>
         <ul className="flex flex-col divide-y divide-border">
           {members.map((member) => (
-            <li
+            <TeamMemberRow
               key={member.id}
-              className="flex items-center py-2.5 first:pt-0 last:pb-0"
-            >
-              <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                <MemberAvatar name={member.full_name} size="sm" />
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <div className="flex items-center gap-2">
-                    <EmployeeNameLink
-                      employeeId={member.id}
-                      fullName={member.full_name}
-                      className="text-sm font-medium hover:underline"
-                    />
-                    {managerIds?.has(member.id) && (
-                      <Badge variant="secondary" className="text-xs">
-                        Manager
-                      </Badge>
-                    )}
-                    {member.is_remote && (
-                      <Badge variant="outline" className="text-xs">
-                        Remote
-                      </Badge>
-                    )}
-                  </div>
-                  {member.designation && (
-                    <span className="truncate text-xs text-muted-foreground">
-                      {member.designation}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </li>
+              member={member}
+              managerId={managerIds?.has(member.id) ? member.id : null}
+              templates={templates}
+            />
           ))}
         </ul>
       </CardContent>
@@ -73,29 +50,50 @@ function MemberList({
 export default async function TeamMembersPage() {
   const profile = await getCurrentProfileWithDepartment();
 
-  const [deptMembers, supervisedMembers] = await Promise.all([
+  const [deptMembers, supervisedMembers, templates] = await Promise.all([
     profile?.role === "manager"
       ? getTeamRoster()
       : Promise.resolve([]),
     profile?.is_supervisor
       ? getSupervisedMembers()
       : Promise.resolve([]),
+    getOrgTemplates(),
   ]);
 
   const managerIds = new Set<string>();
+  let managedDepartment: {
+    id: string;
+    name: string;
+    template_id: string | null;
+  } | null = null;
+
   if (profile && profile.department_ids.length > 0) {
     const supabase = await createClient();
     const { data: departments } = await supabase
       .from("departments")
-      .select("id, manager_id")
+      .select("id, manager_id, name, template_id")
       .in("id", profile.department_ids);
 
     for (const department of departments ?? []) {
       if (department.manager_id) {
         managerIds.add(department.manager_id);
       }
+      if (department.manager_id === profile.id) {
+        managedDepartment = {
+          id: department.id,
+          name: department.name,
+          template_id: department.template_id,
+        };
+      }
     }
   }
+
+  const canAssignDeptTemplate = Boolean(
+    profile &&
+      profile.department_ids.length > 0 &&
+      managerIds.has(profile.id) &&
+      managedDepartment,
+  );
 
   const isDeptManager =
     profile?.role === "manager" && deptMembers.length > 0;
@@ -119,6 +117,16 @@ export default async function TeamMembersPage() {
         title="Team Members"
         count={uniqueCount}
         countLabel={uniqueCount === 1 ? "member" : "members"}
+        action={
+          canAssignDeptTemplate && managedDepartment ? (
+            <DeptTemplateActions
+              departmentId={managedDepartment.id}
+              departmentName={managedDepartment.name}
+              currentTemplateId={managedDepartment.template_id}
+              templates={templates}
+            />
+          ) : undefined
+        }
       />
 
       <div>
@@ -129,6 +137,7 @@ export default async function TeamMembersPage() {
           members={section1Members}
           emptyMessage="No team members assigned yet."
           managerIds={isDeptManager ? managerIds : undefined}
+          templates={templates}
         />
       </div>
 
@@ -142,6 +151,7 @@ export default async function TeamMembersPage() {
             <MemberList
               members={exclusiveSupervisees}
               emptyMessage="No supervisees to show."
+              templates={templates}
             />
           </div>
         </>
