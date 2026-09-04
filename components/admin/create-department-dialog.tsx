@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactElement } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ import {
 export function CreateDepartmentDialog({
   trigger,
 }: {
-  trigger?: ReactNode;
+  trigger?: ReactElement;
 } = {}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -64,16 +64,7 @@ export function CreateDepartmentDialog({
     });
   };
 
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button>
-            <Plus className="size-4" />
-            New Department
-          </Button>
-        )}
-      </DialogTrigger>
+  const dialogContent = (
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New Department</DialogTitle>
@@ -111,6 +102,26 @@ export function CreateDepartmentDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+  );
+
+  if (trigger) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>{trigger}</DialogTrigger>
+        {dialogContent}
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="size-4" />
+          New Department
+        </Button>
+      </DialogTrigger>
+      {dialogContent}
     </Dialog>
   );
 }

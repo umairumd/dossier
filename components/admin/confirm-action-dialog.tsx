@@ -33,7 +33,7 @@ export function ConfirmActionDialog({
   action,
   onSuccess,
 }: {
-  trigger: React.ReactNode;
+  trigger: React.ReactElement;
   title: string;
   description: string;
   confirmLabel: string;
