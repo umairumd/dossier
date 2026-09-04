@@ -4,46 +4,29 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
-import {
-  validateReportInput,
-  type ReportFieldErrors,
-  type ReportFormInput,
-} from "@/lib/validations/report";
 import { searchReports } from "@/lib/supabase/queries/reports";
 import type { DailyReport } from "@/types/report";
 
 export interface SubmitReportResult {
   success: boolean;
   error?: string;
-  fieldErrors?: ReportFieldErrors;
 }
+
+type SubmitReportInput = {
+  templateId: string;
+  fieldResponses: Record<string, unknown>;
+  content?: string;
+  blockers?: string;
+  additionalNotes?: string;
+};
 
 const UNIQUE_VIOLATION = "23505";
 
 export async function submitDailyReport(
-  input: ReportFormInput,
+  input: SubmitReportInput,
 ): Promise<SubmitReportResult> {
-  const usingTemplate =
-    Boolean(input.templateId) && input.fieldResponses !== undefined;
-
-  let content = input.content ?? "";
-  let blockers: string | null = input.blockers?.trim()
-    ? input.blockers.trim()
-    : null;
-  let additionalNotes: string | null = input.additionalNotes?.trim()
-    ? input.additionalNotes.trim()
-    : null;
-
-  if (!usingTemplate) {
-    const validation = validateReportInput(input);
-
-    if (!validation.valid) {
-      return { success: false, fieldErrors: validation.fieldErrors };
-    }
-
-    content = validation.value.content;
-    blockers = validation.value.blockers;
-    additionalNotes = validation.value.additionalNotes;
+  if (!input.templateId || input.fieldResponses === undefined) {
+    return { success: false, error: "No template provided." };
   }
 
   const supabase = await createClient();
@@ -64,11 +47,11 @@ export async function submitDailyReport(
   const { error } = await supabase.from("daily_reports").insert({
     author_id: user.id,
     report_date: todayInTimezone(settings.timezone),
-    content: content ?? "",
-    blockers,
-    additional_notes: additionalNotes,
-    template_id: input.templateId ?? null,
-    field_responses: input.fieldResponses ?? null,
+    content: input.content ?? "",
+    blockers: input.blockers ?? "",
+    additional_notes: input.additionalNotes ?? "",
+    template_id: input.templateId,
+    field_responses: input.fieldResponses,
   });
 
   if (error) {
