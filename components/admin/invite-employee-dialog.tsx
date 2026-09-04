@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactElement } from "react";
 import { Check, Copy, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ export function InviteEmployeeDialog({
 }: {
   departments: DepartmentOption[];
   candidates: EmployeeListItem[];
-  trigger?: ReactNode;
+  trigger?: ReactElement;
 }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -132,16 +132,7 @@ export function InviteEmployeeDialog({
     toast.success("Invite link copied.");
   };
 
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button>
-            <UserPlus className="size-4" />
-            Invite Employee
-          </Button>
-        )}
-      </DialogTrigger>
+  const dialogContent = (
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
@@ -338,6 +329,26 @@ export function InviteEmployeeDialog({
           </form>
         )}
       </DialogContent>
+  );
+
+  if (trigger) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>{trigger}</DialogTrigger>
+        {dialogContent}
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button>
+          <UserPlus className="size-4" />
+          Invite Employee
+        </Button>
+      </DialogTrigger>
+      {dialogContent}
     </Dialog>
   );
 }
