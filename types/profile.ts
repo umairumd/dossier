@@ -13,5 +13,6 @@ export interface Profile {
   designation: string | null;
   is_remote: boolean;
   avatar_url: string | null;
+  template_id: string | null;
   created_at: string;
 }

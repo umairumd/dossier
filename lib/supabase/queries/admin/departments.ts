@@ -41,7 +41,7 @@ export const getAllDepartments = cache(
     const { data: departments, error: departmentsError } = await supabase
       .from("departments")
       .select(
-        "id, name, organization_id, manager_id, archived_at, created_at, manager:profiles!departments_manager_id_fkey(full_name)",
+        "id, name, organization_id, manager_id, archived_at, created_at, template_id, manager:profiles!departments_manager_id_fkey(full_name)",
       )
       .order("name", { ascending: true });
 
@@ -80,6 +80,7 @@ export const getAllDepartments = cache(
       manager_id: string | null;
       archived_at: string | null;
       created_at: string;
+      template_id: string | null;
       manager: { full_name: string } | null;
     }
 
@@ -94,6 +95,7 @@ export const getAllDepartments = cache(
       employee_count: countByDepartment.get(department.id) ?? 0,
       archived_at: department.archived_at,
       created_at: department.created_at,
+      template_id: department.template_id,
     }));
   },
 );
@@ -157,6 +159,7 @@ export interface DepartmentDetailData {
   archived_at: string | null;
   organization_id: string | null;
   created_at: string;
+  template_id: string | null;
   manager: DepartmentManager | null;
   members: DepartmentMember[];
   submittedAtByMemberId: Record<string, string>;
@@ -172,7 +175,7 @@ export const getDepartmentDetail = cache(
     const { data: department, error: departmentError } = await supabase
       .from("departments")
       .select(
-        "id, name, organization_id, manager_id, archived_at, created_at, manager:profiles!departments_manager_id_fkey(id, full_name, designation)",
+        "id, name, organization_id, manager_id, archived_at, created_at, template_id, manager:profiles!departments_manager_id_fkey(id, full_name, designation)",
       )
       .eq("id", departmentId)
       .maybeSingle();
@@ -285,6 +288,7 @@ export const getDepartmentDetail = cache(
       archived_at: department.archived_at,
       organization_id: department.organization_id,
       created_at: department.created_at,
+      template_id: department.template_id,
       manager,
       members,
       submittedAtByMemberId,

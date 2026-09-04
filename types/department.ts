@@ -7,6 +7,7 @@ export interface DepartmentListItem {
   employee_count: number;
   archived_at: string | null;
   created_at: string;
+  template_id: string | null;
 }
 
 export interface ManagerCandidate {
