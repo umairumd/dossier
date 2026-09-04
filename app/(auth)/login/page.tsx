@@ -1,7 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
-import { login } from "@/lib/actions/auth";
-import { Button } from "@/components/ui/button";
+import { LoginForm } from "@/components/auth/login-form";
 import {
   Card,
   CardContent,
@@ -9,8 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export default async function LoginPage({
   searchParams,
@@ -37,46 +33,7 @@ export default async function LoginPage({
           <CardDescription>Use your Dossier account credentials.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={login} className="flex flex-col gap-4">
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            {message && (
-              <p className="text-sm text-muted-foreground">{message}</p>
-            )}
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                required
-                autoComplete="email"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                autoComplete="current-password"
-              />
-              <div className="flex justify-end">
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-            </div>
-
-            <Button type="submit" variant="default" className="mt-2">
-              Sign in
-            </Button>
-          </form>
+          <LoginForm initialError={error} initialMessage={message} />
         </CardContent>
       </Card>
     </div>

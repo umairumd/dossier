@@ -6,21 +6,21 @@ import { createClient } from "@/lib/supabase/server";
 import { friendlyAuthErrorMessage } from "@/lib/helpers/auth-error-messages";
 import { getSiteUrl } from "@/lib/helpers/site-url";
 
-export async function login(formData: FormData) {
+export async function login(
+  formData: FormData,
+): Promise<{ error: string } | void> {
   const email = formData.get("email");
   const password = formData.get("password");
 
   if (typeof email !== "string" || typeof password !== "string") {
-    redirect("/login?error=Invalid form submission");
+    return { error: "Something went wrong. Please try again." };
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect(
-      `/login?error=${encodeURIComponent(friendlyAuthErrorMessage(error.message))}`,
-    );
+    return { error: friendlyAuthErrorMessage(error.message) };
   }
 
   const {

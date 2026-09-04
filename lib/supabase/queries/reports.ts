@@ -63,6 +63,46 @@ export const getReportHistory = cache(
   },
 );
 
+function escapeIlikePattern(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+export async function searchReports(query: string): Promise<DailyReport[]> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return [];
+  }
+
+  const trimmed = query.trim();
+  if (trimmed.length < 2) {
+    return [];
+  }
+
+  const pattern = `%${escapeIlikePattern(trimmed)}%`;
+
+  const { data, error } = await supabase
+    .from("daily_reports")
+    .select(REPORT_SELECT)
+    .eq("author_id", user.id)
+    .or(
+      `content.ilike.${pattern},blockers.ilike.${pattern},additional_notes.ilike.${pattern}`,
+    )
+    .order("report_date", { ascending: false })
+    .order("submitted_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error("Failed to search reports.");
+  }
+
+  return (data as DailyReport[]) ?? [];
+}
+
 export const getReportStatsData = cache(async () => {
   const supabase = await createClient();
 

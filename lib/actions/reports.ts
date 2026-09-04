@@ -9,6 +9,8 @@ import {
   type ReportFieldErrors,
   type ReportFormInput,
 } from "@/lib/validations/report";
+import { searchReports } from "@/lib/supabase/queries/reports";
+import type { DailyReport } from "@/types/report";
 
 export interface SubmitReportResult {
   success: boolean;
@@ -70,4 +72,8 @@ export async function submitDailyReport(
   revalidatePath("/");
 
   return { success: true };
+}
+
+export async function searchMyReports(query: string): Promise<DailyReport[]> {
+  return searchReports(query);
 }
