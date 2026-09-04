@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { assignDepartmentTemplate } from "@/lib/actions/admin/templates";
+import { CreateDeptTemplateDialog } from "@/components/admin/create-dept-template-dialog";
 import type { ReportTemplate } from "@/types/template";
 
 const NONE_VALUE = "__none__";
@@ -23,6 +25,7 @@ interface DeptTemplateActionsProps {
   departmentName: string;
   currentTemplateId: string | null;
   templates: ReportTemplate[];
+  canCreate?: boolean;
 }
 
 export function DeptTemplateActions({
@@ -30,8 +33,10 @@ export function DeptTemplateActions({
   departmentName,
   currentTemplateId,
   templates,
+  canCreate = false,
 }: DeptTemplateActionsProps) {
   const [open, setOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string>(
     currentTemplateId ?? NONE_VALUE,
   );
@@ -48,6 +53,21 @@ export function DeptTemplateActions({
   const currentName =
     templates.find((template) => template.id === currentTemplateId)?.name ??
     "Organization default";
+
+  const handleCreated = async (templateId: string) => {
+    const result = await assignDepartmentTemplate({
+      departmentId,
+      templateId,
+    });
+
+    if (!result.success) {
+      toast.warning(
+        "Template created but could not auto-assign. Assign it manually from the Change menu.",
+      );
+    }
+
+    setCreateOpen(false);
+  };
 
   const handleSave = () => {
     startTransition(async () => {
@@ -78,6 +98,17 @@ export function DeptTemplateActions({
         >
           Change
         </Button>
+        {canCreate && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus className="mr-1.5 size-4" />
+            Create Template
+          </Button>
+        )}
       </div>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -145,6 +176,14 @@ export function DeptTemplateActions({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CreateDeptTemplateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        departmentId={departmentId}
+        departmentName={departmentName}
+        onCreated={handleCreated}
+      />
     </>
   );
 }

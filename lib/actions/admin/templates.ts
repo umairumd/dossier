@@ -63,8 +63,29 @@ export async function createTemplate(input: {
   isDefault?: boolean;
   fields: TemplateFieldInput[];
 }): Promise<{ success: boolean; id?: string; error?: string }> {
-  await requireAdminUser();
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated." };
+  }
+
+  const profile = await getCurrentProfile();
+  if (!profile) {
+    return { success: false, error: "Profile not found." };
+  }
+
+  if (!["owner", "admin", "manager"].includes(profile.role)) {
+    return { success: false, error: "Insufficient permissions." };
+  }
+
+  if (input.isDefault && profile.role === "manager") {
+    return {
+      success: false,
+      error: "Only owners can set the default template.",
+    };
+  }
 
   if (!input.name.trim()) {
     return { success: false, error: "Template name is required." };

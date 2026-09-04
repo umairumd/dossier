@@ -124,6 +124,7 @@ export default async function TeamMembersPage() {
               departmentName={managedDepartment.name}
               currentTemplateId={managedDepartment.template_id}
               templates={templates}
+              canCreate
             />
           ) : undefined
         }
