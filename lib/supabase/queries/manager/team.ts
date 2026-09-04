@@ -100,7 +100,7 @@ export const getTeamReportsForDate = cache(
     const { data: reports, error: reportsError } = await supabase
       .from("daily_reports")
       .select(
-        "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at",
+        "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at, template_id, field_responses",
       )
       .eq("report_date", reportDate);
 

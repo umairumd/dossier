@@ -4,6 +4,8 @@ import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getRecentActivity } from "@/lib/supabase/queries/admin/activity";
 import { getTodayReport } from "@/lib/supabase/queries/reports";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
+import { resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { formatLongDate } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
@@ -21,6 +23,7 @@ import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog"
 import { CreateDepartmentDialog } from "@/components/admin/create-department-dialog";
 import { DeptCompletionCard } from "@/components/dashboard/dept-completion-card";
 import { ReportBanner } from "@/components/shared/report-banner";
+import type { ReportTemplateWithFields } from "@/types/template";
 
 const HOME_ACTIVITY_LIMIT = 8;
 
@@ -28,7 +31,7 @@ const HOME_ACTIVITY_LIMIT = 8;
 // reachable directly in case it's bookmarked) — one component, not two
 // parallel implementations of the same org overview.
 export async function AdminDashboard() {
-  const [summary, deptCompletion, recentActivity, todayReport, settings, allDepartments, employees] =
+  const [summary, deptCompletion, recentActivity, todayReport, settings, allDepartments, employees, profile] =
     await Promise.all([
       getOrganizationSummary(),
       getDeptCompletionToday(),
@@ -37,9 +40,18 @@ export async function AdminDashboard() {
       getOrganizationSettings(),
       getAllDepartments(),
       getAllEmployees(),
+      getCurrentProfile(),
     ]);
   const today = formatLongDate(new Date());
   const deadline = getDeadlineContext(settings);
+  let template: ReportTemplateWithFields | undefined;
+  if (profile) {
+    try {
+      template = await resolveTemplate(profile.id, profile.department_ids);
+    } catch {
+      template = undefined;
+    }
+  }
   const departmentOptions = allDepartments
     .filter((department) => department.archived_at === null)
     .map((department) => ({
@@ -64,6 +76,7 @@ export async function AdminDashboard() {
           settings.timezone,
         )}
         deadline={deadline}
+        template={template}
       />
 
       <div

@@ -5,7 +5,7 @@ import { getOrganizationSettings } from "@/lib/supabase/queries/organization-set
 import type { DailyReport } from "@/types/report";
 
 const REPORT_SELECT =
-  "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at";
+  "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at, template_id, field_responses";
 
 export const getTodayReport = cache(async (): Promise<DailyReport | null> => {
   const supabase = await createClient();

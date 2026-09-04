@@ -7,6 +7,7 @@ import { ReportHistoryTable } from "@/components/reports/report-history-table";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
+import type { ReportTemplateWithFields } from "@/types/template";
 
 type SubmittedMember = TeamMemberReport & { report: DailyReport };
 
@@ -16,12 +17,14 @@ export function ReportHistoryBrowser({
   deadline,
   adminView = false,
   showProfileLink = true,
+  templates,
 }: {
   reports: DailyReport[];
   userName: string;
   deadline: DeadlineContext;
   adminView?: boolean;
   showProfileLink?: boolean;
+  templates?: ReportTemplateWithFields[];
 }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -52,6 +55,7 @@ export function ReportHistoryBrowser({
         deadline={deadline}
         adminView={adminView}
         showProfileLink={showProfileLink}
+        templates={templates}
       />
     </>
   );

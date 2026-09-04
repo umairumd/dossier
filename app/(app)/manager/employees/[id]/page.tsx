@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Flame, Percent, Timer } from "lucide-react";
 import { getTeamMemberOverview } from "@/lib/supabase/queries/manager/employee-overview";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
+import { getOrgTemplatesWithFields } from "@/lib/supabase/queries/templates";
 import {
   Card,
   CardContent,
@@ -18,9 +19,10 @@ export default async function ManagerEmployeeOverviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [overview, settings] = await Promise.all([
+  const [overview, settings, templates] = await Promise.all([
     getTeamMemberOverview(id),
     getOrganizationSettings(),
+    getOrgTemplatesWithFields(),
   ]);
 
   if (!overview) {
@@ -103,6 +105,7 @@ export default async function ManagerEmployeeOverviewPage({
                 reports={overview.recent_reports}
                 userName={overview.full_name}
                 deadline={getDeadlineContext(settings)}
+                templates={templates}
               />
             </>
           )}

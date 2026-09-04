@@ -10,6 +10,8 @@ export interface ReportFormInput {
   content: string;
   blockers: string;
   additionalNotes: string;
+  templateId?: string;
+  fieldResponses?: Record<string, unknown>;
 }
 
 export interface ReportFieldErrors {

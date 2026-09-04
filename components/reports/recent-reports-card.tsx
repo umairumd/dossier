@@ -11,17 +11,20 @@ import {
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
 import type { DailyReport } from "@/types/report";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
+import type { ReportTemplateWithFields } from "@/types/template";
 
 export function RecentReportsCard({
   reports,
   viewAllHref,
   deadline,
   userName,
+  templates,
 }: {
   reports: DailyReport[];
   viewAllHref?: string;
   deadline: DeadlineContext;
   userName: string;
+  templates?: ReportTemplateWithFields[];
 }) {
   return (
     <Card className="card-gradient">
@@ -54,6 +57,7 @@ export function RecentReportsCard({
             userName={userName}
             deadline={deadline}
             showProfileLink={false}
+            templates={templates}
           />
         )}
       </CardContent>

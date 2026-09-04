@@ -102,6 +102,24 @@ export const getOrgTemplates = cache(async (): Promise<ReportTemplate[]> => {
   return ((data ?? []) as TemplateRow[]).map(mapTemplate);
 });
 
+export const getOrgTemplatesWithFields = cache(
+  async (): Promise<ReportTemplateWithFields[]> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("report_templates")
+      .select("*, template_fields (*)")
+      .order("is_default", { ascending: false })
+      .order("archived_at", { ascending: true, nullsFirst: true })
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      throw new Error("Failed to load templates.");
+    }
+
+    return ((data ?? []) as TemplateWithFieldsRow[]).map(mapTemplateWithFields);
+  },
+);
+
 export const getTemplateWithFields = cache(
   async (templateId: string): Promise<ReportTemplateWithFields | null> => {
     const supabase = await createClient();

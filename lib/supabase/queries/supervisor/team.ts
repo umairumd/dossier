@@ -9,7 +9,7 @@ import type { MissingReportRow } from "@/types/missing-report";
 import type { TeamMemberReport } from "@/types/team";
 
 const REPORT_SELECT =
-  "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at";
+  "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at, template_id, field_responses";
 
 export const getSupervisedMembers = cache(
   async (): Promise<TeamRosterMember[]> => {

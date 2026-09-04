@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
+import type { ReportTemplateWithFields } from "@/types/template";
 
 type StatusFilter = "all" | SubmissionStatus;
 
@@ -79,6 +80,7 @@ export function TeamReportsView({
   emptyMessage,
   showFilters = true,
   managerId,
+  templates,
 }: {
   members: TeamMemberReport[];
   deadline: DeadlineContext;
@@ -86,6 +88,7 @@ export function TeamReportsView({
   emptyMessage?: string;
   showFilters?: boolean;
   managerId?: string;
+  templates?: ReportTemplateWithFields[];
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -345,6 +348,7 @@ export function TeamReportsView({
         onIndexChange={setOpenIndex}
         deadline={deadline}
         adminView={adminView}
+        templates={templates}
       />
     </div>
     </TooltipProvider>
