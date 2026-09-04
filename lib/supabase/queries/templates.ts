@@ -17,6 +17,7 @@ interface TemplateRow {
   archived_at: string | null;
   created_at: string;
   updated_at: string;
+  template_fields?: { id: string }[] | null;
 }
 
 interface TemplateFieldRow {
@@ -51,6 +52,7 @@ function mapTemplate(row: TemplateRow): ReportTemplate {
     archivedAt: row.archived_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    fieldCount: row.template_fields?.length,
   };
 }
 
@@ -88,7 +90,7 @@ export const getOrgTemplates = cache(async (): Promise<ReportTemplate[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("report_templates")
-    .select("*")
+    .select("*, template_fields(id)")
     .order("is_default", { ascending: false })
     .order("archived_at", { ascending: true, nullsFirst: true })
     .order("created_at", { ascending: true });

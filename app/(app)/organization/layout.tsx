@@ -8,7 +8,7 @@ export default async function OrganizationLayout({
 }) {
   const profile = await getCurrentProfile();
 
-  if (!profile || profile.role !== "owner") {
+  if (!profile || (profile.role !== "owner" && profile.role !== "admin")) {
     redirect("/");
   }
 
