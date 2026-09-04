@@ -20,7 +20,10 @@ export const metadata: Metadata = {
   title: "Dossier",
   description: "Internal operations platform for Inoma Digital.",
   icons: {
-    icon: "/logo.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/logo.png", sizes: "any" },
+    ],
     apple: "/logo.png",
   },
 };
