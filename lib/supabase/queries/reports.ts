@@ -83,18 +83,11 @@ export async function searchReports(query: string): Promise<DailyReport[]> {
     return [];
   }
 
-  const pattern = `%${escapeIlikePattern(trimmed)}%`;
+  const escaped = escapeIlikePattern(trimmed);
 
-  const { data, error } = await supabase
-    .from("daily_reports")
-    .select(REPORT_SELECT)
-    .eq("author_id", user.id)
-    .or(
-      `content.ilike.${pattern},blockers.ilike.${pattern},additional_notes.ilike.${pattern}`,
-    )
-    .order("report_date", { ascending: false })
-    .order("submitted_at", { ascending: false })
-    .limit(50);
+  const { data, error } = await supabase.rpc("search_my_reports", {
+    search_query: escaped,
+  });
 
   if (error) {
     throw new Error("Failed to search reports.");

@@ -44,6 +44,7 @@ import {
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 import type { ReportTemplateWithFields } from "@/types/template";
+import { getPreviewValue } from "@/lib/reports/preview-field";
 
 type StatusFilter = "all" | SubmissionStatus;
 
@@ -213,6 +214,10 @@ export function TeamReportsView({
                 {filtered.map((member) => {
                   const status = memberStatus(member, deadline);
                   const isManager = managerId === member.employeeId;
+                  const previewValue = getPreviewValue(
+                    member.report,
+                    templates ?? [],
+                  );
 
                   return (
                     <TableRow
@@ -226,17 +231,24 @@ export function TeamReportsView({
                             avatarUrl={member.avatarUrl ?? undefined}
                             size="sm"
                           />
-                          <div className="flex min-w-0 items-center gap-1">
-                            <EmployeeNameLink
-                              employeeId={member.employeeId}
-                              fullName={member.fullName}
-                              basePath={
-                                adminView
-                                  ? "/employees"
-                                  : "/manager/employees"
-                              }
-                            />
-                            {isManager && <DepartmentManagerStar />}
+                          <div className="flex min-w-0 flex-col gap-0.5">
+                            <div className="flex min-w-0 items-center gap-1">
+                              <EmployeeNameLink
+                                employeeId={member.employeeId}
+                                fullName={member.fullName}
+                                basePath={
+                                  adminView
+                                    ? "/employees"
+                                    : "/manager/employees"
+                                }
+                              />
+                              {isManager && <DepartmentManagerStar />}
+                            </div>
+                            {previewValue && (
+                              <p className="max-w-[240px] truncate text-xs text-muted-foreground">
+                                {`"${previewValue}"`}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </TableCell>
@@ -283,6 +295,10 @@ export function TeamReportsView({
             {filtered.map((member) => {
               const status = memberStatus(member, deadline);
               const isManager = managerId === member.employeeId;
+              const previewValue = getPreviewValue(
+                member.report,
+                templates ?? [],
+              );
 
               return (
                 <div
@@ -312,6 +328,11 @@ export function TeamReportsView({
                       {member.designation && (
                         <p className="truncate text-xs text-muted-foreground">
                           {member.designation}
+                        </p>
+                      )}
+                      {previewValue && (
+                        <p className="truncate text-xs text-muted-foreground">
+                          {`"${previewValue}"`}
                         </p>
                       )}
                       {member.report ? (
