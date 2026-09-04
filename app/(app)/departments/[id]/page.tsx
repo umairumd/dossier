@@ -63,6 +63,7 @@ export default async function DepartmentDetailPage({
     employee_count: detail.members.length,
     archived_at: detail.archived_at,
     created_at: detail.created_at,
+    template_id: detail.template_id,
   };
 
   const addCandidates = employees.filter(
