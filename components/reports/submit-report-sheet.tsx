@@ -11,7 +11,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { ReportForm } from "@/components/reports/report-form";
 import { DynamicReportForm } from "@/components/reports/dynamic-report-form";
 import type { ReportTemplateWithFields } from "@/types/template";
 
@@ -58,7 +57,10 @@ export function SubmitReportSheet({
                 onSubmitted={handleSubmitted}
               />
             ) : (
-              <ReportForm onSubmitted={handleSubmitted} />
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Template not configured.
+                Contact your admin.
+              </p>
             )}
           </div>
         </div>

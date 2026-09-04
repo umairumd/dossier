@@ -13,7 +13,6 @@ import { LocalDateTime } from "@/components/shared/local-datetime";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
-import { REPORT_FIELDS } from "@/lib/reports/fields";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { DynamicFieldRenderer } from "@/components/reports/dynamic-field-renderer";
 import type { DailyReport } from "@/types/report";
@@ -119,18 +118,24 @@ export function ReportDetailSheet({
                         mode="display"
                       />
                     ))
-                : REPORT_FIELDS.map((field) => {
-                    const value = current.report[field.key];
-
-                    return (
-                      <div key={field.key}>
-                        <p className="font-medium">{field.label}</p>
-                        <p className="text-muted-foreground">
-                          {value ?? "None reported"}
-                        </p>
-                      </div>
-                    );
-                  })}
+                : current.report.field_responses
+                  ? Object.entries(current.report.field_responses)
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([key, value]) => (
+                        <div key={key}>
+                          <p className="font-medium text-sm capitalize">
+                            {key.replace(/_/g, " ")}
+                          </p>
+                          <p className="text-muted-foreground text-sm">
+                            {String(value) || "None reported"}
+                          </p>
+                        </div>
+                      ))
+                  : (
+                    <p className="text-sm text-muted-foreground">
+                      No report data available.
+                    </p>
+                  )}
 
               <div className="flex items-center justify-between border-t border-border pt-4">
                 <Button
