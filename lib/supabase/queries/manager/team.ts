@@ -11,6 +11,7 @@ export interface TeamRosterMember {
   designation: string | null;
   is_remote: boolean;
   avatar_url: string | null;
+  template_id: string | null;
 }
 
 // Deliberately does not filter by department in the query itself — RLS
@@ -32,7 +33,7 @@ export const getTeamRoster = cache(
 
     const { data: employees, error } = await supabase
       .from("profiles")
-      .select("id, full_name, designation, is_remote, avatar_url")
+      .select("id, full_name, designation, is_remote, avatar_url, template_id")
       .eq("is_active", true)
       .is("archived_at", null)
       .order("full_name", { ascending: true });
@@ -62,7 +63,7 @@ export const getTeamReportingRoster = cache(
     // via report-history queries; only the live roster excludes them.
     const { data: employees, error } = await supabase
       .from("profiles")
-      .select("id, full_name, designation, is_remote, avatar_url")
+      .select("id, full_name, designation, is_remote, avatar_url, template_id")
       .eq("has_onboarded", true)
       .is("archived_at", null)
       .neq("role", "owner")

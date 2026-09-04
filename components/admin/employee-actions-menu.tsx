@@ -6,6 +6,7 @@ import {
   Archive,
   ArchiveRestore,
   Building2,
+  FileStack,
   Link2,
   MoreHorizontal,
   Pencil,
@@ -46,8 +47,10 @@ import {
 } from "@/lib/actions/admin/employees";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem } from "@/types/employee";
+import type { ReportTemplate } from "@/types/template";
 import { AssignDepartmentsDialog } from "./assign-departments-dialog";
 import { AssignSupervisorsDialog } from "./assign-supervisors-dialog";
+import { AssignTemplateDialog } from "./assign-template-dialog";
 import { EditEmployeeDialog } from "./edit-employee-dialog";
 import { InviteLinkDialog } from "./invite-link-dialog";
 
@@ -69,6 +72,9 @@ interface EmployeeActionsMenuProps {
   candidates: EmployeeListItem[];
   orgName: string | null;
   redirectOnDelete?: string;
+  templates: ReportTemplate[];
+  currentTemplateSource: "individual" | "department" | "default";
+  currentTemplateSourceName: string | null;
 }
 
 export function EmployeeActionsMenu({
@@ -78,6 +84,9 @@ export function EmployeeActionsMenu({
   candidates,
   orgName,
   redirectOnDelete,
+  templates,
+  currentTemplateSource,
+  currentTemplateSourceName,
 }: EmployeeActionsMenuProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -86,6 +95,7 @@ export function EmployeeActionsMenu({
   const [inviteLinkOpen, setInviteLinkOpen] = useState(false);
   const [assignDeptOpen, setAssignDeptOpen] = useState(false);
   const [assignSupervisorsOpen, setAssignSupervisorsOpen] = useState(false);
+  const [assignTemplateOpen, setAssignTemplateOpen] = useState(false);
 
   const isArchived = employee.status === "archived";
   const isOtherOwner = employee.role === "owner" && !isSelf;
@@ -192,7 +202,18 @@ export function EmployeeActionsMenu({
                 <Users className="size-4" />
                 Assign Supervisors
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setAssignTemplateOpen(true)}>
+                <FileStack className="size-4" />
+                Assign Template
+              </DropdownMenuItem>
             </>
+          )}
+
+          {!isArchived && !canAssignDepartments && (
+            <DropdownMenuItem onSelect={() => setAssignTemplateOpen(true)}>
+              <FileStack className="size-4" />
+              Assign Template
+            </DropdownMenuItem>
           )}
 
           <DropdownMenuSeparator />
@@ -276,6 +297,17 @@ export function EmployeeActionsMenu({
         candidates={candidates}
         open={assignSupervisorsOpen}
         onOpenChange={setAssignSupervisorsOpen}
+      />
+
+      <AssignTemplateDialog
+        profileId={employee.id}
+        personName={employee.full_name}
+        currentTemplateId={employee.template_id}
+        templates={templates}
+        currentTemplateSource={currentTemplateSource}
+        currentTemplateSourceName={currentTemplateSourceName}
+        open={assignTemplateOpen}
+        onOpenChange={setAssignTemplateOpen}
       />
 
       {employee.email && (

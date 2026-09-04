@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import type { FieldType } from "@/types/template";
 
 export type TemplateFieldInput = {
@@ -214,5 +216,118 @@ export async function restoreTemplate(
   }
 
   revalidatePath("/organization/templates");
+  return { success: true };
+}
+
+export async function assignDepartmentTemplate(input: {
+  departmentId: string;
+  templateId: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated." };
+  }
+
+  const profile = await getCurrentProfile();
+  if (!profile) {
+    return { success: false, error: "Profile not found." };
+  }
+
+  if (!["owner", "admin"].includes(profile.role)) {
+    if (profile.role === "manager") {
+      const adminClient = createAdminClient();
+      const { data: dept } = await adminClient
+        .from("departments")
+        .select("manager_id")
+        .eq("id", input.departmentId)
+        .single();
+
+      if (dept?.manager_id !== user.id) {
+        return {
+          success: false,
+          error: "You can only assign templates to your own department.",
+        };
+      }
+    } else {
+      return { success: false, error: "Insufficient permissions." };
+    }
+  }
+
+  const { error } = await supabase
+    .from("departments")
+    .update({ template_id: input.templateId })
+    .eq("id", input.departmentId);
+
+  if (error) {
+    return { success: false, error: "Failed to assign template." };
+  }
+
+  revalidatePath(`/departments/${input.departmentId}`);
+  revalidatePath("/departments");
+  revalidatePath("/manager/team");
+  return { success: true };
+}
+
+export async function assignProfileTemplate(input: {
+  profileId: string;
+  templateId: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "Not authenticated." };
+  }
+
+  const profile = await getCurrentProfile();
+  if (!profile) {
+    return { success: false, error: "Profile not found." };
+  }
+
+  if (!["owner", "admin"].includes(profile.role)) {
+    if (profile.role === "manager") {
+      const departmentIds = profile.department_ids ?? [];
+      if (departmentIds.length === 0) {
+        return {
+          success: false,
+          error: "You can only assign templates to members of your department.",
+        };
+      }
+
+      const { data: membership } = await supabase
+        .from("profile_departments")
+        .select("profile_id")
+        .eq("profile_id", input.profileId)
+        .in("department_id", departmentIds)
+        .limit(1)
+        .maybeSingle();
+
+      if (!membership) {
+        return {
+          success: false,
+          error: "You can only assign templates to members of your department.",
+        };
+      }
+    } else {
+      return { success: false, error: "Insufficient permissions." };
+    }
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ template_id: input.templateId })
+    .eq("id", input.profileId);
+
+  if (error) {
+    return { success: false, error: "Failed to assign template." };
+  }
+
+  revalidatePath(`/employees/${input.profileId}`);
+  revalidatePath("/employees");
+  revalidatePath("/manager/team");
   return { success: true };
 }

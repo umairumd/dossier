@@ -42,7 +42,7 @@ export const getSupervisedMembers = cache(
 
     const { data: employees, error: employeesError } = await supabase
       .from("profiles")
-      .select("id, full_name, designation, is_remote, avatar_url")
+      .select("id, full_name, designation, is_remote, avatar_url, template_id")
       .in("id", memberIds)
       .is("archived_at", null)
       .order("full_name", { ascending: true });

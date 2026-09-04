@@ -5,12 +5,14 @@ import {
   getManagerCandidates,
 } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
+import { getOrgTemplates } from "@/lib/supabase/queries/templates";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { formatLongDate } from "@/lib/helpers/dates";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { CompletionTrendCard } from "@/components/analytics/completion-trend-card";
 import { DepartmentDetailActions } from "@/components/admin/department-detail-actions";
 import { DepartmentMemberActions } from "@/components/admin/department-member-actions";
+import { DeptTemplateActions } from "@/components/admin/dept-template-actions";
 import { EmptyState } from "@/components/shared/empty-state";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
@@ -31,11 +33,12 @@ export default async function DepartmentDetailPage({
 }) {
   const { id } = await params;
 
-  const [detail, allManagers, employees, settings] = await Promise.all([
+  const [detail, allManagers, employees, settings, templates] = await Promise.all([
     getDepartmentDetail(id),
     getManagerCandidates(),
     getAllEmployees(),
     getOrganizationSettings(),
+    getOrgTemplates(),
   ]);
 
   if (!detail) {
@@ -146,6 +149,20 @@ export default async function DepartmentDetailPage({
               />
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="card-gradient">
+        <CardHeader>
+          <CardTitle className="text-base">Report Template</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DeptTemplateActions
+            departmentId={detail.id}
+            departmentName={detail.name}
+            currentTemplateId={detail.template_id}
+            templates={templates}
+          />
         </CardContent>
       </Card>
 

@@ -19,6 +19,7 @@ export interface DepartmentOption {
   id: string;
   name: string;
   manager_name?: string | null;
+  template_id?: string | null;
 }
 
 export interface DepartmentMember {

@@ -1,4 +1,7 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
+import type { Profile } from "@/types/profile";
 
 function isOwnerOrAdmin(role: string | undefined): boolean {
   return role === "owner" || role === "admin";
@@ -81,4 +84,29 @@ export async function requireSupervisorUser() {
   }
 
   return user;
+}
+
+export async function requireManagerUser(): Promise<{
+  userId: string;
+  profile: Profile;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const profile = await getCurrentProfile();
+  if (!profile) {
+    redirect("/login");
+  }
+
+  if (!["owner", "admin", "manager"].includes(profile.role)) {
+    redirect("/");
+  }
+
+  return { userId: user.id, profile };
 }

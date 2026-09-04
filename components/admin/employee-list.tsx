@@ -28,6 +28,7 @@ import { formatDate } from "@/lib/helpers/dates";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem, EmployeeStatus } from "@/types/employee";
+import type { ReportTemplate } from "@/types/template";
 
 type StatusFilter = "all" | Exclude<EmployeeStatus, "pending">;
 
@@ -39,6 +40,36 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: "archived", label: "Archived" },
 ];
 
+function resolveSource(
+  employee: EmployeeListItem,
+  departments: DepartmentOption[],
+  templates: ReportTemplate[],
+): {
+  source: "individual" | "department" | "default";
+  sourceName: string | null;
+} {
+  if (employee.template_id) {
+    return { source: "individual", sourceName: null };
+  }
+
+  const departmentById = new Map(
+    departments.map((department) => [department.id, department]),
+  );
+
+  for (const departmentId of employee.department_ids) {
+    const department = departmentById.get(departmentId);
+    if (department?.template_id) {
+      return {
+        source: "department",
+        sourceName: department.name,
+      };
+    }
+  }
+
+  void templates;
+  return { source: "default", sourceName: null };
+}
+
 export function EmployeeList({
   employees,
   currentUserId,
@@ -46,6 +77,7 @@ export function EmployeeList({
   candidates,
   orgName,
   lastSeenByEmployeeId,
+  templates,
 }: {
   employees: EmployeeListItem[];
   currentUserId: string;
@@ -53,6 +85,7 @@ export function EmployeeList({
   candidates: EmployeeListItem[];
   orgName: string | null;
   lastSeenByEmployeeId: Record<string, string>;
+  templates: ReportTemplate[];
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -131,7 +164,14 @@ export function EmployeeList({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((employee) => (
+            {filtered.map((employee) => {
+              const resolved = resolveSource(
+                employee,
+                departments,
+                templates,
+              );
+
+              return (
               <TableRow key={employee.id}>
                 <TableCell>
                   <div className="flex items-center gap-2.5">
@@ -190,10 +230,14 @@ export function EmployeeList({
                     departments={departments}
                     candidates={candidates}
                     orgName={orgName}
+                    templates={templates}
+                    currentTemplateSource={resolved.source}
+                    currentTemplateSourceName={resolved.sourceName}
                   />
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       )}
