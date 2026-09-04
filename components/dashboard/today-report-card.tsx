@@ -13,13 +13,16 @@ import {
 import { SubmitReportSheet } from "@/components/reports/submit-report-sheet";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import type { DailyReport } from "@/types/report";
+import type { ReportTemplateWithFields } from "@/types/template";
 
 export function TodayReportCard({
   todayReport,
   deadlineHint,
+  template,
 }: {
   todayReport: DailyReport | null;
   deadlineHint?: string;
+  template?: ReportTemplateWithFields;
 }) {
   const router = useRouter();
 
@@ -55,6 +58,7 @@ export function TodayReportCard({
               alreadySubmitted={false}
               triggerLabel="Submit Report"
               onSubmitted={() => router.refresh()}
+              template={template}
             />
           </div>
         )}

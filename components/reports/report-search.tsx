@@ -8,15 +8,18 @@ import { ReportHistoryBrowser } from "@/components/reports/report-history-browse
 import { Input } from "@/components/ui/input";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
 import type { DailyReport } from "@/types/report";
+import type { ReportTemplateWithFields } from "@/types/template";
 
 export function ReportSearch({
   deadline,
   userName,
   children,
+  templates,
 }: {
   deadline: DeadlineContext;
   userName: string;
   children: ReactNode;
+  templates?: ReportTemplateWithFields[];
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{
@@ -99,6 +102,7 @@ export function ReportSearch({
               deadline={deadline}
               userName={userName}
               showProfileLink={false}
+              templates={templates}
             />
           )}
         </div>

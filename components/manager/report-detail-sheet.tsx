@@ -15,9 +15,11 @@ import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { REPORT_FIELDS } from "@/lib/reports/fields";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
+import { DynamicFieldRenderer } from "@/components/reports/dynamic-field-renderer";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
+import type { ReportTemplateWithFields } from "@/types/template";
 
 type SubmittedMember = TeamMemberReport & { report: DailyReport };
 
@@ -32,6 +34,7 @@ export function ReportDetailSheet({
   deadline,
   adminView = false,
   showProfileLink = true,
+  templates,
 }: {
   members: SubmittedMember[];
   index: number | null;
@@ -39,8 +42,12 @@ export function ReportDetailSheet({
   deadline: DeadlineContext;
   adminView?: boolean;
   showProfileLink?: boolean;
+  templates?: ReportTemplateWithFields[];
 }) {
   const current = index !== null ? members[index] : null;
+  const templateForReport = current?.report.template_id
+    ? templates?.find((template) => template.id === current.report.template_id)
+    : null;
 
   return (
     <Dialog
@@ -74,7 +81,15 @@ export function ReportDetailSheet({
                   </div>
                   <DialogDescription asChild>
                     <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-                      <LocalDateTime isoString={current.report.submitted_at} />
+                      <span>
+                        <LocalDateTime isoString={current.report.submitted_at} />
+                        {templateForReport && (
+                          <span className="text-xs text-muted-foreground">
+                            {" "}
+                            · {templateForReport.name}
+                          </span>
+                        )}
+                      </span>
                       {showProfileLink && (
                         <EmployeeNameLink
                           employeeId={current.employeeId}
@@ -93,18 +108,29 @@ export function ReportDetailSheet({
               </div>
             </DialogHeader>
             <div className="flex flex-col gap-4 px-4 pb-4 text-sm">
-              {REPORT_FIELDS.map((field) => {
-                const value = current.report[field.key];
+              {templateForReport && current.report.field_responses
+                ? [...templateForReport.fields]
+                    .sort((a, b) => a.fieldOrder - b.fieldOrder)
+                    .map((field) => (
+                      <DynamicFieldRenderer
+                        key={field.key}
+                        field={field}
+                        value={current.report.field_responses?.[field.key]}
+                        mode="display"
+                      />
+                    ))
+                : REPORT_FIELDS.map((field) => {
+                    const value = current.report[field.key];
 
-                return (
-                  <div key={field.key}>
-                    <p className="font-medium">{field.label}</p>
-                    <p className="text-muted-foreground">
-                      {value ?? "None reported"}
-                    </p>
-                  </div>
-                );
-              })}
+                    return (
+                      <div key={field.key}>
+                        <p className="font-medium">{field.label}</p>
+                        <p className="text-muted-foreground">
+                          {value ?? "None reported"}
+                        </p>
+                      </div>
+                    );
+                  })}
 
               <div className="flex items-center justify-between border-t border-border pt-4">
                 <Button

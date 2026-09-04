@@ -11,6 +11,7 @@ import {
   type DeadlineContext,
 } from "@/lib/reports/submission-status";
 import type { DailyReport } from "@/types/report";
+import type { ReportTemplateWithFields } from "@/types/template";
 
 export function ReportBanner({
   todayReport,
@@ -18,12 +19,14 @@ export function ReportBanner({
   deadline,
   onSubmitted,
   hideHistoryLink = false,
+  template,
 }: {
   todayReport: DailyReport | null;
   deadlineHint?: string;
   deadline: DeadlineContext;
   onSubmitted?: () => void;
   hideHistoryLink?: boolean;
+  template?: ReportTemplateWithFields;
 }) {
   const router = useRouter();
 
@@ -99,6 +102,7 @@ export function ReportBanner({
           alreadySubmitted={false}
           triggerLabel="Submit →"
           onSubmitted={handleSubmitted}
+          template={template}
         />
       </div>
     </div>

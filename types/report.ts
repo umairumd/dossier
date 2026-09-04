@@ -7,4 +7,6 @@ export interface DailyReport {
   additional_notes: string | null;
   submitted_at: string;
   created_at: string;
+  template_id: string | null;
+  field_responses: Record<string, unknown> | null;
 }

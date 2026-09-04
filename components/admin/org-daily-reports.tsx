@@ -29,6 +29,7 @@ import type {
   OrgDepartment,
   OrgMemberReport,
 } from "@/lib/supabase/queries/admin/org-reports";
+import type { ReportTemplateWithFields } from "@/types/template";
 
 type StatusFilter = "all" | SubmissionStatus;
 
@@ -69,10 +70,12 @@ export function OrgDailyReports({
   members,
   departments,
   deadline,
+  templates,
 }: {
   members: OrgMemberReport[];
   departments: OrgDepartment[];
   deadline: DeadlineContext;
+  templates?: ReportTemplateWithFields[];
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -243,6 +246,7 @@ export function OrgDailyReports({
                 showFilters={false}
                 emptyMessage={emptyMessage}
                 managerId={section.managerId}
+                templates={templates}
               />
             </CardContent>
           </Card>

@@ -2,6 +2,10 @@ import Link from "next/link";
 import { getTodayReport, getReportHistory } from "@/lib/supabase/queries/reports";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import {
+  getOrgTemplatesWithFields,
+  resolveTemplate,
+} from "@/lib/supabase/queries/templates";
+import {
   getOrganizationSettings,
   getDeadlineContext,
 } from "@/lib/supabase/queries/organization-settings";
@@ -28,12 +32,17 @@ export default async function DailyReportPage({
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number(pageParam ?? "1") || 1);
 
-  const [todayReport, history, settings, profile] = await Promise.all([
+  const [todayReport, history, settings, profile, templates] = await Promise.all([
     getTodayReport(),
     getReportHistory(page, PAGE_SIZE),
     getOrganizationSettings(),
     getCurrentProfile(),
+    getOrgTemplatesWithFields(),
   ]);
+
+  const template = profile
+    ? await resolveTemplate(profile.id, profile.department_ids)
+    : undefined;
 
   const { reports: reportHistory, total } = history;
   const deadline = getDeadlineContext(settings);
@@ -51,6 +60,7 @@ export default async function DailyReportPage({
         )}
         deadline={deadline}
         hideHistoryLink={true}
+        template={template}
       />
 
       <Card className="card-gradient">
@@ -61,6 +71,7 @@ export default async function DailyReportPage({
           <ReportSearch
             deadline={deadline}
             userName={profile?.full_name ?? ""}
+            templates={templates}
           >
             {reportHistory.length === 0 && page === 1 ? (
               <EmptyState
@@ -86,6 +97,7 @@ export default async function DailyReportPage({
                   deadline={deadline}
                   userName={profile?.full_name ?? ""}
                   showProfileLink={false}
+                  templates={templates}
                 />
 
                 {totalPages > 1 && (

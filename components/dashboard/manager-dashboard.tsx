@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Building2 } from "lucide-react";
 import { getTodayReport } from "@/lib/supabase/queries/reports";
+import { resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
 import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
@@ -30,11 +31,12 @@ export async function ManagerDashboard({
 }: {
   profile: ProfileWithDepartment;
 }) {
-  const [todayReport, members, insights, settings] = await Promise.all([
+  const [todayReport, members, insights, settings, template] = await Promise.all([
     getTodayReport(),
     getTeamReportsForDate(),
     getTeamInsights(),
     getOrganizationSettings(),
+    resolveTemplate(profile.id, profile.department_ids),
   ]);
   const teamSize = members.length;
   const submittedToday = members.filter((member) => member.report).length;
@@ -69,6 +71,7 @@ export async function ManagerDashboard({
           settings.timezone,
         )}
         deadline={deadline}
+        template={template}
       />
 
       <Card

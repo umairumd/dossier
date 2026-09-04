@@ -12,17 +12,26 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ReportForm } from "@/components/reports/report-form";
+import { DynamicReportForm } from "@/components/reports/dynamic-report-form";
+import type { ReportTemplateWithFields } from "@/types/template";
 
 export function SubmitReportSheet({
   alreadySubmitted,
   triggerLabel,
   onSubmitted,
+  template,
 }: {
   alreadySubmitted: boolean;
   triggerLabel?: string;
   onSubmitted?: () => void;
+  template?: ReportTemplateWithFields;
 }) {
   const [open, setOpen] = useState(false);
+
+  function handleSubmitted() {
+    setOpen(false);
+    onSubmitted?.();
+  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -39,17 +48,18 @@ export function SubmitReportSheet({
           <SheetHeader>
             <SheetTitle>Submit Daily Report</SheetTitle>
             <SheetDescription>
-              Share what you worked on today. Reports can&apos;t be edited once
-              submitted.
+              Reports can&apos;t be edited after submission.
             </SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-            <ReportForm
-              onSubmitted={() => {
-                setOpen(false);
-                onSubmitted?.();
-              }}
-            />
+            {template ? (
+              <DynamicReportForm
+                template={template}
+                onSubmitted={handleSubmitted}
+              />
+            ) : (
+              <ReportForm onSubmitted={handleSubmitted} />
+            )}
           </div>
         </div>
       </SheetContent>

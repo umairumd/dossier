@@ -6,7 +6,7 @@ import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import {
-  getOrgTemplates,
+  getOrgTemplatesWithFields,
   getTemplateResolutionInfo,
 } from "@/lib/supabase/queries/templates";
 import { formatDate } from "@/lib/helpers/dates";
@@ -37,7 +37,7 @@ export default async function EmployeeDetailPage({
       getAllEmployees(),
       getOrganizationName(),
       getOrganizationSettings(),
-      getOrgTemplates(),
+      getOrgTemplatesWithFields(),
     ]);
 
   if (!employee) {
@@ -218,6 +218,7 @@ export default async function EmployeeDetailPage({
               userName={employee.full_name}
               deadline={getDeadlineContext(settings)}
               adminView
+              templates={templates}
             />
           )}
         </CardContent>

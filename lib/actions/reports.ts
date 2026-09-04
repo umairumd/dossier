@@ -23,10 +23,27 @@ const UNIQUE_VIOLATION = "23505";
 export async function submitDailyReport(
   input: ReportFormInput,
 ): Promise<SubmitReportResult> {
-  const validation = validateReportInput(input);
+  const usingTemplate =
+    Boolean(input.templateId) && input.fieldResponses !== undefined;
 
-  if (!validation.valid) {
-    return { success: false, fieldErrors: validation.fieldErrors };
+  let content = input.content ?? "";
+  let blockers: string | null = input.blockers?.trim()
+    ? input.blockers.trim()
+    : null;
+  let additionalNotes: string | null = input.additionalNotes?.trim()
+    ? input.additionalNotes.trim()
+    : null;
+
+  if (!usingTemplate) {
+    const validation = validateReportInput(input);
+
+    if (!validation.valid) {
+      return { success: false, fieldErrors: validation.fieldErrors };
+    }
+
+    content = validation.value.content;
+    blockers = validation.value.blockers;
+    additionalNotes = validation.value.additionalNotes;
   }
 
   const supabase = await createClient();
@@ -47,9 +64,11 @@ export async function submitDailyReport(
   const { error } = await supabase.from("daily_reports").insert({
     author_id: user.id,
     report_date: todayInTimezone(settings.timezone),
-    content: validation.value.content,
-    blockers: validation.value.blockers,
-    additional_notes: validation.value.additionalNotes,
+    content: content ?? "",
+    blockers,
+    additional_notes: additionalNotes,
+    template_id: input.templateId ?? null,
+    field_responses: input.fieldResponses ?? null,
   });
 
   if (error) {

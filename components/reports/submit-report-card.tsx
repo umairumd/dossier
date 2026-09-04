@@ -6,13 +6,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SubmitReportSheet } from "@/components/reports/submit-report-sheet";
+import type { ReportTemplateWithFields } from "@/types/template";
 
 export function SubmitReportCard({
   alreadySubmitted,
   isAdmin = false,
+  template,
 }: {
   alreadySubmitted: boolean;
   isAdmin?: boolean;
+  template?: ReportTemplateWithFields;
 }) {
   return (
     <Card>
@@ -25,7 +28,10 @@ export function SubmitReportCard({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <SubmitReportSheet alreadySubmitted={alreadySubmitted} />
+        <SubmitReportSheet
+          alreadySubmitted={alreadySubmitted}
+          template={template}
+        />
       </CardContent>
     </Card>
   );
