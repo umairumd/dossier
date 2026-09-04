@@ -111,6 +111,7 @@ export function EmployeeList({
 
       {filtered.length === 0 ? (
         <EmptyState
+          illustration="employees"
           title={
             employees.length === 0
               ? "No employees yet."

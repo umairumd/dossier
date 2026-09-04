@@ -248,4 +248,16 @@
   .card-gradient-subtle {
     @apply bg-gradient-to-b from-card to-card/60;
   }
+
+  .animate-in-fast {
+    @apply animate-in fade-in-0 duration-150;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-150 hover:-translate-y-0.5;
+  }
+
+  .press-effect {
+    @apply transition-transform duration-75 active:scale-[0.98];
+  }
 }

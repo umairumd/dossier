@@ -28,7 +28,12 @@ export function StatCard({
   className?: string;
 }): ReactNode {
   return (
-    <Card className={cn("card-gradient-subtle", className)}>
+    <Card
+      className={cn(
+        "card-gradient-subtle transition-shadow duration-200 hover:shadow-md hover:shadow-primary/5",
+        className,
+      )}
+    >
       <CardHeader>
         <CardDescription className="flex items-center gap-1.5">
           {icon}

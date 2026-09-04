@@ -34,7 +34,11 @@ export function PageHeader({
         </div>
         {action && <div className="shrink-0">{action}</div>}
       </div>
-      {children && <div className="mt-4">{children}</div>}
+      {children && (
+        <div className="mt-4 animate-in fade-in-0 duration-300 slide-in-from-bottom-2">
+          {children}
+        </div>
+      )}
     </div>
   );
 }

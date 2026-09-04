@@ -36,7 +36,10 @@ export function TeamTodayRoster({
       </CardHeader>
       <CardContent>
         {sorted.length === 0 ? (
-          <EmptyState title="No teammates to show." />
+          <EmptyState
+            illustration="team"
+            title="No teammates to show."
+          />
         ) : (
           <Table>
             <TableHeader>

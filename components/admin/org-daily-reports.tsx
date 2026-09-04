@@ -219,15 +219,15 @@ export function OrgDailyReports({
         return (
           <Card key={section.id} className="card-gradient">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="min-w-0 truncate text-base">
                   {section.id === UNASSIGNED_ID
                     ? section.name
                     : `${section.name} Department`}
                 </CardTitle>
                 <span
                   className={cn(
-                    "text-sm font-medium",
+                    "shrink-0 text-sm font-medium",
                     completionClass(section.completionPct),
                   )}
                 >

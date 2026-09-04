@@ -46,7 +46,10 @@ export function DeptCompletionCard({
             );
 
             return (
-              <div key={dept.departmentId} className="flex flex-col gap-2">
+              <div
+                key={dept.departmentId}
+                className="flex flex-col gap-2 transition-shadow duration-200 hover:shadow-md hover:shadow-primary/5"
+              >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium">
                     {dept.departmentName}

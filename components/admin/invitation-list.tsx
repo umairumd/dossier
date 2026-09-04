@@ -91,6 +91,7 @@ export function InvitationList({
 
       {filtered.length === 0 ? (
         <EmptyState
+          illustration="invitations"
           title={
             invitations.length === 0
               ? "No pending invitations."
