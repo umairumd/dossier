@@ -29,7 +29,10 @@ import {
 } from "@/lib/reports/submission-status";
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
-import { EmptyState } from "@/components/shared/empty-state";
+import {
+  EmptyState,
+  illustrationForTeamEmpty,
+} from "@/components/shared/empty-state";
 import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import {
@@ -176,7 +179,10 @@ export function TeamReportsView({
       )}
 
       {filtered.length === 0 ? (
-        <EmptyState title={resolvedEmptyMessage} />
+        <EmptyState
+          title={resolvedEmptyMessage}
+          illustration={illustrationForTeamEmpty(resolvedEmptyMessage)}
+        />
       ) : (
         <>
           <div className="hidden md:block">
@@ -306,28 +312,25 @@ export function TeamReportsView({
                         </p>
                       )}
                       {member.report ? (
-                        <p className="text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <LocalTime isoString={member.report.submitted_at} />
-                        </p>
+                          <button
+                            type="button"
+                            onClick={() => openReport(member.employeeId)}
+                            className="text-xs text-primary hover:underline"
+                          >
+                            · View
+                          </button>
+                        </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           No report
-                        </p>
+                        </span>
                       )}
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {member.report ? (
-                      <button
-                        type="button"
-                        onClick={() => openReport(member.employeeId)}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        View
-                      </button>
-                    ) : (
-                      <SubmissionStatusBadge status={status} />
-                    )}
+                  <div className="shrink-0">
+                    <SubmissionStatusBadge status={status} />
                   </div>
                 </div>
               );

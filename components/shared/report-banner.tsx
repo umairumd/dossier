@@ -70,7 +70,11 @@ export function ReportBanner({
   }
 
   return (
-    <div className="flex flex-row items-center gap-3 rounded-lg border-t border-r border-b border-border border-l-2 border-l-primary shadow-sm card-gradient px-4 py-3">
+    <div className="relative flex flex-row items-center gap-3 overflow-hidden rounded-lg border border-border shadow-sm card-gradient px-4 py-3">
+      <div
+        aria-hidden
+        className="absolute inset-y-0 left-0 w-0.5 animate-pulse bg-primary"
+      />
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <FileText className="size-4 shrink-0 text-primary" />
         <div className="min-w-0">

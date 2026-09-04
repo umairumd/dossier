@@ -23,7 +23,7 @@ function MemberList({
   managerIds?: Set<string>;
 }) {
   if (members.length === 0) {
-    return <EmptyState title={emptyMessage} />;
+    return <EmptyState illustration="team" title={emptyMessage} />;
   }
 
   return (

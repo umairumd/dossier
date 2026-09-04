@@ -89,7 +89,10 @@ export function ReportSearch({
             </p>
           )}
           {matchedResults === null ? null : matchedResults.length === 0 ? (
-            <EmptyState title="No reports match your search." />
+            <EmptyState
+              illustration="search"
+              title="No reports match your search."
+            />
           ) : (
             <ReportHistoryBrowser
               reports={matchedResults}

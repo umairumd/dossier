@@ -71,7 +71,10 @@ export async function ManagerDashboard({
         deadline={deadline}
       />
 
-      <Card className="card-gradient">
+      <Card
+        className="card-gradient animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "0ms" }}
+      >
         <CardHeader>
           <CardTitle className="text-base">Your Team Today</CardTitle>
           <CardDescription>{today}</CardDescription>
@@ -99,14 +102,18 @@ export async function ManagerDashboard({
                 key={member.employeeId}
                 className="flex items-center justify-between gap-2"
               >
-                <span className="text-sm">{member.fullName}</span>
-                <SubmissionStatusBadge
-                  status={getSubmissionStatus(
-                    member.report?.submitted_at ?? null,
-                    deadline.deadlineHourUtc,
-                    deadline,
-                  )}
-                />
+                <span className="min-w-0 truncate text-sm">
+                  {member.fullName}
+                </span>
+                <div className="shrink-0">
+                  <SubmissionStatusBadge
+                    status={getSubmissionStatus(
+                      member.report?.submitted_at ?? null,
+                      deadline.deadlineHourUtc,
+                      deadline,
+                    )}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -127,19 +134,32 @@ export async function ManagerDashboard({
         </CardContent>
       </Card>
 
-      <CompletionTrendCard
-        title="Team Completion Trend"
-        description={`Last 7 days · ${insights.weeklyCompletionPercentage}% weekly completion`}
-        trend={insights.trend}
-        emptyMessage="No reports submitted in the last 7 days."
-      />
+      <div
+        className="animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "75ms" }}
+      >
+        <CompletionTrendCard
+          title="Team Completion Trend"
+          description={`Last 7 days · ${insights.weeklyCompletionPercentage}% weekly completion`}
+          trend={insights.trend}
+          emptyMessage="No reports submitted in the last 7 days."
+        />
+      </div>
 
-      <TeamHighlights
-        longestStreaks={insights.longestStreaks}
-        frequentlyMissing={insights.frequentlyMissing}
-      />
+      <div
+        className="animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "150ms" }}
+      >
+        <TeamHighlights
+          longestStreaks={insights.longestStreaks}
+          frequentlyMissing={insights.frequentlyMissing}
+        />
+      </div>
 
-      <Card>
+      <Card
+        className="animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "225ms" }}
+      >
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
         </CardHeader>

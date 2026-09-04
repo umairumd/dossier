@@ -52,13 +52,21 @@ export async function EmployeeDashboard({
         deadline={deadline}
       />
 
-      <ActivityStrip
-        reports={statsRows}
-        timezone={settings.timezone}
-        workingDays={settings.workingDays}
-      />
+      <div
+        className="animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "0ms" }}
+      >
+        <ActivityStrip
+          reports={statsRows}
+          timezone={settings.timezone}
+          workingDays={settings.workingDays}
+        />
+      </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+      <div
+        className="grid grid-cols-2 gap-4 lg:grid-cols-3 animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "75ms" }}
+      >
         <StatCard
           label="Current Streak"
           value={stats.currentStreak}
@@ -78,12 +86,17 @@ export async function EmployeeDashboard({
         />
       </div>
 
-      <RecentReportsCard
-        reports={preview.reports}
-        viewAllHref="/reports"
-        deadline={deadline}
-        userName={profile.full_name}
-      />
+      <div
+        className="animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "150ms" }}
+      >
+        <RecentReportsCard
+          reports={preview.reports}
+          viewAllHref="/reports"
+          deadline={deadline}
+          userName={profile.full_name}
+        />
+      </div>
     </div>
   );
 }

@@ -197,6 +197,7 @@ export default async function DepartmentDetailPage({
         <CardContent className="p-0">
           {detail.members.length === 0 ? (
             <EmptyState
+              illustration="team"
               title="No members in this department yet."
               className="py-8"
             />

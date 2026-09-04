@@ -101,6 +101,7 @@ export function DepartmentList({
 
       {filtered.length === 0 ? (
         <EmptyState
+          illustration="departments"
           title={
             departments.length === 0
               ? "No departments yet."

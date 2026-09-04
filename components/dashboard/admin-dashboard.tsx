@@ -66,7 +66,10 @@ export async function AdminDashboard() {
         deadline={deadline}
       />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div
+        className="grid grid-cols-2 gap-4 lg:grid-cols-4 animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "0ms" }}
+      >
         <StatCard label="Total Members" value={summary.totalMembers} />
         <StatCard label="Submitted Today" value={summary.submittedToday} />
         <StatCard label="Missing Today" value={summary.missingToday} />
@@ -76,9 +79,17 @@ export async function AdminDashboard() {
         />
       </div>
 
-      <DeptCompletionCard departments={deptCompletion} />
+      <div
+        className="animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "75ms" }}
+      >
+        <DeptCompletionCard departments={deptCompletion} />
+      </div>
 
-      <div className="flex flex-col gap-3">
+      <div
+        className="flex flex-col gap-3 animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "150ms" }}
+      >
         <h2 className="text-sm font-medium text-muted-foreground">
           Quick Actions
         </h2>
@@ -116,7 +127,10 @@ export async function AdminDashboard() {
         </div>
       </div>
 
-      <Card>
+      <Card
+        className="animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "225ms" }}
+      >
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
           <CardDescription>

@@ -46,7 +46,7 @@ export function NavLinks({
                 aria-label={collapsed ? item.label : undefined}
                 onClick={() => onNavigate?.()}
                 className={cn(
-                  "flex items-center font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                  "flex items-center font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground",
                   collapsed
                     ? "h-9 w-9 justify-center rounded-md"
                     : "gap-2 rounded-md px-2.5 py-1.5 text-sm",

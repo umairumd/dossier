@@ -64,6 +64,7 @@ export default async function DailyReportPage({
           >
             {reportHistory.length === 0 && page === 1 ? (
               <EmptyState
+                illustration="reports"
                 title="No reports submitted yet."
                 description="Submit your first daily report above."
                 className="py-8"

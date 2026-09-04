@@ -7,7 +7,8 @@ export default function OrganizationSettingsLoading() {
         <Skeleton className="h-8 w-56" />
         <Skeleton className="h-4 w-72" />
       </div>
-      <Skeleton className="h-56 max-w-md" />
+      <Skeleton className="h-24 w-full rounded-xl" />
+      <Skeleton className="h-48 w-full rounded-xl" />
     </div>
   );
 }

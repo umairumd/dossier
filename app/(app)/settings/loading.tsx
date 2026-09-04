@@ -7,9 +7,10 @@ export default function SettingsLoading() {
         <Skeleton className="h-8 w-32" />
         <Skeleton className="h-4 w-56" />
       </div>
-      <Skeleton className="h-80 max-w-md" />
-      <Skeleton className="h-56 max-w-md" />
-      <Skeleton className="h-32 max-w-md" />
+      <Skeleton className="h-80 w-full rounded-xl" />
+      <Skeleton className="h-32 w-full rounded-xl" />
+      <Skeleton className="h-48 w-full rounded-xl" />
+      <Skeleton className="h-24 w-full rounded-xl" />
     </div>
   );
 }
