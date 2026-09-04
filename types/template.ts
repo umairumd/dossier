@@ -8,6 +8,7 @@ export interface ReportTemplate {
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  fieldCount?: number;
 }
 
 export interface TemplateField {
