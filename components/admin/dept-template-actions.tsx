@@ -26,6 +26,7 @@ interface DeptTemplateActionsProps {
   currentTemplateId: string | null;
   templates: ReportTemplate[];
   canCreate?: boolean;
+  showCurrentName?: boolean;
 }
 
 export function DeptTemplateActions({
@@ -34,6 +35,7 @@ export function DeptTemplateActions({
   currentTemplateId,
   templates,
   canCreate = false,
+  showCurrentName = true,
 }: DeptTemplateActionsProps) {
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -89,7 +91,9 @@ export function DeptTemplateActions({
   return (
     <>
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">{currentName}</span>
+        {showCurrentName && (
+          <span className="text-sm text-muted-foreground">{currentName}</span>
+        )}
         <Button
           type="button"
           variant="outline"

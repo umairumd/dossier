@@ -1,12 +1,16 @@
 import { Camera } from "lucide-react";
+import {
+  PartTimeIndicator,
+  RemoteIndicator,
+} from "@/components/shared/employee-indicators";
 import { MemberAvatar } from "@/components/shared/member-avatar";
-import { Badge } from "@/components/ui/badge";
 
 export function ProfileHeader({
   name,
   designation,
   departmentNames,
   isRemote,
+  employmentType,
   avatarUrl,
   size = "md",
   showUploadButton = false,
@@ -15,6 +19,7 @@ export function ProfileHeader({
   designation?: string | null;
   departmentNames?: string[];
   isRemote?: boolean;
+  employmentType?: "full_time" | "part_time";
   avatarUrl?: string | null;
   size?: "sm" | "md";
   showUploadButton?: boolean;
@@ -40,22 +45,19 @@ export function ProfileHeader({
       </div>
 
       <div className="flex flex-col gap-0.5">
-        <h2 className="text-lg font-semibold">{name}</h2>
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-lg font-semibold">{name}</h2>
+          {isRemote && <RemoteIndicator />}
+          {employmentType === "part_time" && <PartTimeIndicator />}
+        </div>
         {designation && (
           <p className="text-sm text-muted-foreground">{designation}</p>
         )}
-        <div className="flex flex-wrap items-center gap-2">
-          {departmentNames && departmentNames.length > 0 && (
-            <span className="text-xs text-muted-foreground">
-              {departmentNames.join(", ")}
-            </span>
-          )}
-          {isRemote && (
-            <Badge variant="outline" className="text-xs">
-              Remote
-            </Badge>
-          )}
-        </div>
+        {departmentNames && departmentNames.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {departmentNames.join(", ")}
+          </span>
+        )}
       </div>
     </div>
   );
