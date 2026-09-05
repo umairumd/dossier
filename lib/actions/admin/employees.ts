@@ -8,7 +8,7 @@ import {
   countActiveAdmins,
   countAllAdmins,
 } from "@/lib/supabase/queries/admin/employees";
-import { getSiteUrl } from "@/lib/helpers/site-url";
+import { generateTempPassword } from "@/lib/helpers/temp-password";
 import {
   validateEditEmployeeInput,
   validateInviteEmployeeInput,
@@ -21,7 +21,7 @@ export interface InviteEmployeeResult {
   success: boolean;
   error?: string;
   fieldErrors?: EmployeeFieldErrors;
-  inviteLink?: string | null;
+  tempPassword?: string;
 }
 
 export interface EmployeeActionResult {
@@ -38,6 +38,7 @@ const DEACTIVATION_BAN_DURATION = "8760h";
 function revalidateEmployeePaths(employeeId: string) {
   revalidatePath("/employees");
   revalidatePath(`/employees/${employeeId}`);
+  revalidatePath("/invitations");
 }
 
 export async function inviteEmployee(
@@ -54,23 +55,23 @@ export async function inviteEmployee(
   const { email, fullName, role, designation, departmentId, supervisorId, isRemote } =
     validation.value;
   const adminClient = createAdminClient();
+  const tempPassword = generateTempPassword();
 
-  // generateLink creates the auth user and returns a shareable action_link
-  // regardless of SMTP. It auto-confirms the email, so email_confirm is
-  // immediately set back to false so the invite-page token flow works.
-  // redirectTo points at our own acceptance page rather than the project's
-  // default Site URL.
-  const { data, error } = await adminClient.auth.admin.generateLink({
-    type: "invite",
+  // createUser with a confirmed email and temp password: no invite token,
+  // no shareable link, no WhatsApp-preview expiry. The employee logs in
+  // normally and is sent to /onboarding until they set a permanent password.
+  const { data, error } = await adminClient.auth.admin.createUser({
     email,
-    options: {
-      data: { full_name: fullName },
-      redirectTo: `${getSiteUrl()}/invite`,
-    },
+    password: tempPassword,
+    email_confirm: true,
+    user_metadata: { full_name: fullName },
   });
 
   if (error) {
-    if (error.code === "email_exists") {
+    if (
+      error.code === "email_exists" ||
+      error.message?.toLowerCase().includes("already been registered")
+    ) {
       return {
         success: false,
         fieldErrors: { email: "An account with this email already exists." },
@@ -80,13 +81,8 @@ export async function inviteEmployee(
   }
 
   const userId = data.user.id;
-  const inviteLink = data.properties.action_link;
 
-  await adminClient.auth.admin.updateUserById(userId, {
-    email_confirm: false,
-  });
-
-  // The invite trigger (handle_new_user) already created a baseline
+  // The signup trigger (handle_new_user) already created a baseline
   // profile (role='member'); this applies the role and name the admin
   // chose. Department assignment is a separate action.
   const supabase = await createClient();
@@ -95,7 +91,6 @@ export async function inviteEmployee(
     .update({
       full_name: fullName,
       role,
-      pending_invite_link: inviteLink,
     })
     .eq("id", userId);
 
@@ -144,8 +139,9 @@ export async function inviteEmployee(
   }
 
   revalidatePath("/employees");
+  revalidatePath("/invitations");
 
-  return { success: true, inviteLink };
+  return { success: true, tempPassword };
 }
 
 export async function updateEmployee(
@@ -559,146 +555,4 @@ export async function assignMemberSupervisors(
   revalidateEmployeePaths(memberId);
 
   return { success: true };
-}
-
-export interface RegenerateInviteLinkResult {
-  success: boolean;
-  error?: string;
-  inviteLink?: string;
-}
-
-export interface InvitationStatus {
-  hasActiveInvitation: boolean;
-  invitedAt: string | null;
-  inviteLink: string | null;
-  expiresAt: string | null;
-}
-
-// Supabase's default invite token expiry is 24 hours.
-const INVITE_EXPIRY_HOURS = 24;
-
-export async function getInvitationStatus(
-  email: string
-): Promise<InvitationStatus> {
-  await requireAdminUser();
-
-  const adminClient = createAdminClient();
-
-  // List users and find the one with matching email
-  const { data } = await adminClient.auth.admin.listUsers();
-  const user = data.users.find(
-    (u) => u.email?.toLowerCase() === email.toLowerCase()
-  );
-
-  if (!user) {
-    return { hasActiveInvitation: false, invitedAt: null, inviteLink: null, expiresAt: null };
-  }
-
-  // User has an active invitation if:
-  // 1. They have invited_at set
-  // 2. They haven't confirmed their email yet (email_confirmed_at is null)
-  const hasActiveInvitation = !!user.invited_at && !user.email_confirmed_at;
-
-  // Get the stored invite link from the profile
-  const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("pending_invite_link")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  // Calculate expiration time (24 hours from invited_at)
-  let expiresAt: string | null = null;
-  if (user.invited_at) {
-    const invitedDate = new Date(user.invited_at);
-    const expiresDate = new Date(invitedDate.getTime() + INVITE_EXPIRY_HOURS * 60 * 60 * 1000);
-    expiresAt = expiresDate.toISOString();
-  }
-
-  return {
-    hasActiveInvitation,
-    invitedAt: user.invited_at ?? null,
-    inviteLink: profile?.pending_invite_link ?? null,
-    expiresAt,
-  };
-}
-
-// Re-inviting an email that already exists issues a fresh token for the
-// same auth.users row. generateLink(type: "invite") rejects confirmed
-// users (email_exists), so we unconfirm first, generate, then unconfirm
-// again because generateLink re-confirms. The existing profile
-// (name/role/department) is untouched: handle_new_user only fires on
-// INSERT, and this doesn't create a new auth.users row.
-//
-// Returns the new invite link so it can be copied/shared manually — this is
-// the primary use case when email isn't configured. The old token is
-// invalidated by this operation, and the new link is stored for retrieval.
-export async function regenerateInviteLink(
-  email: string,
-): Promise<RegenerateInviteLinkResult> {
-  await requireAdminUser();
-
-  const adminClient = createAdminClient();
-
-  const {
-    data: { users },
-    error: findError,
-  } = await adminClient.auth.admin.listUsers({
-    perPage: 1000,
-  });
-
-  if (findError) {
-    return { success: false, error: "Failed to regenerate invite link." };
-  }
-
-  const authUser = users.find(
-    (user) => user.email?.toLowerCase() === email.toLowerCase(),
-  );
-  if (!authUser) {
-    return { success: false, error: "User not found." };
-  }
-
-  if (authUser.last_sign_in_at) {
-    return {
-      success: false,
-      error:
-        "This employee has already signed in. They can log in directly at the app. If they forgot their password, they can use the forgot password flow.",
-    };
-  }
-
-  const { error: unconfirmError } = await adminClient.auth.admin.updateUserById(
-    authUser.id,
-    { email_confirm: false },
-  );
-
-  if (unconfirmError) {
-    return { success: false, error: "Failed to regenerate invite link." };
-  }
-
-  const { data, error } = await adminClient.auth.admin.generateLink({
-    type: "invite",
-    email,
-    options: { redirectTo: `${getSiteUrl()}/invite` },
-  });
-
-  if (error) {
-    return { success: false, error: "Failed to regenerate invite link." };
-  }
-
-  // generateLink re-confirms; undo so the invite-page token flow works.
-  await adminClient.auth.admin.updateUserById(data.user.id, {
-    email_confirm: false,
-  });
-
-  const inviteLink = data.properties.action_link;
-  const supabase = await createClient();
-  await supabase
-    .from("profiles")
-    .update({ pending_invite_link: inviteLink })
-    .eq("id", data.user.id);
-
-  revalidatePath("/employees");
-  revalidatePath("/invitations");
-
-  return { success: true, inviteLink };
 }

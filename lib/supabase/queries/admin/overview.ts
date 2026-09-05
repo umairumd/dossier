@@ -67,8 +67,7 @@ export const getOrganizationSummary = cache(
       departments: departments.filter((department) => !department.archived_at)
         .length,
       pendingInvites: employees.filter(
-        (employee) =>
-          employee.status === "invited" || employee.status === "pending",
+        (employee) => employee.status === "invited",
       ).length,
       archivedUsers: employees.filter((employee) => employee.status === "archived")
         .length,

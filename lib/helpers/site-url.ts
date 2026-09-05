@@ -1,5 +1,5 @@
-// Resolves the app's own origin for building auth redirect URLs (invite
-// links must point back to this app, not wherever Supabase's project-level
+// Resolves the app's own origin for building auth redirect URLs (password
+// reset links must point back to this app, not wherever Supabase's project-level
 // Site URL happens to be configured).
 //
 // Priority (server-first — NEXT_PUBLIC_* is inlined at build time and is

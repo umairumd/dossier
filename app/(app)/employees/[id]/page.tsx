@@ -3,7 +3,6 @@ import { Building2, Calendar, FileStack, Mail, UserCheck } from "lucide-react";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees, getEmployeeDetail } from "@/lib/supabase/queries/admin/employees";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
-import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import {
   getOrgTemplatesWithFields,
@@ -29,13 +28,12 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params;
 
-  const [employee, profile, allDepartments, employees, orgName, settings, templates] =
+  const [employee, profile, allDepartments, employees, settings, templates] =
     await Promise.all([
       getEmployeeDetail(id),
       getCurrentProfile(),
       getAllDepartments(),
       getAllEmployees(),
-      getOrganizationName(),
       getOrganizationSettings(),
       getOrgTemplatesWithFields(),
     ]);
@@ -84,7 +82,6 @@ export default async function EmployeeDetailPage({
           isSelf={isSelf}
           departments={departments}
           candidates={candidates}
-          orgName={orgName}
           redirectOnDelete="/employees"
           templates={templates}
           currentTemplateSource={resolution.source}

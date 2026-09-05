@@ -60,11 +60,11 @@ Accounts are invitation-only; there is no public sign-up. Authorization is enfor
 |----------|----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous (public) key |
-| `NEXT_PUBLIC_SITE_URL` | No | Optional origin override for invite-link redirects (custom domain) |
+| `NEXT_PUBLIC_SITE_URL` | No | Optional origin override for password-reset redirects (custom domain) |
 | `NEXT_PUBLIC_VERCEL_URL` | No | Auto-set by Vercel on every deploy; no action needed |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-only. Admin API (invite/ban/delete). Never expose to the client. |
 
-Add your app's `/invite` URL (`http://localhost:3000/invite` and production) under **Authentication → URL Configuration → Redirect URLs** in the Supabase dashboard.
+Add your app's `/reset-password` URL (`http://localhost:3000/reset-password` and production) under **Authentication → URL Configuration → Redirect URLs** in the Supabase dashboard.
 
 ## Scripts
 
