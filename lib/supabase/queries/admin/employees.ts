@@ -23,6 +23,7 @@ interface ProfileRow {
   is_remote: boolean;
   avatar_url: string | null;
   template_id: string | null;
+  has_onboarded: boolean | null;
 }
 
 interface AuthUserSummary {
@@ -41,6 +42,7 @@ const INVITE_EXPIRY_MS = 24 * 60 * 60 * 1000;
 function computeEmployeeStatus(
   isActive: boolean,
   archivedAt: string | null,
+  hasOnboarded: boolean | null | undefined,
   authUser: AuthUserSummary | undefined,
 ): EmployeeStatus {
   if (archivedAt) {
@@ -51,19 +53,19 @@ function computeEmployeeStatus(
     return "disabled";
   }
 
-  // Active means they have actually signed in. Admin-API invites set
-  // email_confirmed_at immediately, so that field is not a signup signal.
-  if (authUser?.lastSignInAt) {
-    return "active";
+  // Active means onboarding is complete (password set). Token exchange
+  // sets last_sign_in_at, so that field is not a signup signal. Missing
+  // has_onboarded is treated as not onboarded.
+  if (!hasOnboarded) {
+    if (authUser?.invitedAt) {
+      const expired =
+        Date.now() - new Date(authUser.invitedAt).getTime() > INVITE_EXPIRY_MS;
+      return expired ? "pending" : "invited";
+    }
+    return "invited";
   }
 
-  if (authUser?.invitedAt) {
-    const expired =
-      Date.now() - new Date(authUser.invitedAt).getTime() > INVITE_EXPIRY_MS;
-    return expired ? "pending" : "invited";
-  }
-
-  return "invited";
+  return "active";
 }
 
 // Shared by getAllEmployees and getEmployeeDetail: walks listUsers() once
@@ -119,7 +121,12 @@ function toEmployeeListItem(
     archived_at: profile.archived_at,
     invited_at: authUser?.invitedAt ?? null,
     last_sign_in_at: authUser?.lastSignInAt ?? null,
-    status: computeEmployeeStatus(profile.is_active, profile.archived_at, authUser),
+    status: computeEmployeeStatus(
+      profile.is_active,
+      profile.archived_at,
+      profile.has_onboarded,
+      authUser,
+    ),
     designation: profile.designation,
     is_remote: profile.is_remote,
     avatar_url: profile.avatar_url,
@@ -190,7 +197,7 @@ async function attachMemberships(
 }
 
 const PROFILE_SELECT =
-  "id, full_name, role, organization_id, is_active, archived_at, created_at, designation, is_remote, avatar_url, template_id";
+  "id, full_name, role, organization_id, is_active, archived_at, created_at, designation, is_remote, avatar_url, template_id, has_onboarded";
 
 // requireAdminUser() runs first specifically because this function is the
 // reason the service-role client exists in a read path (email/status come
