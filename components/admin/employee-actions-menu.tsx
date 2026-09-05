@@ -9,10 +9,9 @@ import {
   FileStack,
   MoreHorizontal,
   Pencil,
-  Power,
-  PowerOff,
   Trash2,
-  Users,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -72,6 +71,7 @@ interface EmployeeActionsMenuProps {
   templates: ReportTemplate[];
   currentTemplateSource: "individual" | "department" | "default";
   currentTemplateSourceName: string | null;
+  hideAssignments?: boolean;
 }
 
 export function EmployeeActionsMenu({
@@ -83,6 +83,7 @@ export function EmployeeActionsMenu({
   templates,
   currentTemplateSource,
   currentTemplateSourceName,
+  hideAssignments = false,
 }: EmployeeActionsMenuProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -94,9 +95,10 @@ export function EmployeeActionsMenu({
 
   const isArchived = employee.status === "archived";
   const isOtherOwner = employee.role === "owner" && !isSelf;
-  const canAssignDepartments =
+  const showAssignments =
+    !hideAssignments &&
     !isArchived &&
-    (employee.role === "manager" || employee.role === "member");
+    ["manager", "member", "admin"].includes(employee.role);
 
   const dialogConfigs: Record<DialogAction, DialogConfig> = {
     activate: {
@@ -185,28 +187,23 @@ export function EmployeeActionsMenu({
             Edit
           </DropdownMenuItem>
 
-          {canAssignDepartments && (
+          {showAssignments && <DropdownMenuSeparator />}
+
+          {showAssignments && (
             <>
               <DropdownMenuItem onSelect={() => setAssignDeptOpen(true)}>
                 <Building2 className="size-4" />
-                Assign Departments
+                Edit Departments
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setAssignSupervisorsOpen(true)}>
-                <Users className="size-4" />
-                Assign Supervisors
+                <UserCheck className="size-4" />
+                Edit Supervisor
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setAssignTemplateOpen(true)}>
                 <FileStack className="size-4" />
-                Assign Template
+                Edit Template
               </DropdownMenuItem>
             </>
-          )}
-
-          {!isArchived && !canAssignDepartments && (
-            <DropdownMenuItem onSelect={() => setAssignTemplateOpen(true)}>
-              <FileStack className="size-4" />
-              Assign Template
-            </DropdownMenuItem>
           )}
 
           <DropdownMenuSeparator />
@@ -219,13 +216,13 @@ export function EmployeeActionsMenu({
                     onSelect={() => setDialogAction("deactivate")}
                     disabled={isSelf}
                   >
-                    <PowerOff className="size-4" />
+                    <UserX className="size-4" />
                     Deactivate
                   </DropdownMenuItem>
                 )
               ) : (
                 <DropdownMenuItem onSelect={() => setDialogAction("activate")}>
-                  <Power className="size-4" />
+                  <UserCheck className="size-4" />
                   Activate
                 </DropdownMenuItem>
               )}

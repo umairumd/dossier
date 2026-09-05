@@ -98,7 +98,7 @@ export default async function DepartmentDetailPage({
   return (
     <div className="flex flex-col gap-6">
       <Card className="card-gradient">
-        <CardContent className="flex items-center justify-between py-5">
+        <CardContent className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-semibold">{detail.name}</h1>
@@ -184,7 +184,7 @@ export default async function DepartmentDetailPage({
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <StatCard
           label="Submitted Today"
           value={`${submittedToday}/${totalCount}`}
@@ -212,7 +212,7 @@ export default async function DepartmentDetailPage({
       />
 
       <Card className="card-gradient">
-        <CardHeader>
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Members</CardTitle>
             <DepartmentDetailActions variant="add-member" {...actionProps} />
@@ -223,7 +223,7 @@ export default async function DepartmentDetailPage({
             <EmptyState
               illustration="team"
               title="No members in this department yet."
-              className="py-8"
+              className="py-6"
             />
           ) : (
             <ul className="divide-y divide-border">
@@ -234,7 +234,7 @@ export default async function DepartmentDetailPage({
                 return (
                   <li
                     key={member.id}
-                    className="flex items-center justify-between px-6 py-3"
+                    className="flex items-center justify-between px-4 py-3"
                   >
                     <div className="flex items-center gap-2.5">
                       <MemberAvatar name={member.full_name} size="sm" />
