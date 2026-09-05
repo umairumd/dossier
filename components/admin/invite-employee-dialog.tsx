@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, type ReactElement } from "react";
-import { Check, Copy, UserPlus } from "lucide-react";
+import { Copy, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -62,7 +62,7 @@ export function InviteEmployeeDialog({
   const [supervisorId, setSupervisorId] = useState(NONE);
   const [isRemote, setIsRemote] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<EmployeeFieldErrors>({});
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -79,7 +79,7 @@ export function InviteEmployeeDialog({
     setSupervisorId(NONE);
     setIsRemote(false);
     setFieldErrors({});
-    setInviteLink(null);
+    setTempPassword(null);
     setCopied(false);
   };
 
@@ -121,12 +121,25 @@ export function InviteEmployeeDialog({
       }
 
       toast.success(`Invitation created for ${email}.`);
-      setInviteLink(result.inviteLink ?? null);
+      setTempPassword(result.tempPassword ?? null);
     });
   };
 
-  const copyLink = async () => {
-    if (!inviteLink) {
+  const copyPassword = async () => {
+    if (!tempPassword) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(tempPassword);
+      toast.success("Password copied");
+    } catch {
+      toast.error("Failed to copy to clipboard.");
+    }
+  };
+
+  const copyMessage = async () => {
+    if (!tempPassword) {
       return;
     }
 
@@ -136,8 +149,11 @@ export function InviteEmployeeDialog({
       ``,
       `You've been invited to join ${organization} on Dossier.`,
       ``,
-      `Click the link below to set up your account:`,
-      inviteLink,
+      `Login at: https://my.inomadigital.com`,
+      `Email: ${email}`,
+      `Temporary password: ${tempPassword}`,
+      ``,
+      `You'll be asked to set a new password when you first log in.`,
       ``,
       `Welcome to the team!`,
     ].join("\n");
@@ -155,39 +171,51 @@ export function InviteEmployeeDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {inviteLink ? "Invitation Created" : "Invite Employee"}
+            {tempPassword ? "Employee Invited" : "Invite Employee"}
           </DialogTitle>
           <DialogDescription>
-            {inviteLink
-              ? "Share this link with the employee so they can set a password and sign in."
-              : "An invite link will be generated. Share it with the employee so they can set their password and access Dossier."}
+            {tempPassword
+              ? `Share these credentials with ${fullName}`
+              : "A temporary password will be generated. Share it with the employee so they can sign in and set their own password."}
           </DialogDescription>
         </DialogHeader>
 
-        {inviteLink ? (
+        {tempPassword ? (
           <>
             <DialogBody>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={inviteLink}
-                  readOnly
-                  className="font-mono text-xs"
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  onClick={copyLink}
-                  aria-label="Copy invite message"
-                >
-                  {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                </Button>
+              <div className="flex flex-col gap-2 rounded-lg bg-muted p-4 font-mono text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Website</span>
+                  <span>my.inomadigital.com</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Email</span>
+                  <span className="max-w-[180px] truncate">{email}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Password</span>
+                  <div className="flex items-center gap-2">
+                    <span>{tempPassword}</span>
+                    <button
+                      type="button"
+                      onClick={copyPassword}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Copy password"
+                    >
+                      <Copy className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
+              <p className="text-sm text-muted-foreground">
+                They&apos;ll be asked to change their password on first login.
+              </p>
             </DialogBody>
             <DialogFooter>
               <Button
                 type="button"
                 className="flex-1 sm:flex-none"
-                onClick={copyLink}
+                onClick={copyMessage}
               >
                 {copied ? "Copied!" : "Copy Message"}
               </Button>

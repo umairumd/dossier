@@ -7,7 +7,6 @@ import {
   ArchiveRestore,
   Building2,
   FileStack,
-  Link2,
   MoreHorizontal,
   Pencil,
   Power,
@@ -52,7 +51,6 @@ import { AssignDepartmentsDialog } from "./assign-departments-dialog";
 import { AssignSupervisorsDialog } from "./assign-supervisors-dialog";
 import { AssignTemplateDialog } from "./assign-template-dialog";
 import { EditEmployeeDialog } from "./edit-employee-dialog";
-import { InviteLinkDialog } from "./invite-link-dialog";
 
 type DialogAction = "activate" | "deactivate" | "archive" | "restore" | "delete";
 
@@ -70,7 +68,6 @@ interface EmployeeActionsMenuProps {
   isSelf: boolean;
   departments: DepartmentOption[];
   candidates: EmployeeListItem[];
-  orgName: string | null;
   redirectOnDelete?: string;
   templates: ReportTemplate[];
   currentTemplateSource: "individual" | "department" | "default";
@@ -82,7 +79,6 @@ export function EmployeeActionsMenu({
   isSelf,
   departments,
   candidates,
-  orgName,
   redirectOnDelete,
   templates,
   currentTemplateSource,
@@ -92,7 +88,6 @@ export function EmployeeActionsMenu({
   const [isPending, startTransition] = useTransition();
   const [dialogAction, setDialogAction] = useState<DialogAction | null>(null);
   const [editOpen, setEditOpen] = useState(false);
-  const [inviteLinkOpen, setInviteLinkOpen] = useState(false);
   const [assignDeptOpen, setAssignDeptOpen] = useState(false);
   const [assignSupervisorsOpen, setAssignSupervisorsOpen] = useState(false);
   const [assignTemplateOpen, setAssignTemplateOpen] = useState(false);
@@ -102,8 +97,6 @@ export function EmployeeActionsMenu({
   const canAssignDepartments =
     !isArchived &&
     (employee.role === "manager" || employee.role === "member");
-  const isPendingInvite =
-    employee.status === "invited" || employee.status === "pending";
 
   const dialogConfigs: Record<DialogAction, DialogConfig> = {
     activate: {
@@ -218,13 +211,6 @@ export function EmployeeActionsMenu({
 
           <DropdownMenuSeparator />
 
-          {isPendingInvite && employee.email && (
-            <DropdownMenuItem onSelect={() => setInviteLinkOpen(true)}>
-              <Link2 className="size-4" />
-              Invite Link
-            </DropdownMenuItem>
-          )}
-
           {!isArchived && (
             <>
               {employee.is_active ? (
@@ -309,16 +295,6 @@ export function EmployeeActionsMenu({
         open={assignTemplateOpen}
         onOpenChange={setAssignTemplateOpen}
       />
-
-      {employee.email && (
-        <InviteLinkDialog
-          email={employee.email}
-          fullName={employee.full_name}
-          orgName={orgName}
-          open={inviteLinkOpen}
-          onOpenChange={setInviteLinkOpen}
-        />
-      )}
 
       <AlertDialog
         open={dialogAction !== null}

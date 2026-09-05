@@ -23,17 +23,6 @@ export async function login(
     return { error: friendlyAuthErrorMessage(error.message) };
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
-    await supabase
-      .from("profiles")
-      .update({ has_onboarded: true })
-      .eq("id", user.id);
-  }
-
   revalidatePath("/", "layout");
   redirect("/");
 }

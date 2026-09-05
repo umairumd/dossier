@@ -22,5 +22,9 @@ export default async function AppLayout({
     redirect("/deactivated");
   }
 
+  if (!profile.has_onboarded) {
+    redirect("/onboarding");
+  }
+
   return <AppShell profile={profile}>{children}</AppShell>;
 }

@@ -30,12 +30,12 @@ import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem, EmployeeStatus } from "@/types/employee";
 import type { ReportTemplate } from "@/types/template";
 
-type StatusFilter = "all" | Exclude<EmployeeStatus, "pending">;
+type StatusFilter = "all" | EmployeeStatus;
 
 const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All (except archived)" },
   { value: "active", label: "Active" },
-  { value: "invited", label: "Invited / Pending" },
+  { value: "invited", label: "Invited" },
   { value: "disabled", label: "Disabled" },
   { value: "archived", label: "Archived" },
 ];
@@ -75,7 +75,6 @@ export function EmployeeList({
   currentUserId,
   departments,
   candidates,
-  orgName,
   lastSeenByEmployeeId,
   templates,
 }: {
@@ -83,7 +82,6 @@ export function EmployeeList({
   currentUserId: string;
   departments: DepartmentOption[];
   candidates: EmployeeListItem[];
-  orgName: string | null;
   lastSeenByEmployeeId: Record<string, string>;
   templates: ReportTemplate[];
 }) {
@@ -94,12 +92,7 @@ export function EmployeeList({
     const byStatus =
       statusFilter === "all"
         ? employees.filter((employee) => employee.status !== "archived")
-        : statusFilter === "invited"
-          ? employees.filter(
-              (employee) =>
-                employee.status === "invited" || employee.status === "pending",
-            )
-          : employees.filter((employee) => employee.status === statusFilter);
+        : employees.filter((employee) => employee.status === statusFilter);
 
     const normalized = query.trim().toLowerCase();
     if (!normalized) {
@@ -229,7 +222,6 @@ export function EmployeeList({
                     isSelf={employee.id === currentUserId}
                     departments={departments}
                     candidates={candidates}
-                    orgName={orgName}
                     templates={templates}
                     currentTemplateSource={resolved.source}
                     currentTemplateSourceName={resolved.sourceName}

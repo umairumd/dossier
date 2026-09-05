@@ -33,14 +33,6 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isLoginRoute = request.nextUrl.pathname.startsWith("/login");
-  // /invite must be reachable with no session: the invite tokens arrive in
-  // the URL fragment (#access_token=...), which browsers never send to the
-  // server — so on first load the proxy genuinely cannot see them yet,
-  // only the client-side code on that page can. Unlike /login, a session
-  // appearing *while already on* /invite (right after setSession()
-  // succeeds, before a password is set) must NOT bounce away — that's the
-  // one route where "authenticated" doesn't mean "done here."
-  const isInviteRoute = request.nextUrl.pathname.startsWith("/invite");
   const isForgotPasswordRoute =
     request.nextUrl.pathname.startsWith("/forgot-password");
   const isResetPasswordRoute =
@@ -49,7 +41,6 @@ export async function updateSession(request: NextRequest) {
   if (
     !user &&
     !isLoginRoute &&
-    !isInviteRoute &&
     !isForgotPasswordRoute &&
     !isResetPasswordRoute
   ) {

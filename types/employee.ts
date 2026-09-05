@@ -3,16 +3,14 @@ import type { DailyReport } from "@/types/report";
 import type { ReportStats } from "@/lib/helpers/report-stats";
 
 // Archived: soft-removed from the active org (excluded from active
-// rosters), reports kept. Invited: invite sent, not yet onboarded, link
-// still within its validity window. Pending: invite sent but the link has
-// since expired without onboarding — actionable (needs a resend).
-// Active: has_onboarded is true. Disabled: is_active=false (banned
-// via the Admin API) but not archived. Archived takes priority over all
-// other signals — an archived employee is never shown as anything else.
+// rosters), reports kept. Invited: account created with a temporary
+// password, has_onboarded is still false. Active: has_onboarded is true.
+// Disabled: is_active=false (banned via the Admin API) but not archived.
+// Archived takes priority over all other signals — an archived employee
+// is never shown as anything else.
 export type EmployeeStatus =
   | "archived"
   | "invited"
-  | "pending"
   | "active"
   | "disabled";
 

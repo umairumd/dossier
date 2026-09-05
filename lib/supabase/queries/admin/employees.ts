@@ -33,17 +33,10 @@ interface AuthUserSummary {
   invitedAt: string | null;
 }
 
-// Supabase's default invite/OTP expiry is 24h — not exposed via the Admin
-// API, so this can't be read from the live project's config and is a
-// best-effort assumption. Confirm it matches your project's actual Auth
-// settings if "Pending" ever looks wrong.
-const INVITE_EXPIRY_MS = 24 * 60 * 60 * 1000;
-
 function computeEmployeeStatus(
   isActive: boolean,
   archivedAt: string | null,
   hasOnboarded: boolean | null | undefined,
-  authUser: AuthUserSummary | undefined,
 ): EmployeeStatus {
   if (archivedAt) {
     return "archived";
@@ -53,15 +46,7 @@ function computeEmployeeStatus(
     return "disabled";
   }
 
-  // Active means onboarding is complete (password set / has_onboarded).
-  // Missing has_onboarded is treated as not onboarded. Do not use
-  // last_sign_in_at — invite token exchange sets it before onboarding.
   if (!hasOnboarded) {
-    if (authUser?.invitedAt) {
-      const expired =
-        Date.now() - new Date(authUser.invitedAt).getTime() > INVITE_EXPIRY_MS;
-      return expired ? "pending" : "invited";
-    }
     return "invited";
   }
 
@@ -125,7 +110,6 @@ function toEmployeeListItem(
       profile.is_active,
       profile.archived_at,
       profile.has_onboarded,
-      authUser,
     ),
     designation: profile.designation,
     is_remote: profile.is_remote,

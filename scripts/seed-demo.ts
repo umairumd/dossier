@@ -15,6 +15,7 @@
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { generateTempPassword } from "../lib/helpers/temp-password";
 import { initEnv } from "./lib/load-env";
 
 initEnv(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
@@ -173,19 +174,6 @@ const TOMORROW_PLANS = [
   "Write documentation for new API endpoints.",
 ];
 
-function demoSiteUrl(): string {
-  if (process.env.SITE_URL) {
-    return process.env.SITE_URL;
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL;
-  }
-  return "http://localhost:3000";
-}
-
 function randomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -298,6 +286,7 @@ async function createDemoUser(
         full_name: user.fullName,
         role: user.role,
         organization_id: organizationId,
+        has_onboarded: !user.shouldInviteOnly,
       })
       .eq("id", existing.id);
 
@@ -313,13 +302,12 @@ async function createDemoUser(
   }
 
   if (user.shouldInviteOnly) {
-    const { data, error } = await client.auth.admin.generateLink({
-      type: "invite",
+    const tempPassword = generateTempPassword();
+    const { data, error } = await client.auth.admin.createUser({
       email: user.email,
-      options: {
-        data: { full_name: user.fullName },
-        redirectTo: `${demoSiteUrl()}/invite`,
-      },
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { full_name: user.fullName },
     });
 
     if (error || !data.user) {
@@ -338,7 +326,7 @@ async function createDemoUser(
         full_name: user.fullName,
         role: user.role,
         organization_id: organizationId,
-        pending_invite_link: data.properties.action_link,
+        has_onboarded: false,
       })
       .eq("id", data.user.id);
 
@@ -349,7 +337,7 @@ async function createDemoUser(
       );
     }
 
-    console.log(`   + ${user.email} (invite pending)`);
+    console.log(`   + ${user.email} (invited, password ${tempPassword})`);
     return data.user.id;
   }
 
@@ -370,11 +358,12 @@ async function createDemoUser(
   const { error: profileError } = await client
     .from("profiles")
     .update({
-      full_name: user.fullName,
-      role: user.role,
-      organization_id: organizationId,
-    })
-    .eq("id", authData.user.id);
+        full_name: user.fullName,
+        role: user.role,
+        organization_id: organizationId,
+        has_onboarded: true,
+      })
+      .eq("id", authData.user.id);
 
   if (profileError) {
     console.error(
@@ -658,7 +647,8 @@ Members:
 
 Pending:
   invited@${DEMO_DOMAIN} - Invited Member (Engineering)
-                           Sign in via stored invite link, not password.
+                           Sign in with the temp password printed above,
+                           then set a permanent password on /onboarding.
 
 Departments: Engineering, Design, Sales, Customer Support, HR
 Reports: ~3 weeks of weekday history for confirmed users

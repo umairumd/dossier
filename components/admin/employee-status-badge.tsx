@@ -4,7 +4,6 @@ import type { EmployeeStatus } from "@/types/employee";
 const STATUS_LABELS: Record<EmployeeStatus, string> = {
   archived: "Archived",
   invited: "Invited",
-  pending: "Pending",
   active: "Active",
   disabled: "Disabled",
 };
@@ -15,7 +14,6 @@ const STATUS_VARIANTS: Record<
 > = {
   archived: "outline",
   invited: "outline",
-  pending: "secondary",
   active: "default",
   disabled: "destructive",
 };

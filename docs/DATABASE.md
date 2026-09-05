@@ -102,7 +102,7 @@ Departments are the fundamental organizational boundary. A manager's visibility 
 | `department_id` | `uuid` | Yes | `null` | FK to departments; null for admins |
 | `is_active` | `boolean` | No | `true` | Mirrors auth ban status |
 | `archived_at` | `timestamptz` | Yes | `null` | When archived (soft delete) |
-| `pending_invite_link` | `text` | Yes | `null` | Current invite URL for pending users (cleared on accept) |
+| `has_onboarded` | `boolean` | No | `false` | True after the employee sets a permanent password on `/onboarding` |
 | `created_at` | `timestamptz` | No | `now()` | Creation timestamp |
 
 **Constraints:**
@@ -275,7 +275,8 @@ Migrations are applied chronologically and are the **source of truth** for the s
 | `20260801100001_add_archive_columns.sql` | Add archived_at to profiles and departments |
 | `20260802100001_department_fk_set_null_on_delete.sql` | Change department_id FK to ON DELETE SET NULL |
 | `20260803100001_organization_settings.sql` | Create organization_settings singleton |
-| `20260804100001_add_pending_invite_link.sql` | Add `pending_invite_link` on profiles |
+| `20260804100001_add_pending_invite_link.sql` | Add `pending_invite_link` on profiles (later dropped) |
+| `20260901000013_remove_pending_invite_link.sql` | Drop `pending_invite_link`; invites use temp passwords |
 
 ---
 

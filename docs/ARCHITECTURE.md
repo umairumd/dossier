@@ -168,12 +168,12 @@ sequenceDiagram
 ```mermaid
 flowchart TB
     subgraph Invite["Invitation Flow"]
-        A1["Admin invites via generateLink()"] --> A2["Auth creates user + profile trigger fires"]
+        A1["Admin invites via createUser() + temp password"] --> A2["Auth creates user + profile trigger fires"]
         A2 --> A3["Admin updates profile (role, department)"]
-        A3 --> A4["User clicks invite link"]
-        A4 --> A5["/invite exchanges token"]
-        A5 --> A6["User sets password"]
-        A6 --> A7["Redirect to /"]
+        A3 --> A4["Admin shares email + temp password"]
+        A4 --> A5["Employee signs in at /login"]
+        A5 --> A6["/onboarding sets permanent password"]
+        A6 --> A7["markOnboarded() then redirect to /"]
     end
     
     subgraph Login["Login Flow"]
@@ -197,11 +197,11 @@ flowchart TB
 Authorization happens at **three levels**:
 
 ### Level 1: Proxy (Session)
-`proxy.ts` ensures a valid session exists for all routes except `/login` and `/invite`.
+`proxy.ts` ensures a valid session exists for all routes except `/login`, `/forgot-password`, and `/reset-password`. First-login users with `has_onboarded = false` are redirected to `/onboarding` from `(app)/layout.tsx`.
 
 ### Level 2: Layouts (UI Gate)
 Route layouts redirect non-matching roles:
-- `(app)/layout.tsx`: Requires profile + `is_active`
+- `(app)/layout.tsx`: Requires profile + `is_active` + `has_onboarded`
 - `admin/layout.tsx`: Redirects non-admins to `/`
 - `manager/layout.tsx`: Redirects non-managers to `/`
 

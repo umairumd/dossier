@@ -53,7 +53,6 @@ export default async function EmployeesPage() {
         currentUserId={profile?.id ?? ""}
         departments={departments}
         candidates={employees}
-        orgName={orgName}
         lastSeenByEmployeeId={lastSeenByEmployeeId}
         templates={templates}
       />

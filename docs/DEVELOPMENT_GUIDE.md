@@ -135,8 +135,8 @@ Set the same variables as `.env.local`:
 In the Supabase dashboard, add redirect URLs:
 
 **Authentication → URL Configuration → Redirect URLs:**
-- `http://localhost:3000/invite`
-- `https://your-domain.com/invite`
+- `http://localhost:3000/reset-password`
+- `https://your-domain.com/reset-password`
 
 ---
 
@@ -181,8 +181,8 @@ import type { Profile } from "@/types/profile";
 
 ```typescript
 // Good: explains the reason
-// generateLink (not inviteUserByEmail) is used deliberately: it always
-// returns the invite link regardless of whether SMTP is configured
+// createUser (not generateLink) is used deliberately: a temp password
+// survives WhatsApp previews; invite tokens do not
 
 // Bad: describes obvious code
 // Loop through the array

@@ -35,12 +35,12 @@ export const getRecentActivity = cache(
     );
 
     const invitedActivity: ActivityItem[] = employees
-      .filter((employee) => employee.invited_at)
+      .filter((employee) => employee.status === "invited")
       .map((employee) => ({
         id: `invited-${employee.id}`,
         type: "invited" as const,
         label: `${employee.full_name} was invited`,
-        timestamp: employee.invited_at!,
+        timestamp: employee.created_at,
         href: `/employees/${employee.id}`,
       }));
 
