@@ -53,7 +53,7 @@ export function ActionMenu({ items, disabled, disabledReason }: ActionMenuProps)
           <span className="sr-only">Actions</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="w-48">
         {items.map((item, index) => {
           if (item === "separator") {
             return <DropdownMenuSeparator key={`sep-${index}`} />;
