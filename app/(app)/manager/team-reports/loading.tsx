@@ -11,7 +11,7 @@ export default function TeamReportsLoading() {
         <Skeleton className="h-9 w-40" />
       </div>
       <div className="flex gap-2">
-        <Skeleton className="h-9 max-w-sm flex-1" />
+        <Skeleton className="h-9 min-w-0 flex-1" />
         <Skeleton className="h-9 w-40" />
       </div>
       <div className="flex flex-col gap-2">

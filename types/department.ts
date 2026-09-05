@@ -27,6 +27,7 @@ export interface DepartmentMember {
   full_name: string;
   designation: string | null;
   is_remote: boolean;
+  employment_type: "full_time" | "part_time";
   has_onboarded: boolean;
 }
 

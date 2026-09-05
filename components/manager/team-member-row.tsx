@@ -5,7 +5,11 @@ import { FileStack, MoreHorizontal } from "lucide-react";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import { AssignTemplateDialog } from "@/components/admin/assign-template-dialog";
 import { MemberAvatar } from "@/components/shared/member-avatar";
-import { Badge } from "@/components/ui/badge";
+import {
+  ManagerIndicator,
+  PartTimeIndicator,
+  RemoteIndicator,
+} from "@/components/shared/employee-indicators";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -38,16 +42,9 @@ export function TeamMemberRow({
               fullName={member.full_name}
               className="text-sm font-medium hover:underline"
             />
-            {managerId === member.id && (
-              <Badge variant="secondary" className="text-xs">
-                Manager
-              </Badge>
-            )}
-            {member.is_remote && (
-              <Badge variant="outline" className="text-xs">
-                Remote
-              </Badge>
-            )}
+            {managerId === member.id && <ManagerIndicator />}
+            {member.is_remote && <RemoteIndicator />}
+            {member.employment_type === "part_time" && <PartTimeIndicator />}
           </div>
           {member.designation && (
             <span className="truncate text-xs text-muted-foreground">

@@ -12,6 +12,7 @@ export interface InviteEmployeeInput {
   departmentId?: string;
   supervisorId?: string;
   isRemote?: boolean;
+  employmentType?: "full_time" | "part_time";
 }
 
 export interface EditEmployeeInput {
@@ -72,6 +73,7 @@ export type InviteEmployeeValidationResult =
         departmentId?: string;
         supervisorId?: string;
         isRemote?: boolean;
+        employmentType?: "full_time" | "part_time";
       };
     }
   | { valid: false; fieldErrors: EmployeeFieldErrors };
@@ -105,6 +107,7 @@ export function validateInviteEmployeeInput(
           ? input.supervisorId
           : undefined,
       isRemote: input.isRemote,
+      employmentType: input.employmentType ?? "full_time",
     },
   };
 }

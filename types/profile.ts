@@ -12,6 +12,7 @@ export interface Profile {
   has_onboarded: boolean;
   designation: string | null;
   is_remote: boolean;
+  employment_type: "full_time" | "part_time";
   avatar_url: string | null;
   template_id: string | null;
   created_at: string;

@@ -10,6 +10,7 @@ export interface TeamRosterMember {
   full_name: string;
   designation: string | null;
   is_remote: boolean;
+  employment_type: "full_time" | "part_time";
   avatar_url: string | null;
   template_id: string | null;
 }
@@ -33,7 +34,7 @@ export const getTeamRoster = cache(
 
     const { data: employees, error } = await supabase
       .from("profiles")
-      .select("id, full_name, designation, is_remote, avatar_url, template_id")
+      .select("id, full_name, designation, is_remote, employment_type, avatar_url, template_id")
       .eq("is_active", true)
       .is("archived_at", null)
       .order("full_name", { ascending: true });
@@ -63,7 +64,7 @@ export const getTeamReportingRoster = cache(
     // via report-history queries; only the live roster excludes them.
     const { data: employees, error } = await supabase
       .from("profiles")
-      .select("id, full_name, designation, is_remote, avatar_url, template_id")
+      .select("id, full_name, designation, is_remote, employment_type, avatar_url, template_id")
       .eq("has_onboarded", true)
       .is("archived_at", null)
       .neq("role", "owner")
@@ -120,6 +121,8 @@ export const getTeamReportsForDate = cache(
       fullName: employee.full_name,
       designation: employee.designation,
       avatarUrl: employee.avatar_url,
+      isRemote: employee.is_remote,
+      employment_type: employee.employment_type,
       report: reportsByAuthor.get(employee.id) ?? null,
     }));
   },

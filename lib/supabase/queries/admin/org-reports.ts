@@ -51,7 +51,7 @@ export const getOrgReportsForDate = cache(
     ] = await Promise.all([
       adminClient
         .from("profiles")
-        .select("id, full_name, designation, avatar_url")
+        .select("id, full_name, designation, avatar_url, is_remote, employment_type")
         .eq("has_onboarded", true)
         .eq("is_active", true)
         .is("archived_at", null)
@@ -131,6 +131,8 @@ export const getOrgReportsForDate = cache(
         fullName: employee.full_name,
         designation: employee.designation,
         avatarUrl: employee.avatar_url,
+        isRemote: employee.is_remote,
+        employment_type: employee.employment_type,
         report: reportsByAuthor.get(employee.id) ?? null,
         departmentIds,
         departmentNames: departmentIds

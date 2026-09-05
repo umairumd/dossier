@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { AccentProvider } from "@/components/accent-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -41,10 +42,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: ACCENT_INIT_SCRIPT }} />
-      </head>
       <body className="min-h-full flex flex-col">
+        <Script id="accent-init" strategy="beforeInteractive">
+          {ACCENT_INIT_SCRIPT}
+        </Script>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

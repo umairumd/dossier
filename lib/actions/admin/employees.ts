@@ -52,7 +52,7 @@ export async function inviteEmployee(
     return { success: false, fieldErrors: validation.fieldErrors };
   }
 
-  const { email, fullName, role, designation, departmentId, supervisorId, isRemote } =
+  const { email, fullName, role, designation, departmentId, supervisorId, isRemote, employmentType } =
     validation.value;
   const adminClient = createAdminClient();
   const tempPassword = generateTempPassword();
@@ -104,6 +104,7 @@ export async function inviteEmployee(
 
   const profileUpdate: Record<string, unknown> = {
     is_remote: isRemote ?? false,
+    employment_type: employmentType ?? "full_time",
   };
   if (designation) {
     profileUpdate.designation = designation;
