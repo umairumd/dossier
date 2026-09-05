@@ -58,7 +58,7 @@ export default async function SettingsPage() {
             isRemote={profile.is_remote}
             employmentType={profile.employment_type}
             avatarUrl={profile.avatar_url}
-            showUploadButton={true}
+            avatarSize="xl"
             roleLabel={getRoleLabel(profile.role)}
             joinedLabel={`Joined ${formatDate(profile.created_at.slice(0, 10))}`}
           />
