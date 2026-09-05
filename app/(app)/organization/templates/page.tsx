@@ -14,7 +14,7 @@ export default async function TemplatesPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Templates"
+        title="Report Templates"
         action={
           <Button size="sm" asChild>
             <Link href="/organization/templates/new">

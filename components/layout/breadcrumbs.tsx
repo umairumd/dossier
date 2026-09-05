@@ -11,7 +11,7 @@ const ROUTE_LABELS: Record<string, string> = {
   invitations: "Invitations",
   activity: "Activity",
   organization: "Organization",
-  templates: "Templates",
+  templates: "Report Templates",
   reports: "My Reports",
   settings: "Settings",
   profile: "Profile",

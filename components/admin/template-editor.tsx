@@ -177,7 +177,7 @@ export function TemplateEditor({
         href="/organization/templates"
         className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        ← Templates
+        ← Report Templates
       </Link>
 
       <Card className="card-gradient">

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ArchiveTemplateButton,
+  DeleteTemplateButton,
   RestoreTemplateButton,
 } from "@/components/admin/template-archive-button";
 import type { ReportTemplate } from "@/types/template";
@@ -53,9 +54,17 @@ export function TemplateListItem({
             </Button>
           )}
           {!template.isDefault && !archived && (
-            <ArchiveTemplateButton templateId={template.id} />
+            <>
+              <ArchiveTemplateButton templateId={template.id} />
+              <DeleteTemplateButton templateId={template.id} />
+            </>
           )}
-          {archived && <RestoreTemplateButton templateId={template.id} />}
+          {archived && (
+            <>
+              <RestoreTemplateButton templateId={template.id} />
+              <DeleteTemplateButton templateId={template.id} />
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
