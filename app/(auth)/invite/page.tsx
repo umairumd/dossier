@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { markOnboarded } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,80 @@ type VerifyStatus = "verifying" | "ready" | "error";
 
 const MIN_PASSWORD_LENGTH = 8;
 
+type ExchangeResult = { error?: string; redirecting?: true };
+
+function inviteErrorCopy(message: string): {
+  title: string;
+  description: string;
+  body: ReactNode;
+} {
+  const lower = message.toLowerCase();
+
+  if (lower.includes("expired")) {
+    return {
+      title: "Your invitation has expired",
+      description: "This invite link is no longer valid.",
+      body: "Contact your admin to send you a fresh invite link.",
+    };
+  }
+
+  if (lower.includes("invalid") || lower.includes("already")) {
+    return {
+      title: "Invite link already used",
+      description:
+        "This link has already been opened in another browser or device.",
+      body: (
+        <>
+          Try opening the app directly at{" "}
+          <a
+            href="https://my.inomadigital.com"
+            className="text-primary hover:underline"
+          >
+            my.inomadigital.com
+          </a>{" "}
+          — you may already have an active session. If not, contact your admin
+          for a new invite link.
+        </>
+      ),
+    };
+  }
+
+  return {
+    title: "Something went wrong",
+    description: "We couldn't verify your invite link.",
+    body: "Please try again. If the problem persists, contact your admin.",
+  };
+}
+
 // Reads whatever Supabase attached to the invite redirect — historically
 // this is a URL *fragment* (#access_token=...), which never reaches the
 // server (see proxy.ts), so this exchange can only happen client-side. A
 // `?code=` query param (PKCE-style) is also checked so this works
 // regardless of the project's configured auth flow type.
-async function exchangeInviteToken(): Promise<{ error?: string }> {
+//
+// An existing session is checked first: opening the invite link consumes
+// the token, but cookies remain if they leave before setting a password.
+async function exchangeInviteToken(): Promise<ExchangeResult> {
   const supabase = createClient();
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("has_onboarded")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    if (profile?.has_onboarded) {
+      window.location.replace("/");
+      return { redirecting: true };
+    }
+
+    return {};
+  }
 
   const hash = window.location.hash.startsWith("#")
     ? window.location.hash.slice(1)
@@ -78,6 +145,10 @@ export default function InvitePage() {
 
   useEffect(() => {
     exchangeInviteToken().then((result) => {
+      if (result.redirecting) {
+        return;
+      }
+
       if (result.error) {
         setErrorMessage(result.error);
         setStatus("error");
@@ -135,16 +206,15 @@ export default function InvitePage() {
   }
 
   if (status === "error") {
+    const copy = inviteErrorCopy(errorMessage);
     return (
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Invitation link invalid</CardTitle>
-          <CardDescription>{errorMessage}</CardDescription>
+          <CardTitle>{copy.title}</CardTitle>
+          <CardDescription>{copy.description}</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Ask your admin to resend the invitation from the Employees page.
-          </p>
+          <p className="text-sm text-muted-foreground">{copy.body}</p>
         </CardContent>
       </Card>
     );
