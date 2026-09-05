@@ -18,15 +18,7 @@ type VerifyStatus = "verifying" | "ready" | "error";
 
 const MIN_PASSWORD_LENGTH = 8;
 
-type TokenParams =
-  | { type: "code"; code: string }
-  | { type: "hash"; accessToken: string; refreshToken: string };
-
-type ParseResult = {
-  error?: string;
-  redirecting?: true;
-  tokenParams?: TokenParams | null;
-};
+type ExchangeResult = { error?: string; redirecting?: true };
 
 function inviteErrorCopy(message: string): {
   title: string;
@@ -71,12 +63,11 @@ function inviteErrorCopy(message: string): {
   };
 }
 
-// Parses invite tokens from the URL without exchanging them. Exchange
-// happens only on password submit so the one-time token stays valid if
-// the user closes the tab or opens the same link in another browser.
-// An existing session is checked first for return visits after a prior
-// exchange (legacy) or mid-flow navigation.
-async function parseInviteParams(): Promise<ParseResult> {
+// Supabase verifies the invite at /auth/v1/verify before redirecting here
+// with session tokens (#access_token / ?code=). Those are one-time at
+// Supabase's end; exchanging them on mount creates a browser session so
+// return visits in the same browser still work via cookies.
+async function exchangeInviteToken(): Promise<ExchangeResult> {
   const supabase = createClient();
 
   const {
@@ -95,7 +86,7 @@ async function parseInviteParams(): Promise<ParseResult> {
       return { redirecting: true };
     }
 
-    return { tokenParams: null };
+    return {};
   }
 
   const hash = window.location.hash.startsWith("#")
@@ -112,38 +103,44 @@ async function parseInviteParams(): Promise<ParseResult> {
 
   const code = searchParams.get("code");
   if (code) {
-    return { tokenParams: { type: "code", code } };
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      return { error: "This invitation link has expired or is invalid." };
+    }
+    return {};
   }
 
   const accessToken = hashParams.get("access_token");
   const refreshToken = hashParams.get("refresh_token");
 
-  if (accessToken && refreshToken) {
+  if (!accessToken || !refreshToken) {
     return {
-      tokenParams: {
-        type: "hash",
-        accessToken,
-        refreshToken,
-      },
+      error: "This invitation link is invalid or has already been used.",
     };
   }
 
-  return {
-    error: "This invitation link is invalid or has already been used.",
-  };
+  const { error } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+
+  if (error) {
+    return { error: "This invitation link has expired or is invalid." };
+  }
+
+  return {};
 }
 
 export default function InvitePage() {
   const [status, setStatus] = useState<VerifyStatus>("verifying");
   const [errorMessage, setErrorMessage] = useState("");
-  const [tokenParams, setTokenParams] = useState<TokenParams | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fieldError, setFieldError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    parseInviteParams().then((result) => {
+    exchangeInviteToken().then((result) => {
       if (result.redirecting) {
         return;
       }
@@ -154,8 +151,7 @@ export default function InvitePage() {
         return;
       }
 
-      setTokenParams(result.tokenParams ?? null);
-      // Strip tokens from the URL bar; they are already held in state for submit.
+      // Tokens shouldn't linger in the URL/history once exchanged.
       window.history.replaceState(null, "", window.location.pathname);
       setStatus("ready");
     });
@@ -178,34 +174,6 @@ export default function InvitePage() {
     setIsSubmitting(true);
 
     const supabase = createClient();
-
-    if (tokenParams) {
-      if (tokenParams.type === "code") {
-        const { error } = await supabase.auth.exchangeCodeForSession(
-          tokenParams.code,
-        );
-        if (error) {
-          setFieldError(
-            "Link expired or already used. Ask your admin for a new invite.",
-          );
-          setIsSubmitting(false);
-          return;
-        }
-      } else {
-        const { error } = await supabase.auth.setSession({
-          access_token: tokenParams.accessToken,
-          refresh_token: tokenParams.refreshToken,
-        });
-        if (error) {
-          setFieldError(
-            "Link expired or already used. Ask your admin for a new invite.",
-          );
-          setIsSubmitting(false);
-          return;
-        }
-      }
-    }
-
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
