@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Star } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -30,17 +30,16 @@ import {
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import {
+  ManagerIndicator,
+  PartTimeIndicator,
+  RemoteIndicator,
+} from "@/components/shared/employee-indicators";
+import {
   EmptyState,
   illustrationForTeamEmpty,
 } from "@/components/shared/empty-state";
 import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 import type { ReportTemplateWithFields } from "@/types/template";
@@ -59,18 +58,21 @@ function memberStatus(
   );
 }
 
-function DepartmentManagerStar() {
+function NameIndicators({
+  isManager,
+  isRemote,
+  employmentType,
+}: {
+  isManager: boolean;
+  isRemote?: boolean;
+  employmentType?: "full_time" | "part_time";
+}) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex shrink-0">
-          <Star className="size-3 fill-primary text-primary" />
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>Department manager</p>
-      </TooltipContent>
-    </Tooltip>
+    <>
+      {isManager && <ManagerIndicator />}
+      {isRemote && <RemoteIndicator />}
+      {employmentType === "part_time" && <PartTimeIndicator />}
+    </>
   );
 }
 
@@ -152,11 +154,10 @@ export function TeamReportsView({
       : "No reports match your filters.");
 
   return (
-    <TooltipProvider>
     <div className="flex flex-col gap-4">
       {showFilters && (
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative max-w-sm flex-1">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
             <Input
               value={query}
@@ -242,7 +243,11 @@ export function TeamReportsView({
                                     : "/manager/employees"
                                 }
                               />
-                              {isManager && <DepartmentManagerStar />}
+                              <NameIndicators
+                                isManager={isManager}
+                                isRemote={member.isRemote}
+                                employmentType={member.employment_type}
+                              />
                             </div>
                             {previewValue && (
                               <p className="max-w-[240px] truncate text-xs text-muted-foreground">
@@ -323,7 +328,11 @@ export function TeamReportsView({
                               : "/manager/employees"
                           }
                         />
-                        {isManager && <DepartmentManagerStar />}
+                        <NameIndicators
+                          isManager={isManager}
+                          isRemote={member.isRemote}
+                          employmentType={member.employment_type}
+                        />
                       </div>
                       {member.designation && (
                         <p className="truncate text-xs text-muted-foreground">
@@ -372,6 +381,5 @@ export function TeamReportsView({
         templates={templates}
       />
     </div>
-    </TooltipProvider>
   );
 }

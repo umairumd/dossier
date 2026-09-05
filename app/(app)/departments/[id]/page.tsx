@@ -14,6 +14,11 @@ import { DepartmentDetailActions } from "@/components/admin/department-detail-ac
 import { DepartmentMemberActions } from "@/components/admin/department-member-actions";
 import { DeptTemplateActions } from "@/components/admin/dept-template-actions";
 import { EmptyState } from "@/components/shared/empty-state";
+import {
+  ManagerIndicator,
+  PartTimeIndicator,
+  RemoteIndicator,
+} from "@/components/shared/employee-indicators";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -242,19 +247,16 @@ export default async function DepartmentDetailPage({
                             {member.full_name}
                           </Link>
                           {member.id === detail.manager_id && (
-                            <Badge variant="secondary" className="text-xs">
-                              Manager
-                            </Badge>
+                            <ManagerIndicator />
                           )}
                           {!member.has_onboarded && (
                             <Badge variant="outline" className="text-xs">
                               Invited
                             </Badge>
                           )}
-                          {member.is_remote && (
-                            <Badge variant="outline" className="text-xs">
-                              Remote
-                            </Badge>
+                          {member.is_remote && <RemoteIndicator />}
+                          {member.employment_type === "part_time" && (
+                            <PartTimeIndicator />
                           )}
                         </div>
                         {member.designation && (

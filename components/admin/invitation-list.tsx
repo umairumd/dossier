@@ -41,14 +41,16 @@ export function InvitationList({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative max-w-sm">
-        <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search invitations..."
-          className="pl-8"
-        />
+      <div className="flex items-center gap-3">
+        <div className="relative min-w-0 flex-1">
+          <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search invitations..."
+            className="pl-8"
+          />
+        </div>
       </div>
 
       {filtered.length === 0 ? (

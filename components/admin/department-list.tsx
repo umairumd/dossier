@@ -2,14 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -26,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
+import { NoMembersIndicator } from "@/components/shared/employee-indicators";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { DepartmentActionsMenu } from "@/components/admin/department-actions-menu";
 import { DepartmentStatusBadge } from "@/components/admin/department-status-badge";
@@ -70,10 +65,9 @@ export function DepartmentList({
   }, [departments, query, statusFilter]);
 
   return (
-    <TooltipProvider>
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative max-w-sm flex-1">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
           <Input
             value={query}
@@ -114,7 +108,7 @@ export function DepartmentList({
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Manager</TableHead>
-              <TableHead>Employees</TableHead>
+              <TableHead className="text-center">Employees</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-12 text-right">Actions</TableHead>
             </TableRow>
@@ -130,21 +124,7 @@ export function DepartmentList({
                     >
                       {department.name}
                     </Link>
-                    {department.employee_count === 0 && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            className="inline-flex shrink-0 cursor-help"
-                          >
-                            <AlertCircle className="size-4 text-yellow-500/80" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>No members assigned to this department</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
+                    {department.employee_count === 0 && <NoMembersIndicator />}
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
@@ -167,7 +147,9 @@ export function DepartmentList({
                     </div>
                   )}
                 </TableCell>
-                <TableCell>{department.employee_count}</TableCell>
+                <TableCell className="text-center">
+                  {department.employee_count}
+                </TableCell>
                 <TableCell>
                   <DepartmentStatusBadge archivedAt={department.archived_at} />
                 </TableCell>
@@ -183,6 +165,5 @@ export function DepartmentList({
         </Table>
       )}
     </div>
-    </TooltipProvider>
   );
 }

@@ -14,6 +14,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { NavLinks } from "@/components/layout/nav-links";
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { UserMenu } from "@/components/layout/user-menu";
 import type { NavSection } from "@/components/layout/nav-config";
 import type { Profile } from "@/types/profile";
@@ -33,16 +34,19 @@ export function TopNav({
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="hidden shrink-0 md:flex"
-        aria-label="Toggle sidebar"
-        onClick={() => window.dispatchEvent(new Event("sidebar-toggle"))}
-      >
-        <PanelLeft className="size-4" />
-      </Button>
+      <div className="hidden md:flex min-w-0 flex-1 items-center">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="shrink-0"
+          aria-label="Toggle sidebar"
+          onClick={() => window.dispatchEvent(new Event("sidebar-toggle"))}
+        >
+          <PanelLeft className="size-4" />
+        </Button>
+        <Breadcrumbs />
+      </div>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button

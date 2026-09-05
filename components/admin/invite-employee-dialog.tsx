@@ -4,7 +4,6 @@ import { useState, useTransition, type ReactElement } from "react";
 import { Copy, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -32,8 +31,34 @@ import {
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem } from "@/types/employee";
 import type { UserRole } from "@/types/profile";
+import { cn } from "@/lib/utils";
 
 const NONE = "__none__";
+
+function SegmentedOption({
+  selected,
+  onSelect,
+  children,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "flex-1 rounded-md border px-3 py-2 text-sm",
+        selected
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border text-muted-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 function unsetIfSentinel(value: string): string | undefined {
   if (!value || value.startsWith("__")) {
@@ -61,6 +86,9 @@ export function InviteEmployeeDialog({
   const [departmentId, setDepartmentId] = useState(NONE);
   const [supervisorId, setSupervisorId] = useState(NONE);
   const [isRemote, setIsRemote] = useState(false);
+  const [employmentType, setEmploymentType] = useState<
+    "full_time" | "part_time"
+  >("full_time");
   const [fieldErrors, setFieldErrors] = useState<EmployeeFieldErrors>({});
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -78,6 +106,7 @@ export function InviteEmployeeDialog({
     setDepartmentId(NONE);
     setSupervisorId(NONE);
     setIsRemote(false);
+    setEmploymentType("full_time");
     setFieldErrors({});
     setTempPassword(null);
     setCopied(false);
@@ -101,6 +130,7 @@ export function InviteEmployeeDialog({
       departmentId: unsetIfSentinel(departmentId),
       supervisorId: unsetIfSentinel(supervisorId),
       isRemote,
+      employmentType,
     };
     const validation = validateInviteEmployeeInput(input);
 
@@ -168,7 +198,7 @@ export function InviteEmployeeDialog({
   };
 
   const dialogContent = (
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {tempPassword ? "Employee Invited" : "Invite Employee"}
@@ -231,133 +261,158 @@ export function InviteEmployeeDialog({
         ) : (
           <form onSubmit={handleSubmit}>
             <DialogBody>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="invite-email">Email</Label>
-                <Input
-                  id="invite-email"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  aria-invalid={!!fieldErrors.email}
-                />
-                {fieldErrors.email && (
-                  <p className="text-sm text-destructive">{fieldErrors.email}</p>
-                )}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="invite-name">Full Name</Label>
+                  <Input
+                    id="invite-name"
+                    value={fullName}
+                    onChange={(event) => setFullName(event.target.value)}
+                    aria-invalid={!!fieldErrors.fullName}
+                  />
+                  {fieldErrors.fullName && (
+                    <p className="text-sm text-destructive">
+                      {fieldErrors.fullName}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="invite-email">Email</Label>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    aria-invalid={!!fieldErrors.email}
+                  />
+                  {fieldErrors.email && (
+                    <p className="text-sm text-destructive">{fieldErrors.email}</p>
+                  )}
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="invite-name">Full name</Label>
-                <Input
-                  id="invite-name"
-                  value={fullName}
-                  onChange={(event) => setFullName(event.target.value)}
-                  aria-invalid={!!fieldErrors.fullName}
-                />
-                {fieldErrors.fullName && (
-                  <p className="text-sm text-destructive">
-                    {fieldErrors.fullName}
-                  </p>
-                )}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Role</Label>
+                  <Select
+                    value={role}
+                    onValueChange={(value) => setRole(value as UserRole)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">Member</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Employment Type</Label>
+                  <div className="flex gap-2">
+                    <SegmentedOption
+                      selected={employmentType === "full_time"}
+                      onSelect={() => setEmploymentType("full_time")}
+                    >
+                      Full-time
+                    </SegmentedOption>
+                    <SegmentedOption
+                      selected={employmentType === "part_time"}
+                      onSelect={() => setEmploymentType("part_time")}
+                    >
+                      Part-time
+                    </SegmentedOption>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label>Role</Label>
-                <Select
-                  value={role}
-                  onValueChange={(value) => setRole(value as UserRole)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="member">Member</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label>
+                    Designation{" "}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      (optional)
+                    </span>
+                  </Label>
+                  <Input
+                    placeholder="e.g. Graphic Designer, Senior Developer"
+                    value={designation}
+                    onChange={(event) => setDesignation(event.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Work Location</Label>
+                  <div className="flex gap-2">
+                    <SegmentedOption
+                      selected={!isRemote}
+                      onSelect={() => setIsRemote(false)}
+                    >
+                      On-site
+                    </SegmentedOption>
+                    <SegmentedOption
+                      selected={isRemote}
+                      onSelect={() => setIsRemote(true)}
+                    >
+                      Remote
+                    </SegmentedOption>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label>
-                  Designation{" "}
-                  <span className="text-xs font-normal text-muted-foreground">
-                    (optional)
-                  </span>
-                </Label>
-                <Input
-                  placeholder="e.g. Graphic Designer, Senior Developer"
-                  value={designation}
-                  onChange={(event) => setDesignation(event.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Job title shown to the team
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label>
-                  Department{" "}
-                  <span className="text-xs font-normal text-muted-foreground">
-                    (optional)
-                  </span>
-                </Label>
-                <Select value={departmentId} onValueChange={setDepartmentId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="No department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>No department</SelectItem>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>
-                        {dept.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedDept?.manager_name && (
-                  <p className="text-xs text-muted-foreground">
-                    Manager: {selectedDept.manager_name}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label>
-                  Supervisor{" "}
-                  <span className="text-xs font-normal text-muted-foreground">
-                    (optional)
-                  </span>
-                </Label>
-                <Select value={supervisorId} onValueChange={setSupervisorId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="None" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>None</SelectItem>
-                    {candidates
-                      .filter((candidate) => candidate.status === "active")
-                      .map((candidate) => (
-                        <SelectItem key={candidate.id} value={candidate.id}>
-                          {candidate.full_name}
-                          {candidate.designation ? ` · ${candidate.designation}` : ""}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label>
+                    Department{" "}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      (optional)
+                    </span>
+                  </Label>
+                  <Select value={departmentId} onValueChange={setDepartmentId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="No department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>No department</SelectItem>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
                         </SelectItem>
                       ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  This person will see their daily reports
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="is_remote"
-                  checked={isRemote}
-                  onCheckedChange={(value) => setIsRemote(!!value)}
-                />
-                <Label htmlFor="is_remote" className="font-normal">
-                  Remote employee
-                </Label>
+                    </SelectContent>
+                  </Select>
+                  {selectedDept?.manager_name && (
+                    <p className="text-xs text-muted-foreground">
+                      Manager: {selectedDept.manager_name}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>
+                    Supervisor{" "}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      (optional)
+                    </span>
+                  </Label>
+                  <Select value={supervisorId} onValueChange={setSupervisorId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="None" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>None</SelectItem>
+                      {candidates
+                        .filter((candidate) => candidate.status === "active")
+                        .map((candidate) => (
+                          <SelectItem key={candidate.id} value={candidate.id}>
+                            {candidate.full_name}
+                            {candidate.designation
+                              ? ` · ${candidate.designation}`
+                              : ""}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </DialogBody>
             <DialogFooter>

@@ -22,9 +22,12 @@ import {
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
+import {
+  PartTimeIndicator,
+  RemoteIndicator,
+} from "@/components/shared/employee-indicators";
 import { MemberAvatar } from "@/components/shared/member-avatar";
-import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/helpers/dates";
+import { formatDate, formatDateTime } from "@/lib/helpers/dates";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem, EmployeeStatus } from "@/types/employee";
@@ -70,6 +73,25 @@ function resolveSource(
   return { source: "default", sourceName: null };
 }
 
+function formatLastSeen(
+  lastSignInAt: string | null,
+  lastReportDate: string | undefined,
+): string {
+  if (!lastSignInAt && !lastReportDate) {
+    return "—";
+  }
+  if (lastSignInAt && !lastReportDate) {
+    return formatDateTime(lastSignInAt);
+  }
+  if (!lastSignInAt && lastReportDate) {
+    return formatDate(lastReportDate);
+  }
+  if (new Date(lastSignInAt as string) > new Date(lastReportDate as string)) {
+    return formatDateTime(lastSignInAt as string);
+  }
+  return formatDate(lastReportDate as string);
+}
+
 export function EmployeeList({
   employees,
   currentUserId,
@@ -108,8 +130,8 @@ export function EmployeeList({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative max-w-sm flex-1">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
           <Input
             value={query}
@@ -149,10 +171,11 @@ export function EmployeeList({
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Designation</TableHead>
               <TableHead>Department</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Last Seen</TableHead>
               <TableHead className="w-12 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -174,47 +197,44 @@ export function EmployeeList({
                       size="sm"
                     />
                     <div className="flex flex-col gap-0.5">
-                      <Link
-                        href={`/employees/${employee.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {employee.full_name}
-                      </Link>
-                      {employee.is_remote && (
-                        <Badge variant="outline" className="w-fit text-xs">
-                          Remote
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        <Link
+                          href={`/employees/${employee.id}`}
+                          className="font-medium hover:underline"
+                        >
+                          {employee.full_name}
+                        </Link>
+                        {employee.is_remote && <RemoteIndicator />}
+                        {employee.employment_type === "part_time" && (
+                          <PartTimeIndicator />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {employee.email ?? "—"}
+                <TableCell>
+                  <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    {getRoleLabel(employee.role)}
+                  </span>
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-col gap-0.5">
-                    <span>{getRoleLabel(employee.role)}</span>
-                    {employee.designation && (
-                      <span className="text-xs text-muted-foreground">
-                        {employee.designation}
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {employee.designation ?? "—"}
+                  </span>
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-col gap-0.5">
-                    <span>
-                      {employee.department_names.join(", ") || "—"}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {lastSeenByEmployeeId[employee.id]
-                        ? `Last report ${formatDate(lastSeenByEmployeeId[employee.id])}`
-                        : "No reports yet"}
-                    </span>
-                  </div>
+                  <span>
+                    {employee.department_names.join(", ") || "—"}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <EmployeeStatusBadge status={employee.status} />
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {formatLastSeen(
+                    employee.last_sign_in_at,
+                    lastSeenByEmployeeId[employee.id],
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <EmployeeActionsMenu
