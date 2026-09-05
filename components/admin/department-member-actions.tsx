@@ -50,7 +50,7 @@ export function DepartmentMemberActions({
           <span className="sr-only">Member actions</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem
           onSelect={handleRemove}
           className="text-destructive focus:text-destructive"

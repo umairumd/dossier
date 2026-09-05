@@ -34,7 +34,7 @@ export function UserMenu({ profile }: { profile: Profile }) {
           </Avatar>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuLabel>
           <p className="font-medium">{profile.full_name}</p>
           <p className="text-xs font-normal text-muted-foreground capitalize">

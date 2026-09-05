@@ -16,6 +16,7 @@ import {
 import { formatDate, formatDateTime, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
+import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { StatCard } from "@/components/analytics/stat-card";
 import { ProfileHeader } from "@/components/shared/profile-header";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
@@ -140,6 +141,7 @@ export default async function EmployeeDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <BreadcrumbLabel label={employee.full_name} />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <ProfileHeader
           name={employee.full_name}

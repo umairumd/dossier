@@ -15,6 +15,7 @@ import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { CompletionTrendCard } from "@/components/analytics/completion-trend-card";
 import { StatCard } from "@/components/analytics/stat-card";
 import { DepartmentDetailActions } from "@/components/admin/department-detail-actions";
+import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { DepartmentMemberActions } from "@/components/admin/department-member-actions";
 import { DeptTemplateActions } from "@/components/admin/dept-template-actions";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -97,6 +98,7 @@ export default async function DepartmentDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <BreadcrumbLabel label={detail.name} />
       <Card className="card-gradient">
         <CardContent className="flex items-center justify-between">
           <div className="flex flex-col gap-1">

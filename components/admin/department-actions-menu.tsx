@@ -158,7 +158,7 @@ export function DepartmentActionsMenu({
             <span className="sr-only">Actions</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem asChild>
             <Link href={`/departments/${department.id}`}>
               <Eye className="size-4" />

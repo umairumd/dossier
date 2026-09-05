@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
@@ -14,6 +14,8 @@ const ROUTE_LABELS: Record<string, string> = {
   templates: "Templates",
   reports: "My Reports",
   settings: "Settings",
+  profile: "Profile",
+  account: "Account",
   "track-reports": "Track Reports",
   "team-reports": "Team Reports",
   team: "Team Members",
@@ -39,6 +41,26 @@ function labelForDynamicSegment(parent: string | undefined): string | null {
 
 export function Breadcrumbs() {
   const pathname = usePathname();
+  const [dynamicLabel, setDynamicLabel] = useState("");
+
+  useEffect(() => {
+    const readLabel = () => {
+      setDynamicLabel(
+        document.documentElement.getAttribute("data-breadcrumb-label") ?? "",
+      );
+    };
+
+    readLabel();
+
+    const observer = new MutationObserver(readLabel);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-breadcrumb-label"],
+    });
+
+    return () => observer.disconnect();
+  }, [pathname]);
+
   const parts = pathname.split("/").filter(Boolean);
 
   const crumbs: { href: string; label: string }[] = [
@@ -58,7 +80,8 @@ export function Breadcrumbs() {
     }
 
     if (UUID_PATTERN.test(part)) {
-      const label = labelForDynamicSegment(previousPart);
+      const fallback = labelForDynamicSegment(previousPart);
+      const label = dynamicLabel || fallback;
       if (label) {
         crumbs.push({ href, label });
       }
