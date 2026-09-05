@@ -221,6 +221,51 @@ export async function archiveTemplate(
   return { success: true };
 }
 
+export async function deleteTemplate(
+  templateId: string,
+): Promise<{ success: boolean; error?: string }> {
+  await requireAdminUser();
+  const supabase = await createClient();
+
+  const { data: tmpl } = await supabase
+    .from("report_templates")
+    .select("is_default")
+    .eq("id", templateId)
+    .single();
+
+  if (tmpl?.is_default) {
+    return {
+      success: false,
+      error: "Cannot delete the default template.",
+    };
+  }
+
+  const { count } = await supabase
+    .from("daily_reports")
+    .select("id", { count: "exact", head: true })
+    .eq("template_id", templateId);
+
+  if (count && count > 0) {
+    return {
+      success: false,
+      error: `This template has been used in ${count} report${count !== 1 ? "s" : ""}. Archive it instead of deleting.`,
+    };
+  }
+
+  const { error } = await supabase
+    .from("report_templates")
+    .delete()
+    .eq("id", templateId);
+
+  if (error) {
+    return { success: false, error: "Failed to delete template." };
+  }
+
+  revalidatePath("/organization/templates");
+  revalidatePath("/organization");
+  return { success: true };
+}
+
 export async function restoreTemplate(
   templateId: string,
 ): Promise<{ success: boolean; error?: string }> {
