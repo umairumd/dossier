@@ -126,7 +126,7 @@ export function AssignmentsCard({
                 <FileStack className="size-3.5" />
                 Report Template
               </p>
-              <div className="flex flex-col gap-0.5">
+              <div className="flex flex-col gap-1">
                 <span className="text-sm font-medium">
                   {templateInfo.template.name}
                 </span>
