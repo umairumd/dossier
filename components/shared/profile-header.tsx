@@ -1,4 +1,3 @@
-import { Camera } from "lucide-react";
 import {
   PartTimeIndicator,
   RemoteIndicator,
@@ -19,7 +18,7 @@ export function ProfileHeader({
   employmentType,
   avatarUrl,
   size = "md",
-  showUploadButton = false,
+  avatarSize = "lg",
   roleLabel,
   joinedLabel,
 }: {
@@ -30,7 +29,7 @@ export function ProfileHeader({
   employmentType?: "full_time" | "part_time";
   avatarUrl?: string | null;
   size?: "sm" | "md";
-  showUploadButton?: boolean;
+  avatarSize?: "md" | "lg" | "xl";
   roleLabel?: string;
   joinedLabel?: string;
 }) {
@@ -42,18 +41,8 @@ export function ProfileHeader({
         <MemberAvatar
           name={name}
           avatarUrl={avatarUrl ?? undefined}
-          size={size === "sm" ? "md" : "lg"}
+          size={avatarSize}
         />
-        {showUploadButton && (
-          <button
-            type="button"
-            disabled
-            className="absolute -right-1 -bottom-1 flex size-6 cursor-not-allowed items-center justify-center rounded-full border border-border bg-muted text-muted-foreground opacity-50"
-            title="Photo upload coming soon"
-          >
-            <Camera className="size-3" />
-          </button>
-        )}
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">

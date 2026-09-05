@@ -27,7 +27,7 @@ import {
   RemoteIndicator,
 } from "@/components/shared/employee-indicators";
 import { MemberAvatar } from "@/components/shared/member-avatar";
-import { formatDate, formatDateTime } from "@/lib/helpers/dates";
+import { formatDate } from "@/lib/helpers/dates";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem, EmployeeStatus } from "@/types/employee";
@@ -81,13 +81,13 @@ function formatLastSeen(
     return "—";
   }
   if (lastSignInAt && !lastReportDate) {
-    return formatDateTime(lastSignInAt);
+    return formatDate(lastSignInAt.slice(0, 10));
   }
   if (!lastSignInAt && lastReportDate) {
     return formatDate(lastReportDate);
   }
   if (new Date(lastSignInAt as string) > new Date(lastReportDate as string)) {
-    return formatDateTime(lastSignInAt as string);
+    return formatDate((lastSignInAt as string).slice(0, 10));
   }
   return formatDate(lastReportDate as string);
 }
@@ -171,11 +171,11 @@ export function EmployeeList({
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Designation</TableHead>
+              <TableHead className="w-48">Designation</TableHead>
               <TableHead>Department</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Seen</TableHead>
+              <TableHead className="text-center">Role</TableHead>
+              <TableHead className="text-center">Status</TableHead>
+              <TableHead className="w-28">Last Seen</TableHead>
               <TableHead className="w-12 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -212,12 +212,7 @@ export function EmployeeList({
                     </div>
                   </div>
                 </TableCell>
-                <TableCell>
-                  <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                    {getRoleLabel(employee.role)}
-                  </span>
-                </TableCell>
-                <TableCell>
+                <TableCell className="w-48">
                   <span className="text-sm text-muted-foreground">
                     {employee.designation ?? "—"}
                   </span>
@@ -227,10 +222,15 @@ export function EmployeeList({
                     {employee.department_names.join(", ") || "—"}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-center">
+                  <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    {getRoleLabel(employee.role)}
+                  </span>
+                </TableCell>
+                <TableCell className="text-center">
                   <EmployeeStatusBadge status={employee.status} />
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell className="w-28 text-sm text-muted-foreground">
                   {formatLastSeen(
                     employee.last_sign_in_at,
                     lastSeenByEmployeeId[employee.id],

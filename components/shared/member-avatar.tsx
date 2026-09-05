@@ -1,22 +1,13 @@
 import Image from "next/image";
+import { BotAvatar } from "@/components/shared/bot-avatar";
 import { cn } from "@/lib/utils";
-
-const AVATAR_COLORS = [
-  { bg: "bg-blue-500/20", text: "text-blue-500" },
-  { bg: "bg-violet-500/20", text: "text-violet-500" },
-  { bg: "bg-rose-500/20", text: "text-rose-500" },
-  { bg: "bg-amber-500/20", text: "text-amber-500" },
-  { bg: "bg-emerald-500/20", text: "text-emerald-500" },
-  { bg: "bg-cyan-500/20", text: "text-cyan-500" },
-  { bg: "bg-orange-500/20", text: "text-orange-500" },
-  { bg: "bg-pink-500/20", text: "text-pink-500" },
-];
 
 const SIZE_CLASS = {
   xs: "h-5 w-5 text-[9px]",
   sm: "h-7 w-7 text-[11px]",
   md: "h-8 w-8 text-xs",
   lg: "h-10 w-10 text-sm",
+  xl: "h-16 w-16 text-base",
 } as const;
 
 const SIZE_PX = {
@@ -24,36 +15,20 @@ const SIZE_PX = {
   sm: 28,
   md: 32,
   lg: 40,
+  xl: 64,
 } as const;
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) {
-    return "";
-  }
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
-
-function colorForName(name: string) {
-  let hash = 0;
-  for (const char of name) {
-    hash += char.charCodeAt(0);
-  }
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
-}
 
 export function MemberAvatar({
   name,
+  userId,
   avatarUrl,
   size = "md",
   className,
 }: {
   name: string;
+  userId?: string;
   avatarUrl?: string;
-  size?: "xs" | "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
 }) {
   const sizeClass = SIZE_CLASS[size];
@@ -71,20 +46,7 @@ export function MemberAvatar({
     );
   }
 
-  const color = colorForName(name);
-
   return (
-    <div
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full font-medium",
-        sizeClass,
-        color.bg,
-        color.text,
-        className,
-      )}
-      aria-label={name}
-    >
-      {getInitials(name)}
-    </div>
+    <BotAvatar userId={userId ?? name} size={px} className={className} />
   );
 }
