@@ -55,19 +55,22 @@ export async function inviteEmployee(
     validation.value;
   const adminClient = createAdminClient();
 
-  // inviteUserByEmail creates the unconfirmed auth user and can deliver
-  // the invite via SMTP. generateLink is then used only to obtain a
-  // shareable action_link for the admin to copy — it auto-confirms, so
-  // email_confirm is immediately set back to false. redirectTo points at
-  // our own acceptance page rather than the project's default Site URL.
-  const { data: inviteData, error: inviteError } =
-    await adminClient.auth.admin.inviteUserByEmail(email, {
+  // generateLink creates the auth user and returns a shareable action_link
+  // regardless of SMTP. It auto-confirms the email, so email_confirm is
+  // immediately set back to false so the invite-page token flow works.
+  // redirectTo points at our own acceptance page rather than the project's
+  // default Site URL.
+  const { data, error } = await adminClient.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: {
       data: { full_name: fullName },
       redirectTo: `${getSiteUrl()}/invite`,
-    });
+    },
+  });
 
-  if (inviteError) {
-    if (inviteError.code === "email_exists") {
+  if (error) {
+    if (error.code === "email_exists") {
       return {
         success: false,
         fieldErrors: { email: "An account with this email already exists." },
@@ -76,23 +79,8 @@ export async function inviteEmployee(
     return { success: false, error: "Failed to create the invitation." };
   }
 
-  const userId = inviteData.user.id;
-
-  const { data: linkData, error: linkError } =
-    await adminClient.auth.admin.generateLink({
-      type: "invite",
-      email,
-      options: {
-        data: { full_name: fullName },
-        redirectTo: `${getSiteUrl()}/invite`,
-      },
-    });
-
-  if (linkError) {
-    console.error("Failed to generate shareable invite link.", linkError);
-  }
-
-  const inviteLink = linkData?.properties?.action_link ?? null;
+  const userId = data.user.id;
+  const inviteLink = data.properties.action_link;
 
   await adminClient.auth.admin.updateUserById(userId, {
     email_confirm: false,
