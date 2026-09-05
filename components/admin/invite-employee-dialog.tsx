@@ -45,10 +45,12 @@ function unsetIfSentinel(value: string): string | undefined {
 export function InviteEmployeeDialog({
   departments,
   candidates,
+  orgName,
   trigger,
 }: {
   departments: DepartmentOption[];
   candidates: EmployeeListItem[];
+  orgName?: string | null;
   trigger?: ReactElement;
 }) {
   const [open, setOpen] = useState(false);
@@ -127,9 +129,26 @@ export function InviteEmployeeDialog({
     if (!inviteLink) {
       return;
     }
-    await navigator.clipboard.writeText(inviteLink);
-    setCopied(true);
-    toast.success("Invite link copied.");
+
+    const organization = orgName?.trim() || "the organization";
+    const message = [
+      `Hi ${fullName},`,
+      ``,
+      `You've been invited to join ${organization} on Dossier.`,
+      ``,
+      `Click the link below to set up your account:`,
+      inviteLink,
+      ``,
+      `Welcome to the team!`,
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+      toast.success("Message copied");
+    } catch {
+      toast.error("Failed to copy to clipboard.");
+    }
   };
 
   const dialogContent = (
@@ -158,7 +177,7 @@ export function InviteEmployeeDialog({
                   type="button"
                   size="icon"
                   onClick={copyLink}
-                  aria-label="Copy invite link"
+                  aria-label="Copy invite message"
                 >
                   {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
                 </Button>
@@ -170,7 +189,7 @@ export function InviteEmployeeDialog({
                 className="flex-1 sm:flex-none"
                 onClick={copyLink}
               >
-                {copied ? "Copied!" : "Copy Link"}
+                {copied ? "Copied!" : "Copy Message"}
               </Button>
               <Button
                 type="button"

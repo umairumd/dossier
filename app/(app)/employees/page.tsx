@@ -43,6 +43,7 @@ export default async function EmployeesPage() {
           <InviteEmployeeDialog
             departments={departments}
             candidates={employees}
+            orgName={orgName}
           />
         }
       />

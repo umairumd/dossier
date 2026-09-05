@@ -6,6 +6,7 @@ import { getRecentActivity } from "@/lib/supabase/queries/admin/activity";
 import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { resolveTemplate } from "@/lib/supabase/queries/templates";
+import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { formatLongDate } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
@@ -31,7 +32,7 @@ const HOME_ACTIVITY_LIMIT = 8;
 // reachable directly in case it's bookmarked) — one component, not two
 // parallel implementations of the same org overview.
 export async function AdminDashboard() {
-  const [summary, deptCompletion, recentActivity, todayReport, settings, allDepartments, employees, profile] =
+  const [summary, deptCompletion, recentActivity, todayReport, settings, allDepartments, employees, profile, orgName] =
     await Promise.all([
       getOrganizationSummary(),
       getDeptCompletionToday(),
@@ -41,6 +42,7 @@ export async function AdminDashboard() {
       getAllDepartments(),
       getAllEmployees(),
       getCurrentProfile(),
+      getOrganizationName(),
     ]);
   const today = formatLongDate(new Date());
   const deadline = getDeadlineContext(settings);
@@ -110,6 +112,7 @@ export async function AdminDashboard() {
           <InviteEmployeeDialog
             departments={departmentOptions}
             candidates={employees}
+            orgName={orgName}
             trigger={
               <button type="button" className="w-full text-left">
                 <Card className="card-gradient cursor-pointer transition-colors hover:bg-muted/50">
