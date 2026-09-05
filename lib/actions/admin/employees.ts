@@ -21,7 +21,7 @@ export interface InviteEmployeeResult {
   success: boolean;
   error?: string;
   fieldErrors?: EmployeeFieldErrors;
-  inviteLink?: string;
+  inviteLink?: string | null;
 }
 
 export interface EmployeeActionResult {
@@ -55,24 +55,19 @@ export async function inviteEmployee(
     validation.value;
   const adminClient = createAdminClient();
 
-  // generateLink (not inviteUserByEmail) is used deliberately: it always
-  // returns the invite link in the response regardless of whether SMTP is
-  // configured on the Supabase project, so the admin can copy/share it
-  // manually as a fallback — inviteUserByEmail's success depends on email
-  // delivery actually working. redirectTo points at our own acceptance
-  // page — without it, Supabase falls back to the project's default Site
-  // URL, which has no idea how to exchange the invite token.
-  const { data, error } = await adminClient.auth.admin.generateLink({
-    type: "invite",
-    email,
-    options: {
+  // inviteUserByEmail creates the unconfirmed auth user and can deliver
+  // the invite via SMTP. generateLink is then used only to obtain a
+  // shareable action_link for the admin to copy — it auto-confirms, so
+  // email_confirm is immediately set back to false. redirectTo points at
+  // our own acceptance page rather than the project's default Site URL.
+  const { data: inviteData, error: inviteError } =
+    await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { full_name: fullName },
       redirectTo: `${getSiteUrl()}/invite`,
-    },
-  });
+    });
 
-  if (error) {
-    if (error.code === "email_exists") {
+  if (inviteError) {
+    if (inviteError.code === "email_exists") {
       return {
         success: false,
         fieldErrors: { email: "An account with this email already exists." },
@@ -81,10 +76,31 @@ export async function inviteEmployee(
     return { success: false, error: "Failed to create the invitation." };
   }
 
+  const userId = inviteData.user.id;
+
+  const { data: linkData, error: linkError } =
+    await adminClient.auth.admin.generateLink({
+      type: "invite",
+      email,
+      options: {
+        data: { full_name: fullName },
+        redirectTo: `${getSiteUrl()}/invite`,
+      },
+    });
+
+  if (linkError) {
+    console.error("Failed to generate shareable invite link.", linkError);
+  }
+
+  const inviteLink = linkData?.properties?.action_link ?? null;
+
+  await adminClient.auth.admin.updateUserById(userId, {
+    email_confirm: false,
+  });
+
   // The invite trigger (handle_new_user) already created a baseline
   // profile (role='member'); this applies the role and name the admin
   // chose. Department assignment is a separate action.
-  const inviteLink = data.properties.action_link;
   const supabase = await createClient();
   const { error: profileError } = await supabase
     .from("profiles")
@@ -93,7 +109,7 @@ export async function inviteEmployee(
       role,
       pending_invite_link: inviteLink,
     })
-    .eq("id", data.user.id);
+    .eq("id", userId);
 
   if (profileError) {
     return {
@@ -113,7 +129,7 @@ export async function inviteEmployee(
   const { error: extensionError } = await supabase
     .from("profiles")
     .update(profileUpdate)
-    .eq("id", data.user.id);
+    .eq("id", userId);
 
   if (extensionError) {
     console.error("Failed to set invite profile extensions.", extensionError);
@@ -122,7 +138,7 @@ export async function inviteEmployee(
   if (departmentId) {
     const { error: departmentError } = await supabase
       .from("profile_departments")
-      .insert({ profile_id: data.user.id, department_id: departmentId });
+      .insert({ profile_id: userId, department_id: departmentId });
 
     if (departmentError) {
       console.error("Failed to assign department on invite.", departmentError);
@@ -132,7 +148,7 @@ export async function inviteEmployee(
   if (supervisorId) {
     const { error: supervisorError } = await supabase
       .from("member_supervisors")
-      .insert({ member_id: data.user.id, supervisor_id: supervisorId });
+      .insert({ member_id: userId, supervisor_id: supervisorId });
 
     if (supervisorError) {
       console.error("Failed to assign supervisor on invite.", supervisorError);
@@ -647,6 +663,19 @@ export async function regenerateInviteLink(
 
   // Store the new invite link in the profile for later retrieval
   const inviteLink = data.properties.action_link;
+
+  const { error: unconfirmError } = await adminClient.auth.admin.updateUserById(
+    data.user.id,
+    { email_confirm: false },
+  );
+
+  if (unconfirmError) {
+    console.error(
+      "Failed to unconfirm user after regenerating invite link.",
+      unconfirmError,
+    );
+  }
+
   const supabase = await createClient();
   await supabase
     .from("profiles")
