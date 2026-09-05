@@ -1,3 +1,4 @@
+import { AlertCircle, CheckCircle, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -6,10 +7,13 @@ import {
 } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getOrgTemplates } from "@/lib/supabase/queries/templates";
-import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
-import { formatLongDate } from "@/lib/helpers/dates";
+import {
+  getDeadlineContext,
+  getOrganizationSettings,
+} from "@/lib/supabase/queries/organization-settings";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { CompletionTrendCard } from "@/components/analytics/completion-trend-card";
+import { StatCard } from "@/components/analytics/stat-card";
 import { DepartmentDetailActions } from "@/components/admin/department-detail-actions";
 import { DepartmentMemberActions } from "@/components/admin/department-member-actions";
 import { DeptTemplateActions } from "@/components/admin/dept-template-actions";
@@ -22,13 +26,7 @@ import {
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DepartmentListItem } from "@/types/department";
 
 export default async function DepartmentDetailPage({
@@ -79,48 +77,62 @@ export default async function DepartmentDetailPage({
       employee.status !== "archived" && !memberIds.has(employee.id),
   );
 
-  const totalMembers = detail.members.length;
+  const reportingMembers = detail.members.filter((member) => member.has_onboarded);
   const submittedToday = Object.keys(detail.submittedAtByMemberId).length;
-  const missingToday = Math.max(totalMembers - submittedToday, 0);
+  const totalCount = reportingMembers.length;
+  const missingToday = Math.max(totalCount - submittedToday, 0);
   const completionPct =
-    totalMembers === 0 ? 0 : Math.round((submittedToday / totalMembers) * 100);
-  const statusLabel = detail.archived_at ? "Archived" : "Active";
+    totalCount === 0 ? 0 : Math.round((submittedToday / totalCount) * 100);
+
+  const currentTemplate = detail.template_id
+    ? (templates.find((template) => template.id === detail.template_id) ?? null)
+    : null;
+
+  const actionProps = {
+    department: departmentListItem,
+    managerCandidates,
+    managerNote,
+    addCandidates,
+  };
 
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        href="/departments"
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Departments
-      </Link>
-
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">{detail.name}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {detail.members.length}{" "}
-            {detail.members.length === 1 ? "member" : "members"} · {statusLabel}
-          </p>
-        </div>
-        <DepartmentDetailActions
-          department={departmentListItem}
-          managerCandidates={managerCandidates}
-          managerNote={managerNote}
-          addCandidates={addCandidates}
-          variant="edit"
-        />
-      </div>
-
       <Card className="card-gradient">
-        <CardHeader>
-          <CardTitle className="text-base">Manager</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {detail.manager ? (
+        <CardContent className="flex items-center justify-between py-5">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-semibold">{detail.name}</h1>
+              {detail.archived_at && (
+                <Badge variant="outline">Archived</Badge>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {detail.members.length} member
+              {detail.members.length !== 1 ? "s" : ""}
+              {detail.manager && (
+                <> · Manager: {detail.manager.full_name}</>
+              )}
+            </p>
+          </div>
+          <DepartmentDetailActions variant="edit" {...actionProps} />
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="card-gradient">
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <MemberAvatar name={detail.manager.full_name} size="sm" />
+              <CardTitle className="text-base">Manager</CardTitle>
+              <DepartmentDetailActions
+                variant={detail.manager ? "change-manager" : "assign-manager"}
+                {...actionProps}
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {detail.manager ? (
+              <div className="flex items-center gap-3">
+                <MemberAvatar name={detail.manager.full_name} size="md" />
                 <div>
                   <p className="text-sm font-medium">
                     {detail.manager.full_name}
@@ -132,72 +144,66 @@ export default async function DepartmentDetailPage({
                   )}
                 </div>
               </div>
-              <DepartmentDetailActions
-                department={departmentListItem}
-                managerCandidates={managerCandidates}
-                managerNote={managerNote}
-                addCandidates={addCandidates}
-                variant="change-manager"
-              />
-            </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
+            ) : (
+              <p className="text-sm text-muted-foreground">
                 No manager assigned
-              </span>
-              <DepartmentDetailActions
-                department={departmentListItem}
-                managerCandidates={managerCandidates}
-                managerNote={managerNote}
-                addCandidates={addCandidates}
-                variant="assign-manager"
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="card-gradient">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Report Template</CardTitle>
+              <DeptTemplateActions
+                departmentId={detail.id}
+                departmentName={detail.name}
+                currentTemplateId={detail.template_id}
+                templates={templates}
+                canCreate
+                showCurrentName={false}
               />
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="card-gradient">
-        <CardHeader>
-          <CardTitle className="text-base">Report Template</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DeptTemplateActions
-            departmentId={detail.id}
-            departmentName={detail.name}
-            currentTemplateId={detail.template_id}
-            templates={templates}
-            canCreate
-          />
-        </CardContent>
-      </Card>
-
-      <Card className="card-gradient">
-        <CardHeader>
-          <CardTitle className="text-base">Today</CardTitle>
-          <CardDescription>{formatLongDate(new Date())}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-6 text-sm">
-            <div>
-              <p className="text-2xl font-semibold">
-                {submittedToday}/{totalMembers}
+          </CardHeader>
+          <CardContent>
+            {currentTemplate ? (
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-medium">{currentTemplate.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {currentTemplate.fieldCount ?? 0} fields
+                  {currentTemplate.isDefault ? " · Org default" : ""}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Using org default
               </p>
-              <p className="text-xs text-muted-foreground">submitted</p>
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">{completionPct}%</p>
-              <p className="text-xs text-muted-foreground">completion</p>
-            </div>
-            <div>
-              <p className="text-2xl font-semibold text-destructive">
-                {missingToday}
-              </p>
-              <p className="text-xs text-muted-foreground">missing</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Submitted Today"
+          value={`${submittedToday}/${totalCount}`}
+          icon={<CheckCircle className="size-4" />}
+        />
+        <StatCard
+          label="Completion"
+          value={`${completionPct}%`}
+          icon={<TrendingUp className="size-4" />}
+        />
+        <StatCard
+          label="Missing"
+          value={missingToday}
+          icon={<AlertCircle className="size-4" />}
+          valueClassName={
+            missingToday > 0 ? "text-destructive" : undefined
+          }
+        />
+      </div>
 
       <CompletionTrendCard
         title="7-Day Completion"
@@ -209,13 +215,7 @@ export default async function DepartmentDetailPage({
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Members</CardTitle>
-            <DepartmentDetailActions
-              department={departmentListItem}
-              managerCandidates={managerCandidates}
-              managerNote={managerNote}
-              addCandidates={addCandidates}
-              variant="add-member"
-            />
+            <DepartmentDetailActions variant="add-member" {...actionProps} />
           </div>
         </CardHeader>
         <CardContent className="p-0">

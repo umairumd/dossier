@@ -73,6 +73,7 @@ export default async function SettingsPage() {
             designation={profile.designation}
             departmentNames={profile.department_names}
             isRemote={profile.is_remote}
+            employmentType={profile.employment_type}
             avatarUrl={profile.avatar_url}
             showUploadButton={true}
           />

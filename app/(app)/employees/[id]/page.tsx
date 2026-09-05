@@ -1,25 +1,102 @@
-import { notFound } from "next/navigation";
-import { Building2, Calendar, FileStack, Mail, UserCheck } from "lucide-react";
+import { Calendar, Flame, TrendingUp } from "lucide-react";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
-import { getAllEmployees, getEmployeeDetail } from "@/lib/supabase/queries/admin/employees";
+import {
+  getAllEmployees,
+  getEmployeeDetail,
+} from "@/lib/supabase/queries/admin/employees";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
-import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
+import {
+  getDeadlineContext,
+  getOrganizationSettings,
+} from "@/lib/supabase/queries/organization-settings";
 import {
   getOrgTemplatesWithFields,
   getTemplateResolutionInfo,
 } from "@/lib/supabase/queries/templates";
-import { formatDate } from "@/lib/helpers/dates";
-import { ProfileHeader } from "@/components/shared/profile-header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { formatDate, formatDateTime, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { getRoleLabel } from "@/lib/helpers/role-labels";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
-import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
+import { StatCard } from "@/components/analytics/stat-card";
+import { ProfileHeader } from "@/components/shared/profile-header";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AssignmentsCard } from "./assignments-card";
+import { notFound } from "next/navigation";
+import type { EmployeeDetail } from "@/types/employee";
+
+function countWorkingDaysThisMonth(
+  timezone: string,
+  workingDays: number[],
+): number {
+  const today = todayInTimezone(timezone);
+  const [year, month] = today.split("-").map(Number);
+  let count = 0;
+
+  for (let day = 1; day <= 31; day += 1) {
+    const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const parsed = new Date(`${date}T00:00:00Z`);
+    if (parsed.getUTCMonth() + 1 !== month) {
+      break;
+    }
+    if (isWorkingDay(date, workingDays)) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+function QuickInfoCard({ employee }: { employee: EmployeeDetail }) {
+  return (
+    <Card className="card-gradient h-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Details</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="flex flex-col gap-0.5">
+          <p className="text-xs text-muted-foreground">Email</p>
+          <p className="break-all text-sm font-medium">
+            {employee.email ?? "—"}
+          </p>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <p className="text-xs text-muted-foreground">Role</p>
+          <span className="inline-flex w-fit items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            {getRoleLabel(employee.role)}
+          </span>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <p className="text-xs text-muted-foreground">Employment</p>
+          <p className="text-sm font-medium">
+            {employee.employment_type === "part_time"
+              ? "Part-time"
+              : "Full-time"}
+          </p>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <p className="text-xs text-muted-foreground">Work Location</p>
+          <p className="text-sm font-medium">
+            {employee.is_remote ? "Remote" : "On-site"}
+          </p>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <p className="text-xs text-muted-foreground">Member Since</p>
+          <p className="text-sm font-medium">
+            {formatDate(employee.created_at.slice(0, 10))}
+          </p>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <p className="text-xs text-muted-foreground">Last Seen</p>
+          <p className="text-sm font-medium">
+            {employee.last_sign_in_at
+              ? formatDateTime(employee.last_sign_in_at)
+              : "—"}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default async function EmployeeDetailPage({
   params,
@@ -51,20 +128,15 @@ export default async function EmployeeDetailPage({
       manager_name: department.manager_name,
     }));
   const candidates = employees.filter((item) => item.id !== employee.id);
-  const supervisorNames = candidates
-    .filter((candidate) => employee.supervisor_ids.includes(candidate.id))
-    .map((candidate) => candidate.full_name);
 
   const resolution = await getTemplateResolutionInfo(
     employee.id,
     employee.department_ids,
   );
-  const templateSourceLabel =
-    resolution.source === "individual"
-      ? "Individual override"
-      : resolution.source === "department"
-        ? `From ${resolution.sourceName}`
-        : "Organization default";
+  const workingDaysThisMonth = countWorkingDaysThisMonth(
+    settings.timezone,
+    settings.workingDays,
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -74,6 +146,7 @@ export default async function EmployeeDetailPage({
           designation={employee.designation}
           departmentNames={employee.department_names}
           isRemote={employee.is_remote}
+          employmentType={employee.employment_type}
           avatarUrl={employee.avatar_url}
         />
 
@@ -89,124 +162,56 @@ export default async function EmployeeDetailPage({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-        <Card className="card-gradient">
-          <CardHeader>
-            <CardDescription className="flex items-center gap-1.5">
-              <Mail className="size-3.5" />
-              Email
-            </CardDescription>
-            <CardTitle className="text-base font-medium">
-              {employee.email ?? "—"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card className="card-gradient">
-          <CardHeader>
-            <CardDescription>Status</CardDescription>
-            <CardTitle>
-              <EmployeeStatusBadge status={employee.status} />
-            </CardTitle>
-            {employee.last_sign_in_at && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Last login: {formatDate(employee.last_sign_in_at.slice(0, 10))}
-              </p>
-            )}
-          </CardHeader>
-        </Card>
-
-        <Card className="card-gradient">
-          <CardHeader>
-            <CardDescription className="flex items-center gap-1.5">
-              <Calendar className="size-3.5" />
-              Member Since
-            </CardDescription>
-            <CardTitle className="text-base font-medium">
-              {formatDate(employee.created_at.slice(0, 10))}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card className="card-gradient">
-          <CardHeader>
-            <CardDescription className="flex items-center gap-1.5">
-              <Building2 className="size-3.5" />
-              Departments
-            </CardDescription>
-            <CardTitle className="text-base font-medium">
-              {employee.department_names.join(", ") || "Unassigned"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card className="card-gradient">
-          <CardHeader>
-            <CardDescription className="flex items-center gap-1.5">
-              <UserCheck className="size-3.5" />
-              Reports To
-            </CardDescription>
-            <CardTitle className="text-base font-medium">
-              {supervisorNames.join(", ") || "—"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card className="card-gradient">
-          <CardHeader>
-            <CardDescription className="flex items-center gap-1.5">
-              <FileStack className="size-3.5" />
-              Report Template
-            </CardDescription>
-            <CardTitle className="text-base font-medium">
-              {resolution.template.name}
-            </CardTitle>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {templateSourceLabel}
-            </p>
-          </CardHeader>
-        </Card>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <AssignmentsCard
+            employee={employee}
+            departments={departments}
+            candidates={candidates}
+            templates={templates}
+            templateInfo={resolution}
+          />
+        </div>
+        <div className="lg:col-span-1">
+          <QuickInfoCard employee={employee} />
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="card-gradient">
-          <CardContent className="pt-6">
-            <p className="text-2xl font-semibold">{employee.stats.currentStreak}</p>
-            <p className="mt-1 text-xs text-muted-foreground">day streak</p>
-          </CardContent>
-        </Card>
-        <Card className="card-gradient">
-          <CardContent className="pt-6">
-            <p className="text-2xl font-semibold">
-              {employee.stats.completionPercentage}%
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              30-day completion
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="card-gradient">
-          <CardContent className="pt-6">
-            <p className="text-2xl font-semibold">
-              {employee.stats.reportsThisMonth}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">this month</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Current Streak"
+          value={employee.stats.currentStreak}
+          unit="days"
+          hint="Consecutive days with a report"
+          icon={<Flame className="size-4" />}
+        />
+        <StatCard
+          label="30-Day Completion"
+          value={`${employee.stats.completionPercentage}%`}
+          hint="Reports submitted vs working days"
+          icon={<TrendingUp className="size-4" />}
+        />
+        <StatCard
+          label="This Month"
+          value={employee.stats.reportsThisMonth}
+          unit="reports"
+          hint={`Out of ${workingDaysThisMonth} working days`}
+          icon={<Calendar className="size-4" />}
+        />
       </div>
 
-      <Card>
+      <Card className="card-gradient">
         <CardHeader>
-          <CardTitle>Report History</CardTitle>
-          <CardDescription>
-            {employee.report_count}{" "}
-            {employee.report_count === 1 ? "report" : "reports"} submitted in
-            total.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Report History</CardTitle>
+            <span className="text-sm text-muted-foreground">
+              {employee.report_count} total
+            </span>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {employee.recent_reports.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
+            <p className="px-6 py-6 text-center text-sm text-muted-foreground">
               No reports submitted yet.
             </p>
           ) : (
