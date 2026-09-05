@@ -54,19 +54,19 @@ function QuickInfoCard({ employee }: { employee: EmployeeDetail }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <p className="text-xs text-muted-foreground">Email</p>
+          <p className="label-eyebrow">Email</p>
           <p className="break-all text-sm font-medium">
             {employee.email ?? "—"}
           </p>
         </div>
         <div className="flex flex-col gap-1">
-          <p className="text-xs text-muted-foreground">Role</p>
+          <p className="label-eyebrow">Role</p>
           <span className="inline-flex w-fit items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
             {getRoleLabel(employee.role)}
           </span>
         </div>
         <div className="flex flex-col gap-1">
-          <p className="text-xs text-muted-foreground">Employment</p>
+          <p className="label-eyebrow">Employment</p>
           <p className="text-sm font-medium">
             {employee.employment_type === "part_time"
               ? "Part-time"
@@ -74,19 +74,19 @@ function QuickInfoCard({ employee }: { employee: EmployeeDetail }) {
           </p>
         </div>
         <div className="flex flex-col gap-1">
-          <p className="text-xs text-muted-foreground">Work Location</p>
+          <p className="label-eyebrow">Work Location</p>
           <p className="text-sm font-medium">
             {employee.is_remote ? "Remote" : "On-site"}
           </p>
         </div>
         <div className="flex flex-col gap-1">
-          <p className="text-xs text-muted-foreground">Member Since</p>
+          <p className="label-eyebrow">Member Since</p>
           <p className="text-sm font-medium">
             {formatDate(employee.created_at.slice(0, 10))}
           </p>
         </div>
         <div className="flex flex-col gap-1">
-          <p className="text-xs text-muted-foreground">Last Seen</p>
+          <p className="label-eyebrow">Last Seen</p>
           <p className="text-sm font-medium">
             {employee.last_sign_in_at
               ? formatDateTime(employee.last_sign_in_at)

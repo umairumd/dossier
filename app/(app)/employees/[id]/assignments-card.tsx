@@ -53,7 +53,7 @@ export function AssignmentsCard({
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <p className="label-eyebrow flex items-center gap-1.5">
                 <Building2 className="size-3.5" />
                 Departments
               </p>
@@ -89,7 +89,7 @@ export function AssignmentsCard({
 
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <p className="label-eyebrow flex items-center gap-1.5">
                 <UserCheck className="size-3.5" />
                 Reports To
               </p>
@@ -122,7 +122,7 @@ export function AssignmentsCard({
 
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <p className="label-eyebrow flex items-center gap-1.5">
                 <FileStack className="size-3.5" />
                 Report Template
               </p>
