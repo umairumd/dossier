@@ -623,10 +623,10 @@ export async function getInvitationStatus(
   };
 }
 
-// Re-inviting an email that already exists but hasn't confirmed yet (still
-// "Invited" or "Pending") issues a fresh token for the same auth.users row
-// rather than erroring — GoTrue only rejects generateLink(type: "invite")
-// with email_exists for an already-CONFIRMED user. The existing profile
+// Re-inviting an email that already exists issues a fresh token for the
+// same auth.users row. generateLink(type: "invite") rejects confirmed
+// users (email_exists), so we unconfirm first, generate, then unconfirm
+// again because generateLink re-confirms. The existing profile
 // (name/role/department) is untouched: handle_new_user only fires on
 // INSERT, and this doesn't create a new auth.users row.
 //
@@ -639,6 +639,34 @@ export async function regenerateInviteLink(
   await requireAdminUser();
 
   const adminClient = createAdminClient();
+
+  const {
+    data: { users },
+    error: findError,
+  } = await adminClient.auth.admin.listUsers({
+    perPage: 1000,
+  });
+
+  if (findError) {
+    return { success: false, error: "Failed to regenerate invite link." };
+  }
+
+  const authUser = users.find(
+    (user) => user.email?.toLowerCase() === email.toLowerCase(),
+  );
+  if (!authUser) {
+    return { success: false, error: "User not found." };
+  }
+
+  const { error: unconfirmError } = await adminClient.auth.admin.updateUserById(
+    authUser.id,
+    { email_confirm: false },
+  );
+
+  if (unconfirmError) {
+    return { success: false, error: "Failed to regenerate invite link." };
+  }
+
   const { data, error } = await adminClient.auth.admin.generateLink({
     type: "invite",
     email,
@@ -649,21 +677,12 @@ export async function regenerateInviteLink(
     return { success: false, error: "Failed to regenerate invite link." };
   }
 
-  // Store the new invite link in the profile for later retrieval
+  // generateLink re-confirms; undo so the invite-page token flow works.
+  await adminClient.auth.admin.updateUserById(data.user.id, {
+    email_confirm: false,
+  });
+
   const inviteLink = data.properties.action_link;
-
-  const { error: unconfirmError } = await adminClient.auth.admin.updateUserById(
-    data.user.id,
-    { email_confirm: false },
-  );
-
-  if (unconfirmError) {
-    console.error(
-      "Failed to unconfirm user after regenerating invite link.",
-      unconfirmError,
-    );
-  }
-
   const supabase = await createClient();
   await supabase
     .from("profiles")
