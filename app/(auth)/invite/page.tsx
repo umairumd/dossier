@@ -182,7 +182,13 @@ export default function InvitePage() {
       return;
     }
 
-    await markOnboarded();
+    const onboardResult = await markOnboarded();
+
+    if (onboardResult?.error) {
+      // Password is set; still send them in. Status fallback treats
+      // last_sign_in_at as active if has_onboarded stays false.
+      console.error("markOnboarded failed:", onboardResult.error);
+    }
 
     // Full navigation, not the client router: guarantees the dashboard's
     // first request carries the just-established session cookies rather

@@ -53,9 +53,9 @@ function computeEmployeeStatus(
     return "disabled";
   }
 
-  // Active means onboarding is complete (password set). Token exchange
-  // sets last_sign_in_at, so that field is not a signup signal. Missing
-  // has_onboarded is treated as not onboarded.
+  // Active means onboarding is complete (password set / has_onboarded).
+  // Missing has_onboarded is treated as not onboarded. Do not use
+  // last_sign_in_at — invite token exchange sets it before onboarding.
   if (!hasOnboarded) {
     if (authUser?.invitedAt) {
       const expired =

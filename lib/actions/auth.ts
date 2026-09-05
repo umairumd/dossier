@@ -38,7 +38,10 @@ export async function login(
   redirect("/");
 }
 
-export async function markOnboarded() {
+export async function markOnboarded(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const {
@@ -46,13 +49,19 @@ export async function markOnboarded() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return;
+    return { success: false, error: "Not authenticated." };
   }
 
-  await supabase
+  const { error } = await supabase
     .from("profiles")
     .update({ has_onboarded: true })
     .eq("id", user.id);
+
+  if (error) {
+    return { success: false, error: "Failed to complete onboarding." };
+  }
+
+  return { success: true };
 }
 
 export async function logout() {

@@ -658,6 +658,14 @@ export async function regenerateInviteLink(
     return { success: false, error: "User not found." };
   }
 
+  if (authUser.last_sign_in_at) {
+    return {
+      success: false,
+      error:
+        "This employee has already signed in. They can log in directly at the app. If they forgot their password, they can use the forgot password flow.",
+    };
+  }
+
   const { error: unconfirmError } = await adminClient.auth.admin.updateUserById(
     authUser.id,
     { email_confirm: false },
