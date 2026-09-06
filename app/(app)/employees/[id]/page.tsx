@@ -23,6 +23,7 @@ import { EmployeeHeroClient } from "@/components/admin/employee-hero-client";
 import { AssignmentsCard } from "./assignments-card";
 import { notFound } from "next/navigation";
 import type { EmployeeDetail } from "@/types/employee";
+import { getCurrentShift } from "@/lib/supabase/queries/attendance";
 
 function countWorkingDaysThisMonth(
   timezone: string,
@@ -105,7 +106,7 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params;
 
-  const [employee, profile, allDepartments, employees, settings, templates] =
+  const [employee, profile, allDepartments, employees, settings, templates, currentShift] =
     await Promise.all([
       getEmployeeDetail(id),
       getCurrentProfile(),
@@ -113,6 +114,7 @@ export default async function EmployeeDetailPage({
       getAllEmployees(),
       getOrganizationSettings(),
       getOrgTemplatesWithFields(),
+      getCurrentShift(id),
     ]);
 
   if (!employee) {
@@ -164,6 +166,8 @@ export default async function EmployeeDetailPage({
             candidates={candidates}
             templates={templates}
             templateInfo={resolution}
+            currentShift={currentShift}
+            orgId={employee.organization_id ?? ""}
           />
         </div>
         <div className="lg:col-span-1">
