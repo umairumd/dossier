@@ -8,7 +8,6 @@ import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
-import { formatLongDate } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import { Building2, UserPlus } from "lucide-react";
 import {
@@ -18,10 +17,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { StatCard } from "@/components/analytics/stat-card";
 import { ActivityFeed } from "@/components/analytics/activity-feed";
 import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
 import { CreateDepartmentDialog } from "@/components/admin/create-department-dialog";
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { DeptCompletionCard } from "@/components/dashboard/dept-completion-card";
 import { ReportBanner } from "@/components/shared/report-banner";
 import type { ReportTemplateWithFields } from "@/types/template";
@@ -44,7 +43,6 @@ export async function AdminDashboard() {
       getCurrentProfile(),
       getOrganizationName(),
     ]);
-  const today = formatLongDate(new Date());
   const deadline = getDeadlineContext(settings);
   let template: ReportTemplateWithFields | undefined;
   if (profile) {
@@ -53,6 +51,19 @@ export async function AdminDashboard() {
     } catch {
       template = undefined;
     }
+  }
+
+  let contextLine: string;
+  if (summary.totalMembers === 0) {
+    contextLine = "Start by inviting your first employee";
+  } else if (summary.completionPercentageToday === 100) {
+    contextLine = `✓ All ${summary.totalMembers} employees have submitted today`;
+  } else if (summary.pendingInvites > 0) {
+    contextLine = `${summary.pendingInvites} employee${summary.pendingInvites === 1 ? "" : "s"} haven't accepted their invitation yet`;
+  } else if (summary.missingToday > 0) {
+    contextLine = `${summary.submittedToday} of ${summary.totalMembers} employees have submitted today`;
+  } else {
+    contextLine = `Managing ${summary.totalMembers} member${summary.totalMembers === 1 ? "" : "s"} across ${summary.departments} department${summary.departments === 1 ? "" : "s"}`;
   }
   const departmentOptions = allDepartments
     .filter((department) => department.archived_at === null)
@@ -64,12 +75,22 @@ export async function AdminDashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Organization Overview
-        </h1>
-        <p className="text-sm text-muted-foreground">{today}</p>
-      </div>
+      <DashboardHero
+        userId={profile?.id ?? ""}
+        name={profile?.full_name ?? "Admin"}
+        designation={profile?.designation}
+        departmentNames={[]}
+        contextLine={contextLine}
+        stats={[
+          { label: "Total Members", value: String(summary.totalMembers) },
+          { label: "Submitted Today", value: String(summary.submittedToday) },
+          { label: "Missing Today", value: String(summary.missingToday) },
+          {
+            label: "Today's Completion",
+            value: `${summary.completionPercentageToday}%`,
+          },
+        ]}
+      />
 
       <ReportBanner
         todayReport={todayReport}
@@ -82,28 +103,15 @@ export async function AdminDashboard() {
       />
 
       <div
-        className="grid grid-cols-2 gap-4 lg:grid-cols-4 animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "0ms" }}
-      >
-        <StatCard label="Total Members" value={summary.totalMembers} />
-        <StatCard label="Submitted Today" value={summary.submittedToday} />
-        <StatCard label="Missing Today" value={summary.missingToday} />
-        <StatCard
-          label="Today's Completion"
-          value={`${summary.completionPercentageToday}%`}
-        />
-      </div>
-
-      <div
         className="animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "75ms" }}
+        style={{ animationDelay: "0ms" }}
       >
         <DeptCompletionCard departments={deptCompletion} />
       </div>
 
       <div
         className="flex flex-col gap-3 animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "150ms" }}
+        style={{ animationDelay: "75ms" }}
       >
         <h2 className="text-sm font-medium text-muted-foreground">
           Quick Actions
@@ -145,7 +153,7 @@ export async function AdminDashboard() {
 
       <Card
         className="animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "225ms" }}
+        style={{ animationDelay: "150ms" }}
       >
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
