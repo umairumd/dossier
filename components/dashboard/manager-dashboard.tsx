@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Building2 } from "lucide-react";
 import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
@@ -10,7 +9,7 @@ import { formatLongDate } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
-import { Badge } from "@/components/ui/badge";
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import {
   Card,
   CardContent,
@@ -49,20 +48,30 @@ export async function ManagerDashboard({
   const previewMembers = sortedMembers.slice(0, HOME_ROSTER_PREVIEW);
   const remainingCount = sortedMembers.length - previewMembers.length;
 
+  let contextLine: string;
+  if (teamSize === 0) {
+    contextLine = "No team members assigned yet";
+  } else if (missingToday === 0) {
+    contextLine = `✓ Your entire team has submitted today`;
+  } else {
+    contextLine = `${submittedToday} of ${teamSize} team members have submitted today`;
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {profile.department_names.join(", ") || "Team"} Dashboard
-        </h1>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span>{today}</span>
-          <Badge variant="outline">
-            <Building2 />
-            {profile.department_names.join(", ") || "Unassigned"}
-          </Badge>
-        </div>
-      </div>
+      <DashboardHero
+        userId={profile.id}
+        name={profile.full_name}
+        designation={profile.designation}
+        departmentNames={profile.department_names}
+        contextLine={contextLine}
+        stats={[
+          { label: "Team Size", value: String(teamSize) },
+          { label: "Submitted", value: String(submittedToday) },
+          { label: "Missing", value: String(missingToday) },
+          { label: "Completion", value: `${completionPercentage}%` },
+        ]}
+      />
 
       <ReportBanner
         todayReport={todayReport}
@@ -83,23 +92,7 @@ export async function ManagerDashboard({
           <CardDescription>{today}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-6 text-sm">
-            <span>
-              <span className="font-semibold">{submittedToday}</span>
-              <span className="text-muted-foreground"> submitted</span>
-            </span>
-            <span>
-              <span className="font-semibold text-destructive">
-                {missingToday}
-              </span>
-              <span className="text-muted-foreground"> missing</span>
-            </span>
-            <span>
-              <span className="font-semibold">{completionPercentage}%</span>
-              <span className="text-muted-foreground"> completion</span>
-            </span>
-          </div>
-          <div className="mt-4 flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
             {previewMembers.map((member) => (
               <div
                 key={member.employeeId}

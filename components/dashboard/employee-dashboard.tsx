@@ -1,14 +1,11 @@
-import { Building2, Flame } from "lucide-react";
 import { getReportHistory, getReportStatsData, getTodayReport } from "@/lib/supabase/queries/reports";
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
-import { formatLongDate } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import { computeReportStats } from "@/lib/helpers/report-stats";
-import { Badge } from "@/components/ui/badge";
-import { StatCard } from "@/components/analytics/stat-card";
 import { ActivityStrip } from "@/components/dashboard/activity-strip";
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { ReportBanner } from "@/components/shared/report-banner";
 import { RecentReportsCard } from "@/components/reports/recent-reports-card";
 
@@ -29,23 +26,37 @@ export async function EmployeeDashboard({
       getOrgTemplatesWithFields(),
     ]);
   const stats = computeReportStats(statsRows, settings.timezone);
-  const today = formatLongDate(new Date());
   const deadline = getDeadlineContext(settings);
+  const submittedToday = !!todayReport;
+  const streak = stats.currentStreak;
+
+  let contextLine: string;
+  if (!submittedToday && streak > 0) {
+    contextLine = `🔥 ${streak}-day streak — submit today's report to keep it going`;
+  } else if (!submittedToday && streak === 0) {
+    contextLine = "Submit today's report to start your streak";
+  } else if (submittedToday && streak > 2) {
+    contextLine = `🔥 ${streak}-day streak and counting — great work`;
+  } else if (submittedToday && streak === 2) {
+    contextLine = "2 days in a row — you're building a streak";
+  } else {
+    contextLine = "You're all caught up for today";
+  }
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Welcome back, {profile.full_name}
-        </h1>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span>{today}</span>
-          <Badge variant="outline">
-            <Building2 />
-            {profile.department_names.join(", ") || "Unassigned"}
-          </Badge>
-        </div>
-      </div>
+      <DashboardHero
+        userId={profile.id}
+        name={profile.full_name}
+        designation={profile.designation}
+        departmentNames={profile.department_names}
+        contextLine={contextLine}
+        stats={[
+          { label: "Current Streak", value: `${stats.currentStreak} days` },
+          { label: "This Month", value: `${stats.reportsThisMonth} reports` },
+          { label: "30-Day Rate", value: `${stats.completionPercentage}%` },
+        ]}
+      />
 
       <ReportBanner
         todayReport={todayReport}
@@ -69,31 +80,8 @@ export async function EmployeeDashboard({
       </div>
 
       <div
-        className="grid grid-cols-2 gap-4 lg:grid-cols-3 animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "75ms" }}
-      >
-        <StatCard
-          label="Current Streak"
-          value={stats.currentStreak}
-          unit="days"
-          icon={<Flame className="size-3.5" />}
-          valueClassName="text-4xl font-bold"
-        />
-        <StatCard
-          label="This Month"
-          value={stats.reportsThisMonth}
-          unit="reports"
-        />
-        <StatCard
-          label="30-day completion"
-          value={`${stats.completionPercentage}%`}
-          className="col-span-2 lg:col-span-1"
-        />
-      </div>
-
-      <div
         className="animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "150ms" }}
+        style={{ animationDelay: "75ms" }}
       >
         <RecentReportsCard
           reports={preview.reports}
