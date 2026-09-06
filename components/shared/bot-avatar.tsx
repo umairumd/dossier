@@ -3,11 +3,20 @@
 import { useEffect, useId, useRef } from "react";
 import { cn } from "@/lib/utils";
 
+export type BotExpression = "neutral" | "wink" | "wide" | "notification";
+
 interface BotAvatarProps {
   userId: string;
   size?: number;
   className?: string;
   interactive?: boolean;
+  expression?: BotExpression;
+}
+
+interface EyeState {
+  w: number;
+  h: number;
+  rx: number;
 }
 
 const PALETTES = [
@@ -42,8 +51,16 @@ const SHAPES = {
   },
 } as const;
 
-const EYE_W = 19;
-const EYE_H = 40;
+const EYE_EXPRESSIONS = {
+  neutral: { w: 19, h: 40 },
+  wide: { w: 32, h: 64 },
+  wink_normal: { w: 19, h: 40 },
+  wink_shut: { w: 26, h: 7 },
+  notification: { w: 44, h: 44 },
+} as const;
+
+const NEUTRAL_EYE: EyeState = { w: 19, h: 40, rx: 9.5 };
+const LERP = 0.14;
 
 function hashString(str: string): number {
   let hash = 0;
@@ -58,11 +75,18 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
+function lerpEye(cur: EyeState, tgt: EyeState) {
+  cur.w += (tgt.w - cur.w) * LERP;
+  cur.h += (tgt.h - cur.h) * LERP;
+  cur.rx = Math.min(cur.w / 2, cur.h / 2);
+}
+
 export function BotAvatar({
   userId,
   size = 32,
   className,
   interactive,
+  expression = "neutral",
 }: BotAvatarProps) {
   const isInteractive = interactive ?? true;
   const uid = useId().replace(/:/g, "");
@@ -78,34 +102,93 @@ export function BotAvatar({
   const svgRef = useRef<SVGSVGElement>(null);
   const leftEyeRef = useRef<SVGRectElement>(null);
   const rightEyeRef = useRef<SVGRectElement>(null);
+  const badgeRef = useRef<SVGCircleElement>(null);
   const mxRef = useRef(0);
   const myRef = useRef(0);
   const blinkScaleRef = useRef(1);
   const rafRef = useRef<number>(0);
   const blinkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expressionRef = useRef<BotExpression>("neutral");
+  const leftEyeCurRef = useRef<EyeState>({ ...NEUTRAL_EYE });
+  const rightEyeCurRef = useRef<EyeState>({ ...NEUTRAL_EYE });
+  const leftEyeTgtRef = useRef<EyeState>({ ...NEUTRAL_EYE });
+  const rightEyeTgtRef = useRef<EyeState>({ ...NEUTRAL_EYE });
+
+  const setExpression = (expr: BotExpression) => {
+    expressionRef.current = expr;
+    if (expr !== "neutral") {
+      blinkScaleRef.current = 1;
+    }
+    switch (expr) {
+      case "neutral":
+        leftEyeTgtRef.current = { ...EYE_EXPRESSIONS.neutral, rx: 0 };
+        rightEyeTgtRef.current = { ...EYE_EXPRESSIONS.neutral, rx: 0 };
+        break;
+      case "wide":
+        leftEyeTgtRef.current = { ...EYE_EXPRESSIONS.wide, rx: 0 };
+        rightEyeTgtRef.current = { ...EYE_EXPRESSIONS.wide, rx: 0 };
+        break;
+      case "wink":
+        leftEyeTgtRef.current = { ...EYE_EXPRESSIONS.wink_normal, rx: 0 };
+        rightEyeTgtRef.current = { ...EYE_EXPRESSIONS.wink_shut, rx: 0 };
+        break;
+      case "notification":
+        leftEyeTgtRef.current = { ...EYE_EXPRESSIONS.notification, rx: 0 };
+        rightEyeTgtRef.current = { ...EYE_EXPRESSIONS.notification, rx: 0 };
+        break;
+    }
+  };
 
   useEffect(() => {
+    setExpression(expression ?? "neutral");
+  }, [expression]);
+
+  useEffect(() => {
+    let dx = 0;
+    let dy = 0;
+
+    const applyBlink = (cur: EyeState, applyBlinkToThis: boolean) => {
+      const expr = expressionRef.current;
+      const blinkAllowed = expr === "neutral" || expr === "wink";
+      const h =
+        applyBlinkToThis && blinkAllowed
+          ? Math.max(1.5, cur.h * blinkScaleRef.current)
+          : cur.h;
+      return { h, rx: Math.min(cur.w / 2, h / 2) };
+    };
+
+    const updateEl = (
+      el: SVGRectElement | null,
+      eye: { cx: number; cy: number; rot: number },
+      cur: EyeState,
+      applyBlinkToThis: boolean,
+    ) => {
+      const { h, rx } = applyBlink(cur, applyBlinkToThis);
+      el?.setAttribute(
+        "transform",
+        `translate(${eye.cx + dx},${eye.cy + dy}) rotate(${eye.rot})`,
+      );
+      el?.setAttribute("width", String(cur.w));
+      el?.setAttribute("x", String(-cur.w / 2));
+      el?.setAttribute("height", String(h));
+      el?.setAttribute("y", String(-h / 2));
+      el?.setAttribute("rx", String(rx));
+      el?.setAttribute("ry", String(rx));
+    };
+
     const applyEyes = () => {
-      const dx = mxRef.current * 18;
-      const dy = myRef.current * 22;
-      const h = Math.max(1.5, EYE_H * blinkScaleRef.current);
-      const ry = Math.min(EYE_W / 2, h / 2);
+      lerpEye(leftEyeCurRef.current, leftEyeTgtRef.current);
+      lerpEye(rightEyeCurRef.current, rightEyeTgtRef.current);
 
-      const updateEye = (
-        el: SVGRectElement | null,
-        eye: { cx: number; cy: number; rot: number },
-      ) => {
-        el?.setAttribute(
-          "transform",
-          `translate(${eye.cx + dx},${eye.cy + dy}) rotate(${eye.rot})`,
-        );
-        el?.setAttribute("height", String(h));
-        el?.setAttribute("y", String(-h / 2));
-        el?.setAttribute("rx", String(ry));
-      };
+      dx = mxRef.current * 18;
+      dy = myRef.current * 22;
 
-      updateEye(leftEyeRef.current, eyes[0]);
-      updateEye(rightEyeRef.current, eyes[1]);
+      const isWinking = expressionRef.current === "wink";
+      updateEl(leftEyeRef.current, eyes[0], leftEyeCurRef.current, !isWinking);
+      updateEl(rightEyeRef.current, eyes[1], rightEyeCurRef.current, !isWinking);
+
+      const isNotification = expressionRef.current === "notification";
+      badgeRef.current?.setAttribute("opacity", isNotification ? "1" : "0");
     };
 
     const loop = () => {
@@ -119,12 +202,11 @@ export function BotAvatar({
       if (!svg) return;
       const rect = svg.getBoundingClientRect();
       const avatarCx = rect.left + rect.width / 2;
-      const avatarCy = rect.top + rect.height / 2;
-      // Horizontal: relative to avatar center, 18% viewport width = full deflection
-      mxRef.current = clamp((e.clientX - avatarCx) / (window.innerWidth * 0.18), -1, 1);
-
-      // Vertical: absolute cursor position across full viewport height
-      // top of screen = -1, bottom = +1, middle = 0
+      mxRef.current = clamp(
+        (e.clientX - avatarCx) / (window.innerWidth * 0.18),
+        -1,
+        1,
+      );
       myRef.current = clamp((e.clientY / window.innerHeight) * 2 - 1, -1, 1);
     };
 
@@ -158,9 +240,39 @@ export function BotAvatar({
     };
     scheduleNext();
 
+    const onFocus = () => {
+      if (expressionRef.current !== "neutral") return;
+      setExpression("wide");
+      if (blinkTimeoutRef.current) {
+        clearTimeout(blinkTimeoutRef.current);
+      }
+      blinkTimeoutRef.current = setTimeout(() => {
+        setExpression("neutral");
+        scheduleNext();
+      }, 1200);
+    };
+    window.addEventListener("focus", onFocus);
+
+    const sidebar = document.querySelector("aside, nav, [data-sidebar]");
+    const onSidebarEnter = () => {
+      if (expressionRef.current === "neutral") setExpression("wide");
+    };
+    const onSidebarLeave = () => {
+      if (expressionRef.current === "wide") setExpression("neutral");
+    };
+    if (sidebar) {
+      sidebar.addEventListener("mouseenter", onSidebarEnter);
+      sidebar.addEventListener("mouseleave", onSidebarLeave);
+    }
+
     return () => {
       if (isInteractive) {
         window.removeEventListener("mousemove", onMove);
+      }
+      window.removeEventListener("focus", onFocus);
+      if (sidebar) {
+        sidebar.removeEventListener("mouseenter", onSidebarEnter);
+        sidebar.removeEventListener("mouseleave", onSidebarLeave);
       }
       cancelAnimationFrame(rafRef.current);
       if (blinkTimeoutRef.current) {
@@ -194,23 +306,33 @@ export function BotAvatar({
       />
       <rect
         ref={leftEyeRef}
-        x={-EYE_W / 2}
-        y={-EYE_H / 2}
-        width={EYE_W}
-        height={EYE_H}
-        rx={Math.min(EYE_W / 2, EYE_H / 2)}
+        x={-NEUTRAL_EYE.w / 2}
+        y={-NEUTRAL_EYE.h / 2}
+        width={NEUTRAL_EYE.w}
+        height={NEUTRAL_EYE.h}
+        rx={NEUTRAL_EYE.rx}
         fill="rgba(0,0,0,0.80)"
         transform={`translate(${eyes[0].cx},${eyes[0].cy}) rotate(${eyes[0].rot})`}
       />
       <rect
         ref={rightEyeRef}
-        x={-EYE_W / 2}
-        y={-EYE_H / 2}
-        width={EYE_W}
-        height={EYE_H}
-        rx={Math.min(EYE_W / 2, EYE_H / 2)}
+        x={-NEUTRAL_EYE.w / 2}
+        y={-NEUTRAL_EYE.h / 2}
+        width={NEUTRAL_EYE.w}
+        height={NEUTRAL_EYE.h}
+        rx={NEUTRAL_EYE.rx}
         fill="rgba(0,0,0,0.80)"
         transform={`translate(${eyes[1].cx},${eyes[1].cy}) rotate(${eyes[1].rot})`}
+      />
+      <circle
+        ref={badgeRef}
+        cx="38"
+        cy="38"
+        r="20"
+        fill={palette.mid}
+        stroke="#010102"
+        strokeWidth="3"
+        opacity="0"
       />
     </svg>
   );
