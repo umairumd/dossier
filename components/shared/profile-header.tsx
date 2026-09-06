@@ -15,6 +15,7 @@ const filledPillClassName =
   "inline-flex items-center rounded-full bg-foreground px-2.5 py-0.5 text-xs font-medium text-background";
 
 export function ProfileHeader({
+  userId,
   name,
   designation,
   departmentNames,
@@ -27,6 +28,7 @@ export function ProfileHeader({
   joinedLabel,
   expression,
 }: {
+  userId?: string;
   name: string;
   designation?: string | null;
   departmentNames?: string[];
@@ -45,6 +47,7 @@ export function ProfileHeader({
     <div className="flex w-full items-center gap-4 py-2">
       <div className="relative">
         <MemberAvatar
+          userId={userId}
           name={name}
           avatarUrl={avatarUrl ?? undefined}
           size={avatarSize}

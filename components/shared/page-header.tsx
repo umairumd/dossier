@@ -19,7 +19,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 z-10 -mx-6 -mt-6 mb-6 border-b border-border bg-background px-6 pt-6 pb-4",
+        "-mx-6 -mt-6 mb-6 bg-background px-6 pt-6 pb-4",
         className,
       )}
     >

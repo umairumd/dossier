@@ -33,7 +33,7 @@ export function TopNav({
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-4">
       <div className="hidden md:flex min-w-0 flex-1 items-center">
         <Button
           type="button"

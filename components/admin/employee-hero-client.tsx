@@ -42,6 +42,7 @@ export function EmployeeHeroClient({
     <div className="flex items-start justify-between gap-4">
       <div className="flex flex-col gap-2">
         <ProfileHeader
+          userId={employee.id}
           name={name}
           designation={designation}
           isRemote={isRemote}

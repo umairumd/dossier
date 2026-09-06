@@ -131,6 +131,7 @@ export function DepartmentList({
                   {department.manager_name ? (
                     <div className="flex items-center gap-2">
                       <MemberAvatar
+                        userId={department.manager_id ?? undefined}
                         name={department.manager_name}
                         size="sm"
                       />
