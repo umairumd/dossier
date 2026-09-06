@@ -1,5 +1,6 @@
 import {
   Building2,
+  CalendarCheck,
   FileText,
   Home,
   LayoutList,
@@ -90,6 +91,12 @@ export const navSections: NavSection[] = [
         label: "Track Reports",
         href: "/track-reports",
         icon: <LayoutList className="size-4" />,
+        roles: ["owner", "admin"],
+      },
+      {
+        label: "Attendance",
+        href: "/attendance",
+        icon: <CalendarCheck className="size-4" />,
         roles: ["owner", "admin"],
       },
     ],
