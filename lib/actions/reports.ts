@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { searchReports } from "@/lib/supabase/queries/reports";
@@ -43,10 +44,11 @@ export async function submitDailyReport(
   }
 
   const settings = await getOrganizationSettings();
+  const reportDate = todayInTimezone(settings.timezone);
 
   const { error } = await supabase.from("daily_reports").insert({
     author_id: user.id,
-    report_date: todayInTimezone(settings.timezone),
+    report_date: reportDate,
     content: input.content ?? "",
     blockers: input.blockers ?? "",
     additional_notes: input.additionalNotes ?? "",
@@ -69,6 +71,35 @@ export async function submitDailyReport(
       success: false,
       error: "Something went wrong. Please try again.",
     };
+  }
+
+  // Remote employees: auto-mark present for the report day.
+  // Attendance is secondary — never fail the report submission.
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_remote, organization_id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.is_remote && profile.organization_id) {
+      const adminClient = createAdminClient();
+      await adminClient.from("attendance_records").upsert(
+        {
+          profile_id: user.id,
+          org_id: profile.organization_id,
+          date: reportDate,
+          status: "present",
+          fine_amount: 0,
+          leave_deducted: 0,
+          source: "report",
+          recorded_by: user.id,
+        },
+        { onConflict: "org_id,profile_id,date" },
+      );
+    }
+  } catch (attendanceError) {
+    console.error("Failed to auto-record remote attendance:", attendanceError);
   }
 
   revalidatePath("/");

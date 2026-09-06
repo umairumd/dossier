@@ -25,7 +25,10 @@ export async function AppShell({
         }
         if (item.requiresTeam) {
           const hasTeam =
-            profile.role === "manager" || profile.is_supervisor;
+            profile.role === "owner" ||
+            profile.role === "admin" ||
+            profile.role === "manager" ||
+            profile.is_supervisor;
           if (!hasTeam) {
             return false;
           }
