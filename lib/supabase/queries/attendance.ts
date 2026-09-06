@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
+import { insertLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
 import type {
   AttendanceRecord,
   AttendanceRecordWithEmployee,
@@ -140,6 +141,35 @@ export const getMonthlyAttendance = cache(
   },
 );
 
+// Team-scoped monthly attendance for managers/supervisors (RLS enforces visibility)
+export const getTeamMonthlyAttendance = cache(
+  async (
+    yearMonth: string,
+    profileIds: string[],
+  ): Promise<AttendanceRecord[]> => {
+    if (profileIds.length === 0) {
+      return [];
+    }
+
+    const supabase = await createClient();
+    const startDate = `${yearMonth}-01`;
+    const [year, month] = yearMonth.split("-").map(Number);
+    const endDate = new Date(year, month, 0).toISOString().slice(0, 10);
+
+    const { data, error } = await supabase
+      .from("attendance_records")
+      .select("*")
+      .in("profile_id", profileIds)
+      .gte("date", startDate)
+      .lte("date", endDate)
+      .order("date", { ascending: true });
+
+    if (error) throw new Error("Failed to load team attendance.");
+
+    return (data as AttendanceRecord[]) ?? [];
+  },
+);
+
 // Get attendance records for a single employee
 export const getEmployeeAttendance = cache(
   async (profileId: string, yearMonth: string): Promise<AttendanceRecord[]> => {
@@ -235,7 +265,7 @@ export const getLeaveBalanceHistory = cache(
 );
 
 // Initialize a leave balance for a new employee
-// Called when an employee is first onboarded
+// Called when an employee is first onboarded / HR initializes
 export async function initLeaveBalance(
   profileId: string,
   orgId: string,
@@ -243,37 +273,7 @@ export async function initLeaveBalance(
 ): Promise<{ success: boolean; error?: string }> {
   await requireAdminUser();
   const supabase = await createClient();
-
-  // Contract year starts on the 1st of the joining month
-  const d = new Date(joinDate);
-  const yearStart = new Date(d.getFullYear(), d.getMonth(), 1);
-  const yearEnd = new Date(d.getFullYear() + 1, d.getMonth(), 0);
-
-  const contractYearStart = yearStart.toISOString().slice(0, 10);
-  const contractYearEnd = yearEnd.toISOString().slice(0, 10);
-
-  // Accrue for months already passed in this contract year
-  const monthsElapsed = Math.max(
-    1,
-    (new Date().getFullYear() - yearStart.getFullYear()) * 12 +
-      new Date().getMonth() -
-      yearStart.getMonth() +
-      1,
-  );
-  const totalAccrued = Math.min(monthsElapsed * 2, 24); // cap at 24
-
-  const { error } = await supabase.from("leave_balances").insert({
-    profile_id: profileId,
-    org_id: orgId,
-    contract_year_start: contractYearStart,
-    contract_year_end: contractYearEnd,
-    total_accrued: totalAccrued,
-    total_used: 0,
-    status: "active",
-  });
-
-  if (error) return { success: false, error: error.message };
-  return { success: true };
+  return insertLeaveBalanceRecord(supabase, profileId, orgId, joinDate);
 }
 
 // ── Leave requests ────────────────────────────────────────────────

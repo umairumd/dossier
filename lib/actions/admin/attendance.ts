@@ -1,8 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdminUser } from "@/lib/supabase/require-admin";
+import {
+  requireAdminUser,
+  requireOwnerUser,
+} from "@/lib/supabase/require-admin";
 import { createClient } from "@/lib/supabase/server";
+import { insertLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
 import type { AttendanceStatus, ShiftType } from "@/types/attendance";
 
 export interface AttendanceActionResult {
@@ -142,4 +146,65 @@ export async function reviewLeaveRequestAction(
 
   revalidatePath("/attendance");
   return { success: true };
+}
+
+export async function initLeaveBalanceAction(
+  profileId: string,
+  orgId: string,
+  joinDate: string,
+): Promise<AttendanceActionResult> {
+  await requireAdminUser();
+  const supabase = await createClient();
+  const result = await insertLeaveBalanceRecord(
+    supabase,
+    profileId,
+    orgId,
+    joinDate,
+  );
+
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  revalidatePath(`/employees/${profileId}`);
+  return { success: true };
+}
+
+export async function runMonthlyAccrualAction(): Promise<{
+  success: boolean;
+  updatedCount: number;
+  error?: string;
+}> {
+  await requireOwnerUser();
+  const supabase = await createClient();
+
+  const { data: balances, error: fetchError } = await supabase
+    .from("leave_balances")
+    .select("id, total_accrued")
+    .eq("status", "active");
+
+  if (fetchError) {
+    return { success: false, updatedCount: 0, error: fetchError.message };
+  }
+
+  let updatedCount = 0;
+
+  for (const balance of balances ?? []) {
+    const nextAccrued = Math.min(Number(balance.total_accrued) + 2, 24);
+    if (nextAccrued === Number(balance.total_accrued)) {
+      continue;
+    }
+
+    const { error } = await supabase
+      .from("leave_balances")
+      .update({ total_accrued: nextAccrued })
+      .eq("id", balance.id);
+
+    if (!error) {
+      updatedCount += 1;
+    }
+  }
+
+  revalidatePath("/attendance");
+  return { success: true, updatedCount };
 }

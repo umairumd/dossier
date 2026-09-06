@@ -1,5 +1,6 @@
 "use client";
 
+import { AttendanceCell } from "./attendance-cell";
 import { AttendanceCellPopover } from "./attendance-cell-popover";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import type {
@@ -21,12 +22,14 @@ export function AttendanceGrid({
   yearMonth,
   settings,
   workingDays,
+  isReadOnly = false,
 }: {
   employees: GridEmployee[];
   records: AttendanceRecord[];
   yearMonth: string; // "YYYY-MM"
   settings: AttendanceSettings;
   workingDays: number[]; // [1,2,3,4,5] — ISO weekday numbers
+  isReadOnly?: boolean;
 }) {
   const [year, month] = yearMonth.split("-").map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -174,15 +177,19 @@ export function AttendanceGrid({
 
                   return (
                     <td key={day} className="px-1 py-1">
-                      <AttendanceCellPopover
-                        profileId={emp.id}
-                        orgId={emp.org_id}
-                        date={date}
-                        employeeName={emp.full_name}
-                        existingRecord={record}
-                        settings={settings}
-                        isWeeklyOff={isOff}
-                      />
+                      {isReadOnly ? (
+                        <AttendanceCell status={record?.status ?? null} />
+                      ) : (
+                        <AttendanceCellPopover
+                          profileId={emp.id}
+                          orgId={emp.org_id}
+                          date={date}
+                          employeeName={emp.full_name}
+                          existingRecord={record}
+                          settings={settings}
+                          isWeeklyOff={isOff}
+                        />
+                      )}
                     </td>
                   );
                 })}

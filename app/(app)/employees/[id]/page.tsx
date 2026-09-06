@@ -23,7 +23,11 @@ import { EmployeeHeroClient } from "@/components/admin/employee-hero-client";
 import { AssignmentsCard } from "./assignments-card";
 import { notFound } from "next/navigation";
 import type { EmployeeDetail } from "@/types/employee";
-import { getCurrentShift } from "@/lib/supabase/queries/attendance";
+import {
+  getActiveLeaveBalance,
+  getCurrentShift,
+} from "@/lib/supabase/queries/attendance";
+import { LeaveBalanceCard } from "@/components/attendance/leave-balance-card";
 
 function countWorkingDaysThisMonth(
   timezone: string,
@@ -106,16 +110,25 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params;
 
-  const [employee, profile, allDepartments, employees, settings, templates, currentShift] =
-    await Promise.all([
-      getEmployeeDetail(id),
-      getCurrentProfile(),
-      getAllDepartments(),
-      getAllEmployees(),
-      getOrganizationSettings(),
-      getOrgTemplatesWithFields(),
-      getCurrentShift(id),
-    ]);
+  const [
+    employee,
+    profile,
+    allDepartments,
+    employees,
+    settings,
+    templates,
+    currentShift,
+    leaveBalance,
+  ] = await Promise.all([
+    getEmployeeDetail(id),
+    getCurrentProfile(),
+    getAllDepartments(),
+    getAllEmployees(),
+    getOrganizationSettings(),
+    getOrgTemplatesWithFields(),
+    getCurrentShift(id),
+    getActiveLeaveBalance(id),
+  ]);
 
   if (!employee) {
     notFound();
@@ -197,6 +210,15 @@ export default async function EmployeeDetailPage({
           icon={<Calendar className="size-4" />}
         />
       </div>
+
+      {(profile?.role === "owner" || profile?.role === "admin") && (
+        <LeaveBalanceCard
+          balance={leaveBalance}
+          profileId={employee.id}
+          orgId={employee.organization_id ?? ""}
+          joinDate={employee.created_at.slice(0, 10)}
+        />
+      )}
 
       <Card className="card-gradient">
         <CardHeader className="pb-3">

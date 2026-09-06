@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyAuthErrorMessage } from "@/lib/helpers/auth-error-messages";
+import { insertLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
 import { getSiteUrl } from "@/lib/helpers/site-url";
 
 export async function login(
@@ -48,6 +50,30 @@ export async function markOnboarded(): Promise<{
 
   if (error) {
     return { success: false, error: "Failed to complete onboarding." };
+  }
+
+  // Leave balance init is secondary — never fail onboarding.
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("organization_id, created_at")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.organization_id) {
+      const adminClient = createAdminClient();
+      const result = await insertLeaveBalanceRecord(
+        adminClient,
+        user.id,
+        profile.organization_id,
+        profile.created_at.slice(0, 10),
+      );
+      if (!result.success) {
+        console.error("Failed to initialize leave balance:", result.error);
+      }
+    }
+  } catch (leaveError) {
+    console.error("Failed to initialize leave balance:", leaveError);
   }
 
   return { success: true };
