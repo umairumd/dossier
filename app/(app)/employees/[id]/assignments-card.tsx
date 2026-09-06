@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, FileStack, Pencil, UserCheck } from "lucide-react";
+import { Building2, Clock, FileStack, Pencil, UserCheck } from "lucide-react";
 import { AssignDepartmentsDialog } from "@/components/admin/assign-departments-dialog";
+import { AssignShiftDialog } from "@/components/admin/assign-shift-dialog";
 import { AssignSupervisorsDialog } from "@/components/admin/assign-supervisors-dialog";
 import { AssignTemplateDialog } from "@/components/admin/assign-template-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import type { ShiftAssignment } from "@/types/attendance";
+import { SHIFT_TYPE_LABELS } from "@/types/attendance";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeDetail, EmployeeListItem } from "@/types/employee";
 import type { ReportTemplate } from "@/types/template";
@@ -18,6 +21,8 @@ export function AssignmentsCard({
   candidates,
   templates,
   templateInfo,
+  currentShift,
+  orgId,
 }: {
   employee: EmployeeDetail;
   departments: DepartmentOption[];
@@ -28,10 +33,13 @@ export function AssignmentsCard({
     source: "individual" | "department" | "default";
     sourceName: string | null;
   };
+  currentShift: ShiftAssignment | null;
+  orgId: string;
 }) {
   const [assignDeptOpen, setAssignDeptOpen] = useState(false);
   const [assignSupervisorsOpen, setAssignSupervisorsOpen] = useState(false);
   const [assignTemplateOpen, setAssignTemplateOpen] = useState(false);
+  const [assignShiftOpen, setAssignShiftOpen] = useState(false);
 
   const supervisorNames = candidates
     .filter((candidate) => employee.supervisor_ids.includes(candidate.id))
@@ -145,6 +153,40 @@ export function AssignmentsCard({
               Edit
             </Button>
           </div>
+
+          <Separator />
+
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <p className="label-eyebrow flex items-center gap-1.5">
+                <Clock className="size-3.5" />
+                Shift
+              </p>
+              {currentShift ? (
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-medium">
+                    {SHIFT_TYPE_LABELS[currentShift.shift_type]}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Since {currentShift.effective_from}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  No shift assigned
+                </span>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 shrink-0 text-xs text-muted-foreground"
+              onClick={() => setAssignShiftOpen(true)}
+            >
+              <Pencil className="mr-1 size-3" />
+              {currentShift ? "Edit" : "Assign"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -169,6 +211,13 @@ export function AssignmentsCard({
         currentTemplateSourceName={templateInfo.sourceName}
         open={assignTemplateOpen}
         onOpenChange={setAssignTemplateOpen}
+      />
+      <AssignShiftDialog
+        profileId={employee.id}
+        orgId={orgId}
+        currentShift={currentShift}
+        open={assignShiftOpen}
+        onOpenChange={setAssignShiftOpen}
       />
     </>
   );
