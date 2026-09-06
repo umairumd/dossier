@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getAttendanceSettings } from "@/lib/supabase/queries/attendance";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getOrgTemplates } from "@/lib/supabase/queries/templates";
 import {
@@ -17,14 +18,17 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { OrgIdentityForm } from "@/components/admin/org-identity-form";
 import { OrgScheduleForm } from "@/components/admin/org-schedule-form";
+import { OrgAttendanceForm } from "@/components/admin/org-attendance-form";
 
 export default async function OrganizationSettingsPage() {
-  const [profile, settings, orgName, templates] = await Promise.all([
-    getCurrentProfile(),
-    getOrganizationSettings(),
-    getOrganizationName(),
-    getOrgTemplates(),
-  ]);
+  const [profile, settings, orgName, templates, attendanceSettings] =
+    await Promise.all([
+      getCurrentProfile(),
+      getOrganizationSettings(),
+      getOrganizationName(),
+      getOrgTemplates(),
+      getAttendanceSettings(),
+    ]);
 
   if (profile?.role !== "owner") {
     redirect("/");
@@ -60,6 +64,30 @@ export default async function OrganizationSettingsPage() {
             initialTimezone={settings.timezone}
             initialWorkingDays={settings.workingDays}
             initialDeadlineHour={settings.reportDeadlineHourLocal}
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="card-gradient">
+        <CardHeader>
+          <CardTitle>Attendance</CardTitle>
+          <CardDescription>
+            Configure shift times, grace periods, and fine amounts for
+            attendance tracking.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OrgAttendanceForm
+            initialGraceMinutes={attendanceSettings.graceMinutes}
+            initialFineLate={attendanceSettings.fineLateAmount}
+            initialFineVeryLate={attendanceSettings.fineVeryLateAmount}
+            initialFineUninformed={attendanceSettings.fineUninformedAmount}
+            initialInformedLeaves={attendanceSettings.informedLeavesPerMonth}
+            initialShiftFulltimeStart={attendanceSettings.shiftFulltimeStart}
+            initialShiftMorningStart={attendanceSettings.shiftMorningStart}
+            initialShiftMorningEnd={attendanceSettings.shiftMorningEnd}
+            initialShiftEveningStart={attendanceSettings.shiftEveningStart}
+            initialShiftEveningEnd={attendanceSettings.shiftEveningEnd}
           />
         </CardContent>
       </Card>
