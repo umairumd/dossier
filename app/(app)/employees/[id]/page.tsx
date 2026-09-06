@@ -142,14 +142,14 @@ export default async function EmployeeDetailPage({
   return (
     <div className="flex flex-col gap-6">
       <BreadcrumbLabel label={employee.full_name} />
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-8">
         <ProfileHeader
           name={employee.full_name}
           designation={employee.designation}
-          departmentNames={employee.department_names}
           isRemote={employee.is_remote}
           employmentType={employee.employment_type}
           avatarUrl={employee.avatar_url}
+          avatarSize="2xl"
         />
 
         <EmployeeActionsMenu

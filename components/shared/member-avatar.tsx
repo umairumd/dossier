@@ -8,6 +8,7 @@ const SIZE_CLASS = {
   md: "h-8 w-8 text-xs",
   lg: "h-10 w-10 text-sm",
   xl: "h-16 w-16 text-base",
+  "2xl": "size-24",
 } as const;
 
 const SIZE_PX = {
@@ -16,6 +17,7 @@ const SIZE_PX = {
   md: 32,
   lg: 40,
   xl: 64,
+  "2xl": 96,
 } as const;
 
 export function MemberAvatar({
@@ -28,7 +30,7 @@ export function MemberAvatar({
   name: string;
   userId?: string;
   avatarUrl?: string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
   className?: string;
 }) {
   const sizeClass = SIZE_CLASS[size];
