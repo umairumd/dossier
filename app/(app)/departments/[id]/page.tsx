@@ -134,7 +134,11 @@ export default async function DepartmentDetailPage({
           <CardContent>
             {detail.manager ? (
               <div className="flex items-center gap-3">
-                <MemberAvatar name={detail.manager.full_name} size="md" />
+                <MemberAvatar
+                  userId={detail.manager.id}
+                  name={detail.manager.full_name}
+                  size="md"
+                />
                 <div>
                   <p className="text-sm font-medium">
                     {detail.manager.full_name}
@@ -239,7 +243,11 @@ export default async function DepartmentDetailPage({
                     className="flex items-center justify-between px-4 py-3"
                   >
                     <div className="flex items-center gap-2.5">
-                      <MemberAvatar name={member.full_name} size="sm" />
+                      <MemberAvatar
+                        userId={member.id}
+                        name={member.full_name}
+                        size="sm"
+                      />
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
                           <Link

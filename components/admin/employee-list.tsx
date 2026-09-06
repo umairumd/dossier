@@ -192,6 +192,7 @@ export function EmployeeList({
                 <TableCell>
                   <div className="flex items-center gap-2.5">
                     <MemberAvatar
+                      userId={employee.id}
                       name={employee.full_name}
                       avatarUrl={employee.avatar_url ?? undefined}
                       size="sm"

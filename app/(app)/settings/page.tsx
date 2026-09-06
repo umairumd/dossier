@@ -52,6 +52,7 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <ProfileHeader
+            userId={profile.id}
             name={profile.full_name}
             designation={profile.designation}
             departmentNames={profile.department_names}

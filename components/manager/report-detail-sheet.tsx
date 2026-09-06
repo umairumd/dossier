@@ -59,6 +59,7 @@ export function ReportDetailSheet({
             <DialogHeader>
               <div className="flex items-center gap-3">
                 <MemberAvatar
+                  userId={current.employeeId}
                   name={current.fullName}
                   avatarUrl={current.avatarUrl ?? undefined}
                   size="md"

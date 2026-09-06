@@ -228,6 +228,7 @@ export function TeamReportsView({
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <MemberAvatar
+                            userId={member.employeeId}
                             name={member.fullName}
                             avatarUrl={member.avatarUrl ?? undefined}
                             size="sm"
@@ -312,6 +313,7 @@ export function TeamReportsView({
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-2.5">
                     <MemberAvatar
+                      userId={member.employeeId}
                       name={member.fullName}
                       avatarUrl={member.avatarUrl ?? undefined}
                       size="sm"

@@ -1,6 +1,6 @@
 import { LogOut } from "lucide-react";
 import { logout } from "@/lib/actions/auth";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { BotAvatar } from "@/components/shared/bot-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,15 +11,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { Profile } from "@/types/profile";
 
-function initials(fullName: string) {
-  return fullName
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
-
 export function UserMenu({ profile }: { profile: Profile }) {
   return (
     <DropdownMenu>
@@ -29,9 +20,11 @@ export function UserMenu({ profile }: { profile: Profile }) {
           className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Account menu"
         >
-          <Avatar>
-            <AvatarFallback>{initials(profile.full_name)}</AvatarFallback>
-          </Avatar>
+          <BotAvatar
+            userId={profile.id}
+            size={32}
+            className="rounded-full"
+          />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
