@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { BotAvatar } from "@/components/shared/bot-avatar";
+import { BotAvatar, type BotExpression } from "@/components/shared/bot-avatar";
 import { cn } from "@/lib/utils";
 
 const SIZE_CLASS = {
@@ -26,12 +26,14 @@ export function MemberAvatar({
   avatarUrl,
   size = "md",
   className,
+  expression,
 }: {
   name: string;
   userId?: string;
   avatarUrl?: string;
   size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
   className?: string;
+  expression?: BotExpression;
 }) {
   const sizeClass = SIZE_CLASS[size];
   const px = SIZE_PX[size];
@@ -49,6 +51,11 @@ export function MemberAvatar({
   }
 
   return (
-    <BotAvatar userId={userId ?? name} size={px} className={className} />
+    <BotAvatar
+      userId={userId ?? name}
+      size={px}
+      className={className}
+      expression={expression}
+    />
   );
 }

@@ -1,9 +1,12 @@
+"use client";
+
 import {
   PartTimeIndicator,
   RemoteIndicator,
 } from "@/components/shared/employee-indicators";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { cn } from "@/lib/utils";
+import type { BotExpression } from "@/components/shared/bot-avatar";
 
 const outlinedPillClassName =
   "inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground";
@@ -22,6 +25,7 @@ export function ProfileHeader({
   avatarSize = "lg",
   roleLabel,
   joinedLabel,
+  expression,
 }: {
   name: string;
   designation?: string | null;
@@ -33,6 +37,7 @@ export function ProfileHeader({
   avatarSize?: "md" | "lg" | "xl" | "2xl";
   roleLabel?: string;
   joinedLabel?: string;
+  expression?: BotExpression;
 }) {
   const showDetailPills = Boolean(roleLabel);
 
@@ -43,6 +48,7 @@ export function ProfileHeader({
           name={name}
           avatarUrl={avatarUrl ?? undefined}
           size={avatarSize}
+          expression={expression}
         />
       </div>
 

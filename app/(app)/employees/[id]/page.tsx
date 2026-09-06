@@ -15,12 +15,11 @@ import {
 } from "@/lib/supabase/queries/templates";
 import { formatDate, formatDateTime, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
-import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { StatCard } from "@/components/analytics/stat-card";
-import { ProfileHeader } from "@/components/shared/profile-header";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmployeeHeroClient } from "@/components/admin/employee-hero-client";
 import { AssignmentsCard } from "./assignments-card";
 import { notFound } from "next/navigation";
 import type { EmployeeDetail } from "@/types/employee";
@@ -142,28 +141,20 @@ export default async function EmployeeDetailPage({
   return (
     <div className="flex flex-col gap-6">
       <BreadcrumbLabel label={employee.full_name} />
-      <div className="flex items-start justify-between gap-8">
-        <ProfileHeader
-          name={employee.full_name}
-          designation={employee.designation}
-          isRemote={employee.is_remote}
-          employmentType={employee.employment_type}
-          avatarUrl={employee.avatar_url}
-          avatarSize="2xl"
-        />
-
-        <EmployeeActionsMenu
-          employee={employee}
-          isSelf={isSelf}
-          departments={departments}
-          candidates={candidates}
-          redirectOnDelete="/employees"
-          templates={templates}
-          currentTemplateSource={resolution.source}
-          currentTemplateSourceName={resolution.sourceName}
-          hideAssignments={true}
-        />
-      </div>
+      <EmployeeHeroClient
+        name={employee.full_name}
+        designation={employee.designation}
+        isRemote={employee.is_remote}
+        employmentType={employee.employment_type}
+        avatarUrl={employee.avatar_url}
+        employee={employee}
+        isSelf={isSelf}
+        departments={departments}
+        candidates={candidates}
+        templates={templates}
+        currentTemplateSource={resolution.source}
+        currentTemplateSourceName={resolution.sourceName}
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
