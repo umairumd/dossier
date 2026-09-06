@@ -3,6 +3,7 @@ import {
   RemoteIndicator,
 } from "@/components/shared/employee-indicators";
 import { MemberAvatar } from "@/components/shared/member-avatar";
+import { cn } from "@/lib/utils";
 
 const outlinedPillClassName =
   "inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground";
@@ -29,7 +30,7 @@ export function ProfileHeader({
   employmentType?: "full_time" | "part_time";
   avatarUrl?: string | null;
   size?: "sm" | "md";
-  avatarSize?: "md" | "lg" | "xl";
+  avatarSize?: "md" | "lg" | "xl" | "2xl";
   roleLabel?: string;
   joinedLabel?: string;
 }) {
@@ -47,7 +48,14 @@ export function ProfileHeader({
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-1.5">
-          <h2 className="text-lg font-semibold">{name}</h2>
+          <h2
+            className={cn(
+              "font-semibold",
+              showDetailPills ? "text-lg" : "text-2xl",
+            )}
+          >
+            {name}
+          </h2>
           {showDetailPills && roleLabel && (
             <span className={outlinedPillClassName}>{roleLabel}</span>
           )}
@@ -81,11 +89,6 @@ export function ProfileHeader({
           <>
             {designation && (
               <p className="text-sm text-muted-foreground">{designation}</p>
-            )}
-            {departmentNames && departmentNames.length > 0 && (
-              <span className="text-xs text-muted-foreground">
-                {departmentNames.join(", ")}
-              </span>
             )}
           </>
         )}

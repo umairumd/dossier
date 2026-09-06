@@ -86,8 +86,8 @@ export function BotAvatar({
 
   useEffect(() => {
     const applyEyes = () => {
-      const dx = mxRef.current * 11;
-      const dy = myRef.current * 10;
+      const dx = mxRef.current * 18;
+      const dy = myRef.current * 22;
       const h = Math.max(1.5, EYE_H * blinkScaleRef.current);
       const ry = Math.min(EYE_W / 2, h / 2);
 
@@ -120,8 +120,12 @@ export function BotAvatar({
       const rect = svg.getBoundingClientRect();
       const avatarCx = rect.left + rect.width / 2;
       const avatarCy = rect.top + rect.height / 2;
-      mxRef.current = clamp((e.clientX - avatarCx) / (window.innerWidth * 0.5), -1, 1);
-      myRef.current = clamp((e.clientY - avatarCy) / (window.innerHeight * 0.5), -1, 1);
+      // Horizontal: relative to avatar center, 18% viewport width = full deflection
+      mxRef.current = clamp((e.clientX - avatarCx) / (window.innerWidth * 0.18), -1, 1);
+
+      // Vertical: absolute cursor position across full viewport height
+      // top of screen = -1, bottom = +1, middle = 0
+      myRef.current = clamp((e.clientY / window.innerHeight) * 2 - 1, -1, 1);
     };
 
     if (isInteractive) {
