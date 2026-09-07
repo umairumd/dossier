@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyAuthErrorMessage } from "@/lib/helpers/auth-error-messages";
 import { insertLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
-import { getSiteUrl } from "@/lib/helpers/site-url";
 
 export async function login(
   formData: FormData,
@@ -103,20 +102,4 @@ export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
-}
-
-export async function requestPasswordReset(
-  _prev: boolean,
-  formData: FormData,
-): Promise<boolean> {
-  const email = formData.get("email");
-
-  if (typeof email === "string" && email.length > 0) {
-    const supabase = await createClient();
-    await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getSiteUrl()}/auth/confirm`,
-    });
-  }
-
-  return true;
 }
