@@ -112,6 +112,9 @@ export async function requestPasswordReset(
   const email = formData.get("email");
 
   if (typeof email === "string" && email.length > 0) {
+    console.log("[DEBUG] getSiteUrl():", getSiteUrl())
+    console.log("[DEBUG] SITE_URL env:", process.env.SITE_URL)
+    console.log("[DEBUG] VERCEL_URL env:", process.env.VERCEL_URL)
     const supabase = await createClient();
     await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${getSiteUrl()}/reset-password`,
