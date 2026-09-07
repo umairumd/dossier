@@ -25,6 +25,20 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
+  // Skip session handling for password reset flow — the code param
+  // must be consumed by the reset-password page, not the proxy.
+  const isResetWithCode =
+    request.nextUrl.pathname.startsWith("/reset-password") &&
+    request.nextUrl.searchParams.has("code");
+
+  const isAuthConfirmWithCode =
+    request.nextUrl.pathname.startsWith("/auth/confirm") &&
+    request.nextUrl.searchParams.has("code");
+
+  if (isResetWithCode || isAuthConfirmWithCode) {
+    return supabaseResponse;
+  }
+
   // Refreshes the auth token if expired. Required by the official Supabase
   // SSR setup even before any auth UI exists — omitting this causes sessions
   // to silently expire once auth is added in a later milestone.
