@@ -1,4 +1,5 @@
 import { getActivityLog } from "@/lib/supabase/queries/admin/activity";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import {
   Card,
   CardContent,
@@ -12,7 +13,10 @@ import { PageHeader } from "@/components/shared/page-header";
 const ACTIVITY_PAGE_LIMIT = 50;
 
 export default async function ActivityPage() {
-  const activity = await getActivityLog(ACTIVITY_PAGE_LIMIT);
+  const [activity, profile] = await Promise.all([
+    getActivityLog(ACTIVITY_PAGE_LIMIT),
+    getCurrentProfile(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -31,7 +35,10 @@ export default async function ActivityPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ActivityFeed items={activity} />
+          <ActivityFeed
+            items={activity}
+            canDelete={profile?.role === "owner"}
+          />
         </CardContent>
       </Card>
     </div>
