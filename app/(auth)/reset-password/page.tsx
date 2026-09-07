@@ -13,9 +13,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// IMPORTANT: Add {SITE_URL}/reset-password to Supabase
-// Authentication > URL Configuration > Redirect URLs
-// before this flow will work in production.
+// Recovery emails must use the token_hash confirm route (see Supabase
+// Authentication > Email Templates > Reset Password):
+//   {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password
+// Also allow {SITE_URL}/auth/confirm and {SITE_URL}/reset-password in Redirect URLs.
 
 type VerifyStatus = "verifying" | "ready" | "error";
 
@@ -33,6 +34,10 @@ async function exchangeResetToken(): Promise<{ error?: string }> {
   // #region agent log
   const searchEntries = Object.fromEntries(searchParams.entries());
   const hashEntries = Object.fromEntries(hashParams.entries());
+  const verifierCookieNames = document.cookie
+    .split(";")
+    .map((c) => c.trim().split("=")[0])
+    .filter((name) => name.includes("code-verifier") || name.includes("auth"));
   const debugPayload = {
     href: window.location.href,
     hash: window.location.hash,
@@ -52,6 +57,7 @@ async function exchangeResetToken(): Promise<{ error?: string }> {
     hasTokenHash: searchParams.has("token_hash") || hashParams.has("token_hash"),
     hasAccessToken: hashParams.has("access_token"),
     hasRefreshToken: hashParams.has("refresh_token"),
+    verifierCookieNames,
   };
   console.log("[DEBUG reset-password] exchangeResetToken URL state:", {
     ...debugPayload,
@@ -76,62 +82,58 @@ async function exchangeResetToken(): Promise<{ error?: string }> {
   }).catch(() => {});
   // #endregion
 
+  const queryError = searchParams.get("error");
+  if (queryError) {
+    return { error: queryError };
+  }
+
   const errorDescription =
     hashParams.get("error_description") ?? searchParams.get("error_description");
   if (errorDescription) {
     // #region agent log
     console.log("[DEBUG reset-password] branch=error_description", errorDescription);
-    fetch("http://127.0.0.1:7632/ingest/5b62dd9c-ca47-4ea0-8824-9f867e88198d", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "b4d57c",
-      },
-      body: JSON.stringify({
-        sessionId: "b4d57c",
-        runId: "post-fix",
-        hypothesisId: "E",
-        location: "reset-password/page.tsx:error_description",
-        message: "Supabase error_description present in URL",
-        data: { errorDescription },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
     // #endregion
     return { error: decodeURIComponent(errorDescription.replace(/\+/g, " ")) };
   }
 
+  // Session already established by /auth/confirm (verifyOtp / code exchange).
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  // #region agent log
+  console.log("[DEBUG reset-password] branch=session_check", {
+    hasSession: !!session,
+  });
+  // #endregion
+  if (session) {
+    return {};
+  }
+
+  // Legacy PKCE emails that still land here with ?code= — hand off to the
+  // server confirm route (still requires a code_verifier cookie).
   const code = searchParams.get("code");
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
     // #region agent log
-    console.log("[DEBUG reset-password] branch=code", {
+    console.log("[DEBUG reset-password] branch=redirect_to_confirm", {
       codeLen: code.length,
-      exchangeError: error?.message ?? null,
     });
-    fetch("http://127.0.0.1:7632/ingest/5b62dd9c-ca47-4ea0-8824-9f867e88198d", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "b4d57c",
-      },
-      body: JSON.stringify({
-        sessionId: "b4d57c",
-        runId: "post-fix",
-        hypothesisId: "A",
-        location: "reset-password/page.tsx:code",
-        message: "PKCE code branch result",
-        data: {
-          codeLen: code.length,
-          exchangeError: error?.message ?? null,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
     // #endregion
-    if (error) {
-      return { error: "This reset link has expired or is invalid." };
-    }
+    window.location.replace(
+      `/auth/confirm?code=${encodeURIComponent(code)}&next=/reset-password`,
+    );
+    return {};
+  }
+
+  const tokenHash =
+    searchParams.get("token_hash") ?? hashParams.get("token_hash");
+  const type = searchParams.get("type") ?? hashParams.get("type");
+  if (tokenHash && type) {
+    // #region agent log
+    console.log("[DEBUG reset-password] branch=redirect_token_hash_to_confirm");
+    // #endregion
+    window.location.replace(
+      `/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}&next=/reset-password`,
+    );
     return {};
   }
 
@@ -140,35 +142,11 @@ async function exchangeResetToken(): Promise<{ error?: string }> {
 
   if (!accessToken || !refreshToken) {
     // #region agent log
-    console.log("[DEBUG reset-password] branch=missing_hash_tokens", {
-      hasAccessToken: !!accessToken,
-      hasRefreshToken: !!refreshToken,
-      tokenHashInSearch: searchParams.get("token_hash") ? "present" : null,
-      typeInSearch: searchParams.get("type"),
+    console.log("[DEBUG reset-password] branch=missing_tokens", {
+      searchKeys: [...searchParams.keys()],
+      hashKeys: [...hashParams.keys()],
+      verifierCookieNames,
     });
-    fetch("http://127.0.0.1:7632/ingest/5b62dd9c-ca47-4ea0-8824-9f867e88198d", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "b4d57c",
-      },
-      body: JSON.stringify({
-        sessionId: "b4d57c",
-        runId: "post-fix",
-        hypothesisId: "B-C",
-        location: "reset-password/page.tsx:missing_hash_tokens",
-        message: "No access/refresh token in hash; checking alternate formats",
-        data: {
-          hasAccessToken: !!accessToken,
-          hasRefreshToken: !!refreshToken,
-          tokenHashInSearch: searchParams.has("token_hash"),
-          typeInSearch: searchParams.get("type"),
-          searchKeys: [...searchParams.keys()],
-          hashKeys: [...hashParams.keys()],
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
     // #endregion
     return {
       error: "This reset link is invalid or has already been used.",
@@ -184,22 +162,6 @@ async function exchangeResetToken(): Promise<{ error?: string }> {
   console.log("[DEBUG reset-password] branch=implicit_setSession", {
     setSessionError: error?.message ?? null,
   });
-  fetch("http://127.0.0.1:7632/ingest/5b62dd9c-ca47-4ea0-8824-9f867e88198d", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "b4d57c",
-    },
-    body: JSON.stringify({
-      sessionId: "b4d57c",
-      runId: "post-fix",
-      hypothesisId: "B",
-      location: "reset-password/page.tsx:setSession",
-      message: "Implicit setSession result",
-      data: { setSessionError: error?.message ?? null },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
   // #endregion
 
   if (error) {
