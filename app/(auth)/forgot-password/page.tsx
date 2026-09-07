@@ -59,8 +59,9 @@ export default function ForgotPasswordPage() {
 
             {sent && (
               <p className="text-sm text-muted-foreground">
-                If an account exists with that email, you&apos;ll receive a
-                reset link shortly.
+                Check your inbox — if an account exists for that email
+                address, you&apos;ll receive a password reset link within a
+                few minutes. Check your spam folder if you don&apos;t see it.
               </p>
             )}
 
