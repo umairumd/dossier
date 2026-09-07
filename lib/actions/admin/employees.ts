@@ -11,6 +11,10 @@ import {
 } from "@/lib/supabase/queries/admin/employees";
 import { generateTempPassword } from "@/lib/helpers/temp-password";
 import {
+  getActorLogContext,
+  logActivity,
+} from "@/lib/helpers/activity-log";
+import {
   validateEditEmployeeInput,
   validateInviteEmployeeInput,
   type EditEmployeeInput,
@@ -147,7 +151,7 @@ export async function inviteEmployee(
   if (adminUser) {
     const { data: adminProfile } = await supabase
       .from("profiles")
-      .select("organization_id")
+      .select("organization_id, full_name")
       .eq("id", adminUser.id)
       .maybeSingle();
 
@@ -171,6 +175,18 @@ export async function inviteEmployee(
           }),
         ),
       );
+
+      void logActivity({
+        orgId,
+        eventType: "employee_invited",
+        actorId: adminUser.id,
+        actorName: adminProfile?.full_name ?? undefined,
+        targetId: userId,
+        targetName: fullName,
+        entityType: "employee",
+        entityId: userId,
+        entityName: fullName,
+      });
     }
   }
 
@@ -280,6 +296,25 @@ export async function updateEmployee(
     return { success: false, error: "Failed to update employee." };
   }
 
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "employee_edited",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        targetId: input.id,
+        targetName: validation.value.fullName,
+        entityType: "employee",
+        entityId: input.id,
+        entityName: validation.value.fullName,
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log employee edit:", logError);
+  }
+
   revalidateEmployeePaths(input.id);
 
   return { success: true };
@@ -341,6 +376,31 @@ export async function setEmployeeActive(
     return { success: false, error: "Failed to update employee status." };
   }
 
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    const { data: target } = await adminClient
+      .from("profiles")
+      .select("full_name")
+      .eq("id", employeeId)
+      .maybeSingle();
+
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: isActive ? "employee_reactivated" : "employee_deactivated",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        targetId: employeeId,
+        targetName: target?.full_name ?? undefined,
+        entityType: "employee",
+        entityId: employeeId,
+        entityName: target?.full_name ?? undefined,
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log employee status change:", logError);
+  }
+
   revalidateEmployeePaths(employeeId);
 
   return { success: true };
@@ -400,6 +460,31 @@ export async function archiveEmployee(
     return { success: false, error: "Failed to archive employee." };
   }
 
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    const { data: target } = await adminClient
+      .from("profiles")
+      .select("full_name")
+      .eq("id", employeeId)
+      .maybeSingle();
+
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "employee_archived",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        targetId: employeeId,
+        targetName: target?.full_name ?? undefined,
+        entityType: "employee",
+        entityId: employeeId,
+        entityName: target?.full_name ?? undefined,
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log employee archive:", logError);
+  }
+
   revalidateEmployeePaths(employeeId);
   revalidatePath("/admin/departments");
   revalidatePath("/departments");
@@ -410,7 +495,7 @@ export async function archiveEmployee(
 export async function restoreEmployee(
   employeeId: string,
 ): Promise<EmployeeActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
   const adminClient = createAdminClient();
   const { error: authError } = await adminClient.auth.admin.updateUserById(
@@ -430,6 +515,31 @@ export async function restoreEmployee(
 
   if (profileError) {
     return { success: false, error: "Failed to restore employee." };
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    const { data: target } = await adminClient
+      .from("profiles")
+      .select("full_name")
+      .eq("id", employeeId)
+      .maybeSingle();
+
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "employee_restored",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        targetId: employeeId,
+        targetName: target?.full_name ?? undefined,
+        entityType: "employee",
+        entityId: employeeId,
+        entityName: target?.full_name ?? undefined,
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log employee restore:", logError);
   }
 
   revalidateEmployeePaths(employeeId);
@@ -525,7 +635,7 @@ export async function assignMemberDepartments(
   memberId: string,
   departmentIds: string[],
 ): Promise<EmployeeActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
   const supabase = await createClient();
   const { error: deleteError } = await supabase
@@ -552,6 +662,42 @@ export async function assignMemberDepartments(
     }
   }
 
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    const adminClient = createAdminClient();
+    const [{ data: target }, { data: depts }] = await Promise.all([
+      adminClient
+        .from("profiles")
+        .select("full_name")
+        .eq("id", memberId)
+        .maybeSingle(),
+      departmentIds.length > 0
+        ? adminClient
+            .from("departments")
+            .select("name")
+            .in("id", departmentIds)
+        : Promise.resolve({ data: [] as { name: string }[] }),
+    ]);
+
+    const deptNames = (depts ?? []).map((d) => d.name).join(", ") || "none";
+
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "department_assigned",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        targetId: memberId,
+        targetName: target?.full_name ?? undefined,
+        entityType: "department",
+        entityName: deptNames,
+        metadata: { departmentIds },
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log department assignment:", logError);
+  }
+
   revalidateEmployeePaths(memberId);
   revalidatePath("/admin/departments");
   revalidatePath("/departments");
@@ -563,7 +709,7 @@ export async function assignMemberSupervisors(
   memberId: string,
   supervisorIds: string[],
 ): Promise<EmployeeActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
   const supabase = await createClient();
   const { error: deleteError } = await supabase
@@ -586,6 +732,43 @@ export async function assignMemberSupervisors(
     if (insertError) {
       return { success: false, error: "Failed to update supervisor assignments." };
     }
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    const adminClient = createAdminClient();
+    const [{ data: target }, { data: supervisors }] = await Promise.all([
+      adminClient
+        .from("profiles")
+        .select("full_name")
+        .eq("id", memberId)
+        .maybeSingle(),
+      supervisorIds.length > 0
+        ? adminClient
+            .from("profiles")
+            .select("full_name")
+            .in("id", supervisorIds)
+        : Promise.resolve({ data: [] as { full_name: string }[] }),
+    ]);
+
+    const supervisorNames =
+      (supervisors ?? []).map((s) => s.full_name).join(", ") || "none";
+
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "supervisor_assigned",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        targetId: memberId,
+        targetName: target?.full_name ?? undefined,
+        entityType: "employee",
+        entityName: supervisorNames,
+        metadata: { supervisorIds },
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log supervisor assignment:", logError);
   }
 
   revalidateEmployeePaths(memberId);

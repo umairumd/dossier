@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyAuthErrorMessage } from "@/lib/helpers/auth-error-messages";
 import { insertLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
+import { logActivity } from "@/lib/helpers/activity-log";
 
 export async function login(
   formData: FormData,
@@ -56,7 +57,7 @@ export async function markOnboarded(): Promise<{
   try {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("organization_id, created_at")
+      .select("organization_id, created_at, full_name")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -90,6 +91,18 @@ export async function markOnboarded(): Promise<{
           }),
         ),
       );
+
+      void logActivity({
+        orgId: profile.organization_id,
+        eventType: "employee_onboarded",
+        actorId: user.id,
+        actorName: profile.full_name ?? undefined,
+        targetId: user.id,
+        targetName: profile.full_name ?? undefined,
+        entityType: "employee",
+        entityId: user.id,
+        entityName: profile.full_name ?? undefined,
+      });
     }
   } catch (leaveError) {
     console.error("Failed to initialize leave balance:", leaveError);

@@ -1,4 +1,4 @@
-import type { ActivityItem } from "@/types/activity";
+import type { ActivityLogEntry } from "@/types/activity";
 
 export interface CompletionTrendPoint {
   date: string;
@@ -19,7 +19,7 @@ export interface TeamInsights {
   weeklyCompletionPercentage: number;
   longestStreaks: TeamMemberStanding[];
   frequentlyMissing: TeamMemberStanding[];
-  recentActivity: ActivityItem[];
+  recentActivity: ActivityLogEntry[];
   memberStandings: TeamMemberStanding[];
 }
 

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { todayInTimezone } from "@/lib/helpers/dates";
+import { logActivity } from "@/lib/helpers/activity-log";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { searchReports } from "@/lib/supabase/queries/reports";
 import type { DailyReport } from "@/types/report";
@@ -46,15 +47,19 @@ export async function submitDailyReport(
   const settings = await getOrganizationSettings();
   const reportDate = todayInTimezone(settings.timezone);
 
-  const { error } = await supabase.from("daily_reports").insert({
-    author_id: user.id,
-    report_date: reportDate,
-    content: input.content ?? "",
-    blockers: input.blockers ?? "",
-    additional_notes: input.additionalNotes ?? "",
-    template_id: input.templateId,
-    field_responses: input.fieldResponses,
-  });
+  const { data: inserted, error } = await supabase
+    .from("daily_reports")
+    .insert({
+      author_id: user.id,
+      report_date: reportDate,
+      content: input.content ?? "",
+      blockers: input.blockers ?? "",
+      additional_notes: input.additionalNotes ?? "",
+      template_id: input.templateId,
+      field_responses: input.fieldResponses,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     // The (author_id, report_date) unique constraint is the actual source
@@ -78,9 +83,22 @@ export async function submitDailyReport(
   try {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_remote, organization_id")
+      .select("is_remote, organization_id, full_name")
       .eq("id", user.id)
       .maybeSingle();
+
+    if (profile?.organization_id) {
+      void logActivity({
+        orgId: profile.organization_id,
+        eventType: "report_submitted",
+        actorId: user.id,
+        actorName: profile.full_name ?? undefined,
+        targetId: user.id,
+        targetName: profile.full_name ?? undefined,
+        entityType: "report",
+        entityId: inserted?.id,
+      });
+    }
 
     if (profile?.is_remote && profile.organization_id) {
       const adminClient = createAdminClient();
