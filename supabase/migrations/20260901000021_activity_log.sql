@@ -80,3 +80,8 @@ create policy activity_log_manager_select
   );
 
 -- No direct inserts from client — admin client bypasses RLS
+
+-- Owner can delete any activity log entry
+create policy activity_log_owner_delete
+  on public.activity_log for delete
+  using (public.current_profile_role() = 'owner');

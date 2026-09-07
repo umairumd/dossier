@@ -1,16 +1,22 @@
+"use client";
+
+import { useTransition } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   Archive,
   Building2,
   CalendarCheck,
   FileText,
   Settings,
+  Trash2,
   UserCheck,
   UserPlus,
   Users,
 } from "lucide-react";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import { MemberAvatar } from "@/components/shared/member-avatar";
+import { deleteActivityEntry } from "@/lib/actions/admin/activity";
 import type { ActivityEventType, ActivityLogEntry } from "@/types/activity";
 
 const EVENT_LABELS: Record<
@@ -107,10 +113,23 @@ function getHref(entry: ActivityLogEntry): string | undefined {
 export function ActivityFeed({
   items,
   emptyMessage = "No recent activity.",
+  canDelete = false,
 }: {
   items: ActivityLogEntry[];
   emptyMessage?: string;
+  canDelete?: boolean;
 }) {
+  const [isPending, startTransition] = useTransition();
+
+  const handleDelete = (id: string) => {
+    startTransition(async () => {
+      const result = await deleteActivityEntry(id);
+      if (!result.success) {
+        toast.error(result.error ?? "Failed to delete entry.");
+      }
+    });
+  };
+
   if (items.length === 0) {
     return (
       <p className="py-6 text-center text-sm text-muted-foreground">
@@ -128,7 +147,7 @@ export function ActivityFeed({
         const href = getHref(item);
 
         const content = (
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 pr-8">
             <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">
               <Icon className="size-3.5 text-muted-foreground" />
             </div>
@@ -151,13 +170,24 @@ export function ActivityFeed({
         );
 
         return (
-          <li key={item.id}>
+          <li key={item.id} className="group relative">
             {href ? (
               <Link href={href} className="block hover:opacity-80">
                 {content}
               </Link>
             ) : (
               content
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => handleDelete(item.id)}
+                disabled={isPending}
+                className="absolute right-0 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                aria-label="Delete entry"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
             )}
           </li>
         );
