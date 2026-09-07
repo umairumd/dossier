@@ -66,7 +66,7 @@ async function exchangeResetToken(): Promise<{ error?: string }> {
     },
     body: JSON.stringify({
       sessionId: "b4d57c",
-      runId: "pre-fix",
+      runId: "post-fix",
       hypothesisId: "A-B-C-E",
       location: "reset-password/page.tsx:exchangeResetToken",
       message: "URL state at exchangeResetToken entry",
@@ -89,7 +89,7 @@ async function exchangeResetToken(): Promise<{ error?: string }> {
       },
       body: JSON.stringify({
         sessionId: "b4d57c",
-        runId: "pre-fix",
+        runId: "post-fix",
         hypothesisId: "E",
         location: "reset-password/page.tsx:error_description",
         message: "Supabase error_description present in URL",
@@ -117,7 +117,7 @@ async function exchangeResetToken(): Promise<{ error?: string }> {
       },
       body: JSON.stringify({
         sessionId: "b4d57c",
-        runId: "pre-fix",
+        runId: "post-fix",
         hypothesisId: "A",
         location: "reset-password/page.tsx:code",
         message: "PKCE code branch result",
@@ -154,7 +154,7 @@ async function exchangeResetToken(): Promise<{ error?: string }> {
       },
       body: JSON.stringify({
         sessionId: "b4d57c",
-        runId: "pre-fix",
+        runId: "post-fix",
         hypothesisId: "B-C",
         location: "reset-password/page.tsx:missing_hash_tokens",
         message: "No access/refresh token in hash; checking alternate formats",
@@ -192,7 +192,7 @@ async function exchangeResetToken(): Promise<{ error?: string }> {
     },
     body: JSON.stringify({
       sessionId: "b4d57c",
-      runId: "pre-fix",
+      runId: "post-fix",
       hypothesisId: "B",
       location: "reset-password/page.tsx:setSession",
       message: "Implicit setSession result",

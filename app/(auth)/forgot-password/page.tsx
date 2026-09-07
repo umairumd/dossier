@@ -28,9 +28,36 @@ export default function ForgotPasswordPage() {
 
     setIsPending(true);
     const supabase = createClient();
-    await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    // #region agent log
+    console.log("[DEBUG forgot-password] requesting reset", {
+      origin: window.location.origin,
+      redirectTo: `${window.location.origin}/auth/confirm`,
     });
+    // #endregion
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/confirm`,
+    });
+    // #region agent log
+    console.log("[DEBUG forgot-password] resetPasswordForEmail result", {
+      error: error?.message ?? null,
+    });
+    fetch("http://127.0.0.1:7632/ingest/5b62dd9c-ca47-4ea0-8824-9f867e88198d", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "b4d57c",
+      },
+      body: JSON.stringify({
+        sessionId: "b4d57c",
+        runId: "post-fix",
+        hypothesisId: "A",
+        location: "forgot-password/page.tsx:handleSubmit",
+        message: "resetPasswordForEmail completed (PKCE client)",
+        data: { error: error?.message ?? null },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     setIsPending(false);
     setSent(true);
   };
