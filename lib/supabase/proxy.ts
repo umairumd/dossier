@@ -35,6 +35,42 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/auth/confirm") &&
     request.nextUrl.searchParams.has("code");
 
+  // #region agent log
+  if (
+    request.nextUrl.pathname.startsWith("/reset-password") ||
+    request.nextUrl.pathname.startsWith("/auth/confirm")
+  ) {
+    const proxyDebug = {
+      pathname: request.nextUrl.pathname,
+      search: request.nextUrl.search,
+      searchKeys: [...request.nextUrl.searchParams.keys()],
+      hasCode: request.nextUrl.searchParams.has("code"),
+      hasTokenHash: request.nextUrl.searchParams.has("token_hash"),
+      type: request.nextUrl.searchParams.get("type"),
+      isResetWithCode,
+      isAuthConfirmWithCode,
+      willEarlyReturn: isResetWithCode || isAuthConfirmWithCode,
+    };
+    console.log("[DEBUG proxy] reset/confirm route:", proxyDebug);
+    fetch("http://127.0.0.1:7632/ingest/5b62dd9c-ca47-4ea0-8824-9f867e88198d", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "b4d57c",
+      },
+      body: JSON.stringify({
+        sessionId: "b4d57c",
+        runId: "pre-fix",
+        hypothesisId: "D",
+        location: "lib/supabase/proxy.ts:early-return-check",
+        message: "Proxy reset/confirm route decision",
+        data: proxyDebug,
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+  }
+  // #endregion
+
   if (isResetWithCode || isAuthConfirmWithCode) {
     return supabaseResponse;
   }
