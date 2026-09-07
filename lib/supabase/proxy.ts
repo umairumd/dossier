@@ -37,12 +37,15 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/forgot-password");
   const isResetPasswordRoute =
     request.nextUrl.pathname.startsWith("/reset-password");
+  const isAuthConfirmRoute =
+    request.nextUrl.pathname.startsWith("/auth/confirm");
 
   if (
     !user &&
     !isLoginRoute &&
     !isForgotPasswordRoute &&
-    !isResetPasswordRoute
+    !isResetPasswordRoute &&
+    !isAuthConfirmRoute
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
