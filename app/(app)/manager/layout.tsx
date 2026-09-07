@@ -11,7 +11,13 @@ export default async function ManagerLayout({
   // profiles query, not from client-side or cookie-only role claims.
   const profile = await getCurrentProfile();
 
-  if (profile?.role !== "manager" && !profile?.is_supervisor) {
+  const canAccessTeamPages =
+    profile?.role === "owner" ||
+    profile?.role === "admin" ||
+    profile?.role === "manager" ||
+    profile?.is_supervisor;
+
+  if (!canAccessTeamPages) {
     redirect("/");
   }
 
