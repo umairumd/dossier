@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { requestPasswordReset } from "@/lib/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,10 +16,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function ForgotPasswordPage() {
-  const [sent, formAction, isPending] = useActionState(
-    requestPasswordReset,
-    false,
-  );
+  const [sent, setSent] = useState(false);
+  const [isPending, setIsPending] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const email = (
+      event.currentTarget.elements.namedItem("email") as HTMLInputElement
+    ).value;
+    if (!email) return;
+
+    setIsPending(true);
+    const supabase = createClient();
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/confirm`,
+    });
+    setIsPending(false);
+    setSent(true);
+  };
 
   return (
     <div className="flex w-full max-w-sm flex-col">
@@ -41,7 +55,7 @@ export default function ForgotPasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={formAction} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
