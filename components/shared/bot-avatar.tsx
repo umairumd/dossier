@@ -213,7 +213,7 @@ export function BotAvatar({
       const rect = svg.getBoundingClientRect();
       const avatarCx = rect.left + rect.width / 2;
       mxRef.current = clamp(
-        (e.clientX - avatarCx) / (window.innerWidth * 0.18),
+        (e.clientX - avatarCx) / (window.innerWidth * 0.7),
         -1,
         1,
       );
