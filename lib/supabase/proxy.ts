@@ -25,15 +25,16 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Skip session handling for password reset flow — the code param
-  // must be consumed by the reset-password page, not the proxy.
+  // Skip session handling for password reset / email confirm exchange —
+  // auth/confirm route handler must consume token_hash or code itself.
   const isResetWithCode =
     request.nextUrl.pathname.startsWith("/reset-password") &&
     request.nextUrl.searchParams.has("code");
 
-  const isAuthConfirmWithCode =
+  const isAuthConfirmExchange =
     request.nextUrl.pathname.startsWith("/auth/confirm") &&
-    request.nextUrl.searchParams.has("code");
+    (request.nextUrl.searchParams.has("code") ||
+      request.nextUrl.searchParams.has("token_hash"));
 
   // #region agent log
   if (
@@ -48,8 +49,8 @@ export async function updateSession(request: NextRequest) {
       hasTokenHash: request.nextUrl.searchParams.has("token_hash"),
       type: request.nextUrl.searchParams.get("type"),
       isResetWithCode,
-      isAuthConfirmWithCode,
-      willEarlyReturn: isResetWithCode || isAuthConfirmWithCode,
+      isAuthConfirmExchange,
+      willEarlyReturn: isResetWithCode || isAuthConfirmExchange,
     };
     console.log("[DEBUG proxy] reset/confirm route:", proxyDebug);
     fetch("http://127.0.0.1:7632/ingest/5b62dd9c-ca47-4ea0-8824-9f867e88198d", {
@@ -60,7 +61,7 @@ export async function updateSession(request: NextRequest) {
       },
       body: JSON.stringify({
         sessionId: "b4d57c",
-        runId: "pre-fix",
+        runId: "post-fix",
         hypothesisId: "D",
         location: "lib/supabase/proxy.ts:early-return-check",
         message: "Proxy reset/confirm route decision",
@@ -71,7 +72,7 @@ export async function updateSession(request: NextRequest) {
   }
   // #endregion
 
-  if (isResetWithCode || isAuthConfirmWithCode) {
+  if (isResetWithCode || isAuthConfirmExchange) {
     return supabaseResponse;
   }
 
