@@ -34,7 +34,7 @@ export function TeamMemberRow({
   return (
     <li className="flex items-center py-2.5 first:pt-0 last:pb-0">
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
-        <MemberAvatar userId={member.id} name={member.full_name} size="sm" />
+        <MemberAvatar userId={member.id} name={member.full_name} size="table" />
         <div className="flex min-w-0 flex-col gap-0.5">
           <div className="flex items-center gap-2">
             <EmployeeNameLink

@@ -3,62 +3,106 @@ import {
   getTeamRoster,
   type TeamRosterMember,
 } from "@/lib/supabase/queries/manager/team";
+import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
 import { getSupervisedMembers } from "@/lib/supabase/queries/supervisor/team";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgTemplates } from "@/lib/supabase/queries/templates";
-import { TeamMemberRow } from "@/components/manager/team-member-row";
+import {
+  getOrganizationSettings,
+} from "@/lib/supabase/queries/organization-settings";
+import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { TeamMemberCard } from "@/components/manager/team-member-card";
 import { DeptTemplateActions } from "@/components/admin/dept-template-actions";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
-import type { ReportTemplate } from "@/types/template";
 
-function MemberList({
+type MemberCardStats = {
+  streak: number;
+  submissionRate: number;
+  submissionDetail: string;
+  lastSubmittedDaysAgo: string | null;
+};
+
+function daysAgo(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const submitted = new Date(`${dateStr}T00:00:00Z`);
+  const diffMs = today.getTime() - submitted.getTime();
+  const days = Math.floor(diffMs / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return `${days}d ago`;
+}
+
+function MemberGrid({
   members,
   emptyMessage,
   managerIds,
-  templates,
+  memberStatsMap,
 }: {
   members: TeamRosterMember[];
   emptyMessage: string;
   managerIds?: Set<string>;
-  templates: ReportTemplate[];
+  memberStatsMap: Map<string, MemberCardStats>;
 }) {
   if (members.length === 0) {
     return <EmptyState illustration="team" title={emptyMessage} />;
   }
 
   return (
-    <Card>
-      <CardContent>
-        <ul className="flex flex-col divide-y divide-border">
-          {members.map((member) => (
-            <TeamMemberRow
-              key={member.id}
-              member={member}
-              managerId={managerIds?.has(member.id) ? member.id : null}
-              templates={templates}
-            />
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {members.map((member) => (
+        <TeamMemberCard
+          key={member.id}
+          member={member}
+          isManager={managerIds?.has(member.id) ?? false}
+          stats={memberStatsMap.get(member.id)}
+        />
+      ))}
+    </div>
   );
 }
 
 export default async function TeamMembersPage() {
   const profile = await getCurrentProfileWithDepartment();
 
-  const [deptMembers, supervisedMembers, templates] = await Promise.all([
-    profile?.role === "manager"
-      ? getTeamRoster()
-      : Promise.resolve([]),
-    profile?.is_supervisor
-      ? getSupervisedMembers()
-      : Promise.resolve([]),
-    getOrgTemplates(),
-  ]);
+  const [deptMembers, supervisedMembers, templates, insights, settings] =
+    await Promise.all([
+      profile?.role === "manager" ? getTeamRoster() : Promise.resolve([]),
+      profile?.is_supervisor
+        ? getSupervisedMembers()
+        : Promise.resolve([]),
+      getOrgTemplates(),
+      getTeamInsights().catch(() => null),
+      getOrganizationSettings(),
+    ]);
+
+  const today = todayInTimezone(settings.timezone);
+  const [year, month, todayDay] = today.split("-").map(Number);
+  let workingDaysThisMonth = 0;
+  for (let day = 1; day <= todayDay; day++) {
+    const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    if (isWorkingDay(dateStr, settings.workingDays)) workingDaysThisMonth++;
+  }
+
+  const memberStatsMap = new Map(
+    (insights?.memberStandings ?? []).map((standing) => [
+      standing.employeeId,
+      {
+        streak: standing.streak,
+        submissionRate:
+          workingDaysThisMonth === 0
+            ? 0
+            : Math.round(
+                (standing.reportsThisMonth / workingDaysThisMonth) * 100,
+              ),
+        submissionDetail: `${standing.reportsThisMonth} of ${workingDaysThisMonth} days`,
+        lastSubmittedDaysAgo: daysAgo(standing.lastSubmittedDate),
+      },
+    ]),
+  );
 
   const managerIds = new Set<string>();
   let managedDepartment: {
@@ -134,11 +178,11 @@ export default async function TeamMembersPage() {
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">
           {section1Label}
         </h2>
-        <MemberList
+        <MemberGrid
           members={section1Members}
           emptyMessage="No team members assigned yet."
           managerIds={isDeptManager ? managerIds : undefined}
-          templates={templates}
+          memberStatsMap={memberStatsMap}
         />
       </div>
 
@@ -149,10 +193,10 @@ export default async function TeamMembersPage() {
             <h2 className="mb-3 text-sm font-medium text-muted-foreground">
               Also Reporting to You
             </h2>
-            <MemberList
+            <MemberGrid
               members={exclusiveSupervisees}
               emptyMessage="No supervisees to show."
-              templates={templates}
+              memberStatsMap={memberStatsMap}
             />
           </div>
         </>

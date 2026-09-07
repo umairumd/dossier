@@ -37,6 +37,7 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
       longestStreaks: [],
       frequentlyMissing: [],
       recentActivity: [],
+      memberStandings: [],
     };
   }
 
@@ -95,15 +96,17 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
         );
 
   const standings: TeamMemberStanding[] = roster.map((member) => {
-    const stats = computeReportStats(
-      reportsByAuthor.get(member.id) ?? [],
-      settings.timezone,
+    const memberReports = [...(reportsByAuthor.get(member.id) ?? [])].sort(
+      (a, b) => b.report_date.localeCompare(a.report_date),
     );
+    const stats = computeReportStats(memberReports, settings.timezone);
     return {
       employeeId: member.id,
       fullName: member.full_name,
       streak: stats.currentStreak,
       completionPercentage: stats.completionPercentage,
+      reportsThisMonth: stats.reportsThisMonth,
+      lastSubmittedDate: stats.lastSubmittedDate,
     };
   });
 
@@ -137,5 +140,6 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
     longestStreaks,
     frequentlyMissing,
     recentActivity,
+    memberStandings: standings,
   };
 });

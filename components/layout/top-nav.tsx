@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/sheet";
 import { NavLinks } from "@/components/layout/nav-links";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { UserMenu } from "@/components/layout/user-menu";
 import type { NavSection } from "@/components/layout/nav-config";
+import type { Notification } from "@/types/notification";
 import type { Profile } from "@/types/profile";
 
 export function TopNav({
@@ -24,11 +26,15 @@ export function TopNav({
   accountSections,
   orgName,
   profile,
+  notificationCount,
+  notifications,
 }: {
   mainSections: NavSection[];
   accountSections: NavSection[];
   orgName?: string;
   profile: Profile;
+  notificationCount: number;
+  notifications: Notification[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -112,6 +118,10 @@ export function TopNav({
       <div className="ml-auto flex items-center gap-1">
         <AccentPicker />
         <ThemeToggle />
+        <NotificationBell
+          initialCount={notificationCount}
+          initialNotifications={notifications}
+        />
         <UserMenu profile={profile} />
       </div>
     </header>

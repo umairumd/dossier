@@ -27,6 +27,7 @@ export function ProfileHeader({
   roleLabel,
   joinedLabel,
   expression,
+  interactive,
 }: {
   userId?: string;
   name: string;
@@ -40,6 +41,7 @@ export function ProfileHeader({
   roleLabel?: string;
   joinedLabel?: string;
   expression?: BotExpression;
+  interactive?: boolean;
 }) {
   const showDetailPills = Boolean(roleLabel);
 
@@ -51,6 +53,7 @@ export function ProfileHeader({
           name={name}
           avatarUrl={avatarUrl ?? undefined}
           size={avatarSize}
+          interactive={interactive}
           expression={expression}
         />
       </div>

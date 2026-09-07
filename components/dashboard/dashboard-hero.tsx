@@ -1,5 +1,6 @@
 import { BotAvatar } from "@/components/shared/bot-avatar";
 import type { BotExpression } from "@/components/shared/bot-avatar";
+import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
 
 export interface HeroStat {
   label: string;
@@ -16,14 +17,6 @@ interface DashboardHeroProps {
   expression?: BotExpression;
 }
 
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return "Good morning";
-  if (hour >= 12 && hour < 17) return "Good afternoon";
-  if (hour >= 17 && hour < 21) return "Good evening";
-  return "Working late,";
-}
-
 export function DashboardHero({
   userId,
   name,
@@ -33,7 +26,6 @@ export function DashboardHero({
   stats,
   expression,
 }: DashboardHeroProps) {
-  const greeting = getGreeting();
   const meta = [designation, departmentNames?.join(", ")]
     .filter(Boolean)
     .join(" · ");
@@ -42,10 +34,9 @@ export function DashboardHero({
     <div className="card-gradient flex flex-col gap-6 rounded-xl border border-border p-6 md:flex-row md:items-center md:justify-between md:gap-8">
       {/* Left: avatar + identity */}
       <div className="flex items-center gap-5">
-        <BotAvatar userId={userId} size={96} expression={expression} />
+        <BotAvatar userId={userId} size={96} interactive={true} expression={expression} />
         <div className="flex min-w-0 flex-col gap-0.5">
-          <p className="text-sm text-muted-foreground">{greeting}</p>
-          <h1 className="text-2xl font-semibold tracking-tight">{name}</h1>
+          <DashboardGreeting name={name} />
           {meta && (
             <p className="truncate text-sm text-muted-foreground">{meta}</p>
           )}

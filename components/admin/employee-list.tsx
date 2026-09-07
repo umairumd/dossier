@@ -195,7 +195,7 @@ export function EmployeeList({
                       userId={employee.id}
                       name={employee.full_name}
                       avatarUrl={employee.avatar_url ?? undefined}
-                      size="sm"
+                      size="md"
                     />
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1.5">

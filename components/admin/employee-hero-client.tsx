@@ -49,6 +49,7 @@ export function EmployeeHeroClient({
           employmentType={employmentType}
           avatarUrl={avatarUrl}
           avatarSize="2xl"
+          interactive={true}
           expression={expr}
         />
       </div>

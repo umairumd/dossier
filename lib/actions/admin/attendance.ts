@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { createNotification } from "@/lib/actions/notifications";
 import {
   requireAdminUser,
   requireOwnerUser,
@@ -143,6 +144,16 @@ export async function reviewLeaveRequestAction(
         .eq("id", balance.id);
     }
   }
+
+  await createNotification({
+    orgId: req.org_id,
+    profileId: req.profile_id,
+    type: action === "approved" ? "leave_approved" : "leave_rejected",
+    title: action === "approved" ? "Leave approved" : "Leave request rejected",
+    body: req.date,
+    entityType: "leave_request",
+    entityId: req.id,
+  });
 
   revalidatePath("/attendance");
   return { success: true };

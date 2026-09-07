@@ -60,6 +60,7 @@ export default async function SettingsPage() {
             employmentType={profile.employment_type}
             avatarUrl={profile.avatar_url}
             avatarSize="xl"
+            interactive={true}
             roleLabel={getRoleLabel(profile.role)}
             joinedLabel={`Joined ${formatDate(profile.created_at.slice(0, 10))}`}
           />
