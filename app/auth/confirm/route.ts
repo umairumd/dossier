@@ -29,15 +29,6 @@ export async function GET(request: NextRequest) {
     "This reset link has expired or is invalid.",
   );
 
-  // #region agent log
-  console.log("[DEBUG auth/confirm] GET", {
-    hasTokenHash: !!token_hash,
-    type,
-    hasCode: !!code,
-    next,
-  });
-  // #endregion
-
   let successResponse = NextResponse.redirect(successUrl);
   let errorResponse = NextResponse.redirect(errorUrl);
 
@@ -66,12 +57,6 @@ export async function GET(request: NextRequest) {
 
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });
-    // #region agent log
-    console.log("[DEBUG auth/confirm] verifyOtp", {
-      type,
-      error: error?.message ?? null,
-    });
-    // #endregion
     if (!error) {
       return successResponse;
     }
@@ -80,12 +65,6 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    // #region agent log
-    console.log("[DEBUG auth/confirm] exchangeCodeForSession", {
-      codeLen: code.length,
-      error: error?.message ?? null,
-    });
-    // #endregion
     if (!error) {
       return successResponse;
     }

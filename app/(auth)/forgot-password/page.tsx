@@ -28,42 +28,9 @@ export default function ForgotPasswordPage() {
 
     setIsPending(true);
     const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/confirm`;
-    // #region agent log
-    console.log("[DEBUG forgot-password] requesting reset", {
-      origin: window.location.origin,
-      redirectTo,
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/confirm`,
     });
-    // #endregion
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo,
-    });
-    // #region agent log
-    const verifierCookieNames = document.cookie
-      .split(";")
-      .map((c) => c.trim().split("=")[0])
-      .filter((name) => name.includes("verifier") || name.includes("auth"));
-    console.log("[DEBUG forgot-password] resetPasswordForEmail result", {
-      error: error?.message ?? null,
-      verifierCookieNames,
-    });
-    fetch("http://127.0.0.1:7632/ingest/5b62dd9c-ca47-4ea0-8824-9f867e88198d", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "b4d57c",
-      },
-      body: JSON.stringify({
-        sessionId: "b4d57c",
-        runId: "post-fix",
-        hypothesisId: "F",
-        location: "forgot-password/page.tsx:handleSubmit",
-        message: "resetPasswordForEmail completed; cookie names",
-        data: { error: error?.message ?? null, verifierCookieNames },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     setIsPending(false);
     setSent(true);
   };
