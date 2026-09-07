@@ -8,7 +8,7 @@ import {
 } from "@/lib/helpers/completion-trend";
 import { getTeamReportingRoster } from "@/lib/supabase/queries/manager/team";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
-import type { ActivityItem } from "@/types/activity";
+import { getTeamActivityLog } from "@/lib/supabase/queries/admin/activity";
 import type { TeamInsights, TeamMemberStanding } from "@/types/team-insights";
 
 const TREND_DAYS = 7;
@@ -43,26 +43,18 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
 
   const [
     { data: reports, error },
-    { data: nameRows, error: namesError },
+    recentActivity,
   ] = await Promise.all([
     supabase
       .from("daily_reports")
       .select("id, author_id, report_date, submitted_at")
       .gte("report_date", dateNDaysAgo(INSIGHTS_WINDOW_DAYS - 1)),
-    supabase.from("profiles").select("id, full_name"),
+    getTeamActivityLog(RECENT_ACTIVITY_SIZE),
   ]);
 
   if (error) {
     throw new Error("Failed to load team report history.");
   }
-
-  if (namesError) {
-    throw new Error("Failed to load profile names.");
-  }
-
-  const nameById = new Map(
-    (nameRows ?? []).map((row) => [row.id, row.full_name]),
-  );
 
   const allReports =
     (reports as (ReportStatsInput & { id: string; author_id: string })[]) ?? [];
@@ -117,22 +109,6 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
   const frequentlyMissing = [...standings]
     .sort((a, b) => a.completionPercentage - b.completionPercentage)
     .slice(0, LEADERBOARD_SIZE);
-
-  // Derived from the same 90-day fetch — "recent activity" here means
-  // recent report submissions specifically; there's no persisted audit
-  // log for other event types at the team level (see ActivityFeed).
-  const recentActivity: ActivityItem[] = [...allReports]
-    .sort(
-      (a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime(),
-    )
-    .slice(0, RECENT_ACTIVITY_SIZE)
-    .map((report) => ({
-      id: report.id,
-      type: "report_submitted",
-      label: `${nameById.get(report.author_id) ?? "Someone"} submitted a report`,
-      timestamp: report.submitted_at,
-      href: `/manager/employees/${report.author_id}`,
-    }));
 
   return {
     trend,

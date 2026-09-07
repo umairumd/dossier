@@ -2,7 +2,7 @@ import { getOrganizationSummary } from "@/lib/supabase/queries/admin/overview";
 import { getDeptCompletionToday } from "@/lib/supabase/queries/admin/dept-completion";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
-import { getRecentActivity } from "@/lib/supabase/queries/admin/activity";
+import { getActivityLog } from "@/lib/supabase/queries/admin/activity";
 import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { resolveTemplate } from "@/lib/supabase/queries/templates";
@@ -35,7 +35,7 @@ export async function AdminDashboard() {
     await Promise.all([
       getOrganizationSummary(),
       getDeptCompletionToday(),
-      getRecentActivity(HOME_ACTIVITY_LIMIT),
+      getActivityLog(HOME_ACTIVITY_LIMIT),
       getTodayReport(),
       getOrganizationSettings(),
       getAllDepartments(),

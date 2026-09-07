@@ -162,7 +162,7 @@ export async function ManagerDashboard({
         <CardContent>
           <ActivityFeed
             items={insights.recentActivity}
-            emptyMessage="No reports submitted recently."
+            emptyMessage="No recent activity."
           />
         </CardContent>
       </Card>

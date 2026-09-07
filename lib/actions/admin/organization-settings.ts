@@ -3,10 +3,35 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireOwnerUser } from "@/lib/supabase/require-admin";
+import {
+  getActorLogContext,
+  logActivity,
+} from "@/lib/helpers/activity-log";
 
 export interface UpdateOrganizationSettingsResult {
   success: boolean;
   error?: string;
+}
+
+async function logOrgSettingsChange(
+  actorId: string,
+  field: string,
+): Promise<void> {
+  try {
+    const { orgId, actorName } = await getActorLogContext(actorId);
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "org_settings_changed",
+        actorId,
+        actorName: actorName ?? undefined,
+        entityType: "organization",
+        metadata: { field },
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log org settings change:", logError);
+  }
 }
 
 export async function updateReportDeadline(
@@ -32,6 +57,8 @@ export async function updateReportDeadline(
     return { success: false, error: "Failed to update the report deadline." };
   }
 
+  await logOrgSettingsChange(admin.id, "report_deadline_hour_utc");
+
   // Every page that computes submission status reads this setting.
   revalidatePath("/", "layout");
 
@@ -41,7 +68,7 @@ export async function updateReportDeadline(
 export async function updateOrgName(
   name: string,
 ): Promise<UpdateOrganizationSettingsResult> {
-  await requireOwnerUser();
+  const admin = await requireOwnerUser();
 
   const trimmed = name.trim();
   if (!trimmed) {
@@ -58,6 +85,8 @@ export async function updateOrgName(
     return { success: false, error: "Failed to update organization name." };
   }
 
+  await logOrgSettingsChange(admin.id, "org_name");
+
   revalidatePath("/", "layout");
   return { success: true };
 }
@@ -65,7 +94,7 @@ export async function updateOrgName(
 export async function updateTimezone(
   timezone: string,
 ): Promise<UpdateOrganizationSettingsResult> {
-  await requireOwnerUser();
+  const admin = await requireOwnerUser();
 
   try {
     Intl.DateTimeFormat(undefined, { timeZone: timezone });
@@ -83,6 +112,8 @@ export async function updateTimezone(
     return { success: false, error: "Failed to update timezone." };
   }
 
+  await logOrgSettingsChange(admin.id, "timezone");
+
   revalidatePath("/", "layout");
   return { success: true };
 }
@@ -90,7 +121,7 @@ export async function updateTimezone(
 export async function updateWorkingDays(
   days: number[],
 ): Promise<UpdateOrganizationSettingsResult> {
-  await requireOwnerUser();
+  const admin = await requireOwnerUser();
 
   if (days.length === 0) {
     return { success: false, error: "At least one working day is required." };
@@ -113,6 +144,8 @@ export async function updateWorkingDays(
     return { success: false, error: "Failed to update working days." };
   }
 
+  await logOrgSettingsChange(admin.id, "working_days");
+
   revalidatePath("/", "layout");
   return { success: true };
 }
@@ -120,7 +153,7 @@ export async function updateWorkingDays(
 export async function updateReportDeadlineLocal(
   hourLocal: number,
 ): Promise<UpdateOrganizationSettingsResult> {
-  await requireOwnerUser();
+  const admin = await requireOwnerUser();
 
   if (!Number.isInteger(hourLocal) || hourLocal < 0 || hourLocal > 23) {
     return { success: false, error: "Enter an hour between 0 and 23." };
@@ -139,6 +172,8 @@ export async function updateReportDeadlineLocal(
     return { success: false, error: "Failed to update the report deadline." };
   }
 
+  await logOrgSettingsChange(admin.id, "report_deadline_hour_local");
+
   revalidatePath("/", "layout");
   return { success: true };
 }
@@ -155,7 +190,7 @@ export async function updateAttendanceSettings(settings: {
   shiftEveningStart: string;
   shiftEveningEnd: string;
 }): Promise<UpdateOrganizationSettingsResult> {
-  await requireOwnerUser();
+  const admin = await requireOwnerUser();
 
   // Validate grace minutes
   if (
@@ -228,6 +263,8 @@ export async function updateAttendanceSettings(settings: {
   if (error) {
     return { success: false, error: "Failed to update attendance settings." };
   }
+
+  await logOrgSettingsChange(admin.id, "attendance_settings");
 
   revalidatePath("/", "layout");
   return { success: true };

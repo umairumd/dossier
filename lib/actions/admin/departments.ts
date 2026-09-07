@@ -2,8 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser, requireOwnerUser } from "@/lib/supabase/require-admin";
 import { countActiveDepartmentMembers } from "@/lib/supabase/queries/admin/departments";
+import {
+  getActorLogContext,
+  logActivity,
+} from "@/lib/helpers/activity-log";
 import {
   validateDepartmentName,
   type DepartmentFieldErrors,
@@ -27,7 +32,7 @@ function revalidateDepartmentPaths(departmentId?: string) {
 export async function createDepartment(
   name: string,
 ): Promise<DepartmentActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
   const validation = validateDepartmentName(name);
 
@@ -36,9 +41,11 @@ export async function createDepartment(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: created, error } = await supabase
     .from("departments")
-    .insert({ name: validation.value.name });
+    .insert({ name: validation.value.name })
+    .select("id, name")
+    .single();
 
   if (error) {
     if (error.code === "23505") {
@@ -50,6 +57,23 @@ export async function createDepartment(
     return { success: false, error: "Failed to create department." };
   }
 
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    if (orgId && created) {
+      void logActivity({
+        orgId,
+        eventType: "department_created",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        entityType: "department",
+        entityId: created.id,
+        entityName: created.name,
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log department create:", logError);
+  }
+
   revalidateDepartmentPaths();
 
   return { success: true };
@@ -59,7 +83,7 @@ export async function updateDepartmentName(
   id: string,
   name: string,
 ): Promise<DepartmentActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
   const validation = validateDepartmentName(name);
 
@@ -81,6 +105,23 @@ export async function updateDepartmentName(
       };
     }
     return { success: false, error: "Failed to update department." };
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "department_edited",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        entityType: "department",
+        entityId: id,
+        entityName: validation.value.name,
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log department edit:", logError);
   }
 
   revalidateDepartmentPaths(id);
@@ -148,7 +189,7 @@ export async function addEmployeeToDepartment(
   employeeId: string,
   departmentId: string,
 ): Promise<DepartmentActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
   const supabase = await createClient();
 
@@ -174,6 +215,39 @@ export async function addEmployeeToDepartment(
 
   if (error) {
     return { success: false, error: "Failed to add member." };
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    const adminClient = createAdminClient();
+    const [{ data: target }, { data: dept }] = await Promise.all([
+      adminClient
+        .from("profiles")
+        .select("full_name")
+        .eq("id", employeeId)
+        .maybeSingle(),
+      adminClient
+        .from("departments")
+        .select("name")
+        .eq("id", departmentId)
+        .maybeSingle(),
+    ]);
+
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "department_assigned",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        targetId: employeeId,
+        targetName: target?.full_name ?? undefined,
+        entityType: "department",
+        entityId: departmentId,
+        entityName: dept?.name ?? undefined,
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log department assignment:", logError);
   }
 
   revalidateDepartmentPaths(departmentId);
@@ -234,15 +308,35 @@ export async function removeEmployeeFromDepartment(
 // that check after the admin confirms in the UI.
 async function performArchive(
   departmentId: string,
+  adminId: string,
 ): Promise<DepartmentActionResult> {
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: dept, error } = await supabase
     .from("departments")
     .update({ archived_at: new Date().toISOString() })
-    .eq("id", departmentId);
+    .eq("id", departmentId)
+    .select("id, name")
+    .single();
 
   if (error) {
     return { success: false, error: "Failed to archive department." };
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(adminId);
+    if (orgId && dept) {
+      void logActivity({
+        orgId,
+        eventType: "department_archived",
+        actorId: adminId,
+        actorName: actorName ?? undefined,
+        entityType: "department",
+        entityId: dept.id,
+        entityName: dept.name,
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log department archive:", logError);
   }
 
   revalidateDepartmentPaths(departmentId);
@@ -253,7 +347,7 @@ async function performArchive(
 export async function archiveDepartment(
   departmentId: string,
 ): Promise<DepartmentActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
   const memberCount = await countActiveDepartmentMembers(departmentId);
 
@@ -265,15 +359,15 @@ export async function archiveDepartment(
     };
   }
 
-  return performArchive(departmentId);
+  return performArchive(departmentId, admin.id);
 }
 
 export async function archiveDepartmentForce(
   departmentId: string,
 ): Promise<DepartmentActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
-  return performArchive(departmentId);
+  return performArchive(departmentId, admin.id);
 }
 
 export async function restoreDepartment(

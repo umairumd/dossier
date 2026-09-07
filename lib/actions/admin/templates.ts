@@ -5,6 +5,10 @@ import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
+import {
+  getActorLogContext,
+  logActivity,
+} from "@/lib/helpers/activity-log";
 import type { FieldType } from "@/types/template";
 
 export type TemplateFieldInput = {
@@ -131,6 +135,20 @@ export async function createTemplate(input: {
     return { success: false, error: "Failed to save template fields." };
   }
 
+  try {
+    void logActivity({
+      orgId: organizationId,
+      eventType: "template_created",
+      actorId: user.id,
+      actorName: profile.full_name,
+      entityType: "template",
+      entityId: template.id,
+      entityName: input.name.trim(),
+    });
+  } catch (logError) {
+    console.error("[activity-log] Failed to log template create:", logError);
+  }
+
   revalidatePath("/organization/templates");
   return { success: true, id: template.id };
 }
@@ -142,7 +160,7 @@ export async function updateTemplate(input: {
   isDefault?: boolean;
   fields: TemplateFieldInput[];
 }): Promise<{ success: boolean; error?: string }> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
   const supabase = await createClient();
 
   if (!input.name.trim()) {
@@ -187,6 +205,23 @@ export async function updateTemplate(input: {
     return { success: false, error: "Failed to update template fields." };
   }
 
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "template_edited",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        entityType: "template",
+        entityId: input.id,
+        entityName: input.name.trim(),
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log template edit:", logError);
+  }
+
   revalidatePath("/organization/templates");
   revalidatePath(`/organization/templates/${input.id}`);
   return { success: true };
@@ -195,12 +230,12 @@ export async function updateTemplate(input: {
 export async function archiveTemplate(
   templateId: string,
 ): Promise<{ success: boolean; error?: string }> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
   const supabase = await createClient();
 
   const { data: tmpl } = await supabase
     .from("report_templates")
-    .select("is_default")
+    .select("is_default, name")
     .eq("id", templateId)
     .single();
 
@@ -215,6 +250,23 @@ export async function archiveTemplate(
 
   if (error) {
     return { success: false, error: "Failed to archive template." };
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "template_archived",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        entityType: "template",
+        entityId: templateId,
+        entityName: tmpl?.name ?? undefined,
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log template archive:", logError);
   }
 
   revalidatePath("/organization/templates");
@@ -331,6 +383,43 @@ export async function assignDepartmentTemplate(input: {
     return { success: false, error: "Failed to assign template." };
   }
 
+  try {
+    const { orgId, actorName } = await getActorLogContext(user.id);
+    const adminClient = createAdminClient();
+    const [{ data: dept }, { data: tmpl }] = await Promise.all([
+      adminClient
+        .from("departments")
+        .select("name")
+        .eq("id", input.departmentId)
+        .maybeSingle(),
+      input.templateId
+        ? adminClient
+            .from("report_templates")
+            .select("name")
+            .eq("id", input.templateId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "template_assigned",
+        actorId: user.id,
+        actorName: actorName ?? profile.full_name,
+        entityType: "template",
+        entityId: input.templateId ?? undefined,
+        entityName: tmpl?.name ?? "none",
+        metadata: {
+          departmentId: input.departmentId,
+          departmentName: dept?.name,
+        },
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log template assignment:", logError);
+  }
+
   revalidatePath(`/departments/${input.departmentId}`);
   revalidatePath("/departments");
   revalidatePath("/manager/team");
@@ -390,6 +479,41 @@ export async function assignProfileTemplate(input: {
 
   if (error) {
     return { success: false, error: "Failed to assign template." };
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(user.id);
+    const adminClient = createAdminClient();
+    const [{ data: target }, { data: tmpl }] = await Promise.all([
+      adminClient
+        .from("profiles")
+        .select("full_name")
+        .eq("id", input.profileId)
+        .maybeSingle(),
+      input.templateId
+        ? adminClient
+            .from("report_templates")
+            .select("name")
+            .eq("id", input.templateId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "template_assigned",
+        actorId: user.id,
+        actorName: actorName ?? profile.full_name,
+        targetId: input.profileId,
+        targetName: target?.full_name ?? undefined,
+        entityType: "template",
+        entityId: input.templateId ?? undefined,
+        entityName: tmpl?.name ?? "none",
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log template assignment:", logError);
   }
 
   revalidatePath(`/employees/${input.profileId}`);

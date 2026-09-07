@@ -7,7 +7,12 @@ import {
   requireOwnerUser,
 } from "@/lib/supabase/require-admin";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { insertLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
+import {
+  getActorLogContext,
+  logActivity,
+} from "@/lib/helpers/activity-log";
 import type { AttendanceStatus, ShiftType } from "@/types/attendance";
 
 export interface AttendanceActionResult {
@@ -21,7 +26,7 @@ export async function assignShiftAction(
   shiftType: ShiftType,
   effectiveFrom: string,
 ): Promise<AttendanceActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
@@ -43,6 +48,30 @@ export async function assignShiftAction(
 
   if (error) return { success: false, error: error.message };
 
+  try {
+    const { actorName } = await getActorLogContext(admin.id);
+    const adminClient = createAdminClient();
+    const { data: target } = await adminClient
+      .from("profiles")
+      .select("full_name")
+      .eq("id", profileId)
+      .maybeSingle();
+
+    void logActivity({
+      orgId,
+      eventType: "shift_assigned",
+      actorId: admin.id,
+      actorName: actorName ?? undefined,
+      targetId: profileId,
+      targetName: target?.full_name ?? undefined,
+      entityType: "shift",
+      entityName: shiftType,
+      metadata: { effectiveFrom },
+    });
+  } catch (logError) {
+    console.error("[activity-log] Failed to log shift assignment:", logError);
+  }
+
   revalidatePath(`/employees/${profileId}`);
   return { success: true };
 }
@@ -57,7 +86,7 @@ export async function saveAttendanceRecordAction(record: {
   leaveDeducted: number;
   notes?: string | null;
 }): Promise<AttendanceActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
 
@@ -78,6 +107,31 @@ export async function saveAttendanceRecordAction(record: {
   );
 
   if (error) return { success: false, error: error.message };
+
+  try {
+    const { actorName } = await getActorLogContext(admin.id);
+    const adminClient = createAdminClient();
+    const { data: target } = await adminClient
+      .from("profiles")
+      .select("full_name")
+      .eq("id", record.profileId)
+      .maybeSingle();
+
+    void logActivity({
+      orgId: record.orgId,
+      eventType: "attendance_recorded",
+      actorId: admin.id,
+      actorName: actorName ?? undefined,
+      targetId: record.profileId,
+      targetName: target?.full_name ?? undefined,
+      entityType: "attendance",
+      entityName: record.status,
+      metadata: { date: record.date, status: record.status },
+    });
+  } catch (logError) {
+    console.error("[activity-log] Failed to log attendance record:", logError);
+  }
+
   revalidatePath("/attendance");
   return { success: true };
 }
@@ -87,7 +141,7 @@ export async function reviewLeaveRequestAction(
   action: "approved" | "rejected",
   adminNotes?: string,
 ): Promise<AttendanceActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
 
@@ -155,6 +209,30 @@ export async function reviewLeaveRequestAction(
     entityId: req.id,
   });
 
+  try {
+    const { actorName } = await getActorLogContext(admin.id);
+    const adminClient = createAdminClient();
+    const { data: target } = await adminClient
+      .from("profiles")
+      .select("full_name")
+      .eq("id", req.profile_id)
+      .maybeSingle();
+
+    void logActivity({
+      orgId: req.org_id,
+      eventType: action === "approved" ? "leave_approved" : "leave_rejected",
+      actorId: admin.id,
+      actorName: actorName ?? undefined,
+      targetId: req.profile_id,
+      targetName: target?.full_name ?? undefined,
+      entityType: "leave_request",
+      entityId: req.id,
+      metadata: { date: req.date, type: req.type },
+    });
+  } catch (logError) {
+    console.error("[activity-log] Failed to log leave review:", logError);
+  }
+
   revalidatePath("/attendance");
   return { success: true };
 }
@@ -186,7 +264,7 @@ export async function runMonthlyAccrualAction(): Promise<{
   updatedCount: number;
   error?: string;
 }> {
-  await requireOwnerUser();
+  const owner = await requireOwnerUser();
   const supabase = await createClient();
 
   const { data: balances, error: fetchError } = await supabase
@@ -214,6 +292,22 @@ export async function runMonthlyAccrualAction(): Promise<{
     if (!error) {
       updatedCount += 1;
     }
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(owner.id);
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "accrual_run",
+        actorId: owner.id,
+        actorName: actorName ?? undefined,
+        entityType: "leave_balance",
+        metadata: { updatedCount },
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log accrual run:", logError);
   }
 
   revalidatePath("/attendance");
