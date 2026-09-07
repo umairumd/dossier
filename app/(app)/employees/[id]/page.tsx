@@ -35,20 +35,28 @@ function countWorkingDaysThisMonth(
 ): number {
   const today = todayInTimezone(timezone);
   const [year, month] = today.split("-").map(Number);
+  const [, , todayDay] = today.split("-").map(Number);
   let count = 0;
 
-  for (let day = 1; day <= 31; day += 1) {
-    const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const parsed = new Date(`${date}T00:00:00Z`);
-    if (parsed.getUTCMonth() + 1 !== month) {
-      break;
-    }
-    if (isWorkingDay(date, workingDays)) {
-      count += 1;
+  for (let day = 1; day <= todayDay; day++) {
+    const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    if (isWorkingDay(dateStr, workingDays)) {
+      count++;
     }
   }
-
   return count;
+}
+
+function daysAgo(dateStr: string | null): string {
+  if (!dateStr) return "Never";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const submitted = new Date(`${dateStr}T00:00:00Z`);
+  const diffMs = today.getTime() - submitted.getTime();
+  const days = Math.floor(diffMs / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return `${days} days ago`;
 }
 
 function QuickInfoCard({ employee }: { employee: EmployeeDetail }) {
@@ -197,16 +205,23 @@ export default async function EmployeeDetailPage({
           icon={<Flame className="size-4" />}
         />
         <StatCard
-          label="30-Day Completion"
-          value={`${employee.stats.completionPercentage}%`}
-          hint="Reports submitted vs working days"
+          label="Submission Rate"
+          value={
+            workingDaysThisMonth === 0
+              ? "—"
+              : `${Math.round((employee.stats.reportsThisMonth / workingDaysThisMonth) * 100)}%`
+          }
+          hint={`${employee.stats.reportsThisMonth} of ${workingDaysThisMonth} working days`}
           icon={<TrendingUp className="size-4" />}
         />
         <StatCard
-          label="This Month"
-          value={employee.stats.reportsThisMonth}
-          unit="reports"
-          hint={`Out of ${workingDaysThisMonth} working days`}
+          label="Last Submitted"
+          value={daysAgo(employee.stats.lastSubmittedDate)}
+          hint={
+            employee.stats.lastSubmittedDate
+              ? formatDate(employee.stats.lastSubmittedDate)
+              : "No reports yet"
+          }
           icon={<Calendar className="size-4" />}
         />
       </div>

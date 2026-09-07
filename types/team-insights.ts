@@ -10,6 +10,8 @@ export interface TeamMemberStanding {
   fullName: string;
   streak: number;
   completionPercentage: number;
+  reportsThisMonth: number;
+  lastSubmittedDate: string | null;
 }
 
 export interface TeamInsights {
@@ -18,6 +20,7 @@ export interface TeamInsights {
   longestStreaks: TeamMemberStanding[];
   frequentlyMissing: TeamMemberStanding[];
   recentActivity: ActivityItem[];
+  memberStandings: TeamMemberStanding[];
 }
 
 // Shared shape for the admin analytics page's weekly/monthly trends —

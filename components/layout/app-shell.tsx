@@ -1,6 +1,10 @@
 import { navSections } from "@/components/layout/nav-config";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopNav } from "@/components/layout/top-nav";
+import {
+  getMyNotifications,
+  getUnreadNotificationCount,
+} from "@/lib/supabase/queries/notifications";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import type { Profile } from "@/types/profile";
 
@@ -40,7 +44,11 @@ export async function AppShell({
 
   const mainSections = sections.filter((section) => !section.pinToBottom);
   const accountSections = sections.filter((section) => section.pinToBottom);
-  const orgName = await getOrganizationName();
+  const [orgName, unreadCount, notifications] = await Promise.all([
+    getOrganizationName(),
+    getUnreadNotificationCount(),
+    getMyNotifications(),
+  ]);
 
   return (
     <div className="flex min-h-svh">
@@ -55,6 +63,8 @@ export async function AppShell({
           accountSections={accountSections}
           orgName={orgName ?? undefined}
           profile={profile}
+          notificationCount={unreadCount}
+          notifications={notifications}
         />
         <main className="flex-1 p-6">
           <div className="mx-auto max-w-5xl">{children}</div>

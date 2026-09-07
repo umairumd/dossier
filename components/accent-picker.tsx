@@ -34,7 +34,12 @@ export function AccentPicker() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Change accent color">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-foreground/70"
+          aria-label="Change accent color"
+        >
           <Palette />
         </Button>
       </DropdownMenuTrigger>

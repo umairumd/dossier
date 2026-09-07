@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { createNotification } from "@/lib/actions/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyAuthErrorMessage } from "@/lib/helpers/auth-error-messages";
@@ -71,6 +72,25 @@ export async function markOnboarded(): Promise<{
       if (!result.success) {
         console.error("Failed to initialize leave balance:", result.error);
       }
+
+      const { data: admins } = await adminClient
+        .from("profiles")
+        .select("id")
+        .eq("organization_id", profile.organization_id)
+        .in("role", ["owner", "admin"]);
+
+      await Promise.all(
+        (admins ?? []).map((admin) =>
+          createNotification({
+            orgId: profile.organization_id,
+            profileId: admin.id,
+            type: "employee_onboarded",
+            title: "A new employee has completed onboarding",
+            entityType: "employee",
+            entityId: user.id,
+          }),
+        ),
+      );
     }
   } catch (leaveError) {
     console.error("Failed to initialize leave balance:", leaveError);

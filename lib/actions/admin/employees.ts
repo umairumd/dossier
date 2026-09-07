@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { createNotification } from "@/lib/actions/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser, requireOwnerUser } from "@/lib/supabase/require-admin";
@@ -136,6 +137,40 @@ export async function inviteEmployee(
 
     if (supervisorError) {
       console.error("Failed to assign supervisor on invite.", supervisorError);
+    }
+  }
+
+  const {
+    data: { user: adminUser },
+  } = await supabase.auth.getUser();
+
+  if (adminUser) {
+    const { data: adminProfile } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", adminUser.id)
+      .maybeSingle();
+
+    const orgId = adminProfile?.organization_id;
+    if (orgId) {
+      const { data: admins } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("organization_id", orgId)
+        .in("role", ["owner", "admin"]);
+
+      await Promise.all(
+        (admins ?? []).map((admin) =>
+          createNotification({
+            orgId,
+            profileId: admin.id,
+            type: "employee_invited",
+            title: `${fullName} has been invited`,
+            entityType: "employee",
+            entityId: userId,
+          }),
+        ),
+      );
     }
   }
 

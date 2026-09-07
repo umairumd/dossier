@@ -23,6 +23,7 @@ export function UserMenu({ profile }: { profile: Profile }) {
           <BotAvatar
             userId={profile.id}
             size={32}
+            interactive={false}
             className="rounded-full"
           />
         </button>

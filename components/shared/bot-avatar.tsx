@@ -88,14 +88,21 @@ export function BotAvatar({
   interactive,
   expression = "neutral",
 }: BotAvatarProps) {
-  const isInteractive = interactive ?? true;
+  const isInteractive = interactive ?? false;
   const uid = useId().replace(/:/g, "");
   const gradId = `bot-grad-${uid}`;
   const clipId = `bot-clip-${uid}`;
 
   const hash = hashString(userId);
   const shapeKey = ACTIVE_SHAPES[hash % ACTIVE_SHAPES.length];
-  const palette = PALETTES[(hash >> 4) % PALETTES.length];
+  const PALETTE_OVERRIDES: Record<string, number> = {
+    "697fdd30-47e4-4c52-b152-77f1153b5cb1": 2,
+  };
+  const paletteIndex =
+    PALETTE_OVERRIDES[userId] !== undefined
+      ? PALETTE_OVERRIDES[userId]
+      : (hash >> 4) % PALETTES.length;
+  const palette = PALETTES[paletteIndex];
   const shape = SHAPES[shapeKey];
   const { eyes, grad } = shape;
 
@@ -108,6 +115,9 @@ export function BotAvatar({
   const blinkScaleRef = useRef(1);
   const rafRef = useRef<number>(0);
   const blinkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleDriftRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleTargetMxRef = useRef(0);
+  const idleTargetMyRef = useRef(0);
   const expressionRef = useRef<BotExpression>("neutral");
   const leftEyeCurRef = useRef<EyeState>({ ...NEUTRAL_EYE });
   const rightEyeCurRef = useRef<EyeState>({ ...NEUTRAL_EYE });
@@ -240,20 +250,61 @@ export function BotAvatar({
     };
     scheduleNext();
 
-    const onFocus = () => {
-      if (expressionRef.current !== "neutral") return;
-      setExpression("wide");
-      if (blinkTimeoutRef.current) {
-        clearTimeout(blinkTimeoutRef.current);
-      }
-      blinkTimeoutRef.current = setTimeout(() => {
-        setExpression("neutral");
-        scheduleNext();
-      }, 1200);
-    };
-    window.addEventListener("focus", onFocus);
+    // Idle drift — only when not in interactive (mouse tracking) mode
+    // Each avatar gets a deterministic starting direction from userId hash,
+    // then drifts to new random positions every 1.5–3 seconds
+    if (!isInteractive) {
+      // Seed initial position from hash so avatars face different directions
+      const hashVal = hashString(userId);
+      const seedAngle = (hashVal % 360) * (Math.PI / 180);
+      mxRef.current = Math.cos(seedAngle) * 0.5;
+      myRef.current = Math.sin(seedAngle) * 0.4;
 
-    const sidebar = document.querySelector("aside, nav, [data-sidebar]");
+      const driftToNext = () => {
+        // Pick a new random target within ±0.6 range
+        idleTargetMxRef.current = (Math.random() - 0.5) * 1.8;
+        idleTargetMyRef.current = (Math.random() - 0.5) * 1.4;
+
+        // Smoothly lerp toward target over ~800ms using small steps
+        let steps = 0;
+        const totalSteps = 50; // ~800ms at 16ms intervals
+        const startMx = mxRef.current;
+        const startMy = myRef.current;
+        const targetMx = idleTargetMxRef.current;
+        const targetMy = idleTargetMyRef.current;
+
+        const driftStep = () => {
+          steps++;
+          const progress = steps / totalSteps;
+          // Ease in-out
+          const eased =
+            progress < 0.5
+              ? 2 * progress * progress
+              : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+          mxRef.current = startMx + (targetMx - startMx) * eased;
+          myRef.current = startMy + (targetMy - startMy) * eased;
+
+          if (steps < totalSteps) {
+            idleDriftRef.current = setTimeout(driftStep, 16);
+          } else {
+            // Hold at target for 1.5–3 seconds then drift again
+            idleDriftRef.current = setTimeout(
+              driftToNext,
+              1500 + Math.random() * 1500,
+            );
+          }
+        };
+
+        idleDriftRef.current = setTimeout(driftStep, 16);
+      };
+
+      // Start first drift after a random delay (so avatars don't all move together)
+      idleDriftRef.current = setTimeout(driftToNext, Math.random() * 2000);
+    }
+
+    const sidebar = isInteractive
+      ? document.querySelector("aside, nav, [data-sidebar]")
+      : null;
     const onSidebarEnter = () => {
       if (expressionRef.current === "neutral") setExpression("wide");
     };
@@ -269,7 +320,6 @@ export function BotAvatar({
       if (isInteractive) {
         window.removeEventListener("mousemove", onMove);
       }
-      window.removeEventListener("focus", onFocus);
       if (sidebar) {
         sidebar.removeEventListener("mouseenter", onSidebarEnter);
         sidebar.removeEventListener("mouseleave", onSidebarLeave);
@@ -278,8 +328,11 @@ export function BotAvatar({
       if (blinkTimeoutRef.current) {
         clearTimeout(blinkTimeoutRef.current);
       }
+      if (idleDriftRef.current) {
+        clearTimeout(idleDriftRef.current);
+      }
     };
-  }, [eyes, isInteractive]);
+  }, [eyes, isInteractive, userId]);
 
   return (
     <svg

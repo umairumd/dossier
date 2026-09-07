@@ -9,6 +9,9 @@ const SIZE_CLASS = {
   lg: "h-10 w-10 text-sm",
   xl: "h-16 w-16 text-base",
   "2xl": "size-24",
+  table: "h-8 w-8 text-xs",
+  card: "h-14 w-14",
+  hero: "size-24",
 } as const;
 
 const SIZE_PX = {
@@ -18,6 +21,9 @@ const SIZE_PX = {
   lg: 40,
   xl: 64,
   "2xl": 96,
+  table: 32,
+  card: 56,
+  hero: 96,
 } as const;
 
 export function MemberAvatar({
@@ -27,13 +33,15 @@ export function MemberAvatar({
   size = "md",
   className,
   expression,
+  interactive,
 }: {
   name: string;
   userId?: string;
   avatarUrl?: string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "table" | "card" | "hero";
   className?: string;
   expression?: BotExpression;
+  interactive?: boolean;
 }) {
   const sizeClass = SIZE_CLASS[size];
   const px = SIZE_PX[size];
@@ -54,6 +62,7 @@ export function MemberAvatar({
     <BotAvatar
       userId={userId ?? name}
       size={px}
+      interactive={interactive}
       className={className}
       expression={expression}
     />

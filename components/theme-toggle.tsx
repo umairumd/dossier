@@ -1,6 +1,5 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { Moon, Sun, SunMoon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -17,32 +16,19 @@ const OPTIONS = [
   { value: "system", label: "System", icon: SunMoon },
 ] as const;
 
-const noopSubscribe = () => () => {};
-
-// next-themes only knows the real theme after mount (it reads
-// localStorage/matchMedia client-side). useSyncExternalStore's differing
-// server/client snapshots give a hydration-safe "are we mounted yet" flag
-// without an effect + setState render cascade.
-function useMounted() {
-  return useSyncExternalStore(
-    noopSubscribe,
-    () => true,
-    () => false,
-  );
-}
-
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-  const mounted = useMounted();
-
-  const current = OPTIONS.find((option) => option.value === theme) ?? OPTIONS[2];
-  const Icon = mounted ? current.icon : SunMoon;
+  const { setTheme } = useTheme();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Toggle theme">
-          <Icon />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-foreground/70"
+          aria-label="Toggle theme"
+        >
+          <SunMoon />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
