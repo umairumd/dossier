@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +42,12 @@ const STATUS_OPTIONS: AttendanceStatus[] = [
 ];
 
 // Statuses where check-in time is relevant
-const NEEDS_CHECKIN: AttendanceStatus[] = ["late_minor", "late_major"];
+const NEEDS_CHECKIN: AttendanceStatus[] = [
+  "present",
+  "late_minor",
+  "late_major",
+  "work_from_home",
+];
 
 // Statuses that deduct from leave bank
 const LEAVE_DEDUCTION: Partial<Record<AttendanceStatus, number>> = {
@@ -120,6 +126,32 @@ export function AttendanceCellPopover({
   const leaveDeducted = LEAVE_DEDUCTION[status] ?? 0;
   const showCheckIn = NEEDS_CHECKIN.includes(status);
 
+  const handleCheckInNow = () => {
+    const now = new Date();
+    const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+    // Parse shift start from settings (format: "HH:MM:SS")
+    const shiftStart = settings.shiftFulltimeStart.slice(0, 5); // "HH:MM"
+    const [shiftH, shiftM] = shiftStart.split(":").map(Number);
+    const [curH, curM] = currentTime.split(":").map(Number);
+
+    const shiftMinutes = shiftH * 60 + shiftM;
+    const currentMinutes = curH * 60 + curM;
+    const minutesLate = currentMinutes - shiftMinutes;
+
+    let autoStatus: AttendanceStatus;
+    if (minutesLate <= settings.graceMinutes) {
+      autoStatus = "present";
+    } else if (minutesLate <= 30) {
+      autoStatus = "late_minor";
+    } else {
+      autoStatus = "late_major";
+    }
+
+    setStatus(autoStatus);
+    setCheckInTime(currentTime);
+  };
+
   const handleSave = () => {
     startTransition(async () => {
       const result = await saveAttendanceRecordAction({
@@ -153,7 +185,7 @@ export function AttendanceCellPopover({
         <button
           type="button"
           className={cn(
-            "flex h-8 w-full items-center justify-center rounded text-xs font-medium transition-colors",
+            "flex h-8 w-full items-center justify-center rounded text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             cellColorClass(currentStatus),
           )}
         >
@@ -165,7 +197,23 @@ export function AttendanceCellPopover({
           <div>
             <p className="text-sm font-medium">{employeeName}</p>
             <p className="text-xs text-muted-foreground">{date}</p>
+            {existingRecord?.check_in_time && (
+              <p className="text-xs text-muted-foreground">
+                Checked in: {existingRecord.check_in_time.slice(0, 5)}
+              </p>
+            )}
           </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full gap-2"
+            onClick={handleCheckInNow}
+          >
+            <Clock className="size-3.5" />
+            Check In Now
+          </Button>
 
           <div className="flex flex-col gap-1.5">
             <Label>Status</Label>

@@ -3,6 +3,7 @@ import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/quer
 import { getOrgTemplatesWithFields } from "@/lib/supabase/queries/templates";
 import { formatDate, todayInTimezone } from "@/lib/helpers/dates";
 import { DateNav } from "@/components/shared/date-nav";
+import { PageHeader } from "@/components/shared/page-header";
 import { OrgDailyReports } from "@/components/admin/org-daily-reports";
 
 export default async function TrackReportsPage({
@@ -22,17 +23,17 @@ export default async function TrackReportsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Track Reports
-        </h1>
-        <DateNav
-          date={date}
-          baseHref="/track-reports"
-          label={formatDate(date)}
-          timezone={settings.timezone}
-        />
-      </div>
+      <PageHeader
+        title="Track Reports"
+        action={
+          <DateNav
+            date={date}
+            baseHref="/track-reports"
+            label={formatDate(date)}
+            timezone={settings.timezone}
+          />
+        }
+      />
 
       <OrgDailyReports
         members={members}
