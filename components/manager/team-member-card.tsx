@@ -54,21 +54,21 @@ export function TeamMemberCard({
           <span className="text-sm font-semibold">
             {stats?.streak ?? "—"}
           </span>
-          <span className="text-[10px] text-muted-foreground">streak</span>
+          <span className="label-eyebrow">streak</span>
         </div>
         <div className="h-6 w-px bg-border" />
         <div className="flex flex-col items-center gap-0.5">
           <span className="text-sm font-semibold">
             {stats ? `${stats.submissionRate}%` : "—"}
           </span>
-          <span className="text-[10px] text-muted-foreground">this month</span>
+          <span className="label-eyebrow">this month</span>
         </div>
         <div className="h-6 w-px bg-border" />
         <div className="flex flex-col items-center gap-0.5">
           <span className="text-center text-sm font-semibold leading-tight">
             {stats?.lastSubmittedDaysAgo ?? "—"}
           </span>
-          <span className="text-[10px] text-muted-foreground">last report</span>
+          <span className="label-eyebrow">last report</span>
         </div>
       </div>
     </Link>

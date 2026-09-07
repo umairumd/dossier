@@ -27,7 +27,7 @@ export function NavLinks({
           )}
         >
           {section.title && !collapsed && (
-            <span className="px-2.5 pb-1 text-xs font-medium text-muted-foreground">
+            <span className="label-eyebrow px-2.5 pb-1">
               {section.title}
             </span>
           )}

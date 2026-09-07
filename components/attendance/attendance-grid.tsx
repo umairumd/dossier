@@ -3,6 +3,7 @@
 import { AttendanceCell } from "./attendance-cell";
 import { AttendanceCellPopover } from "./attendance-cell-popover";
 import { MemberAvatar } from "@/components/shared/member-avatar";
+import { cn } from "@/lib/utils";
 import type {
   AttendanceRecord,
   AttendanceSettings,
@@ -57,11 +58,10 @@ export function AttendanceGrid({
     return `${year}-${String(month).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
   }
 
-  // Day column header color — off days are muted
-  function dayHeaderClass(dayNum: number): string {
-    return isDayOff(dayNum)
-      ? "text-muted-foreground/50"
-      : "text-muted-foreground";
+  // Get day initial for column header
+  function getDayInitial(dayNum: number): string {
+    const date = new Date(year, month - 1, dayNum);
+    return ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"][date.getDay()];
   }
 
   if (employees.length === 0) {
@@ -78,28 +78,52 @@ export function AttendanceGrid({
         <thead>
           <tr className="border-b border-border bg-muted/30">
             {/* Sticky employee name column */}
-            <th className="sticky left-0 z-10 min-w-48 bg-muted/30 px-4 py-2 text-left text-xs font-medium text-muted-foreground">
+            <th className="sticky left-0 z-20 min-w-48 px-4 py-2 text-left label-eyebrow bg-[hsl(220_8%_7%)]">
               Employee
             </th>
             {days.map((day) => (
               <th
                 key={day}
-                className={`w-10 px-1 py-2 text-center text-xs font-medium ${dayHeaderClass(day)}`}
+                className={cn(
+                  "w-10 px-1 py-1.5 text-center bg-muted/30",
+                  isDayOff(day) && "bg-muted/60"
+                )}
               >
-                {day}
+                <div className="flex flex-col items-center gap-0.5">
+                  <span
+                    className={cn(
+                      "text-[9px] font-medium uppercase",
+                      isDayOff(day)
+                        ? "text-muted-foreground/40"
+                        : "text-muted-foreground/60"
+                    )}
+                  >
+                    {getDayInitial(day)}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-xs font-medium",
+                      isDayOff(day)
+                        ? "text-muted-foreground/40"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {day}
+                  </span>
+                </div>
               </th>
             ))}
             {/* Summary columns */}
-            <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground">
+            <th className="px-3 py-2 text-center label-eyebrow bg-muted/30">
               Late
             </th>
-            <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground">
+            <th className="px-3 py-2 text-center label-eyebrow bg-muted/30">
               Absent
             </th>
-            <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground">
+            <th className="px-3 py-2 text-center label-eyebrow bg-muted/30">
               Leaves
             </th>
-            <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground">
+            <th className="px-3 py-2 text-center label-eyebrow bg-muted/30">
               Fines
             </th>
           </tr>
@@ -136,7 +160,7 @@ export function AttendanceGrid({
                 }
               >
                 {/* Sticky name cell */}
-                <td className="sticky left-0 z-10 min-w-48 bg-background px-4 py-2">
+                <td className="sticky left-0 z-20 min-w-48 px-4 py-2 bg-[hsl(220_8%_6%)]">
                   <div className="flex items-center gap-2">
                     <MemberAvatar
                       name={emp.full_name}
