@@ -69,6 +69,7 @@ export default async function SettingsPage() {
 
           <ProfileForm
             initialFullName={profile.full_name}
+            initialDob={profile.date_of_birth ?? null}
             email={email}
             role={getRoleLabel(profile.role)}
             departmentName={

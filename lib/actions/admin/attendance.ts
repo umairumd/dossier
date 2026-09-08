@@ -27,6 +27,11 @@ export async function assignShiftAction(
   effectiveFrom: string,
 ): Promise<AttendanceActionResult> {
   const admin = await requireAdminUser();
+
+  if (!orgId || orgId.trim() === "") {
+    return { success: false, error: "Organization ID is required." };
+  }
+
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 

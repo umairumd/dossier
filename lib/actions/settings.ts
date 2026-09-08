@@ -9,12 +9,13 @@ export interface UpdateProfileResult {
   fieldErrors?: { fullName?: string };
 }
 
-// Deliberately only touches full_name: role/department_id are blocked for
-// self-updates by the profiles_role_department_immutability trigger
-// regardless, and email changes go through the Admin API (admin-only —
-// see lib/actions/admin/employees.ts), not this action.
+// Touches full_name and optional date_of_birth. role/department_id are
+// blocked for self-updates by the profiles_role_department_immutability
+// trigger regardless, and email changes go through the Admin API
+// (admin-only — see lib/actions/admin/employees.ts), not this action.
 export async function updateOwnProfile(
   fullName: string,
+  dateOfBirth?: string | null,
 ): Promise<UpdateProfileResult> {
   const trimmed = fullName.trim();
 
@@ -32,9 +33,16 @@ export async function updateOwnProfile(
     return { success: false, error: "You must be signed in." };
   }
 
+  const update: { full_name: string; date_of_birth?: string | null } = {
+    full_name: trimmed,
+  };
+  if (dateOfBirth !== undefined) {
+    update.date_of_birth = dateOfBirth?.trim() || null;
+  }
+
   const { error } = await supabase
     .from("profiles")
-    .update({ full_name: trimmed })
+    .update(update)
     .eq("id", user.id);
 
   if (error) {

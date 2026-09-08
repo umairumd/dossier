@@ -19,6 +19,7 @@ const MIN_PASSWORD_LENGTH = 8;
 export default function OnboardingPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [fieldError, setFieldError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ready, setReady] = useState(false);
@@ -62,6 +63,21 @@ export default function OnboardingPage() {
       setFieldError(error.message);
       setIsSubmitting(false);
       return;
+    }
+
+    if (dateOfBirth.trim()) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { error: dobError } = await supabase
+          .from("profiles")
+          .update({ date_of_birth: dateOfBirth })
+          .eq("id", user.id);
+        if (dobError) {
+          console.error("Failed to save date of birth:", dobError);
+        }
+      }
     }
 
     const onboardResult = await markOnboarded();
@@ -120,6 +136,21 @@ export default function OnboardingPage() {
               autoComplete="new-password"
               required
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="dob">Date of Birth (optional)</Label>
+            <Input
+              id="dob"
+              name="date_of_birth"
+              type="date"
+              value={dateOfBirth}
+              onChange={(event) => setDateOfBirth(event.target.value)}
+              max={new Date().toISOString().slice(0, 10)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Optional. Used for birthday recognition.
+            </p>
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>

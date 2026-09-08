@@ -90,6 +90,8 @@ export async function inviteEmployee(
   // The signup trigger (handle_new_user) already created a baseline
   // profile (role='member'); this applies the role and name the admin
   // chose. Department assignment is a separate action.
+  // Shift is NOT assigned here — use Assign Shift on the employee detail
+  // page after invite.
   const supabase = await createClient();
   const { error: profileError } = await supabase
     .from("profiles")
@@ -289,6 +291,7 @@ export async function updateEmployee(
       role: validation.value.role,
       designation: validation.value.designation,
       is_remote: validation.value.isRemote,
+      date_of_birth: validation.value.dateOfBirth,
     })
     .eq("id", input.id);
 

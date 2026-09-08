@@ -201,7 +201,7 @@ export function EmployeeActionsMenu({
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setAssignTemplateOpen(true)}>
                 <FileStack className="size-4" />
-                Edit Template
+                Edit Report Template
               </DropdownMenuItem>
             </>
           )}
