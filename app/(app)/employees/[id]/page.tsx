@@ -98,6 +98,14 @@ function QuickInfoCard({ employee }: { employee: EmployeeDetail }) {
             {formatDate(employee.created_at.slice(0, 10))}
           </p>
         </div>
+        {employee.date_of_birth && (
+          <div className="flex flex-col gap-1">
+            <p className="label-eyebrow">Date of Birth</p>
+            <p className="text-sm font-medium">
+              {formatDate(employee.date_of_birth)}
+            </p>
+          </div>
+        )}
         <div className="flex flex-col gap-1">
           <p className="label-eyebrow">Last Seen</p>
           <p className="text-sm font-medium">
@@ -188,7 +196,7 @@ export default async function EmployeeDetailPage({
             templates={templates}
             templateInfo={resolution}
             currentShift={currentShift}
-            orgId={employee.organization_id ?? ""}
+            orgId={profile?.organization_id ?? employee.organization_id ?? ""}
           />
         </div>
         <div className="lg:col-span-1">
@@ -230,7 +238,7 @@ export default async function EmployeeDetailPage({
         <LeaveBalanceCard
           balance={leaveBalance}
           profileId={employee.id}
-          orgId={employee.organization_id ?? ""}
+          orgId={profile?.organization_id ?? employee.organization_id ?? ""}
           joinDate={employee.created_at.slice(0, 10)}
         />
       )}

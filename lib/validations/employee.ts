@@ -21,6 +21,7 @@ export interface EditEmployeeInput {
   role: string;
   designation?: string;
   isRemote?: boolean;
+  dateOfBirth?: string | null;
 }
 
 export interface EmployeeFieldErrors {
@@ -121,6 +122,7 @@ export type EditEmployeeValidationResult =
         role: UserRole;
         designation: string | null;
         isRemote: boolean;
+        dateOfBirth: string | null;
       };
     }
   | { valid: false; fieldErrors: EmployeeFieldErrors };
@@ -152,6 +154,7 @@ export function validateEditEmployeeInput(
       role: input.role as UserRole,
       designation: input.designation?.trim() || null,
       isRemote: input.isRemote ?? false,
+      dateOfBirth: input.dateOfBirth?.trim() || null,
     },
   };
 }

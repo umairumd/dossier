@@ -9,16 +9,19 @@ import { updateOwnProfile } from "@/lib/actions/settings";
 
 export function ProfileForm({
   initialFullName,
+  initialDob,
   email,
   role,
   departmentName,
 }: {
   initialFullName: string;
+  initialDob?: string | null;
   email: string | null;
   role: string;
   departmentName: string;
 }) {
   const [fullName, setFullName] = useState(initialFullName);
+  const [dateOfBirth, setDateOfBirth] = useState(initialDob ?? "");
   const [fieldError, setFieldError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -32,7 +35,10 @@ export function ProfileForm({
     setFieldError("");
 
     startTransition(async () => {
-      const result = await updateOwnProfile(fullName);
+      const result = await updateOwnProfile(
+        fullName,
+        dateOfBirth.trim() || null,
+      );
 
       if (!result.success) {
         setFieldError(result.fieldErrors?.fullName ?? "");
@@ -71,6 +77,21 @@ export function ProfileForm({
           <Label>Department</Label>
           <Input value={departmentName} disabled readOnly />
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="dob">Date of Birth (optional)</Label>
+        <Input
+          id="dob"
+          name="date_of_birth"
+          type="date"
+          value={dateOfBirth}
+          onChange={(event) => setDateOfBirth(event.target.value)}
+          max={new Date().toISOString().slice(0, 10)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Optional. Used for birthday recognition.
+        </p>
       </div>
 
       <Button type="submit" disabled={isPending} className="self-start">

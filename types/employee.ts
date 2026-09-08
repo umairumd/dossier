@@ -33,6 +33,7 @@ export interface EmployeeListItem {
   employment_type: "full_time" | "part_time";
   avatar_url: string | null;
   template_id: string | null;
+  date_of_birth: string | null;
   created_at: string;
 }
 

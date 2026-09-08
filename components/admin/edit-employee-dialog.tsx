@@ -49,6 +49,9 @@ export function EditEmployeeDialog({
   const [role, setRole] = useState<UserRole>(employee.role);
   const [designation, setDesignation] = useState(employee.designation ?? "");
   const [isRemote, setIsRemote] = useState(employee.is_remote ?? false);
+  const [dateOfBirth, setDateOfBirth] = useState(
+    employee.date_of_birth ?? "",
+  );
   const [fieldErrors, setFieldErrors] = useState<EmployeeFieldErrors>({});
   const [isPending, startTransition] = useTransition();
 
@@ -60,6 +63,7 @@ export function EditEmployeeDialog({
       setRole(employee.role);
       setDesignation(employee.designation ?? "");
       setIsRemote(employee.is_remote ?? false);
+      setDateOfBirth(employee.date_of_birth ?? "");
       setFieldErrors({});
     }
   };
@@ -67,7 +71,14 @@ export function EditEmployeeDialog({
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const input = { email, fullName, role, designation, isRemote };
+    const input = {
+      email,
+      fullName,
+      role,
+      designation,
+      isRemote,
+      dateOfBirth: dateOfBirth.trim() || null,
+    };
     const validation = validateEditEmployeeInput(input);
 
     if (!validation.valid) {
@@ -172,6 +183,22 @@ export function EditEmployeeDialog({
                 placeholder="e.g. Graphic Designer"
                 value={designation}
                 onChange={(event) => setDesignation(event.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`edit-dob-${employee.id}`}>
+                Date of Birth
+                <span className="ml-1 text-xs font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </Label>
+              <Input
+                id={`edit-dob-${employee.id}`}
+                type="date"
+                value={dateOfBirth}
+                onChange={(event) => setDateOfBirth(event.target.value)}
+                max={new Date().toISOString().slice(0, 10)}
               />
             </div>
 
