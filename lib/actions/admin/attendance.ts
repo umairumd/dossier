@@ -36,12 +36,16 @@ export async function assignShiftAction(
   const today = new Date().toISOString().slice(0, 10);
 
   // Close any currently open shift
-  await supabase
+  const { error: closeError } = await supabase
     .from("shift_assignments")
     .update({ effective_to: effectiveFrom })
     .eq("profile_id", profileId)
     .is("effective_to", null)
     .lte("effective_from", today);
+
+  if (closeError) {
+    console.error("[assignShift] Failed to close existing shift:", closeError);
+  }
 
   // Insert new shift
   const { error } = await supabase.from("shift_assignments").insert({

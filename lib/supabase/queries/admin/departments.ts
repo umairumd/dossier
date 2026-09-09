@@ -100,9 +100,8 @@ export const getAllDepartments = cache(
   },
 );
 
-// Only profiles already role = 'manager' and not archived —
-// departments_manager_role_check rejects assigning anyone else, and an
-// archived manager shouldn't be assignable to a department going forward.
+// Owner, admin, and manager roles can be assigned as department managers.
+// Archived profiles shouldn't be assignable going forward.
 export const getManagerCandidates = cache(
   async (): Promise<ManagerCandidate[]> => {
     await requireAdminUser();
@@ -112,7 +111,7 @@ export const getManagerCandidates = cache(
     const { data, error } = await supabase
       .from("profiles")
       .select("id, full_name")
-      .eq("role", "manager")
+      .in("role", ["owner", "admin", "manager"])
       .is("archived_at", null)
       .order("full_name", { ascending: true });
 

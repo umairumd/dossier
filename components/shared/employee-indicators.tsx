@@ -31,7 +31,7 @@ export function PartTimeIndicator() {
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="inline-flex shrink-0">
-            <Clock className="size-3.5 text-muted-foreground/60" />
+            <Clock className="size-3.5 text-foreground/60" />
           </span>
         </TooltipTrigger>
         <TooltipContent>
@@ -48,7 +48,7 @@ export function ManagerIndicator() {
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="inline-flex shrink-0">
-            <Star className="size-3.5 fill-primary text-primary" />
+            <Star className="size-3.5 fill-foreground/60 text-foreground/60" />
           </span>
         </TooltipTrigger>
         <TooltipContent>
