@@ -129,10 +129,7 @@ export async function updateDepartmentName(
   return { success: true };
 }
 
-// managerId = null unassigns the department's manager. Assigning a
-// non-null id that isn't role='manager' is rejected by the
-// departments_manager_role_check trigger — surfaced here as a friendly
-// message instead of a raw Postgres error.
+// managerId = null unassigns the department's manager.
 // If the assignee is not already a member, they are added to
 // profile_departments so they can manage a team they belong to.
 export async function assignDepartmentManager(
@@ -175,7 +172,7 @@ export async function assignDepartmentManager(
     return {
       success: false,
       error:
-        "Failed to assign manager. Make sure this person has the Manager role and isn't already managing another department.",
+        "Failed to assign department manager. Please try again.",
     };
   }
 

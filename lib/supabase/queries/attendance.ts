@@ -45,22 +45,22 @@ export const getAttendanceSettings = cache(
 // ── Shift assignments ─────────────────────────────────────────────
 
 // Get the current active shift for a specific employee
-export const getCurrentShift = cache(
-  async (profileId: string): Promise<ShiftAssignment | null> => {
-    const supabase = await createClient();
-    const today = new Date().toISOString().slice(0, 10);
-    const { data } = await supabase
-      .from("shift_assignments")
-      .select("*")
-      .eq("profile_id", profileId)
-      .lte("effective_from", today)
-      .or("effective_to.is.null,effective_to.gte." + today)
-      .order("effective_from", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return data as ShiftAssignment | null;
-  },
-);
+export async function getCurrentShift(
+  profileId: string,
+): Promise<ShiftAssignment | null> {
+  const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from("shift_assignments")
+    .select("*")
+    .eq("profile_id", profileId)
+    .lte("effective_from", today)
+    .or("effective_to.is.null,effective_to.gte." + today)
+    .order("effective_from", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data as ShiftAssignment | null;
+}
 
 // Get all shift assignments for an employee (history)
 export const getShiftHistory = cache(
@@ -89,12 +89,16 @@ export async function assignShift(
   const today = new Date().toISOString().slice(0, 10);
 
   // Close the current active shift if one exists
-  await supabase
+  const { error: closeError } = await supabase
     .from("shift_assignments")
     .update({ effective_to: effectiveFrom })
     .eq("profile_id", profileId)
     .is("effective_to", null)
     .lte("effective_from", today);
+
+  if (closeError) {
+    console.error("[assignShift] Failed to close existing shift:", closeError);
+  }
 
   // Insert new shift
   const { error } = await supabase.from("shift_assignments").insert({

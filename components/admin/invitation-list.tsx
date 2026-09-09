@@ -70,7 +70,7 @@ export function InvitationList({
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Department</TableHead>
-              <TableHead>Joined</TableHead>
+              <TableHead>Invited</TableHead>
               <TableHead className="w-12 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
