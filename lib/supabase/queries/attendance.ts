@@ -57,6 +57,7 @@ export async function getCurrentShift(
     .lte("effective_from", today)
     .or("effective_to.is.null,effective_to.gte." + today)
     .order("effective_from", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   return data as ShiftAssignment | null;

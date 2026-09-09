@@ -32,23 +32,22 @@ export async function assignShiftAction(
     return { success: false, error: "Organization ID is required." };
   }
 
-  const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const adminClient = createAdminClient();
 
-  // Close any currently open shift
-  const { error: closeError } = await supabase
+  // Close any currently open shift — use admin client to bypass RLS
+  // createClient() RLS was silently failing, causing duplicate open rows
+  const { error: closeError } = await adminClient
     .from("shift_assignments")
     .update({ effective_to: effectiveFrom })
     .eq("profile_id", profileId)
-    .is("effective_to", null)
-    .lte("effective_from", today);
+    .is("effective_to", null);
 
   if (closeError) {
     console.error("[assignShift] Failed to close existing shift:", closeError);
   }
 
   // Insert new shift
-  const { error } = await supabase.from("shift_assignments").insert({
+  const { error } = await adminClient.from("shift_assignments").insert({
     profile_id: profileId,
     org_id: orgId,
     shift_type: shiftType,
@@ -59,7 +58,6 @@ export async function assignShiftAction(
 
   try {
     const { actorName } = await getActorLogContext(admin.id);
-    const adminClient = createAdminClient();
     const { data: target } = await adminClient
       .from("profiles")
       .select("full_name")
