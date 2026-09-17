@@ -13,6 +13,12 @@ npm run seed-demo
 
 The script automatically loads environment variables from `.env.local` — no manual exports needed.
 
+By default the seeder targets the org slug `acme`. Override with:
+
+```bash
+SEED_ORG_SLUG=your-org-slug npm run seed-demo
+```
+
 ---
 
 ## What Gets Created
@@ -23,24 +29,26 @@ The script automatically loads environment variables from `.env.local` — no ma
 |------------|---------|
 | Engineering | Sarah Chen |
 | Design | Marcus Johnson |
-| Sales | (unassigned) |
+| Sales | David Park |
 | Customer Support | (unassigned) |
 
 ### Users
 
-All demo users use the password: **`demo123!`**
+All confirmed demo users use the password: **`demo123!`**
 
 | Email | Name | Role | Department |
 |-------|------|------|------------|
-| admin@demo.inoma.local | Demo Admin | Admin | - |
-| eng.manager@demo.inoma.local | Sarah Chen | Manager | Engineering |
-| design.manager@demo.inoma.local | Marcus Johnson | Manager | Design |
-| alice@demo.inoma.local | Alice Rivera | Employee | Engineering |
-| bob@demo.inoma.local | Bob Patel | Employee | Engineering |
-| carol@demo.inoma.local | Carol Williams | Employee | Design |
-| dave@demo.inoma.local | Dave Kim | Employee | Sales |
-| eva@demo.inoma.local | Eva Martinez | Employee | Customer Support |
-| invited@demo.inoma.local | Invited Irene | Employee | Sales (Pending invite) |
+| owner@dossier-demo.com | Alex Morgan | Owner | - |
+| hr@dossier-demo.com | Jordan Smith | Admin | - |
+| eng.lead@dossier-demo.com | Sarah Chen | Manager | Engineering |
+| design.lead@dossier-demo.com | Marcus Johnson | Manager | Design |
+| sales.lead@dossier-demo.com | David Park | Manager | Sales |
+| alice@dossier-demo.com | Alice Rivera | Member | Engineering |
+| bob@dossier-demo.com | Bob Patel | Member | Engineering |
+| carol@dossier-demo.com | Carol Williams | Member | Design |
+| dave@dossier-demo.com | Dave Kim | Member | Sales |
+| eva@dossier-demo.com | Eva Martinez | Member | Customer Support |
+| invited@dossier-demo.com | Invited Member | Member | Engineering (Pending invite) |
 
 ### Report History
 
@@ -54,16 +62,18 @@ All demo users use the password: **`demo123!`**
 ## Demo Credentials Summary
 
 ```
-Password for all demo accounts: demo123!
+Password for all confirmed demo accounts: demo123!
 
-Admin:      admin@demo.inoma.local
-Manager:    eng.manager@demo.inoma.local
-            design.manager@demo.inoma.local
-Employee:   alice@demo.inoma.local
-            bob@demo.inoma.local
-            carol@demo.inoma.local
-            dave@demo.inoma.local
-            eva@demo.inoma.local
+Owner:      owner@dossier-demo.com
+Admin:      hr@dossier-demo.com
+Manager:    eng.lead@dossier-demo.com
+            design.lead@dossier-demo.com
+            sales.lead@dossier-demo.com
+Member:     alice@dossier-demo.com
+            bob@dossier-demo.com
+            carol@dossier-demo.com
+            dave@dossier-demo.com
+            eva@dossier-demo.com
 ```
 
 ---
@@ -94,6 +104,7 @@ Only generates reports for existing demo users (skips user creation).
 
 1. **Supabase Project** with migrations applied
 2. **Environment file** (`.env.local`) with required variables
+3. An organization row whose `slug` matches `SEED_ORG_SLUG` (default: `acme`)
 
 ### Setting Up Environment Variables
 
@@ -103,6 +114,8 @@ Create a `.env.local` file in your project root:
 # .env.local (automatically loaded, not committed to git)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+# Optional — defaults to "acme"
+# SEED_ORG_SLUG=acme
 ```
 
 Get these values from: **Supabase Dashboard → Project Settings → API**
@@ -128,21 +141,21 @@ The seeder is safe to run multiple times:
 ## Testing Different Scenarios
 
 ### As Admin
-1. Sign in as `admin@demo.inoma.local`
+1. Sign in as `hr@dossier-demo.com`
 2. View organization overview
 3. Manage employees (invite, edit, archive)
 4. Manage departments
 5. View organization-wide analytics
 
 ### As Manager
-1. Sign in as `eng.manager@demo.inoma.local`
+1. Sign in as `eng.lead@dossier-demo.com`
 2. View team dashboard and completion rates
 3. Browse team reports by date
 4. View missing reports
 5. View individual employee profiles
 
 ### As Employee
-1. Sign in as `alice@demo.inoma.local`
+1. Sign in as `alice@dossier-demo.com`
 2. View personal dashboard and streak
 3. Submit today's report
 4. View report history
@@ -150,7 +163,7 @@ The seeder is safe to run multiple times:
 ### Testing Invitations
 1. Sign in as admin
 2. Navigate to Employees or Invitations page
-3. Click "Invite Link" for `invited@demo.inoma.local`
+3. Click "Invite Link" for `invited@dossier-demo.com`
 4. Click "Generate Invite Link" to create a fresh link
 5. Copy the link
 6. Open in incognito/new browser
@@ -167,8 +180,8 @@ npm run seed-demo:reset
 
 ### Manual Cleanup via SQL
 ```sql
--- Find all demo users
-SELECT id, email FROM profiles WHERE email LIKE '%@demo.inoma.local';
+-- Find all demo users (emails live in auth.users)
+SELECT id, email FROM auth.users WHERE email LIKE '%@dossier-demo.com';
 
 -- Delete via Supabase Dashboard → Authentication → Users
 -- Or use the recovery CLI:
@@ -181,6 +194,9 @@ SELECT id, email FROM profiles WHERE email LIKE '%@demo.inoma.local';
 
 ### "Missing required environment variables"
 Create a `.env.local` file in your project root with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. See [Prerequisites](#prerequisites) above.
+
+### "Organization slug 'acme' not found"
+Create an organization with slug `acme`, or run with `SEED_ORG_SLUG` set to your existing org slug.
 
 ### "Failed to create user: email_exists"
 The user already exists. This is fine — the seeder will continue with other users.
@@ -195,7 +211,7 @@ Make sure the user is confirmed (not pending). Check that `report_date` matches 
 
 ## Security Notes
 
-- Demo users use `.local` domain to prevent accidental real emails
+- Demo users use the `@dossier-demo.com` domain to avoid colliding with real addresses
 - Demo password is intentionally simple for testing
 - **Never run this on production** without understanding the implications
 - The service role key has full database access — keep it secret
@@ -205,5 +221,5 @@ Make sure the user is confirmed (not pending). Check that `report_date` matches 
 ## Related Documentation
 
 - [Emergency Recovery](./EMERGENCY_RECOVERY.md) — Recover locked admin accounts
-- [Manual Testing Guide](./MANUAL_TESTING_GUIDE.md) — QA checklist and scenarios
+- [Manual Testing Guide](./internal/MANUAL_TESTING_GUIDE.md) — QA checklist and scenarios
 - [Development Guide](./DEVELOPMENT_GUIDE.md) — Local setup instructions

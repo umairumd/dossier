@@ -96,7 +96,7 @@ export function BotAvatar({
   const hash = hashString(userId);
   const shapeKey = ACTIVE_SHAPES[hash % ACTIVE_SHAPES.length];
   const PALETTE_OVERRIDES: Record<string, number> = {
-    "697fdd30-47e4-4c52-b152-77f1153b5cb1": 2,
+    // Add UUID → palette index overrides here
   };
   const paletteIndex =
     PALETTE_OVERRIDES[userId] !== undefined

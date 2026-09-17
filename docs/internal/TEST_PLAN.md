@@ -332,7 +332,7 @@ test("employee submits daily report", async ({ page }) => {
 2. Run seed.sql for departments
 3. Bootstrap admin account (see README)
 4. Invite test employees through UI
-5. Use demo-reports.sql to backfill reports
+5. Use scripts/demo-reports.sql to backfill reports
 
 ### For E2E Tests
 

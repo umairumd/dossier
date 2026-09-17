@@ -1,93 +1,152 @@
 # Dossier
 
-Dossier is a daily progress tracking system for teams. Employees submit an immutable end-of-day report. Managers review department completion, missing work, and trends. Admins run the organization: people, departments, invitations, and settings.
+> HR infrastructure for modern teams.
+
+![Dossier Banner](./docs/banner.jpg)
+
+Dossier is a full-stack internal HR platform built to manage people, track daily work, run attendance, and handle team operations — all in one place, with role-aware access at every level.
+
+---
+
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="./docs/assets/screenshots/employees.jpg" alt="Employees" /></td>
+    <td><img src="./docs/assets/screenshots/team-members.jpg" alt="Team Members" /></td>
+  </tr>
+  <tr>
+    <td><img src="./docs/assets/screenshots/track-reports.jpg" alt="Track Reports" /></td>
+    <td><img src="./docs/assets/screenshots/settings.jpg" alt="Settings" /></td>
+  </tr>
+</table>
+
+---
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| UI | React 19, TypeScript, Tailwind v4, shadcn/ui |
+| Database | Supabase (PostgreSQL + Auth + RLS) |
+| Font | Geist |
+| Email | Resend |
+| Deployment | Vercel |
+
+---
 
 ## Features
 
-### Employee
+### People
+- Employee profiles, invite flow, onboarding, and role assignment
+- Employment type (full-time / part-time), supervisor hierarchy, org chart
+- Animated avatars — deterministic palette per employee, mouse-tracking on profile pages
 
-- Submit one daily report (accomplishments, blockers, tomorrow's plan)
-- View personal report history, streak, and completion
-- Update profile name and password
+### Reports
+- Daily report submission with customizable templates per employee or department
+- 6 field types: text, textarea, number, select, checkbox, URL
+- Template inheritance: individual → department → org default
+- Report history, search, and field-level preview
 
-### Manager
+### Attendance
+- Monthly grid with status chips and shift assignment
+- Leave requests, leave balances, and monthly accrual
+- Auto-attendance for remote employees on report submit
+- Manager read-only view
 
-- Department dashboard: completion today, missing/late reports, streaks, activity
-- Date-filtered team reports with On Time / Late / Missed status
-- Missing-reports view and a read-only team roster
+### Team
+- Team member cards with streak, submission rate, and last report stats
+- Department profiles with completion trends and manager assignment
+- Org chart with supervisor tree and department grouping
 
-### Admin
+### Platform
+- Role-based access: owner → admin → manager → member
+- Activity log with 24 event types and actor/target tracking
+- Notification system with bell, unread badge, and contextual triggers
+- Dark theme with configurable accent color
+- Breadcrumb navigation, indicator system, responsive layout
 
-- Organization overview and analytics
-- Invite, edit, deactivate, archive, restore, or permanently delete people
-- Create and archive departments; assign managers
-- Invitation tracking, activity feed, report deadline setting
+---
 
-## Tech Stack
+## Roles
 
-- Next.js 16 (App Router, React Server Components, Server Actions)
-- React 19 with React Compiler
-- TypeScript (strict)
-- Supabase (PostgreSQL, Auth, RLS, Admin API)
-- Tailwind CSS v4
-- shadcn/ui
-- Vercel (deployment)
+| Role | Access |
+|---|---|
+| **Owner** | Full access, org settings, run accrual |
+| **Admin** | Full access minus org settings |
+| **Manager** | Own department views, read-only attendance |
+| **Member** | Own reports and profile |
 
-## Architecture
+---
 
-Accounts are invitation-only; there is no public sign-up. Authorization is enforced in Postgres with role-scoped Row Level Security. The app has no REST API: mutations go through Server Actions. Sessions are cookie-based via `@supabase/ssr`.
+## Project Structure
 
-## Getting Started
+```
+app/                        # Next.js App Router — pages and layouts
+components/                 # Shared and feature UI components
+lib/                        # Server actions, Supabase clients, helpers
+supabase/migrations/        # SQL migration files (applied manually)
+types/                      # TypeScript types
+scripts/                    # Ops and seeding utilities
+docs/                       # Architecture, guidelines, and product docs
+  assets/screenshots/       # README screenshots
+  internal/                 # Roadmap, tech debt, QA (internal use)
+proxy.ts                    # Next.js session middleware (Supabase SSR)
+```
 
-### Prerequisites
+---
 
-- Node.js 18+
-- A Supabase project
-- (Optional) Vercel account for deployment
+## Environment Variables
 
-### Setup
+Copy `.env.example` to `.env.local` and fill in your values:
 
-1. Clone the repo.
-2. Install dependencies: `npm install`
-3. Copy `.env.example` to `.env.local` and fill in the values below.
-4. Apply every file in `supabase/migrations/` to your Supabase project (CLI `supabase db push` or SQL Editor, in filename order).
-5. Bootstrap the first admin: see [docs/DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) (section **Bootstrap First Admin**).
-6. `npm run dev`
+```bash
+cp .env.example .env.local
+```
 
-### Environment Variables
+All required variables and their descriptions are documented in `.env.example`.
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous (public) key |
-| `NEXT_PUBLIC_SITE_URL` | No | Optional origin override for password-reset redirects (custom domain) |
-| `NEXT_PUBLIC_VERCEL_URL` | No | Auto-set by Vercel on every deploy; no action needed |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-only. Admin API (invite/ban/delete). Never expose to the client. |
+---
 
-Add your app's `/reset-password` URL (`http://localhost:3000/reset-password` and production) under **Authentication → URL Configuration → Redirect URLs** in the Supabase dashboard.
+## Development
 
-## Scripts
+```bash
+npm install
+npm run dev
+```
 
-- `npm run seed-demo` / `npm run seed-demo:reset` — seed (or wipe and reseed) a demo org via `scripts/seed-demo.ts`
-- `npm run recovery` — emergency admin CLI (`scripts/recovery-cli.ts`): list/promote/reactivate/restore/unban/create-admin
+After any code change, verify types:
+
+```bash
+npx tsc --noEmit
+```
+
+Migrations are SQL files in `supabase/migrations/` and are applied manually in the Supabase SQL Editor — never run programmatically.
+
+To seed a demo environment:
+
+```bash
+SEED_ORG_SLUG=acme npx ts-node scripts/seed-demo.ts
+```
+
+---
 
 ## Documentation
 
-- [docs/DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) — setup, conventions, first admin
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — App Router, RLS, Server Actions
-- [docs/DATABASE.md](docs/DATABASE.md) — schema and migrations
-- [docs/PERMISSIONS.md](docs/PERMISSIONS.md) — roles and RLS
-- [docs/REPORT_SYSTEM.md](docs/REPORT_SYSTEM.md) — daily reports
-- [docs/PRODUCT.md](docs/PRODUCT.md) — product spec
-- [docs/UI_GUIDELINES.md](docs/UI_GUIDELINES.md) — UI and nav
-- [docs/DEMO_SETUP.md](docs/DEMO_SETUP.md) — demo seeder
-- [docs/MANUAL_TESTING_GUIDE.md](docs/MANUAL_TESTING_GUIDE.md) — QA scenarios
-- [docs/EMERGENCY_RECOVERY.md](docs/EMERGENCY_RECOVERY.md) — locked-out admin recovery
-- [docs/TEST_PLAN.md](docs/TEST_PLAN.md) — proposed test strategy
-- [docs/TECH_DEBT.md](docs/TECH_DEBT.md) — known debt
-- [docs/ROADMAP.md](docs/ROADMAP.md) — product roadmap
-- [PROJECT.md](PROJECT.md) — short project brief
+| Doc | Purpose |
+|---|---|
+| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | System architecture and data flow |
+| [`docs/DATABASE.md`](./docs/DATABASE.md) | Schema overview and RLS policies |
+| [`docs/PERMISSIONS.md`](./docs/PERMISSIONS.md) | Role permission matrix |
+| [`docs/REPORT_SYSTEM.md`](./docs/REPORT_SYSTEM.md) | Template and report system deep-dive |
+| [`docs/UI_GUIDELINES.md`](./docs/UI_GUIDELINES.md) | Design system and component conventions |
+| [`docs/DEVELOPMENT_GUIDE.md`](./docs/DEVELOPMENT_GUIDE.md) | Local setup and contribution guide |
+| [`docs/DEMO_SETUP.md`](./docs/DEMO_SETUP.md) | Seeding and running a demo environment |
+| [`docs/EMERGENCY_RECOVERY.md`](./docs/EMERGENCY_RECOVERY.md) | Recovery procedures for production issues |
+
+---
 
 ## License
 
-MIT
+Private. All rights reserved.

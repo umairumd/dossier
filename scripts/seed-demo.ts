@@ -2,7 +2,7 @@
 /**
  * Dossier Demo Data Seeder
  *
- * Seeds Inoma Digital with departments, RBAC users, junction-table
+ * Seeds a demo org with departments, RBAC users, junction-table
  * assignments, and report history. Idempotent — safe to run multiple times.
  *
  * Usage:
@@ -28,7 +28,7 @@ const supabase = createClient(
 
 const DEMO_PASSWORD = "demo123!";
 const DEMO_DOMAIN = "dossier-demo.com";
-const ORG_SLUG = "inoma-digital";
+const ORG_SLUG = process.env.SEED_ORG_SLUG || "acme";
 
 type DemoRole = "owner" | "admin" | "manager" | "member";
 

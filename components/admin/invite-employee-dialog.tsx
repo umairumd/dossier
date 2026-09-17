@@ -168,6 +168,9 @@ export function InviteEmployeeDialog({
     }
   };
 
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  const siteHost = siteUrl.replace(/^https?:\/\//, "");
+
   const copyMessage = async () => {
     if (!tempPassword) {
       return;
@@ -179,7 +182,7 @@ export function InviteEmployeeDialog({
       ``,
       `You've been invited to join ${organization} on Dossier.`,
       ``,
-      `Login at: https://my.inomadigital.com`,
+      `Login at: ${siteUrl}`,
       `Email: ${email}`,
       `Temporary password: ${tempPassword}`,
       ``,
@@ -216,7 +219,7 @@ export function InviteEmployeeDialog({
               <div className="flex flex-col gap-2 rounded-lg bg-muted p-4 font-mono text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Website</span>
-                  <span>my.inomadigital.com</span>
+                  <span>{siteHost}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Email</span>

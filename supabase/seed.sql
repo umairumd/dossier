@@ -12,7 +12,7 @@
 --   1. Bootstrap your first admin — see README.md > "Demo data".
 --   2. Sign in as that admin and use People > Employees > Invite
 --      Employee to create manager and employee demo accounts.
---   3. Once those accounts exist, see docs/demo-reports.sql for a
+--   3. Once those accounts exist, see scripts/demo-reports.sql for a
 --      template that backfills sample daily_reports, so dashboards,
 --      streaks, and completion trends show realistic data instead of
 --      being empty right after setup.
