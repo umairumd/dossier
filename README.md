@@ -149,4 +149,4 @@ SEED_ORG_SLUG=acme npx ts-node scripts/seed-demo.ts
 
 ## License
 
-Private. All rights reserved.
+MIT
