@@ -12,6 +12,7 @@ import {
   getOrganizationSettings,
 } from "@/lib/supabase/queries/organization-settings";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
+import { todayInTimezone } from "@/lib/helpers/dates";
 import { CompletionTrendCard } from "@/components/analytics/completion-trend-card";
 import { StatCard } from "@/components/analytics/stat-card";
 import { DepartmentDetailActions } from "@/components/admin/department-detail-actions";
@@ -78,12 +79,18 @@ export default async function DepartmentDetailPage({
       employee.status !== "archived" && !memberIds.has(employee.id),
   );
 
-  const reportingMembers = detail.members.filter((member) => member.has_onboarded);
-  const submittedToday = Object.keys(detail.submittedAtByMemberId).length;
+  const reportingMembers = detail.members.filter(
+    (member) => member.has_onboarded && member.is_reporting,
+  );
+  const reportingIds = new Set(reportingMembers.map((member) => member.id));
+  const submittedToday = Object.keys(detail.submittedAtByMemberId).filter(
+    (id) => reportingIds.has(id),
+  ).length;
   const totalCount = reportingMembers.length;
   const missingToday = Math.max(totalCount - submittedToday, 0);
   const completionPct =
     totalCount === 0 ? 0 : Math.round((submittedToday / totalCount) * 100);
+  const today = todayInTimezone(settings.timezone);
 
   const currentTemplate = detail.template_id
     ? (templates.find((template) => template.id === detail.template_id) ?? null)
@@ -283,10 +290,18 @@ export default async function DepartmentDetailPage({
                             submittedAt,
                             deadline.deadlineHourUtc,
                             deadline,
+                            today,
                           )}
                         />
                       ) : member.has_onboarded ? (
-                        <SubmissionStatusBadge status="missed" />
+                        <SubmissionStatusBadge
+                          status={getSubmissionStatus(
+                            null,
+                            deadline.deadlineHourUtc,
+                            deadline,
+                            today,
+                          )}
+                        />
                       ) : (
                         <Badge variant="outline" className="text-xs">
                           Invited

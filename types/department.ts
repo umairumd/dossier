@@ -29,6 +29,7 @@ export interface DepartmentMember {
   is_remote: boolean;
   employment_type: "full_time" | "part_time";
   has_onboarded: boolean;
+  is_reporting: boolean;
 }
 
 export interface DepartmentManager {

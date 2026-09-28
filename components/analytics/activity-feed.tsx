@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -16,6 +16,16 @@ import {
 } from "lucide-react";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import { MemberAvatar } from "@/components/shared/member-avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { deleteActivityEntry } from "@/lib/actions/admin/activity";
 import type { ActivityEventType, ActivityLogEntry } from "@/types/activity";
 
@@ -120,6 +130,7 @@ export function ActivityFeed({
   canDelete?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const handleDelete = (id: string) => {
     startTransition(async () => {
@@ -127,6 +138,7 @@ export function ActivityFeed({
       if (!result.success) {
         toast.error(result.error ?? "Failed to delete entry.");
       }
+      setPendingDeleteId(null);
     });
   };
 
@@ -139,59 +151,93 @@ export function ActivityFeed({
   }
 
   return (
-    <ul className="flex flex-col gap-3">
-      {items.map((item) => {
-        const Icon = EVENT_ICONS[item.event_type] ?? FileText;
-        const labelFn = EVENT_LABELS[item.event_type];
-        const label = labelFn ? labelFn(item) : item.event_type;
-        const href = getHref(item);
+    <>
+      <ul className="flex flex-col gap-3">
+        {items.map((item) => {
+          const Icon = EVENT_ICONS[item.event_type] ?? FileText;
+          const labelFn = EVENT_LABELS[item.event_type];
+          const label = labelFn ? labelFn(item) : item.event_type;
+          const href = getHref(item);
 
-        const content = (
-          <div className="flex items-start gap-3 pr-8">
-            <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">
-              <Icon className="size-3.5 text-muted-foreground" />
-            </div>
-            <div className="flex flex-1 flex-col gap-0.5">
-              <p className="text-sm">{label}</p>
-              <div className="flex items-center gap-2">
-                {item.actor_id && item.actor_name ? (
-                  <MemberAvatar
-                    name={item.actor_name}
-                    userId={item.actor_id}
-                    size="table"
-                  />
-                ) : null}
-                <p className="text-xs text-muted-foreground">
-                  <LocalDateTime isoString={item.created_at} />
-                </p>
+          const content = (
+            <div className="flex items-start gap-3 pr-8">
+              <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">
+                <Icon className="size-3.5 text-muted-foreground" />
+              </div>
+              <div className="flex flex-1 flex-col gap-0.5">
+                <p className="text-sm">{label}</p>
+                <div className="flex items-center gap-2">
+                  {item.actor_id && item.actor_name ? (
+                    <MemberAvatar
+                      name={item.actor_name}
+                      userId={item.actor_id}
+                      size="table"
+                    />
+                  ) : null}
+                  <p className="text-xs text-muted-foreground">
+                    <LocalDateTime isoString={item.created_at} />
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        );
+          );
 
-        return (
-          <li key={item.id} className="group relative">
-            {href ? (
-              <Link href={href} className="block hover:opacity-80">
-                {content}
-              </Link>
-            ) : (
-              content
-            )}
-            {canDelete && (
-              <button
-                type="button"
-                onClick={() => handleDelete(item.id)}
-                disabled={isPending}
-                className="absolute right-0 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                aria-label="Delete entry"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+          return (
+            <li key={item.id} className="group relative">
+              {href ? (
+                <Link href={href} className="block hover:opacity-80">
+                  {content}
+                </Link>
+              ) : (
+                content
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  onClick={() => setPendingDeleteId(item.id)}
+                  disabled={isPending}
+                  className="absolute right-0 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                  aria-label="Delete entry"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      <AlertDialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open && !isPending) {
+            setPendingDeleteId(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete activity entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the entry from the activity log. This
+              action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isPending || !pendingDeleteId}
+              onClick={() => {
+                if (pendingDeleteId) {
+                  handleDelete(pendingDeleteId);
+                }
+              }}
+            >
+              {isPending ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

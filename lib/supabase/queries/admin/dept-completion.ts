@@ -35,6 +35,7 @@ export const getDeptCompletionToday = cache(
         .from("profiles")
         .select("id")
         .eq("has_onboarded", true)
+        .eq("is_reporting", true)
         .eq("is_active", true)
         .is("archived_at", null)
         .neq("role", "owner"),

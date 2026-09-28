@@ -6,13 +6,11 @@ import {
 import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
 import { getSupervisedMembers } from "@/lib/supabase/queries/supervisor/team";
 import { createClient } from "@/lib/supabase/server";
-import { getOrgTemplates } from "@/lib/supabase/queries/templates";
 import {
   getOrganizationSettings,
 } from "@/lib/supabase/queries/organization-settings";
 import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { TeamMemberCard } from "@/components/manager/team-member-card";
-import { DeptTemplateActions } from "@/components/admin/dept-template-actions";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
@@ -68,13 +66,12 @@ function MemberGrid({
 export default async function TeamMembersPage() {
   const profile = await getCurrentProfileWithDepartment();
 
-  const [deptMembers, supervisedMembers, templates, insights, settings] =
+  const [deptMembers, supervisedMembers, insights, settings] =
     await Promise.all([
       profile?.role === "manager" ? getTeamRoster() : Promise.resolve([]),
       profile?.is_supervisor
         ? getSupervisedMembers()
         : Promise.resolve([]),
-      getOrgTemplates(),
       getTeamInsights().catch(() => null),
       getOrganizationSettings(),
     ]);
@@ -105,39 +102,20 @@ export default async function TeamMembersPage() {
   );
 
   const managerIds = new Set<string>();
-  let managedDepartment: {
-    id: string;
-    name: string;
-    template_id: string | null;
-  } | null = null;
 
   if (profile && profile.department_ids.length > 0) {
     const supabase = await createClient();
     const { data: departments } = await supabase
       .from("departments")
-      .select("id, manager_id, name, template_id")
+      .select("id, manager_id")
       .in("id", profile.department_ids);
 
     for (const department of departments ?? []) {
       if (department.manager_id) {
         managerIds.add(department.manager_id);
       }
-      if (department.manager_id === profile.id) {
-        managedDepartment = {
-          id: department.id,
-          name: department.name,
-          template_id: department.template_id,
-        };
-      }
     }
   }
-
-  const canAssignDeptTemplate = Boolean(
-    profile &&
-      profile.department_ids.length > 0 &&
-      managerIds.has(profile.id) &&
-      managedDepartment,
-  );
 
   const isDeptManager =
     profile?.role === "manager" && deptMembers.length > 0;
@@ -161,17 +139,6 @@ export default async function TeamMembersPage() {
         title="Team Members"
         count={uniqueCount}
         countLabel={uniqueCount === 1 ? "member" : "members"}
-        action={
-          canAssignDeptTemplate && managedDepartment ? (
-            <DeptTemplateActions
-              departmentId={managedDepartment.id}
-              departmentName={managedDepartment.name}
-              currentTemplateId={managedDepartment.template_id}
-              templates={templates}
-              canCreate
-            />
-          ) : undefined
-        }
       />
 
       <div>

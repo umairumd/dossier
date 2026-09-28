@@ -5,7 +5,7 @@ import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
 import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
-import { formatLongDate } from "@/lib/helpers/dates";
+import { formatLongDate, todayInTimezone } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
@@ -43,6 +43,7 @@ export async function ManagerDashboard({
   const completionPercentage =
     teamSize === 0 ? 0 : Math.round((submittedToday / teamSize) * 100);
   const today = formatLongDate(new Date());
+  const todayDate = todayInTimezone(settings.timezone);
   const deadline = getDeadlineContext(settings);
   const sortedMembers = sortTeamMembersBySubmission(members);
   const previewMembers = sortedMembers.slice(0, HOME_ROSTER_PREVIEW);
@@ -107,6 +108,7 @@ export async function ManagerDashboard({
                       member.report?.submitted_at ?? null,
                       deadline.deadlineHourUtc,
                       deadline,
+                      todayDate,
                     )}
                   />
                 </div>

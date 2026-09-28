@@ -82,6 +82,7 @@ export default async function TeamReportsPage({
               : "No one is reporting to you yet."
           }
           templates={templates}
+          reportDate={date}
         />
       </div>
 
@@ -97,6 +98,7 @@ export default async function TeamReportsPage({
               deadline={getDeadlineContext(settings)}
               emptyMessage="No supervisees to show."
               templates={templates}
+              reportDate={date}
             />
           </div>
         </>

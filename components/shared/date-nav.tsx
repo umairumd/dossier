@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -23,27 +24,44 @@ export function DateNav({
   timezone: string;
 }) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const today = todayInTimezone(timezone);
   const isToday = date >= today;
   const previousDate = shiftReportDate(date, -1);
   const nextDate = shiftReportDate(date, 1);
 
+  const goToDate = (next: string) => {
+    startTransition(() => {
+      router.push(`${baseHref}?date=${next}`);
+    });
+  };
+
   return (
-    <div className="flex items-center gap-2">
-      <Link
-        href={`${baseHref}?date=${previousDate}`}
-        className="text-sm text-muted-foreground hover:text-foreground"
+    <div className="flex items-center gap-2" aria-busy={isPending}>
+      <button
+        type="button"
+        onClick={() => goToDate(previousDate)}
+        disabled={isPending}
+        className="text-sm text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
       >
         ← Previous
-      </Link>
+      </button>
 
       <Popover>
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground"
+            disabled={isPending}
+            className="rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-40"
           >
-            {label ?? date}
+            {isPending ? (
+              <Loader2
+                className="size-4 animate-spin text-muted-foreground"
+                aria-label="Loading"
+              />
+            ) : (
+              (label ?? date)
+            )}
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="center">
@@ -56,24 +74,24 @@ export function DateNav({
               const m = String(selected.getMonth() + 1).padStart(2, "0");
               const d = String(selected.getDate()).padStart(2, "0");
               const formatted = `${y}-${m}-${d}`;
-              router.push(`${baseHref}?date=${formatted}`);
+              goToDate(formatted);
             }}
-            disabled={(day) => day > new Date()}
+            disabled={(day) => day > new Date() || isPending}
             autoFocus
           />
         </PopoverContent>
       </Popover>
 
-      <Link
-        href={`${baseHref}?date=${nextDate}`}
-        aria-disabled={isToday}
+      <button
+        type="button"
+        onClick={() => goToDate(nextDate)}
+        disabled={isPending || isToday}
         className={cn(
-          "text-sm text-muted-foreground hover:text-foreground",
-          isToday && "pointer-events-none opacity-40",
+          "text-sm text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
         )}
       >
         Next →
-      </Link>
+      </button>
     </div>
   );
 }
