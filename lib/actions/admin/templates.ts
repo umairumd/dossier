@@ -276,12 +276,12 @@ export async function archiveTemplate(
 export async function deleteTemplate(
   templateId: string,
 ): Promise<{ success: boolean; error?: string }> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
   const supabase = await createClient();
 
   const { data: tmpl } = await supabase
     .from("report_templates")
-    .select("is_default")
+    .select("is_default, name")
     .eq("id", templateId)
     .single();
 
@@ -304,6 +304,23 @@ export async function deleteTemplate(
     };
   }
 
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "template_edited",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        entityType: "template",
+        entityName: tmpl?.name ?? undefined,
+        metadata: { action: "deleted" },
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log template delete:", logError);
+  }
+
   const { error } = await supabase
     .from("report_templates")
     .delete()
@@ -321,16 +338,36 @@ export async function deleteTemplate(
 export async function restoreTemplate(
   templateId: string,
 ): Promise<{ success: boolean; error?: string }> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data: tmpl, error } = await supabase
     .from("report_templates")
     .update({ archived_at: null })
-    .eq("id", templateId);
+    .eq("id", templateId)
+    .select("id, name")
+    .single();
 
   if (error) {
     return { success: false, error: "Failed to restore template." };
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "template_edited",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        entityType: "template",
+        entityId: tmpl?.id,
+        entityName: tmpl?.name ?? undefined,
+        metadata: { action: "restored" },
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log template restore:", logError);
   }
 
   revalidatePath("/organization/templates");

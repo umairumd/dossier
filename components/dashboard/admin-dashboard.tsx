@@ -9,6 +9,7 @@ import { resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { formatDeadlineHint } from "@/lib/helpers/time";
+import { todayInTimezone } from "@/lib/helpers/dates";
 import { Building2, UserPlus } from "lucide-react";
 import {
   Card,
@@ -106,7 +107,11 @@ export async function AdminDashboard() {
         className="animate-in fade-in-0 duration-300 fill-mode-both"
         style={{ animationDelay: "0ms" }}
       >
-        <DeptCompletionCard departments={deptCompletion} />
+        <DeptCompletionCard
+          initialDepartments={deptCompletion}
+          timezone={settings.timezone}
+          initialDate={todayInTimezone(settings.timezone)}
+        />
       </div>
 
       <div

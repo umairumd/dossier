@@ -97,6 +97,7 @@ export async function submitDailyReport(
         targetName: profile.full_name ?? undefined,
         entityType: "report",
         entityId: inserted?.id,
+        metadata: { reportDate },
       });
     }
 

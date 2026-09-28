@@ -2,24 +2,24 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { shiftReportDate, todayInTimezone } from "@/lib/helpers/dates";
+import { formatDate, shiftReportDate, todayInTimezone } from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
 
 export function DateNav({
   date,
   baseHref,
-  label,
   timezone,
 }: {
   date: string;
   baseHref: string;
+  /** @deprecated Center always shows "Today" or formatDate(date). */
   label?: string;
   timezone: string;
 }) {
@@ -36,15 +36,18 @@ export function DateNav({
     });
   };
 
+  const centerLabel = date === today ? "Today" : formatDate(date);
+
   return (
-    <div className="flex items-center gap-2" aria-busy={isPending}>
+    <div className="flex items-center gap-1" aria-busy={isPending}>
       <button
         type="button"
         onClick={() => goToDate(previousDate)}
         disabled={isPending}
-        className="text-sm text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+        className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+        aria-label="Previous day"
       >
-        ← Previous
+        <ChevronLeft className="size-4" />
       </button>
 
       <Popover>
@@ -52,15 +55,15 @@ export function DateNav({
           <button
             type="button"
             disabled={isPending}
-            className="rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-40"
+            className="min-w-20 rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
           >
             {isPending ? (
               <Loader2
-                className="size-4 animate-spin text-muted-foreground"
+                className="mx-auto size-4 animate-spin text-muted-foreground"
                 aria-label="Loading"
               />
             ) : (
-              (label ?? date)
+              centerLabel
             )}
           </button>
         </PopoverTrigger>
@@ -73,8 +76,7 @@ export function DateNav({
               const y = selected.getFullYear();
               const m = String(selected.getMonth() + 1).padStart(2, "0");
               const d = String(selected.getDate()).padStart(2, "0");
-              const formatted = `${y}-${m}-${d}`;
-              goToDate(formatted);
+              goToDate(`${y}-${m}-${d}`);
             }}
             disabled={(day) => day > new Date() || isPending}
             autoFocus
@@ -87,10 +89,11 @@ export function DateNav({
         onClick={() => goToDate(nextDate)}
         disabled={isPending || isToday}
         className={cn(
-          "text-sm text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
+          "rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
         )}
+        aria-label="Next day"
       >
-        Next →
+        <ChevronRight className="size-4" />
       </button>
     </div>
   );

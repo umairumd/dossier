@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Check, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,34 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import type { TemplateField } from "@/types/template";
 
-function formatDisplayValue(field: TemplateField, value: unknown): string {
-  switch (field.fieldType) {
-    case "textarea":
-    case "text":
-    case "select":
-      return typeof value === "string" && value.trim()
-        ? value
-        : "None reported";
-    case "number": {
-      if (value === null || value === undefined || value === "") {
-        return "None reported";
-      }
-      const unit = field.unit ? ` ${field.unit}` : "";
-      return `${String(value)}${unit}`;
-    }
-    case "checkbox":
-      return value ? "Yes" : "No";
-    case "url":
-      return typeof value === "string" && value.trim()
-        ? value
-        : "None reported";
-    default:
-      return value === null || value === undefined || value === ""
-        ? "None reported"
-        : String(value);
-  }
+function isEmptyDisplayValue(value: unknown): boolean {
+  return value === null || value === undefined || value === "";
 }
 
 function RequiredStar({ required }: { required: boolean }) {
@@ -48,6 +26,37 @@ function RequiredStar({ required }: { required: boolean }) {
   }
 
   return <span className="ml-1 text-destructive">*</span>;
+}
+
+function DisplayLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      {children}
+    </p>
+  );
+
+}
+
+function DisplayValue({
+  empty,
+  className,
+  children,
+}: {
+  empty?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <p
+      className={cn(
+        "text-sm",
+        empty ? "text-muted-foreground" : "text-foreground",
+        className,
+      )}
+    >
+      {children}
+    </p>
+  );
 }
 
 export function DynamicFieldRenderer({
@@ -69,30 +78,97 @@ export function DynamicFieldRenderer({
         typeof value === "string" && value.trim() ? value.trim() : null;
 
       return (
-        <div>
-          <p className="text-sm font-medium">{field.label}</p>
+        <div className="flex flex-col gap-1">
+          <DisplayLabel>{field.label}</DisplayLabel>
           {href ? (
             <Link
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline break-all text-sm"
+              className="break-all text-sm text-primary hover:underline"
             >
               {href}
             </Link>
           ) : (
-            <p className="text-sm text-muted-foreground">None reported</p>
+            <DisplayValue empty>None reported</DisplayValue>
           )}
         </div>
       );
     }
 
+    if (field.fieldType === "checkbox") {
+      const checked = Boolean(value);
+      return (
+        <div className="flex flex-col gap-1">
+          <DisplayLabel>{field.label}</DisplayLabel>
+          <div className="flex items-center gap-1.5 text-sm">
+            {checked ? (
+              <Check className="size-3.5 text-foreground" aria-hidden />
+            ) : (
+              <X className="size-3.5 text-muted-foreground" aria-hidden />
+            )}
+            <span
+              className={
+                checked ? "text-foreground" : "text-muted-foreground"
+              }
+            >
+              {checked ? "Yes" : "No"}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    if (field.fieldType === "textarea") {
+      const text =
+        typeof value === "string" && value.trim() ? value : null;
+      return (
+        <div className="flex flex-col gap-1">
+          <DisplayLabel>{field.label}</DisplayLabel>
+          {text ? (
+            <DisplayValue className="max-h-48 overflow-y-auto whitespace-pre-wrap break-words">
+              {text}
+            </DisplayValue>
+          ) : (
+            <DisplayValue empty>None reported</DisplayValue>
+          )}
+        </div>
+      );
+    }
+
+    if (field.fieldType === "number") {
+      if (isEmptyDisplayValue(value)) {
+        return (
+          <div className="flex flex-col gap-1">
+            <DisplayLabel>{field.label}</DisplayLabel>
+            <DisplayValue empty>None reported</DisplayValue>
+          </div>
+        );
+      }
+      const unit = field.unit ? ` ${field.unit}` : "";
+      return (
+        <div className="flex flex-col gap-1">
+          <DisplayLabel>{field.label}</DisplayLabel>
+          <DisplayValue>{`${String(value)}${unit}`}</DisplayValue>
+        </div>
+      );
+    }
+
+    const text =
+      typeof value === "string" && value.trim()
+        ? value
+        : !isEmptyDisplayValue(value) && typeof value !== "string"
+          ? String(value)
+          : null;
+
     return (
-      <div>
-        <p className="text-sm font-medium">{field.label}</p>
-        <p className="text-sm text-muted-foreground">
-          {formatDisplayValue(field, value)}
-        </p>
+      <div className="flex flex-col gap-1">
+        <DisplayLabel>{field.label}</DisplayLabel>
+        {text ? (
+          <DisplayValue>{text}</DisplayValue>
+        ) : (
+          <DisplayValue empty>None reported</DisplayValue>
+        )}
       </div>
     );
   }

@@ -14,13 +14,11 @@ export type DeptCompletionRow = {
 
 // A person in multiple departments is counted in each row. Org-level
 // Home stats use distinct profiles instead (see getOrganizationSummary).
-export const getDeptCompletionToday = cache(
-  async (): Promise<DeptCompletionRow[]> => {
+export const getDeptCompletionForDate = cache(
+  async (date: string): Promise<DeptCompletionRow[]> => {
     await requireAdminUser();
 
     const adminClient = createAdminClient();
-    const settings = await getOrganizationSettings();
-    const today = todayInTimezone(settings.timezone);
 
     const [
       { data: departments, error: departmentsError },
@@ -62,7 +60,7 @@ export const getDeptCompletionToday = cache(
       const { data: reports, error: reportsError } = await adminClient
         .from("daily_reports")
         .select("author_id")
-        .eq("report_date", today)
+        .eq("report_date", date)
         .in("author_id", [...eligibleIds]);
 
       if (reportsError) {
@@ -136,5 +134,13 @@ export const getDeptCompletionToday = cache(
     }
 
     return rows;
+  },
+);
+
+export const getDeptCompletionToday = cache(
+  async (): Promise<DeptCompletionRow[]> => {
+    const settings = await getOrganizationSettings();
+    const today = todayInTimezone(settings.timezone);
+    return getDeptCompletionForDate(today);
   },
 );

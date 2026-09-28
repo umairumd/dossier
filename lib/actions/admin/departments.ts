@@ -136,7 +136,7 @@ export async function assignDepartmentManager(
   departmentId: string,
   managerId: string | null,
 ): Promise<DepartmentActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
   const supabase = await createClient();
 
@@ -163,10 +163,12 @@ export async function assignDepartmentManager(
     }
   }
 
-  const { error } = await supabase
+  const { data: dept, error } = await supabase
     .from("departments")
     .update({ manager_id: managerId })
-    .eq("id", departmentId);
+    .eq("id", departmentId)
+    .select("id, name")
+    .single();
 
   if (error) {
     return {
@@ -174,6 +176,27 @@ export async function assignDepartmentManager(
       error:
         "Failed to assign department manager. Please try again.",
     };
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    if (orgId && dept) {
+      void logActivity({
+        orgId,
+        eventType: "department_edited",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        entityType: "department",
+        entityId: dept.id,
+        entityName: dept.name,
+        metadata: {
+          action: managerId ? "manager_assigned" : "manager_unassigned",
+          managerId,
+        },
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log manager assignment:", logError);
   }
 
   revalidateDepartmentPaths(departmentId);
@@ -258,13 +281,13 @@ export async function removeEmployeeFromDepartment(
   employeeId: string,
   departmentId: string,
 ): Promise<DepartmentActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
   const supabase = await createClient();
 
   const { data: department, error: departmentError } = await supabase
     .from("departments")
-    .select("manager_id")
+    .select("manager_id, name")
     .eq("id", departmentId)
     .maybeSingle();
 
@@ -291,6 +314,33 @@ export async function removeEmployeeFromDepartment(
 
   if (error) {
     return { success: false, error: "Failed to remove member." };
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    const adminClient = createAdminClient();
+    const { data: target } = await adminClient
+      .from("profiles")
+      .select("full_name")
+      .eq("id", employeeId)
+      .maybeSingle();
+
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "department_assigned",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        targetId: employeeId,
+        targetName: target?.full_name ?? undefined,
+        entityType: "department",
+        entityId: departmentId,
+        entityName: department.name,
+        metadata: { action: "removed" },
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log department removal:", logError);
   }
 
   revalidateDepartmentPaths(departmentId);
@@ -370,16 +420,36 @@ export async function archiveDepartmentForce(
 export async function restoreDepartment(
   departmentId: string,
 ): Promise<DepartmentActionResult> {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: dept, error } = await supabase
     .from("departments")
     .update({ archived_at: null })
-    .eq("id", departmentId);
+    .eq("id", departmentId)
+    .select("id, name")
+    .single();
 
   if (error) {
     return { success: false, error: "Failed to restore department." };
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(admin.id);
+    if (orgId && dept) {
+      void logActivity({
+        orgId,
+        eventType: "department_edited",
+        actorId: admin.id,
+        actorName: actorName ?? undefined,
+        entityType: "department",
+        entityId: dept.id,
+        entityName: dept.name,
+        metadata: { action: "restored" },
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log department restore:", logError);
   }
 
   revalidateDepartmentPaths(departmentId);
@@ -395,12 +465,12 @@ export async function restoreDepartment(
 export async function permanentlyDeleteDepartment(
   departmentId: string,
 ): Promise<DepartmentActionResult> {
-  await requireOwnerUser();
+  const owner = await requireOwnerUser();
 
   const supabase = await createClient();
   const { data: department, error: fetchError } = await supabase
     .from("departments")
-    .select("archived_at")
+    .select("archived_at, name")
     .eq("id", departmentId)
     .maybeSingle();
 
@@ -413,6 +483,23 @@ export async function permanentlyDeleteDepartment(
       success: false,
       error: "Only archived departments can be permanently deleted.",
     };
+  }
+
+  try {
+    const { orgId, actorName } = await getActorLogContext(owner.id);
+    if (orgId) {
+      void logActivity({
+        orgId,
+        eventType: "department_archived",
+        actorId: owner.id,
+        actorName: actorName ?? undefined,
+        entityType: "department",
+        entityName: department.name,
+        metadata: { action: "permanently_deleted" },
+      });
+    }
+  } catch (logError) {
+    console.error("[activity-log] Failed to log department delete:", logError);
   }
 
   const { error } = await supabase
