@@ -47,36 +47,116 @@ const EVENT_LABELS: Record<
     `${e.actor_name ?? "Admin"} archived ${e.target_name ?? "someone"}`,
   employee_restored: (e) =>
     `${e.actor_name ?? "Admin"} restored ${e.target_name ?? "someone"}`,
-  department_assigned: (e) =>
-    `${e.target_name ?? "Someone"} assigned to ${e.entity_name ?? "a department"}`,
+  department_assigned: (e) => {
+    if (e.metadata?.action === "removed") {
+      return `${e.target_name ?? "Someone"} removed from ${e.entity_name ?? "a department"}`;
+    }
+    return `${e.target_name ?? "Someone"} assigned to ${e.entity_name ?? "a department"}`;
+  },
   supervisor_assigned: (e) =>
-    `${e.entity_name ?? "Someone"} assigned as supervisor for ${e.target_name ?? "someone"}`,
-  template_assigned: (e) =>
-    `${e.entity_name ?? "A"} template assigned to ${e.target_name ?? e.entity_name ?? "someone"}`,
+    `${e.actor_name ?? "Admin"} set ${e.entity_name ?? "someone"} as supervisor for ${e.target_name ?? "someone"}`,
+  template_assigned: (e) => {
+    const departmentName =
+      typeof e.metadata?.departmentName === "string"
+        ? e.metadata.departmentName
+        : null;
+    if (departmentName) {
+      return `${e.entity_name ?? "A"} template assigned to ${departmentName}`;
+    }
+    return `${e.entity_name ?? "A"} template assigned to ${e.target_name ?? e.entity_name ?? "someone"}`;
+  },
   shift_assigned: (e) =>
     `${e.entity_name ?? "A"} shift assigned to ${e.target_name ?? "someone"}`,
-  report_submitted: (e) =>
-    `${e.actor_name ?? "Someone"} submitted a report`,
+  report_submitted: (e) => {
+    const reportDate =
+      typeof e.metadata?.reportDate === "string"
+        ? e.metadata.reportDate
+        : null;
+    const base = `${e.actor_name ?? "Someone"} submitted a report`;
+    return reportDate ? `${base} for ${reportDate}` : base;
+  },
   department_created: (e) =>
     `${e.actor_name ?? "Admin"} created ${e.entity_name ?? "a"} department`,
-  department_edited: (e) =>
-    `${e.actor_name ?? "Admin"} updated ${e.entity_name ?? "a"} department`,
-  department_archived: (e) =>
-    `${e.actor_name ?? "Admin"} archived ${e.entity_name ?? "a"} department`,
-  attendance_recorded: (e) =>
-    `${e.actor_name ?? "Admin"} recorded attendance for ${e.target_name ?? "someone"}`,
-  leave_approved: (e) =>
-    `${e.actor_name ?? "Admin"} approved leave for ${e.target_name ?? "someone"}`,
-  leave_rejected: (e) =>
-    `${e.actor_name ?? "Admin"} rejected leave for ${e.target_name ?? "someone"}`,
-  accrual_run: (e) =>
-    `${e.actor_name ?? "Admin"} ran monthly leave accrual`,
-  org_settings_changed: (e) =>
-    `${e.actor_name ?? "Admin"} updated organization settings`,
+  department_edited: (e) => {
+    const action =
+      typeof e.metadata?.action === "string" ? e.metadata.action : null;
+    if (action === "manager_assigned") {
+      return `${e.actor_name ?? "Admin"} assigned a manager to ${e.entity_name ?? "a"} department`;
+    }
+    if (action === "manager_unassigned") {
+      return `${e.actor_name ?? "Admin"} unassigned the manager from ${e.entity_name ?? "a"} department`;
+    }
+    if (action === "restored") {
+      return `${e.actor_name ?? "Admin"} restored ${e.entity_name ?? "a"} department`;
+    }
+    return `${e.actor_name ?? "Admin"} updated ${e.entity_name ?? "a"} department`;
+  },
+  department_archived: (e) => {
+    if (e.metadata?.action === "permanently_deleted") {
+      return `${e.actor_name ?? "Admin"} permanently deleted ${e.entity_name ?? "a"} department`;
+    }
+    return `${e.actor_name ?? "Admin"} archived ${e.entity_name ?? "a"} department`;
+  },
+  attendance_recorded: (e) => {
+    const date =
+      typeof e.metadata?.date === "string" ? e.metadata.date : null;
+    const status =
+      typeof e.metadata?.status === "string" ? e.metadata.status : null;
+    const target = e.target_name ?? "someone";
+    if (date && status) {
+      return `Attendance recorded for ${target} on ${date} (${status})`;
+    }
+    if (date) {
+      return `Attendance recorded for ${target} on ${date}`;
+    }
+    return `${e.actor_name ?? "Admin"} recorded attendance for ${target}`;
+  },
+  leave_approved: (e) => {
+    const type =
+      typeof e.metadata?.type === "string" ? e.metadata.type : null;
+    const date =
+      typeof e.metadata?.date === "string" ? e.metadata.date : null;
+    const base = `${e.actor_name ?? "Admin"} approved leave for ${e.target_name ?? "someone"}`;
+    if (type && date) return `${base} (${type}, ${date})`;
+    if (date) return `${base} (${date})`;
+    return base;
+  },
+  leave_rejected: (e) => {
+    const type =
+      typeof e.metadata?.type === "string" ? e.metadata.type : null;
+    const date =
+      typeof e.metadata?.date === "string" ? e.metadata.date : null;
+    const base = `${e.actor_name ?? "Admin"} rejected leave for ${e.target_name ?? "someone"}`;
+    if (type && date) return `${base} (${type}, ${date})`;
+    if (date) return `${base} (${date})`;
+    return base;
+  },
+  accrual_run: (e) => {
+    const count = e.metadata?.updatedCount;
+    const base = `${e.actor_name ?? "Admin"} ran monthly leave accrual`;
+    return typeof count === "number"
+      ? `${base} (${count} balances updated)`
+      : base;
+  },
+  org_settings_changed: (e) => {
+    const field =
+      typeof e.metadata?.field === "string" ? e.metadata.field : null;
+    const base = `${e.actor_name ?? "Admin"} updated organization settings`;
+    return field ? `${base} (${field})` : base;
+  },
   template_created: (e) =>
     `${e.actor_name ?? "Admin"} created template ${e.entity_name ?? ""}`.trim(),
-  template_edited: (e) =>
-    `${e.actor_name ?? "Admin"} updated template ${e.entity_name ?? ""}`.trim(),
+  template_edited: (e) => {
+    const action =
+      typeof e.metadata?.action === "string" ? e.metadata.action : null;
+    if (action === "restored") {
+      return `${e.actor_name ?? "Admin"} restored template ${e.entity_name ?? ""}`.trim();
+    }
+    if (action === "deleted") {
+      return `${e.actor_name ?? "Admin"} deleted template ${e.entity_name ?? ""}`.trim();
+    }
+    return `${e.actor_name ?? "Admin"} updated template ${e.entity_name ?? ""}`.trim();
+  },
   template_archived: (e) =>
     `${e.actor_name ?? "Admin"} archived template ${e.entity_name ?? ""}`.trim(),
 };
