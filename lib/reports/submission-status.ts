@@ -1,8 +1,9 @@
-// A proper three-state submission status, replacing the old boolean
-// isLateSubmission() helper that only ever answered "late or not,"
-// leaving "no report yet" bucketed separately by every caller in its own
-// way. Three states, one definition.
-export type SubmissionStatus = "on_time" | "late" | "missed";
+// Four-state submission status. Null submissions are "pending" before the
+// daily deadline and "missed" after — except historical report dates, which
+// are never pending.
+import { todayInTimezone } from "@/lib/helpers/dates";
+
+export type SubmissionStatus = "on_time" | "late" | "missed" | "pending";
 
 export const DEFAULT_REPORT_DEADLINE_HOUR_UTC = 17;
 
@@ -29,13 +30,32 @@ function localHourInTimezone(isoString: string, timezone: string): number {
 // sourced from the organization_settings table. When ctx is provided,
 // lateness is evaluated in the org timezone against the local deadline
 // hour. Otherwise the UTC hour fallback is used.
+//
+// reportDate: when provided and not equal to today in the org timezone
+// (or UTC without ctx), a null submission is always "missed" — never
+// "pending". Prevents past-day gaps from flipping to Pending before
+// today's deadline.
 export function getSubmissionStatus(
   submittedAt: string | null,
   deadlineHourUtc: number = DEFAULT_REPORT_DEADLINE_HOUR_UTC,
   ctx?: DeadlineContext,
+  reportDate?: string,
 ): SubmissionStatus {
   if (!submittedAt) {
-    return "missed";
+    if (reportDate) {
+      const today = ctx
+        ? todayInTimezone(ctx.timezone)
+        : todayInTimezone("UTC");
+      if (reportDate !== today) {
+        return "missed";
+      }
+    }
+
+    const hourNow = ctx
+      ? localHourInTimezone(new Date().toISOString(), ctx.timezone)
+      : new Date().getUTCHours();
+    const deadlineHour = ctx ? ctx.deadlineHourLocal : deadlineHourUtc;
+    return hourNow < deadlineHour ? "pending" : "missed";
   }
 
   if (ctx) {
@@ -52,4 +72,5 @@ export const SUBMISSION_STATUS_LABELS: Record<SubmissionStatus, string> = {
   on_time: "On Time",
   late: "Late",
   missed: "Missed",
+  pending: "Pending",
 };

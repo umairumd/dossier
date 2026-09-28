@@ -11,5 +11,8 @@ export function SubmissionStatusBadge({ status }: { status: SubmissionStatus }) 
   if (status === "late") {
     return <Badge variant="destructive">{SUBMISSION_STATUS_LABELS.late}</Badge>;
   }
+  if (status === "pending") {
+    return <Badge variant="outline">{SUBMISSION_STATUS_LABELS.pending}</Badge>;
+  }
   return <Badge>{SUBMISSION_STATUS_LABELS.on_time}</Badge>;
 }

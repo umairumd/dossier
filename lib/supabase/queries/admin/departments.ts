@@ -190,7 +190,7 @@ export const getDepartmentDetail = cache(
     const { data: memberships, error: membersError } = await supabase
       .from("profile_departments")
       .select(
-        "profiles(id, full_name, designation, is_remote, employment_type, is_active, archived_at, has_onboarded)",
+        "profiles(id, full_name, designation, is_remote, employment_type, is_active, archived_at, has_onboarded, is_reporting)",
       )
       .eq("department_id", departmentId);
 
@@ -207,6 +207,7 @@ export const getDepartmentDetail = cache(
       is_active: boolean;
       archived_at: string | null;
       has_onboarded: boolean;
+      is_reporting: boolean;
     };
 
     const members: DepartmentMember[] = [];
@@ -226,6 +227,7 @@ export const getDepartmentDetail = cache(
         is_remote: profile.is_remote,
         employment_type: profile.employment_type,
         has_onboarded: profile.has_onboarded,
+        is_reporting: profile.is_reporting,
       });
     }
 

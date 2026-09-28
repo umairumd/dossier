@@ -38,16 +38,18 @@ const UNASSIGNED_ID = "__unassigned__";
 const STATUS_RANK: Record<SubmissionStatus, number> = {
   on_time: 0,
   late: 1,
-  missed: 2,
+  pending: 2,
+  missed: 3,
 };
 
 function sortByStatusThenName(
   members: OrgMemberReport[],
   deadline: DeadlineContext,
+  reportDate?: string,
 ): OrgMemberReport[] {
   return [...members].sort((a, b) => {
-    const rankA = STATUS_RANK[getSubmissionStatus(a.report?.submitted_at ?? null, deadline.deadlineHourUtc, deadline)];
-    const rankB = STATUS_RANK[getSubmissionStatus(b.report?.submitted_at ?? null, deadline.deadlineHourUtc, deadline)];
+    const rankA = STATUS_RANK[getSubmissionStatus(a.report?.submitted_at ?? null, deadline.deadlineHourUtc, deadline, reportDate)];
+    const rankB = STATUS_RANK[getSubmissionStatus(b.report?.submitted_at ?? null, deadline.deadlineHourUtc, deadline, reportDate)];
     if (rankA !== rankB) {
       return rankA - rankB;
     }
@@ -71,11 +73,13 @@ export function OrgDailyReports({
   departments,
   deadline,
   templates,
+  reportDate,
 }: {
   members: OrgMemberReport[];
   departments: OrgDepartment[];
   deadline: DeadlineContext;
   templates?: ReportTemplateWithFields[];
+  reportDate?: string;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -97,12 +101,13 @@ export function OrgDailyReports({
             member.report?.submitted_at ?? null,
             deadline.deadlineHourUtc,
             deadline,
+            reportDate,
           ) === statusFilter,
       );
     }
 
-    return sortByStatusThenName(result, deadline);
-  }, [members, query, statusFilter, deadline]);
+    return sortByStatusThenName(result, deadline, reportDate);
+  }, [members, query, statusFilter, deadline, reportDate]);
 
   const sections = useMemo(() => {
     const byDepartment = new Map<string, OrgMemberReport[]>();
@@ -203,6 +208,7 @@ export function OrgDailyReports({
             <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="on_time">{SUBMISSION_STATUS_LABELS.on_time}</SelectItem>
             <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
+            <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
             <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
           </SelectContent>
         </Select>
@@ -247,6 +253,7 @@ export function OrgDailyReports({
                 emptyMessage={emptyMessage}
                 managerId={section.managerId}
                 templates={templates}
+                reportDate={reportDate}
               />
             </CardContent>
           </Card>

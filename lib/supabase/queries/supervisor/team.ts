@@ -89,6 +89,7 @@ export const getSupervisedReportsForDate = cache(
       .select("id, full_name, designation, is_remote, employment_type, avatar_url")
       .in("id", memberIds)
       .eq("has_onboarded", true)
+      .eq("is_reporting", true)
       .is("archived_at", null)
       .order("full_name", { ascending: true });
 

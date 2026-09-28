@@ -40,6 +40,7 @@ export default async function TrackReportsPage({
         departments={departments}
         deadline={getDeadlineContext(settings)}
         templates={templates}
+        reportDate={date}
       />
     </div>
   );

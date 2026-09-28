@@ -49,11 +49,13 @@ type StatusFilter = "all" | SubmissionStatus;
 function memberStatus(
   member: TeamMemberReport,
   deadline: DeadlineContext,
+  reportDate?: string,
 ): SubmissionStatus {
   return getSubmissionStatus(
     member.report?.submitted_at ?? null,
     deadline.deadlineHourUtc,
     deadline,
+    reportDate,
   );
 }
 
@@ -83,6 +85,7 @@ export function TeamReportsView({
   showFilters = true,
   managerId,
   templates,
+  reportDate,
 }: {
   members: TeamMemberReport[];
   deadline: DeadlineContext;
@@ -91,6 +94,7 @@ export function TeamReportsView({
   showFilters?: boolean;
   managerId?: string;
   templates?: ReportTemplateWithFields[];
+  reportDate?: string;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -110,7 +114,7 @@ export function TeamReportsView({
 
       if (statusFilter !== "all") {
         result = result.filter(
-          (member) => memberStatus(member, deadline) === statusFilter,
+          (member) => memberStatus(member, deadline, reportDate) === statusFilter,
         );
       }
 
@@ -126,7 +130,7 @@ export function TeamReportsView({
     }
 
     return result;
-  }, [members, query, statusFilter, deadline, showFilters, managerId]);
+  }, [members, query, statusFilter, deadline, showFilters, managerId, reportDate]);
 
   const submittedMembers = useMemo(
     () =>
@@ -176,6 +180,7 @@ export function TeamReportsView({
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="on_time">{SUBMISSION_STATUS_LABELS.on_time}</SelectItem>
               <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
+              <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
               <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
             </SelectContent>
           </Select>
@@ -212,7 +217,7 @@ export function TeamReportsView({
               </TableHeader>
               <TableBody>
                 {filtered.map((member) => {
-                  const status = memberStatus(member, deadline);
+                  const status = memberStatus(member, deadline, reportDate);
                   const isManager = managerId === member.employeeId;
 
                   return (
@@ -289,7 +294,7 @@ export function TeamReportsView({
 
           <div className="md:hidden divide-y divide-border">
             {filtered.map((member) => {
-              const status = memberStatus(member, deadline);
+              const status = memberStatus(member, deadline, reportDate);
               const isManager = managerId === member.employeeId;
 
               return (

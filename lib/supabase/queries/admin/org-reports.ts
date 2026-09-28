@@ -26,6 +26,7 @@ export const getOrgRosterSize = cache(async (): Promise<number> => {
     .from("profiles")
     .select("id", { count: "exact", head: true })
     .eq("has_onboarded", true)
+    .eq("is_reporting", true)
     .is("archived_at", null)
     .neq("role", "owner");
 
@@ -53,6 +54,7 @@ export const getOrgReportsForDate = cache(
         .from("profiles")
         .select("id, full_name, designation, avatar_url, is_remote, employment_type")
         .eq("has_onboarded", true)
+        .eq("is_reporting", true)
         .eq("is_active", true)
         .is("archived_at", null)
         .neq("role", "owner")

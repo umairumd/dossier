@@ -18,6 +18,7 @@ import { SubmissionStatusBadge } from "@/components/manager/submission-status-ba
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { getSubmissionStatus, type DeadlineContext } from "@/lib/reports/submission-status";
+import { todayInTimezone } from "@/lib/helpers/dates";
 import type { TeamMemberReport } from "@/types/team";
 
 export function TeamTodayRoster({
@@ -55,6 +56,7 @@ export function TeamTodayRoster({
                   member.report?.submitted_at ?? null,
                   deadline.deadlineHourUtc,
                   deadline,
+                  todayInTimezone(deadline.timezone),
                 );
 
                 return (

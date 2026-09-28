@@ -10,6 +10,7 @@ export interface Profile {
   is_supervisor: boolean;
   is_active: boolean;
   has_onboarded: boolean;
+  is_reporting: boolean;
   designation: string | null;
   is_remote: boolean;
   employment_type: "full_time" | "part_time";
