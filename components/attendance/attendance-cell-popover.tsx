@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Clock } from "lucide-react";
+import { Clock, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
   PopoverContent,
@@ -18,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { saveAttendanceRecordAction } from "@/lib/actions/admin/attendance";
+import { saveAttendanceRecordAction, clearAttendanceAction } from "@/lib/actions/admin/attendance";
+import { formatDate } from "@/lib/helpers/dates";
 import {
   ATTENDANCE_STATUS_LABELS,
   ATTENDANCE_STATUS_SHORT,
@@ -49,6 +51,18 @@ const NEEDS_CHECKIN: AttendanceStatus[] = [
   "work_from_home",
 ];
 
+const SHOW_FINE: AttendanceStatus[] = [
+  "late_minor",
+  "late_major",
+  "absent",
+];
+
+const SHOW_LEAVE_DEDUCTION: AttendanceStatus[] = [
+  "leave",
+  "half_leave",
+  "absent",
+];
+
 // Statuses that deduct from leave bank
 const LEAVE_DEDUCTION: Partial<Record<AttendanceStatus, number>> = {
   leave: 1,
@@ -72,13 +86,13 @@ export function cellColorClass(status: AttendanceStatus | null): string {
   if (!status) return "bg-muted/30 text-muted-foreground hover:bg-muted/50";
   switch (status) {
     case "present":
-      return "bg-primary/10 text-primary hover:bg-primary/20";
+      return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25";
     case "late_minor":
       return "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/25";
     case "late_major":
-      return "bg-red-500/15 text-red-600 dark:text-red-400 hover:bg-red-500/25";
+      return "bg-orange-500/20 text-orange-600 dark:text-orange-400 hover:bg-orange-500/30";
     case "work_from_home":
-      return "bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25";
+      return "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/25";
     case "leave":
       return "bg-purple-500/15 text-purple-600 dark:text-purple-400 hover:bg-purple-500/25";
     case "half_leave":
@@ -88,7 +102,7 @@ export function cellColorClass(status: AttendanceStatus | null): string {
     case "weekly_off":
       return "bg-muted/50 text-muted-foreground hover:bg-muted/70";
     case "holiday":
-      return "bg-muted/50 text-muted-foreground hover:bg-muted/70";
+      return "bg-teal-500/15 text-teal-600 dark:text-teal-400 hover:bg-teal-500/25";
   }
 }
 
@@ -125,6 +139,8 @@ export function AttendanceCellPopover({
   const fine = computeFine(status, settings);
   const leaveDeducted = LEAVE_DEDUCTION[status] ?? 0;
   const showCheckIn = NEEDS_CHECKIN.includes(status);
+  const showFine = SHOW_FINE.includes(status);
+  const showLeaveDeduction = SHOW_LEAVE_DEDUCTION.includes(status);
 
   const handleCheckInNow = () => {
     const now = new Date();
@@ -174,7 +190,22 @@ export function AttendanceCellPopover({
     });
   };
 
+  const handleClear = () => {
+    startTransition(async () => {
+      const result = await clearAttendanceAction(profileId, date);
+      if (!result.success) {
+        toast.error(result.error ?? "Failed to clear.");
+        return;
+      }
+      toast.success("Attendance cleared.");
+      setOpen(false);
+    });
+  };
+
   const currentStatus = existingRecord?.status ?? null;
+  const isOffCell =
+    (!existingRecord && isWeeklyOff) ||
+    existingRecord?.status === "weekly_off";
   const shortCode = currentStatus
     ? ATTENDANCE_STATUS_SHORT[currentStatus]
     : "—";
@@ -185,87 +216,121 @@ export function AttendanceCellPopover({
         <button
           type="button"
           className={cn(
-            "flex h-8 w-full items-center justify-center rounded text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            cellColorClass(currentStatus),
+            "flex h-8 w-full items-center justify-center rounded font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            isOffCell
+              ? "bg-muted text-[10px] text-muted-foreground/40"
+              : cn("text-xs", cellColorClass(currentStatus)),
+            existingRecord?.notes && "border border-dashed border-foreground/40",
           )}
         >
-          {shortCode}
+          {isOffCell ? "OFF" : shortCode}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-72" align="center">
+      <PopoverContent className="w-80" align="center">
         <div className="flex flex-col gap-4">
-          <div>
-            <p className="text-sm font-medium">{employeeName}</p>
-            <p className="text-xs text-muted-foreground">{date}</p>
-            {existingRecord?.check_in_time && (
-              <p className="text-xs text-muted-foreground">
-                Checked in: {existingRecord.check_in_time.slice(0, 5)}
-              </p>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-medium">{employeeName}</p>
+              <p className="text-xs text-muted-foreground">{formatDate(date)}</p>
+            </div>
+            {existingRecord && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={handleClear}
+                disabled={isPending}
+                aria-label="Clear attendance"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </Button>
             )}
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-full gap-2"
-            onClick={handleCheckInNow}
-          >
-            <Clock className="size-3.5" />
-            Check In Now
-          </Button>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>Status</Label>
-            <Select
-              value={status}
-              onValueChange={(v) => setStatus(v as AttendanceStatus)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {ATTENDANCE_STATUS_LABELS[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {showCheckIn && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={handleCheckInNow}
+            >
+              <Clock className="size-3.5" />
+              Check In Now
+            </Button>
+          )}
+
+          {showCheckIn ? (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs">Status</Label>
+                <Select
+                  value={status}
+                  onValueChange={(v) => setStatus(v as AttendanceStatus)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {ATTENDANCE_STATUS_LABELS[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="check-in-time" className="text-xs">
+                  Check-in
+                </Label>
+                <Input
+                  id="check-in-time"
+                  type="time"
+                  value={checkInTime}
+                  onChange={(e) => setCheckInTime(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          ) : (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="check-in-time">Check-in Time</Label>
-              <Input
-                id="check-in-time"
-                type="time"
-                value={checkInTime}
-                onChange={(e) => setCheckInTime(e.target.value)}
-                className="w-full"
-              />
+              <Label className="text-xs">Status</Label>
+              <Select
+                value={status}
+                onValueChange={(v) => setStatus(v as AttendanceStatus)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {ATTENDANCE_STATUS_LABELS[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
-          {(fine > 0 || leaveDeducted > 0) && (
-            <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-              {fine > 0 && <p>Fine: PKR {fine}</p>}
-              {leaveDeducted > 0 && (
-                <p>
-                  Leave deducted: {leaveDeducted} day
-                  {leaveDeducted !== 1 ? "s" : ""}
-                </p>
-              )}
+          {(showFine || showLeaveDeduction) && (
+            <div className="grid grid-cols-2 gap-1 rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              {showFine && <p>Fine: PKR {fine}</p>}
+              {showLeaveDeduction && <p>Leave: {leaveDeducted}d</p>}
             </div>
           )}
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="notes">Notes (optional)</Label>
-            <Input
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
               id="notes"
+              rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any notes..."
+              placeholder="Add a note..."
+              className="resize-none text-xs"
             />
           </div>
 

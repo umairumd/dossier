@@ -320,3 +320,110 @@ export async function runMonthlyAccrualAction(): Promise<{
   revalidatePath("/attendance");
   return { success: true, updatedCount };
 }
+
+export async function clearAttendanceAction(
+  employeeId: string,
+  date: string,
+): Promise<AttendanceActionResult> {
+  await requireAdminUser();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("attendance_records")
+    .delete()
+    .eq("profile_id", employeeId)
+    .eq("date", date);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/attendance");
+  return { success: true };
+}
+
+export async function markDayAsHolidayAction(
+  date: string,
+  orgId: string,
+  holidayName: string = "",
+): Promise<{ success: boolean; count: number; error?: string }> {
+  const admin = await requireAdminUser();
+  const adminClient = createAdminClient();
+
+  if (!orgId) {
+    return { success: false, count: 0, error: "Organization not found." };
+  }
+
+  const { data: profiles, error: profilesError } = await adminClient
+    .from("profiles")
+    .select("id")
+    .eq("is_active", true)
+    .is("archived_at", null)
+    .eq("exclude_from_attendance", false);
+
+  if (profilesError) {
+    return { success: false, count: 0, error: profilesError.message };
+  }
+
+  const profileIds = (profiles ?? []).map((profile) => profile.id);
+  if (profileIds.length === 0) {
+    return {
+      success: false,
+      count: 0,
+      error: "No eligible employee profiles found",
+    };
+  }
+
+  const { data: existingRows, error: existingError } = await adminClient
+    .from("attendance_records")
+    .select("profile_id, status")
+    .eq("org_id", orgId)
+    .eq("date", date)
+    .in("profile_id", profileIds);
+
+  if (existingError) {
+    return { success: false, count: 0, error: existingError.message };
+  }
+
+  const skipIds = new Set(
+    (existingRows ?? [])
+      .filter(
+        (row) => row.status === "leave" || row.status === "half_leave",
+      )
+      .map((row) => row.profile_id),
+  );
+
+  const targets = profileIds.filter((id) => !skipIds.has(id));
+  if (targets.length === 0) {
+    revalidatePath("/attendance");
+    return { success: true, count: 0 };
+  }
+
+  const trimmedName = holidayName.trim();
+
+  const { error: upsertError } = await adminClient
+    .from("attendance_records")
+    .upsert(
+      targets.map((profileId) => ({
+        profile_id: profileId,
+        org_id: orgId,
+        date,
+        status: "holiday" as const,
+        check_in_time: null,
+        fine_amount: 0,
+        leave_deducted: 0,
+        source: "manual",
+        recorded_by: admin.id,
+        notes: null,
+        // Requires attendance_records.holiday_name (see migration
+        // 20260929125000_add_holiday_name_to_attendance.sql)
+        holiday_name: trimmedName || null,
+      })),
+      { onConflict: "org_id,profile_id,date" },
+    );
+
+  if (upsertError) {
+    return { success: false, count: 0, error: upsertError.message };
+  }
+
+  revalidatePath("/attendance");
+  return { success: true, count: targets.length };
+}
