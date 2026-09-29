@@ -17,7 +17,12 @@ export function NavLinks({
   const pathname = usePathname();
 
   return (
-    <nav className={cn("flex flex-col", collapsed ? "items-center gap-4" : "gap-4")}>
+    <nav
+      className={cn(
+        "flex flex-col",
+        collapsed ? "items-center gap-6" : "gap-6",
+      )}
+    >
       {sections.map((section) => (
         <div
           key={section.title || "root"}
@@ -27,7 +32,7 @@ export function NavLinks({
           )}
         >
           {section.title && !collapsed && (
-            <span className="label-eyebrow px-2.5 pb-1">
+            <span className="label-eyebrow px-2.5 pb-1 pt-1">
               {section.title}
             </span>
           )}
@@ -46,14 +51,23 @@ export function NavLinks({
                 aria-label={collapsed ? item.label : undefined}
                 onClick={() => onNavigate?.()}
                 className={cn(
-                  "flex items-center font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground",
+                  "group flex items-center font-medium text-muted-foreground transition-all duration-150 hover:translate-x-0.5 hover:bg-muted hover:text-foreground",
                   collapsed
                     ? "h-9 w-9 justify-center rounded-md"
                     : "gap-2 rounded-md px-2.5 py-1.5 text-sm",
-                  isActive && "bg-muted text-foreground",
+                  isActive && "bg-primary/10 text-foreground",
                 )}
               >
-                {item.icon}
+                <span
+                  className={cn(
+                    "transition-colors",
+                    isActive
+                      ? "text-foreground"
+                      : "text-muted-foreground group-hover:text-foreground",
+                  )}
+                >
+                  {item.icon}
+                </span>
                 {!collapsed && item.label}
               </Link>
             );

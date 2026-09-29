@@ -68,7 +68,7 @@ export function Sidebar({
       >
         <div
           className={cn(
-            "flex items-center gap-2",
+            "flex items-center gap-2 pb-4",
             collapsed ? "justify-center" : "px-2.5",
           )}
         >
@@ -91,15 +91,15 @@ export function Sidebar({
 
       <div
         className={cn(
-          "flex flex-col gap-1 border-t border-border",
-          collapsed ? "items-center px-1.5 py-4" : "p-4",
+          "flex flex-col gap-1 border-t border-border pt-3",
+          collapsed ? "items-center px-1.5 pb-4" : "px-4 pb-4",
         )}
       >
         <NavLinks sections={accountSections} collapsed={collapsed} />
 
         {orgName && !collapsed && (
-          <div className="mt-2 flex items-center gap-1.5 px-2.5">
-            <span className="truncate text-xs text-muted-foreground/50">
+          <div className="mt-2 flex items-center px-2.5">
+            <span className="inline-flex max-w-full items-center truncate rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
               {orgName}
             </span>
           </div>
