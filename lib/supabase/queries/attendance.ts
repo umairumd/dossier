@@ -42,6 +42,22 @@ export const getAttendanceSettings = cache(
   },
 );
 
+export async function getMonthAccrualStatus(
+  year: number,
+  month: number,
+): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("leave_accruals")
+    .select("id")
+    .eq("year", year)
+    .eq("month", month)
+    .limit(1)
+    .maybeSingle();
+
+  return data != null;
+}
+
 // ── Shift assignments ─────────────────────────────────────────────
 
 // Get the current active shift for a specific employee

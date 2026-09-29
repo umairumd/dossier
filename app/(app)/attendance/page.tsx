@@ -6,8 +6,8 @@ import {
 } from "@/lib/supabase/queries/organization-settings";
 import {
   getAttendanceSettings,
+  getMonthAccrualStatus,
   getMonthlyAttendance,
-  getPendingLeaveRequests,
   getRemoteAttendanceDates,
   getTeamMonthlyAttendance,
 } from "@/lib/supabase/queries/attendance";
@@ -18,22 +18,7 @@ import { todayInTimezone } from "@/lib/helpers/dates";
 import { MonthNav } from "@/components/attendance/month-nav";
 import { AttendanceGrid } from "@/components/attendance/attendance-grid";
 import { AttendanceLegend } from "@/components/attendance/attendance-legend";
-import { LeaveRequestsList } from "@/components/attendance/leave-requests-list";
 import { RunAccrualButton } from "@/components/attendance/run-accrual-button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import type { AttendanceRecord } from "@/types/attendance";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +26,7 @@ export const dynamic = "force-dynamic";
 export default async function AttendancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; tab?: string }>;
+  searchParams: Promise<{ month?: string }>;
 }) {
   const profile = await getCurrentProfile();
 
@@ -54,7 +39,7 @@ export default async function AttendancePage({
     redirect("/");
   }
 
-  const { month: monthParam, tab } = await searchParams;
+  const { month: monthParam } = await searchParams;
   const settings = await getOrganizationSettings();
   const today = todayInTimezone(settings.timezone);
   const currentMonth = today.slice(0, 7); // "YYYY-MM"
@@ -74,23 +59,26 @@ export default async function AttendancePage({
     designation: string | null;
     department_name: string | null;
     avatar_url: string | null;
+    leave_balance: number;
   }[] = [];
   let records: AttendanceRecord[] = [];
-  let leaveRequests: Awaited<ReturnType<typeof getPendingLeaveRequests>> = [];
   let attendanceSettings: Awaited<ReturnType<typeof getAttendanceSettings>>;
+  let accrualDone = false;
+
+  const [yearNum, monthNum] = month.split("-").map(Number);
 
   if (isOwnerOrAdmin) {
-    const [employees, attSettings, monthlyRecords, pendingLeaves] =
+    const [employees, attSettings, monthlyRecords, monthAccrualDone] =
       await Promise.all([
         getAllEmployees(),
         getAttendanceSettings(),
         getMonthlyAttendance(month),
-        getPendingLeaveRequests(),
+        getMonthAccrualStatus(yearNum, monthNum),
       ]);
 
     attendanceSettings = attSettings;
     records = monthlyRecords;
-    leaveRequests = pendingLeaves;
+    accrualDone = monthAccrualDone;
     activeEmployees = employees
       .filter((emp) => emp.status === "active" || emp.status === "invited")
       .map((emp) => ({
@@ -105,6 +93,7 @@ export default async function AttendancePage({
             ? emp.department_names.join(", ")
             : null,
         avatar_url: emp.avatar_url,
+        leave_balance: emp.leave_balance,
       }));
   } else {
     // Managers see department roster; pure supervisors see supervised members.
@@ -122,6 +111,7 @@ export default async function AttendancePage({
       designation: member.designation,
       department_name: null,
       avatar_url: member.avatar_url,
+      leave_balance: member.leave_balance,
     }));
     records = await getTeamMonthlyAttendance(
       month,
@@ -131,7 +121,7 @@ export default async function AttendancePage({
 
   const onSiteEmployees = activeEmployees.filter((e) => !e.is_remote);
   const remoteEmployees = activeEmployees.filter((e) => e.is_remote);
-  const [yearNum, monthNum] = month.split("-").map(Number);
+  const isCurrentMonth = month === currentMonth;
   const monthStart = `${month}-01`;
   const monthEnd = new Date(yearNum, monthNum, 0).toISOString().slice(0, 10);
   const remoteReportDates = await getRemoteAttendanceDates(
@@ -154,73 +144,26 @@ export default async function AttendancePage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {profile.role === "owner" && <RunAccrualButton />}
+          {isOwnerOrAdmin && isCurrentMonth && (
+            <RunAccrualButton yearMonth={month} accrualDone={accrualDone} />
+          )}
           <MonthNav month={month} baseHref="/attendance" />
         </div>
       </div>
 
-      {isOwnerOrAdmin ? (
-        <Tabs defaultValue={tab ?? "grid"}>
-          <TabsList>
-            <TabsTrigger value="grid">Monthly Grid</TabsTrigger>
-            <TabsTrigger value="leaves" className="gap-2">
-              Leave Requests
-              {leaveRequests.length > 0 && (
-                <Badge variant="secondary" className="px-1.5 py-0 text-xs">
-                  {leaveRequests.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="grid" className="mt-4">
-            <AttendanceGrid
-              onSiteEmployees={onSiteEmployees}
-              remoteEmployees={remoteEmployees}
-              remoteReportDates={remoteReportDates}
-              records={records}
-              yearMonth={month}
-              settings={attendanceSettings}
-              workingDays={settings.workingDays}
-              orgId={orgId}
-              deadline={deadline}
-              profileBasePath={profileBasePath}
-              isReadOnly={isReadOnly}
-            />
-          </TabsContent>
-
-          <TabsContent value="leaves" className="mt-4">
-            <Card className="card-gradient">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">
-                  Pending Leave Requests
-                </CardTitle>
-                <CardDescription>
-                  Requests submitted by employees via email and logged here by
-                  HR.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <LeaveRequestsList requests={leaveRequests} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      ) : (
-        <AttendanceGrid
-          onSiteEmployees={onSiteEmployees}
-          remoteEmployees={remoteEmployees}
-          remoteReportDates={remoteReportDates}
-          records={records}
-          yearMonth={month}
-          settings={attendanceSettings}
-          workingDays={settings.workingDays}
-          orgId={orgId}
-          deadline={deadline}
-          profileBasePath={profileBasePath}
-          isReadOnly
-        />
-      )}
+      <AttendanceGrid
+        onSiteEmployees={onSiteEmployees}
+        remoteEmployees={remoteEmployees}
+        remoteReportDates={remoteReportDates}
+        records={records}
+        yearMonth={month}
+        settings={attendanceSettings}
+        workingDays={settings.workingDays}
+        orgId={orgId}
+        deadline={deadline}
+        profileBasePath={profileBasePath}
+        isReadOnly={isReadOnly}
+      />
     </div>
   );
 }

@@ -13,6 +13,7 @@ export interface TeamRosterMember {
   employment_type: "full_time" | "part_time";
   avatar_url: string | null;
   template_id: string | null;
+  leave_balance: number;
 }
 
 // Deliberately does not filter by department in the query itself — RLS
@@ -34,7 +35,9 @@ export const getTeamRoster = cache(
 
     const { data: employees, error } = await supabase
       .from("profiles")
-      .select("id, full_name, designation, is_remote, employment_type, avatar_url, template_id")
+      .select(
+        "id, full_name, designation, is_remote, employment_type, avatar_url, template_id, leave_balance",
+      )
       .eq("is_active", true)
       .is("archived_at", null)
       .order("full_name", { ascending: true });
@@ -43,7 +46,10 @@ export const getTeamRoster = cache(
       throw new Error("Failed to load department employees.");
     }
 
-    return employees ?? [];
+    return (employees ?? []).map((row) => ({
+      ...row,
+      leave_balance: Number(row.leave_balance ?? 0),
+    }));
   },
 );
 
@@ -64,7 +70,9 @@ export const getTeamReportingRoster = cache(
     // via report-history queries; only the live roster excludes them.
     const { data: employees, error } = await supabase
       .from("profiles")
-      .select("id, full_name, designation, is_remote, employment_type, avatar_url, template_id")
+      .select(
+        "id, full_name, designation, is_remote, employment_type, avatar_url, template_id, leave_balance",
+      )
       .eq("has_onboarded", true)
       .eq("is_reporting", true)
       .is("archived_at", null)
@@ -75,7 +83,10 @@ export const getTeamReportingRoster = cache(
       throw new Error("Failed to load department employees.");
     }
 
-    return employees ?? [];
+    return (employees ?? []).map((row) => ({
+      ...row,
+      leave_balance: Number(row.leave_balance ?? 0),
+    }));
   },
 );
 

@@ -2,10 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createNotification } from "@/lib/actions/notifications";
-import {
-  requireAdminUser,
-  requireOwnerUser,
-} from "@/lib/supabase/require-admin";
+import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { insertLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
@@ -20,6 +17,61 @@ import type { DailyReport } from "@/types/report";
 export interface AttendanceActionResult {
   success: boolean;
   error?: string;
+}
+
+type AttendanceSupabase = Awaited<ReturnType<typeof createClient>>;
+
+async function fetchExistingLeaveDeducted(
+  supabase: AttendanceSupabase,
+  orgId: string,
+  profileId: string,
+  date: string,
+): Promise<number> {
+  const { data } = await supabase
+    .from("attendance_records")
+    .select("leave_deducted")
+    .eq("org_id", orgId)
+    .eq("profile_id", profileId)
+    .eq("date", date)
+    .maybeSingle();
+
+  return data?.leave_deducted != null ? Number(data.leave_deducted) : 0;
+}
+
+async function adjustProfileLeaveBalance(
+  supabase: AttendanceSupabase,
+  profileId: string,
+  delta: number,
+): Promise<AttendanceActionResult> {
+  if (delta === 0) {
+    return { success: true };
+  }
+
+  const { data: profile, error: fetchError } = await supabase
+    .from("profiles")
+    .select("leave_balance")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  if (fetchError) {
+    return { success: false, error: fetchError.message };
+  }
+
+  if (!profile) {
+    return { success: false, error: "Employee profile not found." };
+  }
+
+  const nextBalance = Number(profile.leave_balance) - delta;
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ leave_balance: nextBalance })
+    .eq("id", profileId);
+
+  if (updateError) {
+    return { success: false, error: updateError.message };
+  }
+
+  return { success: true };
 }
 
 export async function assignShiftAction(
@@ -99,6 +151,13 @@ export async function saveAttendanceRecordAction(record: {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
 
+  const oldLeaveDeducted = await fetchExistingLeaveDeducted(
+    supabase,
+    record.orgId,
+    record.profileId,
+    record.date,
+  );
+
   const { error } = await supabase.from("attendance_records").upsert(
     {
       profile_id: record.profileId,
@@ -116,6 +175,15 @@ export async function saveAttendanceRecordAction(record: {
   );
 
   if (error) return { success: false, error: error.message };
+
+  const balanceResult = await adjustProfileLeaveBalance(
+    supabase,
+    record.profileId,
+    record.leaveDeducted - oldLeaveDeducted,
+  );
+  if (!balanceResult.success) {
+    return balanceResult;
+  }
 
   try {
     const { actorName } = await getActorLogContext(admin.id);
@@ -179,19 +247,41 @@ export async function reviewLeaveRequestAction(
   if (action === "approved") {
     const leaveDeducted = req.type === "full_day" ? 1 : 0.5;
 
-    await supabase.from("attendance_records").upsert(
-      {
-        profile_id: req.profile_id,
-        org_id: req.org_id,
-        date: req.date,
-        status: req.type === "full_day" ? "leave" : "half_leave",
-        fine_amount: 0,
-        leave_deducted: leaveDeducted,
-        source: "manual",
-        recorded_by: userData.user?.id ?? null,
-      },
-      { onConflict: "org_id,profile_id,date" },
+    const oldLeaveDeducted = await fetchExistingLeaveDeducted(
+      supabase,
+      req.org_id,
+      req.profile_id,
+      req.date,
     );
+
+    const { error: attendanceError } = await supabase
+      .from("attendance_records")
+      .upsert(
+        {
+          profile_id: req.profile_id,
+          org_id: req.org_id,
+          date: req.date,
+          status: req.type === "full_day" ? "leave" : "half_leave",
+          fine_amount: 0,
+          leave_deducted: leaveDeducted,
+          source: "manual",
+          recorded_by: userData.user?.id ?? null,
+        },
+        { onConflict: "org_id,profile_id,date" },
+      );
+
+    if (attendanceError) {
+      return { success: false, error: attendanceError.message };
+    }
+
+    const balanceResult = await adjustProfileLeaveBalance(
+      supabase,
+      req.profile_id,
+      leaveDeducted - oldLeaveDeducted,
+    );
+    if (!balanceResult.success) {
+      return balanceResult;
+    }
 
     const { data: balance } = await supabase
       .from("leave_balances")
@@ -268,13 +358,94 @@ export async function initLeaveBalanceAction(
   return { success: true };
 }
 
-export async function runMonthlyAccrualAction(): Promise<{
+const ACCRUAL_ALREADY_RUN_ERROR = "Accrual already run for this month";
+
+export async function runMonthlyAccrualAction(
+  year: number,
+  month: number,
+): Promise<{
   success: boolean;
-  updatedCount: number;
+  count: number;
   error?: string;
 }> {
-  const owner = await requireOwnerUser();
+  const admin = await requireAdminUser();
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  if (year < currentYear || (year === currentYear && month < currentMonth)) {
+    return {
+      success: false,
+      count: 0,
+      error: "Cannot run accrual for a past month",
+    };
+  }
+
   const supabase = await createClient();
+  const adminClient = createAdminClient();
+
+  const { count: existingCount, error: guardError } = await supabase
+    .from("leave_accruals")
+    .select("id", { count: "exact", head: true })
+    .eq("year", year)
+    .eq("month", month);
+
+  if (guardError) {
+    return { success: false, count: 0, error: guardError.message };
+  }
+
+  if ((existingCount ?? 0) > 0) {
+    return {
+      success: false,
+      count: 0,
+      error: ACCRUAL_ALREADY_RUN_ERROR,
+    };
+  }
+
+  const { data: eligible, error: profilesError } = await adminClient
+    .from("profiles")
+    .select("id, leave_balance")
+    .eq("is_active", true)
+    .is("archived_at", null)
+    .eq("exclude_from_attendance", false);
+
+  if (profilesError) {
+    return { success: false, count: 0, error: profilesError.message };
+  }
+
+  const profiles = eligible ?? [];
+  const creditedProfileIds: string[] = [];
+
+  for (const profile of profiles) {
+    const { error: updateError } = await adminClient
+      .from("profiles")
+      .update({ leave_balance: Number(profile.leave_balance) + 2 })
+      .eq("id", profile.id);
+
+    if (!updateError) {
+      creditedProfileIds.push(profile.id);
+    }
+  }
+
+  const count = creditedProfileIds.length;
+
+  if (creditedProfileIds.length > 0) {
+    const accrualRows = creditedProfileIds.map((profileId) => ({
+      profile_id: profileId,
+      year,
+      month,
+      credited: 2,
+    }));
+
+    const { error: insertError } = await adminClient
+      .from("leave_accruals")
+      .insert(accrualRows);
+
+    if (insertError) {
+      return { success: false, count: 0, error: insertError.message };
+    }
+  }
 
   const { data: balances, error: fetchError } = await supabase
     .from("leave_balances")
@@ -282,10 +453,8 @@ export async function runMonthlyAccrualAction(): Promise<{
     .eq("status", "active");
 
   if (fetchError) {
-    return { success: false, updatedCount: 0, error: fetchError.message };
+    return { success: false, count: 0, error: fetchError.message };
   }
-
-  let updatedCount = 0;
 
   for (const balance of balances ?? []) {
     const nextAccrued = Math.min(Number(balance.total_accrued) + 2, 24);
@@ -293,26 +462,22 @@ export async function runMonthlyAccrualAction(): Promise<{
       continue;
     }
 
-    const { error } = await supabase
+    await supabase
       .from("leave_balances")
       .update({ total_accrued: nextAccrued })
       .eq("id", balance.id);
-
-    if (!error) {
-      updatedCount += 1;
-    }
   }
 
   try {
-    const { orgId, actorName } = await getActorLogContext(owner.id);
+    const { orgId, actorName } = await getActorLogContext(admin.id);
     if (orgId) {
       void logActivity({
         orgId,
         eventType: "accrual_run",
-        actorId: owner.id,
+        actorId: admin.id,
         actorName: actorName ?? undefined,
         entityType: "leave_balance",
-        metadata: { updatedCount },
+        metadata: { count, year, month },
       });
     }
   } catch (logError) {
@@ -320,7 +485,7 @@ export async function runMonthlyAccrualAction(): Promise<{
   }
 
   revalidatePath("/attendance");
-  return { success: true, updatedCount };
+  return { success: true, count };
 }
 
 export async function clearAttendanceAction(
@@ -330,6 +495,20 @@ export async function clearAttendanceAction(
   await requireAdminUser();
   const supabase = await createClient();
 
+  const { data: existing, error: fetchError } = await supabase
+    .from("attendance_records")
+    .select("leave_deducted")
+    .eq("profile_id", employeeId)
+    .eq("date", date)
+    .maybeSingle();
+
+  if (fetchError) {
+    return { success: false, error: fetchError.message };
+  }
+
+  const oldLeaveDeducted =
+    existing?.leave_deducted != null ? Number(existing.leave_deducted) : 0;
+
   const { error } = await supabase
     .from("attendance_records")
     .delete()
@@ -337,6 +516,17 @@ export async function clearAttendanceAction(
     .eq("date", date);
 
   if (error) return { success: false, error: error.message };
+
+  if (oldLeaveDeducted > 0) {
+    const balanceResult = await adjustProfileLeaveBalance(
+      supabase,
+      employeeId,
+      -oldLeaveDeducted,
+    );
+    if (!balanceResult.success) {
+      return balanceResult;
+    }
+  }
 
   revalidatePath("/attendance");
   return { success: true };
