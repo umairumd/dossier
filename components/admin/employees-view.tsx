@@ -64,7 +64,12 @@ export function EmployeesView({
           templates={templates}
         />
       ) : (
-        <OrgChart roots={roots} unsupervised={unsupervised} />
+        <OrgChart
+          roots={roots}
+          unsupervised={unsupervised}
+          employees={employees}
+          departments={departments}
+        />
       )}
     </div>
   );
