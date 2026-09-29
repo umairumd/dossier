@@ -52,6 +52,9 @@ export function EditEmployeeDialog({
   const [excludeFromAttendance, setExcludeFromAttendance] = useState(
     employee.exclude_from_attendance ?? false,
   );
+  const [excludeFromReporting, setExcludeFromReporting] = useState(
+    !(employee.is_reporting ?? true),
+  );
   const [dateOfBirth, setDateOfBirth] = useState(
     employee.date_of_birth ?? "",
   );
@@ -67,6 +70,7 @@ export function EditEmployeeDialog({
       setDesignation(employee.designation ?? "");
       setIsRemote(employee.is_remote ?? false);
       setExcludeFromAttendance(employee.exclude_from_attendance ?? false);
+      setExcludeFromReporting(!(employee.is_reporting ?? true));
       setDateOfBirth(employee.date_of_birth ?? "");
       setFieldErrors({});
     }
@@ -82,6 +86,7 @@ export function EditEmployeeDialog({
       designation,
       isRemote,
       excludeFromAttendance,
+      isReporting: !excludeFromReporting,
       dateOfBirth: dateOfBirth.trim() || null,
     };
     const validation = validateEditEmployeeInput(input);
@@ -121,6 +126,49 @@ export function EditEmployeeDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <DialogBody>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={`edit-name-${employee.id}`}>Full name</Label>
+                <Input
+                  id={`edit-name-${employee.id}`}
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  aria-invalid={!!fieldErrors.fullName}
+                />
+                {fieldErrors.fullName && (
+                  <p className="text-sm text-destructive">
+                    {fieldErrors.fullName}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label>Role</Label>
+                <Select
+                  value={role}
+                  onValueChange={(value) => setRole(value as UserRole)}
+                  disabled={isSelf}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employee.role === "owner" && (
+                      <SelectItem value="owner">Owner</SelectItem>
+                    )}
+                    <SelectItem value="member">Member</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+                {isSelf && (
+                  <p className="text-xs text-muted-foreground">
+                    You cannot change your own role.
+                  </p>
+                )}
+              </div>
+            </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`edit-email-${employee.id}`}>Email</Label>
               <Input
@@ -135,76 +183,37 @@ export function EditEmployeeDialog({
               )}
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`edit-name-${employee.id}`}>Full name</Label>
-              <Input
-                id={`edit-name-${employee.id}`}
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                aria-invalid={!!fieldErrors.fullName}
-              />
-              {fieldErrors.fullName && (
-                <p className="text-sm text-destructive">
-                  {fieldErrors.fullName}
-                </p>
-              )}
-            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={`edit-designation-${employee.id}`}>
+                  Designation
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </Label>
+                <Input
+                  id={`edit-designation-${employee.id}`}
+                  placeholder="e.g. Graphic Designer"
+                  value={designation}
+                  onChange={(event) => setDesignation(event.target.value)}
+                />
+              </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label>Role</Label>
-              <Select
-                value={role}
-                onValueChange={(value) => setRole(value as UserRole)}
-                disabled={isSelf}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {employee.role === "owner" && (
-                    <SelectItem value="owner">Owner</SelectItem>
-                  )}
-                  <SelectItem value="member">Member</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-              {isSelf && (
-                <p className="text-xs text-muted-foreground">
-                  You cannot change your own role.
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`edit-designation-${employee.id}`}>
-                Designation
-                <span className="ml-1 text-xs font-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </Label>
-              <Input
-                id={`edit-designation-${employee.id}`}
-                placeholder="e.g. Graphic Designer"
-                value={designation}
-                onChange={(event) => setDesignation(event.target.value)}
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`edit-dob-${employee.id}`}>
-                Date of Birth
-                <span className="ml-1 text-xs font-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </Label>
-              <Input
-                id={`edit-dob-${employee.id}`}
-                type="date"
-                value={dateOfBirth}
-                onChange={(event) => setDateOfBirth(event.target.value)}
-                max={new Date().toISOString().slice(0, 10)}
-              />
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={`edit-dob-${employee.id}`}>
+                  Date of Birth
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </Label>
+                <Input
+                  id={`edit-dob-${employee.id}`}
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(event) => setDateOfBirth(event.target.value)}
+                  max={new Date().toISOString().slice(0, 10)}
+                />
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -242,10 +251,26 @@ export function EditEmployeeDialog({
               </p>
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              Use Activate/Deactivate or Archive/Restore from the actions menu
-              to change account access.
-            </p>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id={`edit_exclude_reporting-${employee.id}`}
+                  checked={excludeFromReporting}
+                  onCheckedChange={(value) =>
+                    setExcludeFromReporting(!!value)
+                  }
+                />
+                <Label
+                  htmlFor={`edit_exclude_reporting-${employee.id}`}
+                  className="font-normal"
+                >
+                  Exclude from reporting
+                </Label>
+              </div>
+              <p className="pl-6 text-xs text-muted-foreground">
+                This employee will not be tracked for daily report submissions
+              </p>
+            </div>
           </DialogBody>
           <DialogFooter>
             <Button

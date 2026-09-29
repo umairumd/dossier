@@ -23,6 +23,7 @@ export interface EditEmployeeInput {
   isRemote?: boolean;
   dateOfBirth?: string | null;
   excludeFromAttendance?: boolean;
+  isReporting?: boolean;
 }
 
 export interface EmployeeFieldErrors {
@@ -125,6 +126,7 @@ export type EditEmployeeValidationResult =
         isRemote: boolean;
         dateOfBirth: string | null;
         excludeFromAttendance: boolean;
+        isReporting: boolean;
       };
     }
   | { valid: false; fieldErrors: EmployeeFieldErrors };
@@ -158,6 +160,7 @@ export function validateEditEmployeeInput(
       isRemote: input.isRemote ?? false,
       dateOfBirth: input.dateOfBirth?.trim() || null,
       excludeFromAttendance: input.excludeFromAttendance ?? false,
+      isReporting: input.isReporting ?? true,
     },
   };
 }

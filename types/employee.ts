@@ -35,6 +35,7 @@ export interface EmployeeListItem {
   template_id: string | null;
   date_of_birth: string | null;
   exclude_from_attendance: boolean;
+  is_reporting: boolean;
   leave_balance: number;
   created_at: string;
 }

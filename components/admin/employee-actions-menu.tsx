@@ -9,6 +9,7 @@ import {
   FileStack,
   MoreHorizontal,
   Pencil,
+  Settings2,
   Trash2,
   UserCheck,
   UserX,
@@ -72,6 +73,7 @@ interface EmployeeActionsMenuProps {
   currentTemplateSource: "individual" | "department" | "default";
   currentTemplateSourceName: string | null;
   hideAssignments?: boolean;
+  separateEditButton?: boolean;
 }
 
 export function EmployeeActionsMenu({
@@ -84,6 +86,7 @@ export function EmployeeActionsMenu({
   currentTemplateSource,
   currentTemplateSourceName,
   hideAssignments = false,
+  separateEditButton = false,
 }: EmployeeActionsMenuProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -174,92 +177,111 @@ export function EmployeeActionsMenu({
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <MoreHorizontal className="size-4" />
-            <span className="sr-only">Actions</span>
+      <div className="flex items-center gap-1">
+        {separateEditButton && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setEditOpen(true)}
+            aria-label="Edit employee"
+          >
+            <Settings2 className="size-4" />
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onSelect={() => setEditOpen(true)}>
-            <Pencil className="size-4" />
-            Edit
-          </DropdownMenuItem>
-
-          {showAssignments && <DropdownMenuSeparator />}
-
-          {showAssignments && (
-            <>
-              <DropdownMenuItem onSelect={() => setAssignDeptOpen(true)}>
-                <Building2 className="size-4" />
-                Edit Departments
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="size-4" />
+              <span className="sr-only">Actions</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {!separateEditButton && (
+              <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                <Pencil className="size-4" />
+                Edit
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setAssignSupervisorsOpen(true)}>
-                <UserCheck className="size-4" />
-                Edit Supervisor
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setAssignTemplateOpen(true)}>
-                <FileStack className="size-4" />
-                Edit Report Template
-              </DropdownMenuItem>
-            </>
-          )}
+            )}
 
-          <DropdownMenuSeparator />
+            {showAssignments && !separateEditButton && (
+              <DropdownMenuSeparator />
+            )}
 
-          {!isArchived && (
-            <>
-              {employee.is_active ? (
-                !isOtherOwner && (
+            {showAssignments && (
+              <>
+                <DropdownMenuItem onSelect={() => setAssignDeptOpen(true)}>
+                  <Building2 className="size-4" />
+                  Edit Departments
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setAssignSupervisorsOpen(true)}>
+                  <UserCheck className="size-4" />
+                  Edit Supervisor
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setAssignTemplateOpen(true)}>
+                  <FileStack className="size-4" />
+                  Edit Report Template
+                </DropdownMenuItem>
+              </>
+            )}
+
+            {(showAssignments || !separateEditButton) && (
+              <DropdownMenuSeparator />
+            )}
+
+            {!isArchived && (
+              <>
+                {employee.is_active ? (
+                  !isOtherOwner && (
+                    <DropdownMenuItem
+                      onSelect={() => setDialogAction("deactivate")}
+                      disabled={isSelf}
+                    >
+                      <UserX className="size-4" />
+                      Deactivate
+                    </DropdownMenuItem>
+                  )
+                ) : (
+                  <DropdownMenuItem onSelect={() => setDialogAction("activate")}>
+                    <UserCheck className="size-4" />
+                    Activate
+                  </DropdownMenuItem>
+                )}
+
+                {!isOtherOwner && (
                   <DropdownMenuItem
-                    onSelect={() => setDialogAction("deactivate")}
+                    onSelect={() => setDialogAction("archive")}
                     disabled={isSelf}
                   >
-                    <UserX className="size-4" />
-                    Deactivate
+                    <Archive className="size-4" />
+                    Archive
                   </DropdownMenuItem>
-                )
-              ) : (
-                <DropdownMenuItem onSelect={() => setDialogAction("activate")}>
-                  <UserCheck className="size-4" />
-                  Activate
-                </DropdownMenuItem>
-              )}
+                )}
+              </>
+            )}
 
-              {!isOtherOwner && (
+            {isArchived && (
+              <>
+                <DropdownMenuItem onSelect={() => setDialogAction("restore")}>
+                  <ArchiveRestore className="size-4" />
+                  Restore
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
                 <DropdownMenuItem
-                  onSelect={() => setDialogAction("archive")}
+                  onSelect={() => setDialogAction("delete")}
+                  className="text-destructive focus:text-destructive"
                   disabled={isSelf}
                 >
-                  <Archive className="size-4" />
-                  Archive
+                  <Trash2 className="size-4" />
+                  Delete Permanently
                 </DropdownMenuItem>
-              )}
-            </>
-          )}
-
-          {isArchived && (
-            <>
-              <DropdownMenuItem onSelect={() => setDialogAction("restore")}>
-                <ArchiveRestore className="size-4" />
-                Restore
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                onSelect={() => setDialogAction("delete")}
-                className="text-destructive focus:text-destructive"
-                disabled={isSelf}
-              >
-                <Trash2 className="size-4" />
-                Delete Permanently
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       <EditEmployeeDialog
         employee={employee}
