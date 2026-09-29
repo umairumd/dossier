@@ -96,6 +96,26 @@ export async function searchReports(query: string): Promise<DailyReport[]> {
   return (data as DailyReport[]) ?? [];
 }
 
+export async function getReportByAuthorAndDate(
+  authorId: string,
+  date: string,
+): Promise<DailyReport | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("daily_reports")
+    .select(REPORT_SELECT)
+    .eq("author_id", authorId)
+    .eq("report_date", date)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Failed to load report.");
+  }
+
+  return (data as DailyReport) ?? null;
+}
+
 export const getReportStatsData = cache(async () => {
   const supabase = await createClient();
 

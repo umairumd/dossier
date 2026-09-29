@@ -1,10 +1,14 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import {
+  getDeadlineContext,
+  getOrganizationSettings,
+} from "@/lib/supabase/queries/organization-settings";
 import {
   getAttendanceSettings,
   getMonthlyAttendance,
   getPendingLeaveRequests,
+  getRemoteAttendanceDates,
   getTeamMonthlyAttendance,
 } from "@/lib/supabase/queries/attendance";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
@@ -32,6 +36,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { AttendanceRecord } from "@/types/attendance";
 
+export const dynamic = "force-dynamic";
+
 export default async function AttendancePage({
   searchParams,
 }: {
@@ -56,6 +62,8 @@ export default async function AttendancePage({
 
   const isReadOnly = !isOwnerOrAdmin;
   const orgId = profile.organization_id ?? "";
+  const deadline = getDeadlineContext(settings);
+  const profileBasePath = isReadOnly ? "/manager/employees" : "/employees";
 
   let activeEmployees: {
     id: string;
@@ -63,6 +71,9 @@ export default async function AttendancePage({
     org_id: string;
     is_remote: boolean;
     employment_type: "full_time" | "part_time";
+    designation: string | null;
+    department_name: string | null;
+    avatar_url: string | null;
   }[] = [];
   let records: AttendanceRecord[] = [];
   let leaveRequests: Awaited<ReturnType<typeof getPendingLeaveRequests>> = [];
@@ -88,6 +99,12 @@ export default async function AttendancePage({
         org_id: emp.organization_id ?? orgId,
         is_remote: emp.is_remote,
         employment_type: emp.employment_type,
+        designation: emp.designation,
+        department_name:
+          emp.department_names.length > 0
+            ? emp.department_names.join(", ")
+            : null,
+        avatar_url: emp.avatar_url,
       }));
   } else {
     // Managers see department roster; pure supervisors see supervised members.
@@ -102,12 +119,26 @@ export default async function AttendancePage({
       org_id: orgId,
       is_remote: member.is_remote,
       employment_type: member.employment_type,
+      designation: member.designation,
+      department_name: null,
+      avatar_url: member.avatar_url,
     }));
     records = await getTeamMonthlyAttendance(
       month,
       activeEmployees.map((emp) => emp.id),
     );
   }
+
+  const onSiteEmployees = activeEmployees.filter((e) => !e.is_remote);
+  const remoteEmployees = activeEmployees.filter((e) => e.is_remote);
+  const [yearNum, monthNum] = month.split("-").map(Number);
+  const monthStart = `${month}-01`;
+  const monthEnd = new Date(yearNum, monthNum, 0).toISOString().slice(0, 10);
+  const remoteReportDates = await getRemoteAttendanceDates(
+    remoteEmployees.map((e) => e.id),
+    monthStart,
+    monthEnd,
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -144,12 +175,16 @@ export default async function AttendancePage({
 
           <TabsContent value="grid" className="mt-4">
             <AttendanceGrid
-              employees={activeEmployees}
+              onSiteEmployees={onSiteEmployees}
+              remoteEmployees={remoteEmployees}
+              remoteReportDates={remoteReportDates}
               records={records}
               yearMonth={month}
               settings={attendanceSettings}
               workingDays={settings.workingDays}
               orgId={orgId}
+              deadline={deadline}
+              profileBasePath={profileBasePath}
               isReadOnly={isReadOnly}
             />
           </TabsContent>
@@ -173,12 +208,16 @@ export default async function AttendancePage({
         </Tabs>
       ) : (
         <AttendanceGrid
-          employees={activeEmployees}
+          onSiteEmployees={onSiteEmployees}
+          remoteEmployees={remoteEmployees}
+          remoteReportDates={remoteReportDates}
           records={records}
           yearMonth={month}
           settings={attendanceSettings}
           workingDays={settings.workingDays}
           orgId={orgId}
+          deadline={deadline}
+          profileBasePath={profileBasePath}
           isReadOnly
         />
       )}

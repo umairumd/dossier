@@ -175,6 +175,33 @@ export const getTeamMonthlyAttendance = cache(
   },
 );
 
+// Submitted daily reports for remote employees in a month (keys: "authorId_YYYY-MM-DD")
+export async function getRemoteAttendanceDates(
+  employeeIds: string[],
+  monthStart: string,
+  monthEnd: string,
+): Promise<string[]> {
+  if (employeeIds.length === 0) {
+    return [];
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("daily_reports")
+    .select("author_id, report_date")
+    .in("author_id", employeeIds)
+    .gte("report_date", monthStart)
+    .lte("report_date", monthEnd);
+
+  if (error) {
+    throw new Error("Failed to load remote attendance dates.");
+  }
+
+  return (data ?? []).map(
+    (row) => `${row.author_id}_${row.report_date}`,
+  );
+}
+
 // Get attendance records for a single employee
 export const getEmployeeAttendance = cache(
   async (profileId: string, yearMonth: string): Promise<AttendanceRecord[]> => {
