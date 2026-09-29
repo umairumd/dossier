@@ -2,8 +2,14 @@ import { getReportHistory, getReportStatsData, getTodayReport } from "@/lib/supa
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
+import { createClient } from "@/lib/supabase/server";
+import { dateNDaysAgo } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
-import { computeReportStats } from "@/lib/helpers/report-stats";
+import {
+  buildAttendanceStatusMap,
+  computeReportStats,
+} from "@/lib/helpers/report-stats";
+import type { AttendanceStatus } from "@/types/attendance";
 import { ActivityStrip } from "@/components/dashboard/activity-strip";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { ReportBanner } from "@/components/shared/report-banner";
@@ -16,7 +22,8 @@ export async function EmployeeDashboard({
 }: {
   profile: ProfileWithDepartment;
 }) {
-  const [todayReport, preview, statsRows, settings, template, templates] =
+  const supabase = await createClient();
+  const [todayReport, preview, statsRows, settings, template, templates, attendanceResult] =
     await Promise.all([
       getTodayReport(),
       getReportHistory(1, RECENT_PREVIEW_SIZE),
@@ -24,8 +31,20 @@ export async function EmployeeDashboard({
       getOrganizationSettings(),
       resolveTemplate(profile.id, profile.department_ids),
       getOrgTemplatesWithFields(),
+      supabase
+        .from("attendance_records")
+        .select("date, status")
+        .eq("profile_id", profile.id)
+        .gte("date", dateNDaysAgo(399)),
     ]);
-  const stats = computeReportStats(statsRows, settings.timezone);
+
+  const stats = computeReportStats(statsRows, settings.timezone, {
+    workingDays: settings.workingDays,
+    attendanceByDate: buildAttendanceStatusMap(
+      (attendanceResult.data as { date: string; status: AttendanceStatus }[]) ??
+        [],
+    ),
+  });
   const deadline = getDeadlineContext(settings);
   const submittedToday = !!todayReport;
   const streak = stats.currentStreak;

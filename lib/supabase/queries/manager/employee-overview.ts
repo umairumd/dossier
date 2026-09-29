@@ -1,7 +1,12 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { computeReportStats } from "@/lib/helpers/report-stats";
+import {
+  buildAttendanceStatusMap,
+  computeReportStats,
+} from "@/lib/helpers/report-stats";
+import { dateNDaysAgo } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import type { AttendanceStatus } from "@/types/attendance";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberOverview } from "@/types/team-member-overview";
 
@@ -75,7 +80,19 @@ export const getTeamMemberOverview = cache(
 
     const allReports = (reports as DailyReport[]) ?? [];
     const settings = await getOrganizationSettings();
-    const stats = computeReportStats(allReports, settings.timezone);
+
+    const { data: attendanceRows } = await supabase
+      .from("attendance_records")
+      .select("date, status")
+      .eq("profile_id", employeeId)
+      .gte("date", dateNDaysAgo(399));
+
+    const stats = computeReportStats(allReports, settings.timezone, {
+      workingDays: settings.workingDays,
+      attendanceByDate: buildAttendanceStatusMap(
+        (attendanceRows as { date: string; status: AttendanceStatus }[]) ?? [],
+      ),
+    });
     const profileRow = profile as unknown as ProfileRow;
 
     return {

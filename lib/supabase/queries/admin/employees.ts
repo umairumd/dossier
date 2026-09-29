@@ -2,8 +2,13 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
-import { computeReportStats } from "@/lib/helpers/report-stats";
+import {
+  buildAttendanceStatusMap,
+  computeReportStats,
+} from "@/lib/helpers/report-stats";
+import { dateNDaysAgo } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import type { AttendanceStatus } from "@/types/attendance";
 import type { DailyReport } from "@/types/report";
 import type {
   EmployeeDetail,
@@ -27,6 +32,7 @@ interface ProfileRow {
   date_of_birth: string | null;
   has_onboarded: boolean | null;
   exclude_from_attendance: boolean;
+  is_reporting: boolean;
   leave_balance: number;
 }
 
@@ -122,6 +128,7 @@ function toEmployeeListItem(
     template_id: profile.template_id,
     date_of_birth: profile.date_of_birth,
     exclude_from_attendance: profile.exclude_from_attendance,
+    is_reporting: profile.is_reporting ?? true,
     leave_balance: Number(profile.leave_balance ?? 0),
     created_at: profile.created_at,
   };
@@ -189,7 +196,7 @@ async function attachMemberships(
 }
 
 const PROFILE_SELECT =
-  "id, full_name, role, organization_id, is_active, archived_at, created_at, designation, is_remote, employment_type, avatar_url, template_id, date_of_birth, has_onboarded, exclude_from_attendance, leave_balance";
+  "id, full_name, role, organization_id, is_active, archived_at, created_at, designation, is_remote, employment_type, avatar_url, template_id, date_of_birth, has_onboarded, exclude_from_attendance, is_reporting, leave_balance";
 
 // requireAdminUser() runs first specifically because this function is the
 // reason the service-role client exists in a read path (email/status come
@@ -313,6 +320,12 @@ export const getEmployeeDetail = cache(
     const allReports = (reports as DailyReport[]) ?? [];
     const settings = await getOrganizationSettings();
 
+    const { data: attendanceRows } = await supabase
+      .from("attendance_records")
+      .select("date, status")
+      .eq("profile_id", employeeId)
+      .gte("date", dateNDaysAgo(399));
+
     const [item] = await attachMemberships(supabase, [
       toEmployeeListItem(profile as unknown as ProfileRow, authUser),
     ]);
@@ -321,7 +334,13 @@ export const getEmployeeDetail = cache(
       ...item,
       report_count: allReports.length,
       recent_reports: allReports,
-      stats: computeReportStats(allReports, settings.timezone),
+      stats: computeReportStats(allReports, settings.timezone, {
+        workingDays: settings.workingDays,
+        attendanceByDate: buildAttendanceStatusMap(
+          (attendanceRows as { date: string; status: AttendanceStatus }[]) ??
+            [],
+        ),
+      }),
     };
   },
 );

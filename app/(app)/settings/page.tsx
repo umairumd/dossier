@@ -5,10 +5,15 @@ import {
 } from "@/lib/supabase/queries/profile";
 import { getReportStatsData } from "@/lib/supabase/queries/reports";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/actions/auth";
-import { formatDate } from "@/lib/helpers/dates";
-import { computeReportStats } from "@/lib/helpers/report-stats";
+import { dateNDaysAgo, formatDate } from "@/lib/helpers/dates";
+import {
+  buildAttendanceStatusMap,
+  computeReportStats,
+} from "@/lib/helpers/report-stats";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
+import type { AttendanceStatus } from "@/types/attendance";
 import { StatCard } from "@/components/analytics/stat-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,18 +29,37 @@ import { ProfileForm } from "@/components/settings/profile-form";
 import { ProfileHeader } from "@/components/shared/profile-header";
 
 export default async function SettingsPage() {
-  const [profile, email, statsRows, settings] = await Promise.all([
-    getCurrentProfileWithDepartment(),
-    getCurrentUserEmail(),
-    getReportStatsData(),
-    getOrganizationSettings(),
-  ]);
+  const supabase = await createClient();
+  const [profile, email, statsRows, settings, attendanceResult] =
+    await Promise.all([
+      getCurrentProfileWithDepartment(),
+      getCurrentUserEmail(),
+      getReportStatsData(),
+      getOrganizationSettings(),
+      (async () => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return { data: [] };
+        return supabase
+          .from("attendance_records")
+          .select("date, status")
+          .eq("profile_id", user.id)
+          .gte("date", dateNDaysAgo(399));
+      })(),
+    ]);
 
   if (!profile) {
     return null;
   }
 
-  const stats = computeReportStats(statsRows, settings.timezone);
+  const stats = computeReportStats(statsRows, settings.timezone, {
+    workingDays: settings.workingDays,
+    attendanceByDate: buildAttendanceStatusMap(
+      (attendanceResult.data as { date: string; status: AttendanceStatus }[]) ??
+        [],
+    ),
+  });
 
   return (
     <div className="flex flex-col gap-6">

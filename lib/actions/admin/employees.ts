@@ -293,6 +293,7 @@ export async function updateEmployee(
       is_remote: validation.value.isRemote,
       date_of_birth: validation.value.dateOfBirth,
       exclude_from_attendance: validation.value.excludeFromAttendance,
+      is_reporting: validation.value.isReporting,
     })
     .eq("id", input.id);
 

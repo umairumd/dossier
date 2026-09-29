@@ -1,6 +1,9 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { computeReportStats, type ReportStatsInput } from "@/lib/helpers/report-stats";
+import {
+  computeReportStats,
+  type ReportStatsInput,
+} from "@/lib/helpers/report-stats";
 import { dateNDaysAgo } from "@/lib/helpers/dates";
 import {
   buildCompletionTrend,
@@ -9,6 +12,7 @@ import {
 import { getTeamReportingRoster } from "@/lib/supabase/queries/manager/team";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { getTeamActivityLog } from "@/lib/supabase/queries/admin/activity";
+import type { AttendanceStatus } from "@/types/attendance";
 import type { TeamInsights, TeamMemberStanding } from "@/types/team-insights";
 
 const TREND_DAYS = 7;
@@ -43,12 +47,21 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
 
   const [
     { data: reports, error },
+    { data: attendanceRows },
     recentActivity,
   ] = await Promise.all([
     supabase
       .from("daily_reports")
       .select("id, author_id, report_date, submitted_at")
       .gte("report_date", dateNDaysAgo(INSIGHTS_WINDOW_DAYS - 1)),
+    supabase
+      .from("attendance_records")
+      .select("profile_id, date, status")
+      .in(
+        "profile_id",
+        roster.map((member) => member.id),
+      )
+      .gte("date", dateNDaysAgo(INSIGHTS_WINDOW_DAYS - 1)),
     getTeamActivityLog(RECENT_ACTIVITY_SIZE),
   ]);
 
@@ -71,6 +84,17 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
     reportsByAuthor.set(report.author_id, authorReports);
   }
 
+  const attendanceByAuthor = new Map<string, Map<string, AttendanceStatus>>();
+  for (const row of (attendanceRows as {
+    profile_id: string;
+    date: string;
+    status: AttendanceStatus;
+  }[]) ?? []) {
+    const map = attendanceByAuthor.get(row.profile_id) ?? new Map();
+    map.set(row.date, row.status);
+    attendanceByAuthor.set(row.profile_id, map);
+  }
+
   const trend = buildCompletionTrend(
     TREND_DAYS,
     submittersByDate,
@@ -91,7 +115,10 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
     const memberReports = [...(reportsByAuthor.get(member.id) ?? [])].sort(
       (a, b) => b.report_date.localeCompare(a.report_date),
     );
-    const stats = computeReportStats(memberReports, settings.timezone);
+    const stats = computeReportStats(memberReports, settings.timezone, {
+      workingDays: settings.workingDays,
+      attendanceByDate: attendanceByAuthor.get(member.id),
+    });
     return {
       employeeId: member.id,
       fullName: member.full_name,

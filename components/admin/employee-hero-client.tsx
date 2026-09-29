@@ -69,6 +69,7 @@ export function EmployeeHeroClient({
           currentTemplateSource={currentTemplateSource}
           currentTemplateSourceName={currentTemplateSourceName}
           hideAssignments={true}
+          separateEditButton
         />
       </div>
     </div>
