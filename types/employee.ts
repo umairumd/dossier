@@ -34,6 +34,7 @@ export interface EmployeeListItem {
   avatar_url: string | null;
   template_id: string | null;
   date_of_birth: string | null;
+  exclude_from_attendance: boolean;
   created_at: string;
 }
 

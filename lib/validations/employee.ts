@@ -22,6 +22,7 @@ export interface EditEmployeeInput {
   designation?: string;
   isRemote?: boolean;
   dateOfBirth?: string | null;
+  excludeFromAttendance?: boolean;
 }
 
 export interface EmployeeFieldErrors {
@@ -123,6 +124,7 @@ export type EditEmployeeValidationResult =
         designation: string | null;
         isRemote: boolean;
         dateOfBirth: string | null;
+        excludeFromAttendance: boolean;
       };
     }
   | { valid: false; fieldErrors: EmployeeFieldErrors };
@@ -155,6 +157,7 @@ export function validateEditEmployeeInput(
       designation: input.designation?.trim() || null,
       isRemote: input.isRemote ?? false,
       dateOfBirth: input.dateOfBirth?.trim() || null,
+      excludeFromAttendance: input.excludeFromAttendance ?? false,
     },
   };
 }

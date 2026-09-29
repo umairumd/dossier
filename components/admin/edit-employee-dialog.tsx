@@ -49,6 +49,9 @@ export function EditEmployeeDialog({
   const [role, setRole] = useState<UserRole>(employee.role);
   const [designation, setDesignation] = useState(employee.designation ?? "");
   const [isRemote, setIsRemote] = useState(employee.is_remote ?? false);
+  const [excludeFromAttendance, setExcludeFromAttendance] = useState(
+    employee.exclude_from_attendance ?? false,
+  );
   const [dateOfBirth, setDateOfBirth] = useState(
     employee.date_of_birth ?? "",
   );
@@ -63,6 +66,7 @@ export function EditEmployeeDialog({
       setRole(employee.role);
       setDesignation(employee.designation ?? "");
       setIsRemote(employee.is_remote ?? false);
+      setExcludeFromAttendance(employee.exclude_from_attendance ?? false);
       setDateOfBirth(employee.date_of_birth ?? "");
       setFieldErrors({});
     }
@@ -77,6 +81,7 @@ export function EditEmployeeDialog({
       role,
       designation,
       isRemote,
+      excludeFromAttendance,
       dateOfBirth: dateOfBirth.trim() || null,
     };
     const validation = validateEditEmployeeInput(input);
@@ -214,6 +219,27 @@ export function EditEmployeeDialog({
               >
                 Remote employee
               </Label>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id={`edit_exclude_attendance-${employee.id}`}
+                  checked={excludeFromAttendance}
+                  onCheckedChange={(value) =>
+                    setExcludeFromAttendance(!!value)
+                  }
+                />
+                <Label
+                  htmlFor={`edit_exclude_attendance-${employee.id}`}
+                  className="font-normal"
+                >
+                  Exclude from attendance
+                </Label>
+              </div>
+              <p className="pl-6 text-xs text-muted-foreground">
+                This employee will not appear in the attendance grid
+              </p>
             </div>
 
             <p className="text-xs text-muted-foreground">

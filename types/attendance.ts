@@ -138,13 +138,13 @@ export const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, string> = {
 export const ATTENDANCE_STATUS_SHORT: Record<AttendanceStatus, string> = {
   present: "P",
   late_minor: "L",
-  late_major: "LL",
-  work_from_home: "WH",
-  leave: "LEV",
-  half_leave: "H.L",
+  late_major: "VL",
+  work_from_home: "R",
+  leave: "LV",
+  half_leave: "HL",
   absent: "A",
   weekly_off: "OFF",
-  holiday: "HOL",
+  holiday: "H",
 };
 
 export const SHIFT_TYPE_LABELS: Record<ShiftType, string> = {

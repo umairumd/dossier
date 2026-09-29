@@ -26,6 +26,7 @@ interface ProfileRow {
   template_id: string | null;
   date_of_birth: string | null;
   has_onboarded: boolean | null;
+  exclude_from_attendance: boolean;
 }
 
 interface AuthUserSummary {
@@ -119,6 +120,7 @@ function toEmployeeListItem(
     avatar_url: profile.avatar_url,
     template_id: profile.template_id,
     date_of_birth: profile.date_of_birth,
+    exclude_from_attendance: profile.exclude_from_attendance,
     created_at: profile.created_at,
   };
 }
@@ -185,7 +187,7 @@ async function attachMemberships(
 }
 
 const PROFILE_SELECT =
-  "id, full_name, role, organization_id, is_active, archived_at, created_at, designation, is_remote, employment_type, avatar_url, template_id, date_of_birth, has_onboarded";
+  "id, full_name, role, organization_id, is_active, archived_at, created_at, designation, is_remote, employment_type, avatar_url, template_id, date_of_birth, has_onboarded, exclude_from_attendance";
 
 // requireAdminUser() runs first specifically because this function is the
 // reason the service-role client exists in a read path (email/status come
@@ -198,6 +200,7 @@ export const getAllEmployees = cache(async (): Promise<EmployeeListItem[]> => {
   const { data: profiles, error } = await supabase
     .from("profiles")
     .select(PROFILE_SELECT)
+    .eq("exclude_from_attendance", false)
     .order("full_name", { ascending: true });
 
   if (error) {

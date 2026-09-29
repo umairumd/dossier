@@ -13,6 +13,7 @@ import { getSupervisedMembers } from "@/lib/supabase/queries/supervisor/team";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { MonthNav } from "@/components/attendance/month-nav";
 import { AttendanceGrid } from "@/components/attendance/attendance-grid";
+import { AttendanceLegend } from "@/components/attendance/attendance-legend";
 import { LeaveRequestsList } from "@/components/attendance/leave-requests-list";
 import { RunAccrualButton } from "@/components/attendance/run-accrual-button";
 import {
@@ -84,7 +85,7 @@ export default async function AttendancePage({
       .map((emp) => ({
         id: emp.id,
         full_name: emp.full_name,
-        org_id: emp.organization_id ?? "",
+        org_id: emp.organization_id ?? orgId,
         is_remote: emp.is_remote,
         employment_type: emp.employment_type,
       }));
@@ -113,9 +114,12 @@ export default async function AttendancePage({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-0.5">
           <h1 className="text-2xl font-semibold tracking-tight">Attendance</h1>
-          <p className="text-sm text-muted-foreground">
-            {activeEmployees.length} employee
-            {activeEmployees.length !== 1 ? "s" : ""}
+          <p className="flex items-center gap-1 text-sm text-muted-foreground">
+            <span>
+              {activeEmployees.length} employee
+              {activeEmployees.length !== 1 ? "s" : ""}
+            </span>
+            <AttendanceLegend showHolidayHint={!isReadOnly} />
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -145,6 +149,7 @@ export default async function AttendancePage({
               yearMonth={month}
               settings={attendanceSettings}
               workingDays={settings.workingDays}
+              orgId={orgId}
               isReadOnly={isReadOnly}
             />
           </TabsContent>
@@ -173,6 +178,7 @@ export default async function AttendancePage({
           yearMonth={month}
           settings={attendanceSettings}
           workingDays={settings.workingDays}
+          orgId={orgId}
           isReadOnly
         />
       )}

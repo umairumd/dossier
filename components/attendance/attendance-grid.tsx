@@ -1,7 +1,9 @@
 "use client";
 
+import { CalendarDays } from "lucide-react";
 import { AttendanceCell } from "./attendance-cell";
 import { AttendanceCellPopover } from "./attendance-cell-popover";
+import { HolidayDayHeader } from "./holiday-day-header";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { cn } from "@/lib/utils";
 import type {
@@ -23,6 +25,7 @@ export function AttendanceGrid({
   yearMonth,
   settings,
   workingDays,
+  orgId,
   isReadOnly = false,
 }: {
   employees: GridEmployee[];
@@ -30,6 +33,7 @@ export function AttendanceGrid({
   yearMonth: string; // "YYYY-MM"
   settings: AttendanceSettings;
   workingDays: number[]; // [1,2,3,4,5] — ISO weekday numbers
+  orgId: string;
   isReadOnly?: boolean;
 }) {
   const [year, month] = yearMonth.split("-").map(Number);
@@ -38,11 +42,15 @@ export function AttendanceGrid({
 
   // Build a lookup: profileId -> date -> record
   const recordMap = new Map<string, Map<string, AttendanceRecord>>();
+  const holidayDates = new Set<string>();
   for (const record of records) {
     if (!recordMap.has(record.profile_id)) {
       recordMap.set(record.profile_id, new Map());
     }
     recordMap.get(record.profile_id)!.set(record.date, record);
+    if (record.status === "holiday") {
+      holidayDates.add(record.date);
+    }
   }
 
   // Determine if a day number is a weekly off
@@ -64,6 +72,8 @@ export function AttendanceGrid({
     return ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"][date.getDay()];
   }
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   if (employees.length === 0) {
     return (
       <div className="py-12 text-center text-sm text-muted-foreground">
@@ -78,41 +88,86 @@ export function AttendanceGrid({
         <thead>
           <tr className="border-b border-border bg-muted/30">
             {/* Sticky employee name column */}
-            <th className="sticky left-0 z-20 min-w-48 px-4 py-2 text-left label-eyebrow bg-[hsl(220_8%_7%)]">
+            <th className="sticky left-0 z-20 min-w-48 border-r border-border bg-background px-4 py-2 text-left label-eyebrow text-foreground">
               Employee
             </th>
-            {days.map((day) => (
-              <th
-                key={day}
-                className={cn(
-                  "w-10 px-1 py-1.5 text-center bg-muted/30",
-                  isDayOff(day) && "bg-muted/60"
-                )}
-              >
-                <div className="flex flex-col items-center gap-0.5">
-                  <span
+            {days.map((day) => {
+              const date = dateString(day);
+              const isOff = isDayOff(day);
+              const isHoliday = holidayDates.has(date);
+              const isToday = date === todayStr;
+              const dayInitial = getDayInitial(day);
+
+              if (!isReadOnly) {
+                return (
+                  <HolidayDayHeader
+                    key={day}
+                    day={day}
+                    date={date}
+                    dayInitial={dayInitial}
+                    isOff={isOff}
+                    isHoliday={isHoliday}
+                    isToday={isToday}
+                    orgId={orgId}
+                  />
+                );
+              }
+
+              return (
+                <th
+                  key={day}
+                  className={cn(
+                    "w-10 px-1 py-1.5 text-center",
+                    isHoliday
+                      ? "bg-teal-500/10 text-teal-600 dark:text-teal-400"
+                      : isOff
+                        ? "bg-muted"
+                        : undefined,
+                  )}
+                >
+                  <div
                     className={cn(
-                      "text-[9px] font-medium uppercase",
-                      isDayOff(day)
-                        ? "text-muted-foreground/40"
-                        : "text-muted-foreground/60"
+                      "flex flex-col items-center gap-0.5 rounded-md px-0.5 py-0.5",
+                      isToday && "bg-foreground text-background",
                     )}
                   >
-                    {getDayInitial(day)}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-xs font-medium",
-                      isDayOff(day)
-                        ? "text-muted-foreground/40"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    {day}
-                  </span>
-                </div>
-              </th>
-            ))}
+                    <span
+                      className={cn(
+                        "text-[9px] font-medium uppercase",
+                        isToday
+                          ? "text-background/70"
+                          : isHoliday
+                            ? "text-teal-600/70 dark:text-teal-400/70"
+                            : isOff
+                              ? "text-muted-foreground/60"
+                              : "text-foreground",
+                      )}
+                    >
+                      {dayInitial}
+                    </span>
+                    <span className="inline-flex items-center gap-0.5">
+                      {isHoliday && !isToday && (
+                        <CalendarDays className="size-3" aria-hidden />
+                      )}
+                      <span
+                        className={cn(
+                          "text-xs font-medium",
+                          isToday
+                            ? "font-bold text-background"
+                            : isHoliday
+                              ? "text-teal-600 dark:text-teal-400"
+                              : isOff
+                                ? "text-muted-foreground/60"
+                                : "text-foreground",
+                        )}
+                      >
+                        {day}
+                      </span>
+                    </span>
+                  </div>
+                </th>
+              );
+            })}
             {/* Summary columns */}
             <th className="px-3 py-2 text-center label-eyebrow bg-muted/30">
               Late
@@ -160,7 +215,7 @@ export function AttendanceGrid({
                 }
               >
                 {/* Sticky name cell */}
-                <td className="sticky left-0 z-20 min-w-48 px-4 py-2 bg-[hsl(220_8%_6%)]">
+                <td className="sticky left-0 z-20 min-w-48 border-r border-border bg-background px-4 py-2">
                   <div className="flex items-center gap-2">
                     <MemberAvatar
                       name={emp.full_name}
@@ -168,7 +223,7 @@ export function AttendanceGrid({
                       size="sm"
                     />
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-medium">
+                      <p className="truncate text-xs font-medium text-foreground">
                         {emp.full_name}
                       </p>
                       {emp.is_remote && (
@@ -185,9 +240,7 @@ export function AttendanceGrid({
                   const date = dateString(day);
                   const record = empRecords.get(date) ?? null;
                   const isOff = isDayOff(day);
-                  // Future dates — don't allow entry
-                  const today = new Date().toISOString().slice(0, 10);
-                  const isFuture = date > today;
+                  const isFuture = date > todayStr;
 
                   if (isFuture) {
                     return (
@@ -206,7 +259,7 @@ export function AttendanceGrid({
                       ) : (
                         <AttendanceCellPopover
                           profileId={emp.id}
-                          orgId={emp.org_id}
+                          orgId={emp.org_id || orgId}
                           date={date}
                           employeeName={emp.full_name}
                           existingRecord={record}
