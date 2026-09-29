@@ -30,7 +30,7 @@ export function EmployeeNameCell({
   profileBasePath: string;
 }) {
   return (
-    <td className="relative sticky left-0 z-20 min-w-48 bg-background px-4 py-2 after:absolute after:right-0 after:top-0 after:h-full after:w-px after:bg-border after:content-['']">
+    <td className="sticky left-0 z-20 min-w-48 bg-card px-4 py-2">
       <Popover>
         <PopoverTrigger asChild>
           <button

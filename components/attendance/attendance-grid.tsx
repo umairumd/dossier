@@ -48,7 +48,7 @@ function leaveBalanceClass(balance: number): string {
 
 function renderBalanceCell(balance: number) {
   return (
-    <td className="px-3 py-2 text-center text-xs">
+    <td className="bg-background px-3 py-2 text-center text-xs">
       <span className={leaveBalanceClass(balance)}>
         {formatLeaveBalance(balance)}
       </span>
@@ -142,7 +142,7 @@ export function AttendanceGrid({
     );
   }
 
-  function renderOnSiteRow(emp: GridEmployee, idx: number) {
+  function renderOnSiteRow(emp: GridEmployee) {
     const empRecords = recordMap.get(emp.id) ?? new Map();
 
     let lateCount = 0;
@@ -162,11 +162,7 @@ export function AttendanceGrid({
     return (
       <tr
         key={emp.id}
-        className={
-          idx % 2 === 0
-            ? "border-b border-border/50"
-            : "border-b border-border/50 bg-muted/10"
-        }
+        className="border-b border-border/40 bg-card hover:bg-muted/40"
       >
         {renderNameCell(emp)}
 
@@ -178,7 +174,7 @@ export function AttendanceGrid({
 
           if (isFuture) {
             return (
-              <td key={day} className="px-1 py-1">
+              <td key={day} className="bg-background px-1 py-1">
                 <div className="flex h-8 w-full items-center justify-center rounded text-xs text-muted-foreground/30">
                   —
                 </div>
@@ -187,7 +183,7 @@ export function AttendanceGrid({
           }
 
           return (
-            <td key={day} className="px-1 py-1">
+            <td key={day} className="bg-background px-1 py-1">
               {isReadOnly ? (
                 <AttendanceCell status={record?.status ?? null} />
               ) : (
@@ -205,7 +201,7 @@ export function AttendanceGrid({
           );
         })}
 
-        <td className="px-3 py-2 text-center text-xs">
+        <td className="bg-background px-3 py-2 text-center text-xs">
           {lateCount > 0 ? (
             <span className="font-medium text-yellow-600 dark:text-yellow-400">
               {lateCount}
@@ -214,7 +210,7 @@ export function AttendanceGrid({
             <span className="text-muted-foreground">0</span>
           )}
         </td>
-        <td className="px-3 py-2 text-center text-xs">
+        <td className="bg-background px-3 py-2 text-center text-xs">
           {absentCount > 0 ? (
             <span className="font-medium text-red-600 dark:text-red-400">
               {absentCount}
@@ -223,7 +219,7 @@ export function AttendanceGrid({
             <span className="text-muted-foreground">0</span>
           )}
         </td>
-        <td className="px-3 py-2 text-center text-xs">
+        <td className="bg-background px-3 py-2 text-center text-xs">
           {leaveCount > 0 ? (
             <span className="font-medium text-purple-600 dark:text-purple-400">
               {leaveCount}
@@ -233,7 +229,7 @@ export function AttendanceGrid({
           )}
         </td>
         {renderBalanceCell(emp.leave_balance)}
-        <td className="px-3 py-2 text-center text-xs">
+        <td className="bg-background px-3 py-2 text-center text-xs">
           {fineTotal > 0 ? (
             <span className="font-medium text-red-600 dark:text-red-400">
               PKR {fineTotal}
@@ -246,7 +242,7 @@ export function AttendanceGrid({
     );
   }
 
-  function renderRemoteRow(emp: GridEmployee, idx: number) {
+  function renderRemoteRow(emp: GridEmployee) {
     const empRecords = recordMap.get(emp.id) ?? new Map();
 
     let leaveCount = 0;
@@ -274,11 +270,7 @@ export function AttendanceGrid({
     return (
       <tr
         key={emp.id}
-        className={
-          idx % 2 === 0
-            ? "border-b border-border/50"
-            : "border-b border-border/50 bg-muted/10"
-        }
+        className="border-b border-border/40 bg-card hover:bg-muted/40"
       >
         {renderNameCell(emp)}
 
@@ -293,7 +285,7 @@ export function AttendanceGrid({
           const showPopover = !isFuture && !isOff && !isHoliday;
 
           return (
-            <td key={day} className="px-1 py-1">
+            <td key={day} className="bg-background px-1 py-1">
               {showPopover ? (
                 <RemoteDayCellPopover
                   profileId={emp.id}
@@ -323,10 +315,10 @@ export function AttendanceGrid({
           );
         })}
 
-        <td className="px-3 py-2 text-center text-xs">
+        <td className="bg-background px-3 py-2 text-center text-xs">
           <span className="text-muted-foreground">0</span>
         </td>
-        <td className="px-3 py-2 text-center text-xs">
+        <td className="bg-background px-3 py-2 text-center text-xs">
           {absentCount > 0 ? (
             <span className="font-medium text-red-600 dark:text-red-400">
               {absentCount}
@@ -335,7 +327,7 @@ export function AttendanceGrid({
             <span className="text-muted-foreground">0</span>
           )}
         </td>
-        <td className="px-3 py-2 text-center text-xs">
+        <td className="bg-background px-3 py-2 text-center text-xs">
           {leaveCount > 0 ? (
             <span className="font-medium text-purple-600 dark:text-purple-400">
               {leaveCount}
@@ -345,7 +337,7 @@ export function AttendanceGrid({
           )}
         </td>
         {renderBalanceCell(emp.leave_balance)}
-        <td className="px-3 py-2 text-center text-xs">
+        <td className="bg-background px-3 py-2 text-center text-xs">
           <span className="text-muted-foreground">—</span>
         </td>
       </tr>
@@ -356,8 +348,8 @@ export function AttendanceGrid({
     <div className="overflow-x-auto rounded-xl border border-border">
       <table className="w-full min-w-max border-collapse text-sm">
         <thead>
-          <tr className="border-b border-border bg-muted/30">
-            <th className="relative sticky left-0 z-20 min-w-48 bg-background px-4 py-2 text-left label-eyebrow after:absolute after:right-0 after:top-0 after:h-full after:w-px after:bg-border after:content-['']">
+          <tr className="border-b border-border bg-card">
+            <th className="sticky left-0 z-20 min-w-48 bg-card px-4 py-2 text-left label-eyebrow">
               Employee
             </th>
             {days.map((day) => {
@@ -391,7 +383,7 @@ export function AttendanceGrid({
                     isHoliday
                       ? "bg-teal-500/10 text-teal-600 dark:text-teal-400"
                       : isOff
-                        ? "bg-muted"
+                        ? "bg-muted/50"
                         : undefined,
                   )}
                 >
@@ -456,21 +448,21 @@ export function AttendanceGrid({
           </tr>
         </thead>
         <tbody>
-          {onSiteEmployees.map((emp, idx) => renderOnSiteRow(emp, idx))}
+          {onSiteEmployees.map((emp) => renderOnSiteRow(emp))}
 
           {remoteEmployees.length > 0 && (
             <tr>
-              <td className="relative sticky left-0 z-20 h-10 border-y border-border bg-background px-3 py-2 align-middle label-eyebrow after:absolute after:right-0 after:top-0 after:h-full after:w-px after:bg-border after:content-['']">
+              <td className="sticky left-0 z-20 h-10 border-y border-border bg-card px-3 py-2 align-middle label-eyebrow">
                 Remote Employees
               </td>
               <td
                 colSpan={days.length + 5}
-                className="h-10 border-y border-border bg-muted/20"
+                className="h-10 border-y border-border bg-background"
               />
             </tr>
           )}
 
-          {remoteEmployees.map((emp, idx) => renderRemoteRow(emp, idx))}
+          {remoteEmployees.map((emp) => renderRemoteRow(emp))}
         </tbody>
       </table>
     </div>
