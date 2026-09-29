@@ -13,7 +13,9 @@ import {
   getActorLogContext,
   logActivity,
 } from "@/lib/helpers/activity-log";
+import { getReportByAuthorAndDate } from "@/lib/supabase/queries/reports";
 import type { AttendanceStatus, ShiftType } from "@/types/attendance";
+import type { DailyReport } from "@/types/report";
 
 export interface AttendanceActionResult {
   success: boolean;
@@ -426,4 +428,44 @@ export async function markDayAsHolidayAction(
 
   revalidatePath("/attendance");
   return { success: true, count: targets.length };
+}
+
+export async function unmarkHolidayAction(
+  date: string,
+): Promise<{ success: boolean; error?: string }> {
+  await requireAdminUser();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("attendance_records")
+    .delete()
+    .eq("date", date)
+    .eq("status", "holiday");
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/attendance");
+  return { success: true };
+}
+
+export async function fetchReportForAttendance(
+  authorId: string,
+  date: string,
+): Promise<{ success: boolean; report?: DailyReport; error?: string }> {
+  await requireAdminUser();
+
+  try {
+    const report = await getReportByAuthorAndDate(authorId, date);
+    if (!report) {
+      return { success: false, error: "Report not found." };
+    }
+    return { success: true, report };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to load report.",
+    };
+  }
 }

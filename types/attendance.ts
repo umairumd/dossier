@@ -66,6 +66,7 @@ export interface AttendanceRecord {
   source: AttendanceSource;
   recorded_by: string | null;
   notes: string | null;
+  holiday_name: string | null;
   created_at: string;
   updated_at: string;
 }
