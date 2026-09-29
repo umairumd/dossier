@@ -35,7 +35,7 @@ export function PartTimeIndicator() {
           </span>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Part-time employee</p>
+          <p>Part Time</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

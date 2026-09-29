@@ -30,6 +30,7 @@ export default async function EmployeesPage() {
     .map((department) => ({
       id: department.id,
       name: department.name,
+      manager_id: department.manager_id,
       manager_name: department.manager_name,
       template_id: department.template_id,
     }));
@@ -43,11 +44,12 @@ export default async function EmployeesPage() {
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-0">
       <PageHeader
         title="Employees"
         count={employees.length}
         countLabel={employees.length === 1 ? "employee" : "employees"}
+        className="mb-3"
         action={
           <InviteEmployeeDialog
             departments={departments}
