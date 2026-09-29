@@ -25,6 +25,35 @@ interface GridEmployee {
   designation: string | null;
   department_name: string | null;
   avatar_url: string | null;
+  leave_balance: number;
+}
+
+function formatLeaveBalance(balance: number): string {
+  const normalized = Object.is(balance, -0) ? 0 : balance;
+  if (Number.isInteger(normalized)) {
+    return String(normalized);
+  }
+  return normalized.toFixed(1);
+}
+
+function leaveBalanceClass(balance: number): string {
+  if (balance > 0) {
+    return "font-medium text-emerald-600 dark:text-emerald-400";
+  }
+  if (balance < 0) {
+    return "font-medium text-red-600 dark:text-red-400";
+  }
+  return "text-muted-foreground";
+}
+
+function renderBalanceCell(balance: number) {
+  return (
+    <td className="px-3 py-2 text-center text-xs">
+      <span className={leaveBalanceClass(balance)}>
+        {formatLeaveBalance(balance)}
+      </span>
+    </td>
+  );
 }
 
 export function AttendanceGrid({
@@ -203,6 +232,7 @@ export function AttendanceGrid({
             <span className="text-muted-foreground">0</span>
           )}
         </td>
+        {renderBalanceCell(emp.leave_balance)}
         <td className="px-3 py-2 text-center text-xs">
           {fineTotal > 0 ? (
             <span className="font-medium text-red-600 dark:text-red-400">
@@ -314,6 +344,7 @@ export function AttendanceGrid({
             <span className="text-muted-foreground">0</span>
           )}
         </td>
+        {renderBalanceCell(emp.leave_balance)}
         <td className="px-3 py-2 text-center text-xs">
           <span className="text-muted-foreground">—</span>
         </td>
@@ -417,6 +448,9 @@ export function AttendanceGrid({
               Leaves
             </th>
             <th className="bg-muted/30 px-3 py-2 text-center label-eyebrow">
+              Balance
+            </th>
+            <th className="bg-muted/30 px-3 py-2 text-center label-eyebrow">
               Fines
             </th>
           </tr>
@@ -430,7 +464,7 @@ export function AttendanceGrid({
                 Remote Employees
               </td>
               <td
-                colSpan={days.length + 4}
+                colSpan={days.length + 5}
                 className="h-10 border-y border-border bg-muted/20"
               />
             </tr>

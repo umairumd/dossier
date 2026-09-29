@@ -42,7 +42,9 @@ export const getSupervisedMembers = cache(
 
     const { data: employees, error: employeesError } = await supabase
       .from("profiles")
-      .select("id, full_name, designation, is_remote, employment_type, avatar_url, template_id")
+      .select(
+        "id, full_name, designation, is_remote, employment_type, avatar_url, template_id, leave_balance",
+      )
       .in("id", memberIds)
       .is("archived_at", null)
       .order("full_name", { ascending: true });
@@ -51,7 +53,10 @@ export const getSupervisedMembers = cache(
       throw new Error("Failed to load supervised members.");
     }
 
-    return employees ?? [];
+    return (employees ?? []).map((row) => ({
+      ...row,
+      leave_balance: Number(row.leave_balance ?? 0),
+    }));
   },
 );
 
