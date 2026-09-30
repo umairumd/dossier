@@ -38,8 +38,19 @@ async function fetchExistingLeaveDeducted(
   return data?.leave_deducted != null ? Number(data.leave_deducted) : 0;
 }
 
-async function adjustProfileLeaveBalance(
-  supabase: AttendanceSupabase,
+type AdminClient = ReturnType<typeof createAdminClient>;
+
+/**
+ * Applies a leave delta to BOTH ledgers:
+ *  - profiles.leave_balance          -= delta
+ *  - leave_balances.total_used (active row) += delta
+ *
+ * `delta` is days consumed; negative values refund. No floor is applied —
+ * negative balances are intentional. If the second write fails, the first is
+ * reversed so the ledgers never silently diverge.
+ */
+async function adjustLeaveLedgers(
+  adminClient: AdminClient,
   profileId: string,
   delta: number,
 ): Promise<AttendanceActionResult> {
@@ -47,7 +58,7 @@ async function adjustProfileLeaveBalance(
     return { success: true };
   }
 
-  const { data: profile, error: fetchError } = await supabase
+  const { data: profile, error: fetchError } = await adminClient
     .from("profiles")
     .select("leave_balance")
     .eq("id", profileId)
@@ -61,14 +72,57 @@ async function adjustProfileLeaveBalance(
     return { success: false, error: "Employee profile not found." };
   }
 
-  const nextBalance = Number(profile.leave_balance) - delta;
-  const { error: updateError } = await supabase
+  const previousBalance = Number(profile.leave_balance);
+  const { error: profileError } = await adminClient
     .from("profiles")
-    .update({ leave_balance: nextBalance })
+    .update({ leave_balance: previousBalance - delta })
     .eq("id", profileId);
 
-  if (updateError) {
-    return { success: false, error: updateError.message };
+  if (profileError) {
+    return { success: false, error: profileError.message };
+  }
+
+  const { data: ledger, error: ledgerFetchError } = await adminClient
+    .from("leave_balances")
+    .select("id, total_used")
+    .eq("profile_id", profileId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  let ledgerError = ledgerFetchError;
+
+  if (!ledgerError) {
+    if (!ledger) {
+      console.warn(
+        `[leave] No active leave_balances row for ${profileId}; skipping total_used update.`,
+      );
+      return { success: true };
+    }
+
+    const { error: ledgerUpdateError } = await adminClient
+      .from("leave_balances")
+      .update({ total_used: Number(ledger.total_used) + delta })
+      .eq("id", ledger.id);
+    ledgerError = ledgerUpdateError;
+  }
+
+  if (ledgerError) {
+    console.error(
+      `[leave] Failed to update leave_balances.total_used for ${profileId}:`,
+      ledgerError,
+    );
+    const { error: undoError } = await adminClient
+      .from("profiles")
+      .update({ leave_balance: previousBalance })
+      .eq("id", profileId);
+
+    if (undoError) {
+      console.error(
+        `[leave] LEDGER MISMATCH: could not restore profiles.leave_balance for ${profileId} (expected ${previousBalance}):`,
+        undoError,
+      );
+    }
+    return { success: false, error: ledgerError.message };
   }
 
   return { success: true };
@@ -176,8 +230,8 @@ export async function saveAttendanceRecordAction(record: {
 
   if (error) return { success: false, error: error.message };
 
-  const balanceResult = await adjustProfileLeaveBalance(
-    supabase,
+  const balanceResult = await adjustLeaveLedgers(
+    createAdminClient(),
     record.profileId,
     record.leaveDeducted - oldLeaveDeducted,
   );
@@ -213,6 +267,10 @@ export async function saveAttendanceRecordAction(record: {
   return { success: true };
 }
 
+const LEAVE_ALREADY_REVIEWED_ERROR = "This request was already reviewed.";
+const LEAVE_LEDGER_ERROR =
+  "Leave approved but balance could not be updated. Please check this employee's leave balance manually.";
+
 export async function reviewLeaveRequestAction(
   requestId: string,
   action: "approved" | "rejected",
@@ -220,19 +278,26 @@ export async function reviewLeaveRequestAction(
 ): Promise<AttendanceActionResult> {
   const admin = await requireAdminUser();
   const supabase = await createClient();
+  const adminClient = createAdminClient();
   const { data: userData } = await supabase.auth.getUser();
 
   const { data: req, error: fetchError } = await supabase
     .from("leave_requests")
     .select("*")
     .eq("id", requestId)
-    .single();
+    .maybeSingle();
 
   if (fetchError || !req) {
     return { success: false, error: "Leave request not found." };
   }
 
-  const { error: updateError } = await supabase
+  if (req.status !== "pending") {
+    return { success: false, error: LEAVE_ALREADY_REVIEWED_ERROR };
+  }
+
+  // Claim the request atomically: only one concurrent reviewer can move it
+  // out of "pending", which protects against double-clicks and two admins.
+  const { data: claimed, error: claimError } = await supabase
     .from("leave_requests")
     .update({
       status: action,
@@ -240,9 +305,34 @@ export async function reviewLeaveRequestAction(
       reviewed_by: userData.user?.id ?? null,
       reviewed_at: new Date().toISOString(),
     })
-    .eq("id", requestId);
+    .eq("id", requestId)
+    .eq("status", "pending")
+    .select("id");
 
-  if (updateError) return { success: false, error: updateError.message };
+  if (claimError) return { success: false, error: claimError.message };
+
+  if (!claimed || claimed.length === 0) {
+    return { success: false, error: LEAVE_ALREADY_REVIEWED_ERROR };
+  }
+
+  const revertClaim = async () => {
+    const { error: revertError } = await adminClient
+      .from("leave_requests")
+      .update({
+        status: "pending",
+        admin_notes: null,
+        reviewed_by: null,
+        reviewed_at: null,
+      })
+      .eq("id", requestId);
+
+    if (revertError) {
+      console.error(
+        `[leave] Failed to revert leave request ${requestId} to pending:`,
+        revertError,
+      );
+    }
+  };
 
   if (action === "approved") {
     const leaveDeducted = req.type === "full_day" ? 1 : 0.5;
@@ -253,7 +343,25 @@ export async function reviewLeaveRequestAction(
       req.profile_id,
       req.date,
     );
+    const delta = leaveDeducted - oldLeaveDeducted;
 
+    // (a) Ledgers first, so a failure here leaves no attendance row to undo.
+    const ledgerResult = await adjustLeaveLedgers(
+      adminClient,
+      req.profile_id,
+      delta,
+    );
+
+    if (!ledgerResult.success) {
+      console.error(
+        `[leave] Ledger update failed while approving request ${requestId} (profile ${req.profile_id}):`,
+        ledgerResult.error,
+      );
+      await revertClaim();
+      return { success: false, error: LEAVE_LEDGER_ERROR };
+    }
+
+    // (b) Attendance row.
     const { error: attendanceError } = await supabase
       .from("attendance_records")
       .upsert(
@@ -271,33 +379,24 @@ export async function reviewLeaveRequestAction(
       );
 
     if (attendanceError) {
+      // (c) Reverse the ledger change and release the request.
+      const reverseResult = await adjustLeaveLedgers(
+        adminClient,
+        req.profile_id,
+        -delta,
+      );
+      if (!reverseResult.success) {
+        console.error(
+          `[leave] LEDGER MISMATCH: could not reverse ${delta} day(s) for profile ${req.profile_id} after attendance write failed (request ${requestId}):`,
+          reverseResult.error,
+        );
+      }
+      await revertClaim();
       return { success: false, error: attendanceError.message };
-    }
-
-    const balanceResult = await adjustProfileLeaveBalance(
-      supabase,
-      req.profile_id,
-      leaveDeducted - oldLeaveDeducted,
-    );
-    if (!balanceResult.success) {
-      return balanceResult;
-    }
-
-    const { data: balance } = await supabase
-      .from("leave_balances")
-      .select("id, total_used")
-      .eq("profile_id", req.profile_id)
-      .eq("status", "active")
-      .maybeSingle();
-
-    if (balance) {
-      await supabase
-        .from("leave_balances")
-        .update({ total_used: Number(balance.total_used) + leaveDeducted })
-        .eq("id", balance.id);
     }
   }
 
+  // Notify and log only after every write has succeeded.
   await createNotification({
     orgId: req.org_id,
     profileId: req.profile_id,
@@ -310,7 +409,6 @@ export async function reviewLeaveRequestAction(
 
   try {
     const { actorName } = await getActorLogContext(admin.id);
-    const adminClient = createAdminClient();
     const { data: target } = await adminClient
       .from("profiles")
       .select("full_name")
@@ -569,8 +667,8 @@ export async function clearAttendanceAction(
   if (error) return { success: false, error: error.message };
 
   if (oldLeaveDeducted > 0) {
-    const balanceResult = await adjustProfileLeaveBalance(
-      supabase,
+    const balanceResult = await adjustLeaveLedgers(
+      createAdminClient(),
       employeeId,
       -oldLeaveDeducted,
     );
