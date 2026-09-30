@@ -12,6 +12,7 @@ import {
 } from "@/lib/helpers/activity-log";
 import { getReportByAuthorAndDate } from "@/lib/supabase/queries/reports";
 import type { AttendanceStatus, ShiftType } from "@/types/attendance";
+import { SHIFT_TYPE_LABELS } from "@/types/attendance";
 import type { DailyReport } from "@/types/report";
 
 export interface AttendanceActionResult {
@@ -182,6 +183,16 @@ export async function assignShiftAction(
       entityType: "shift",
       entityName: shiftType,
       metadata: { effectiveFrom },
+    });
+
+    void createNotification({
+      orgId,
+      profileId,
+      type: "shift_assigned",
+      title: "Your shift has been assigned",
+      body: SHIFT_TYPE_LABELS[shiftType] ?? shiftType,
+      entityType: "employee",
+      entityId: profileId,
     });
   } catch (logError) {
     console.error("[activity-log] Failed to log shift assignment:", logError);
