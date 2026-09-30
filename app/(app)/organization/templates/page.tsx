@@ -16,9 +16,9 @@ export default async function TemplatesPage() {
       <PageHeader
         title="Report Templates"
         action={
-          <Button size="sm" asChild>
+          <Button asChild>
             <Link href="/organization/templates/new">
-              <Plus className="mr-1.5 size-4" />
+              <Plus className="size-4" />
               New Template
             </Link>
           </Button>

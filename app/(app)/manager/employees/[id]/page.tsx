@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { Flame, Percent, Timer } from "lucide-react";
+import { FileText, Flame, Percent, Timer } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { getTeamMemberOverview } from "@/lib/supabase/queries/manager/employee-overview";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getOrgTemplatesWithFields } from "@/lib/supabase/queries/templates";
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
+import { PageHeader } from "@/components/shared/page-header";
 
 export default async function ManagerEmployeeOverviewPage({
   params,
@@ -31,18 +33,18 @@ export default async function ManagerEmployeeOverviewPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {overview.full_name}
-        </h1>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span>{getRoleLabel(overview.role)}</span>
-          <span>·</span>
-          <span>
-            {overview.department_names.join(", ") || "Unassigned"}
+      <PageHeader
+        title={overview.full_name}
+        description={
+          <span className="flex flex-wrap items-center gap-2">
+            <span>{getRoleLabel(overview.role)}</span>
+            <span>·</span>
+            <span>
+              {overview.department_names.join(", ") || "Unassigned"}
+            </span>
           </span>
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <Card className="card-gradient">
@@ -96,9 +98,11 @@ export default async function ManagerEmployeeOverviewPage({
         </CardHeader>
         <CardContent>
           {overview.recent_reports.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No reports submitted yet.
-            </p>
+            <EmptyState
+              size="sm"
+              icon={<FileText className="size-4" />}
+              title="No reports submitted yet."
+            />
           ) : (
             <>
               <ReportHistoryBrowser

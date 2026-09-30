@@ -9,7 +9,7 @@ export default function SettingsLoading() {
         <Skeleton className="h-4 w-52" />
       </div>
       {/* Profile card: xl avatar + name + form fields */}
-      <div className="rounded-xl border border-border p-5 flex flex-col gap-6">
+      <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-5 flex flex-col gap-6">
         <Skeleton className="h-5 w-16" />
         <div className="flex items-center gap-4">
           <Skeleton className="size-16 rounded-full shrink-0" />
@@ -26,7 +26,7 @@ export default function SettingsLoading() {
         <Skeleton className="h-9 w-24 rounded-md" />
       </div>
       {/* Performance card: 3 stat cards */}
-      <div className="rounded-xl border border-border p-5 flex flex-col gap-4">
+      <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-5 flex flex-col gap-4">
         <Skeleton className="h-5 w-28" />
         <div className="grid gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (

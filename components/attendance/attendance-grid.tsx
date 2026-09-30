@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarDays } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { AttendanceCell } from "./attendance-cell";
 import { AttendanceCellPopover } from "./attendance-cell-popover";
 import { EmployeeNameCell } from "./employee-name-cell";
@@ -124,11 +125,7 @@ export function AttendanceGrid({
   const todayStr = today;
 
   if (onSiteEmployees.length === 0 && remoteEmployees.length === 0) {
-    return (
-      <div className="py-12 text-center text-sm text-muted-foreground">
-        No employees to display.
-      </div>
-    );
+    return <EmptyState illustration="employees" title="No employees to display." />;
   }
 
   function renderNameCell(emp: GridEmployee) {
@@ -166,7 +163,7 @@ export function AttendanceGrid({
     return (
       <tr
         key={emp.id}
-        className="border-b border-border/40 bg-card hover:bg-muted/40"
+        className="border-b border-border/40 bg-card transition-colors hover:bg-foreground/5"
       >
         {renderNameCell(emp)}
 
@@ -275,7 +272,7 @@ export function AttendanceGrid({
     return (
       <tr
         key={emp.id}
-        className="border-b border-border/40 bg-card hover:bg-muted/40"
+        className="border-b border-border/40 bg-card transition-colors hover:bg-foreground/5"
       >
         {renderNameCell(emp)}
 

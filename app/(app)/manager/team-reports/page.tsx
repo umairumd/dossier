@@ -16,6 +16,7 @@ import {
 } from "@/lib/helpers/dates";
 import type { TeamMemberReport } from "@/types/team";
 import { DateNav } from "@/components/shared/date-nav";
+import { PageHeader } from "@/components/shared/page-header";
 import { TeamReportsView } from "@/components/manager/team-reports-view";
 import { Separator } from "@/components/ui/separator";
 
@@ -61,17 +62,17 @@ export default async function TeamReportsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Team Reports
-        </h1>
-        <DateNav
-          date={date}
-          baseHref="/manager/team-reports"
-          label={formatDate(date)}
-          timezone={settings.timezone}
-        />
-      </div>
+      <PageHeader
+        title="Team Reports"
+        action={
+          <DateNav
+            date={date}
+            baseHref="/manager/team-reports"
+            label={formatDate(date)}
+            timezone={settings.timezone}
+          />
+        }
+      />
 
       <div>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">

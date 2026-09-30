@@ -57,10 +57,7 @@ export function ReportHistoryTable({
               : undefined;
 
             return (
-            <TableRow
-              key={report.id}
-              className="transition-colors hover:bg-muted/50"
-            >
+            <TableRow key={report.id}>
               <TableCell>
                 <div className="flex flex-col gap-0.5">
                   <span className="whitespace-nowrap text-sm">

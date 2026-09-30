@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
 import { ReportSearch } from "@/components/reports/report-search";
 import { EmptyState } from "@/components/shared/empty-state";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -81,15 +82,15 @@ export default async function DailyReportPage({
                 className="py-8"
               />
             ) : reportHistory.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-10 text-center">
-                <p className="text-sm text-muted-foreground">No more reports.</p>
-                <Link
-                  href="/reports"
-                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Back to My Reports
-                </Link>
-              </div>
+              <EmptyState
+                illustration="reports"
+                title="No more reports."
+                action={
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/reports">Back to My Reports</Link>
+                  </Button>
+                }
+              />
             ) : (
               <>
                 <ReportHistoryBrowser

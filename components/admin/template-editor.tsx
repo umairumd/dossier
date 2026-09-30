@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus } from "lucide-react";
+import { ListPlus, Loader2, Plus } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
 import { TemplateFieldDialog } from "@/components/admin/template-field-dialog";
 import { TemplateFieldRow } from "@/components/admin/template-field-row";
@@ -257,9 +258,12 @@ export function TemplateEditor({
         </CardHeader>
         <CardContent className="flex flex-col gap-2 p-0">
           {sortedFields.length === 0 && (
-            <div className="px-6 py-8 text-center text-sm text-muted-foreground">
-              No fields yet. Add your first field above.
-            </div>
+            <EmptyState
+              size="sm"
+              icon={<ListPlus className="size-4" />}
+              title="No fields yet."
+              description="Add your first field above."
+            />
           )}
           {sortedFields.map((field, index) => (
             <TemplateFieldRow

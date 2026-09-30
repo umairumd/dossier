@@ -23,6 +23,7 @@ import { MonthNav } from "@/components/attendance/month-nav";
 import { AttendanceGrid } from "@/components/attendance/attendance-grid";
 import { AttendanceLegend } from "@/components/attendance/attendance-legend";
 import { RunAccrualButton } from "@/components/attendance/run-accrual-button";
+import { PageHeader } from "@/components/shared/page-header";
 import type { AttendanceRecord } from "@/types/attendance";
 
 export const dynamic = "force-dynamic";
@@ -139,24 +140,20 @@ export default async function AttendancePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-semibold tracking-tight">Attendance</h1>
-          <p className="flex items-center gap-1 text-sm text-muted-foreground">
-            <span>
-              {activeEmployees.length} employee
-              {activeEmployees.length !== 1 ? "s" : ""}
-            </span>
-            <AttendanceLegend showHolidayHint={!isReadOnly} />
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {isOwnerOrAdmin && isCurrentMonth && (
-            <RunAccrualButton yearMonth={month} accrualDone={accrualDone} />
-          )}
-          <MonthNav month={month} baseHref="/attendance" />
-        </div>
-      </div>
+      <PageHeader
+        title="Attendance"
+        count={activeEmployees.length}
+        countLabel={activeEmployees.length === 1 ? "employee" : "employees"}
+        description={<AttendanceLegend showHolidayHint={!isReadOnly} />}
+        action={
+          <div className="flex flex-wrap items-center gap-3">
+            {isOwnerOrAdmin && isCurrentMonth && (
+              <RunAccrualButton yearMonth={month} accrualDone={accrualDone} />
+            )}
+            <MonthNav month={month} baseHref="/attendance" />
+          </div>
+        }
+      />
 
       <AttendanceGrid
         onSiteEmployees={onSiteEmployees}

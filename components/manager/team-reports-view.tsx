@@ -221,10 +221,7 @@ export function TeamReportsView({
                   const isManager = managerId === member.employeeId;
 
                   return (
-                    <TableRow
-                      key={member.employeeId}
-                      className="transition-colors hover:bg-muted/50"
-                    >
+                    <TableRow key={member.employeeId}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <MemberAvatar
@@ -300,7 +297,7 @@ export function TeamReportsView({
               return (
                 <div
                   key={member.employeeId}
-                  className="flex items-center justify-between gap-3 px-4 py-3"
+                  className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-foreground/5"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-2.5">
                     <MemberAvatar

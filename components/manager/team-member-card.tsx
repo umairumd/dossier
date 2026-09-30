@@ -19,7 +19,7 @@ export function TeamMemberCard({
   return (
     <Link
       href={`/employees/${member.id}`}
-      className="card-gradient flex flex-col items-center gap-3 rounded-xl border border-border p-5 transition-colors hover:bg-muted/20 block"
+      className="card-gradient flex flex-col items-center gap-3 rounded-xl border border-border p-5 block transition-colors hover:bg-foreground/5"
     >
       <MemberAvatar
         userId={member.id}

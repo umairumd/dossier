@@ -27,7 +27,7 @@ export function TemplateFieldRow({
   onMoveDown: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 border-b border-border px-6 py-3 last:border-0">
+    <div className="flex items-center gap-3 border-b border-border px-6 py-3 transition-colors last:border-0 hover:bg-foreground/5">
       <div className="flex shrink-0 flex-col gap-0.5">
         <button
           type="button"

@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { FileText } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -93,9 +95,11 @@ export function AssignTemplateDialog({
         </DialogHeader>
         <DialogBody>
           {activeTemplates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No active templates yet.
-            </p>
+            <EmptyState
+              size="sm"
+              icon={<FileText className="size-4" />}
+              title="No active templates yet."
+            />
           ) : (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
