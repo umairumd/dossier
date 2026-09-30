@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createNotification } from "@/lib/actions/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAdminUser, requireOwnerUser } from "@/lib/supabase/require-admin";
+import { requireAdminUser } from "@/lib/supabase/require-admin";
 import {
   countActiveAdmins,
   countAllAdmins,
@@ -567,7 +567,7 @@ export async function restoreEmployee(
 export async function permanentlyDeleteEmployee(
   employeeId: string,
 ): Promise<EmployeeActionResult> {
-  const admin = await requireOwnerUser();
+  const admin = await requireAdminUser();
   if (employeeId === admin.id) {
     return {
       success: false,

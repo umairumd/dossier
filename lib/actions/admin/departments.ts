@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAdminUser, requireOwnerUser } from "@/lib/supabase/require-admin";
+import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { countActiveDepartmentMembers } from "@/lib/supabase/queries/admin/departments";
 import {
   getActorLogContext,
@@ -465,7 +465,7 @@ export async function restoreDepartment(
 export async function permanentlyDeleteDepartment(
   departmentId: string,
 ): Promise<DepartmentActionResult> {
-  const owner = await requireOwnerUser();
+  const admin = await requireAdminUser();
 
   const supabase = await createClient();
   const { data: department, error: fetchError } = await supabase
@@ -486,12 +486,12 @@ export async function permanentlyDeleteDepartment(
   }
 
   try {
-    const { orgId, actorName } = await getActorLogContext(owner.id);
+    const { orgId, actorName } = await getActorLogContext(admin.id);
     if (orgId) {
       void logActivity({
         orgId,
         eventType: "department_archived",
-        actorId: owner.id,
+        actorId: admin.id,
         actorName: actorName ?? undefined,
         entityType: "department",
         entityName: department.name,
@@ -502,7 +502,8 @@ export async function permanentlyDeleteDepartment(
     console.error("[activity-log] Failed to log department delete:", logError);
   }
 
-  const { error } = await supabase
+  const adminClient = createAdminClient();
+  const { error } = await adminClient
     .from("departments")
     .delete()
     .eq("id", departmentId);
