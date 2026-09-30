@@ -39,8 +39,8 @@ export function EmployeeHeroClient({
   const [expr, setExpr] = useState<BotExpression>("neutral");
 
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex flex-col gap-2">
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex min-w-0 flex-1 basis-64 flex-col gap-2">
         <ProfileHeader
           userId={employee.id}
           name={name}

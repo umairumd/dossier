@@ -63,6 +63,44 @@ export function InvitationList({
           }
         />
       ) : (
+        <>
+        <div className="flex flex-col gap-3 md:hidden">
+          {filtered.map((invitation) => (
+            <div
+              key={invitation.id}
+              className="flex flex-col gap-2 rounded-xl bg-card p-4 ring-1 ring-foreground/10"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="font-medium">{invitation.full_name}</span>
+                  <span className="truncate text-sm text-muted-foreground">
+                    {invitation.email ?? "—"}
+                  </span>
+                </div>
+                <InvitationActionsMenu
+                  employee={invitation}
+                  isSelf={invitation.id === currentUserId}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 font-medium">
+                  {getRoleLabel(invitation.role)}
+                </span>
+                <span>{invitation.department_names.join(", ") || "—"}</span>
+                <span className="ml-auto">
+                  Invited{" "}
+                  {invitation.created_at ? (
+                    <LocalDateTime isoString={invitation.created_at} />
+                  ) : (
+                    "—"
+                  )}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -104,6 +142,8 @@ export function InvitationList({
             ))}
           </TableBody>
         </Table>
+        </div>
+        </>
       )}
     </div>
   );

@@ -80,7 +80,7 @@ export function DepartmentList({
           value={statusFilter}
           onValueChange={(value) => setStatusFilter(value as StatusFilter)}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-full sm:w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -103,6 +103,61 @@ export function DepartmentList({
           }
         />
       ) : (
+        <>
+        <div className="flex flex-col gap-3 md:hidden">
+          {filtered.map((department) => (
+            <div
+              key={department.id}
+              className="flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <Link
+                    href={`/departments/${department.id}`}
+                    className="font-medium hover:underline"
+                  >
+                    {department.name}
+                  </Link>
+                  {department.employee_count === 0 && <NoMembersIndicator />}
+                </div>
+                <DepartmentActionsMenu
+                  department={department}
+                  managerCandidates={managerCandidates}
+                />
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                {department.manager_name ? (
+                  <>
+                    <MemberAvatar
+                      userId={department.manager_id ?? undefined}
+                      name={department.manager_name}
+                      size="sm"
+                    />
+                    <span className="min-w-0 truncate">
+                      {department.manager_name}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                      —
+                    </div>
+                    <span>Unassigned</span>
+                  </>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <DepartmentStatusBadge archivedAt={department.archived_at} />
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {department.employee_count}{" "}
+                  {department.employee_count === 1 ? "employee" : "employees"}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -164,6 +219,8 @@ export function DepartmentList({
             ))}
           </TableBody>
         </Table>
+        </div>
+        </>
       )}
     </div>
   );

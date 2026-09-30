@@ -79,8 +79,11 @@ function DeptCard({
   return (
     <div
       className={cn(
-        "w-full overflow-hidden rounded-xl border bg-card",
-        dashed ? "border-dashed border-border" : "border-border",
+        "w-full overflow-hidden rounded-xl bg-card",
+        // A ring can't be dashed, so the "Unassigned" placeholder keeps a border.
+        dashed
+          ? "border border-dashed border-border"
+          : "ring-1 ring-foreground/10",
         className,
       )}
     >
