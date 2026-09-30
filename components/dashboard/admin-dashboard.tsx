@@ -45,17 +45,14 @@ export async function AdminDashboard() {
       getOrganizationName(),
     ]);
   const deadline = getDeadlineContext(settings);
-  let template: ReportTemplateWithFields | undefined;
-  if (profile) {
-    try {
-      template = await resolveTemplate(profile.id, profile.department_ids);
-    } catch {
-      template = undefined;
-    }
-  }
+  const template: ReportTemplateWithFields | undefined = profile
+    ? ((await resolveTemplate(profile.id, profile.department_ids)) ?? undefined)
+    : undefined;
 
   let contextLine: string;
-  if (summary.totalMembers === 0) {
+  if (summary.totalMembers === 0 && summary.pendingInvites > 0) {
+    contextLine = `${summary.pendingInvites} invitation${summary.pendingInvites === 1 ? "" : "s"} pending — waiting for your first employee to sign in`;
+  } else if (summary.totalMembers === 0) {
     contextLine = "Start by inviting your first employee";
   } else if (summary.completionPercentageToday === 100) {
     contextLine = `✓ All ${summary.totalMembers} employees have submitted today`;
@@ -88,7 +85,10 @@ export async function AdminDashboard() {
           { label: "Missing Today", value: String(summary.missingToday) },
           {
             label: "Today's Completion",
-            value: `${summary.completionPercentageToday}%`,
+            value:
+              summary.totalMembers === 0
+                ? "—"
+                : `${summary.completionPercentageToday}%`,
           },
         ]}
       />

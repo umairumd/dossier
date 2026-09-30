@@ -1,7 +1,11 @@
 import { getOrgReportsForDate } from "@/lib/supabase/queries/admin/org-reports";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getOrgTemplatesWithFields } from "@/lib/supabase/queries/templates";
-import { formatDate, todayInTimezone } from "@/lib/helpers/dates";
+import {
+  formatDate,
+  isValidDateString,
+  todayInTimezone,
+} from "@/lib/helpers/dates";
 import { DateNav } from "@/components/shared/date-nav";
 import { PageHeader } from "@/components/shared/page-header";
 import { OrgDailyReports } from "@/components/admin/org-daily-reports";
@@ -14,7 +18,7 @@ export default async function TrackReportsPage({
   const { date: dateParam } = await searchParams;
   const settings = await getOrganizationSettings();
   const today = todayInTimezone(settings.timezone);
-  const date = dateParam ?? today;
+  const date = isValidDateString(dateParam) ? dateParam : today;
 
   const [{ members, departments }, templates] = await Promise.all([
     getOrgReportsForDate(date),

@@ -79,8 +79,14 @@ export function buildOrgTree(
 
   const empMap = new Map(active.map((e) => [e.id, e]));
 
-  function toNode(emp: EmployeeListItem): OrgNode {
-    const reportIds = reportsMap.get(emp.id) ?? [];
+  // `path` holds the ancestors of the node being built. Supervisor data can
+  // contain cycles (A supervises B, B supervises A); skipping any report
+  // that is already an ancestor keeps the recursion finite.
+  function toNode(emp: EmployeeListItem, path: Set<string>): OrgNode {
+    const nextPath = new Set(path).add(emp.id);
+    const reportIds = (reportsMap.get(emp.id) ?? []).filter(
+      (id) => !nextPath.has(id) && empMap.has(id),
+    );
     return {
       id: emp.id,
       full_name: emp.full_name,
@@ -89,24 +95,49 @@ export function buildOrgTree(
       avatar_url: emp.avatar_url,
       department_names: emp.department_names,
       supervisor_ids: emp.supervisor_ids,
-      reports: reportIds.map((id) => toNode(empMap.get(id)!)),
+      reports: reportIds.map((id) => toNode(empMap.get(id)!, nextPath)),
     };
   }
 
-  const roots = active
+  const rootEmployees = active
     .filter((e) => !hasSupervisor.has(e.id))
     .filter(
       (e) =>
         (reportsMap.get(e.id)?.length ?? 0) > 0 || e.supervisor_ids.length === 0,
-    )
-    .map(toNode);
+    );
 
-  const unsupervised = active
-    .filter(
-      (e) =>
-        !hasSupervisor.has(e.id) && (reportsMap.get(e.id)?.length ?? 0) === 0,
-    )
-    .map(toNode);
+  const unsupervisedEmployees = active.filter(
+    (e) =>
+      !hasSupervisor.has(e.id) && (reportsMap.get(e.id)?.length ?? 0) === 0,
+  );
+
+  // Employees that belong to a pure cycle have a supervisor, so they never
+  // qualify as a root or as unsupervised and would silently disappear.
+  // Find everything reachable from the normal roots, then promote one
+  // member of each leftover component to a root so it still renders.
+  const reachable = new Set<string>();
+  function markReachable(id: string) {
+    if (reachable.has(id)) return;
+    reachable.add(id);
+    for (const childId of reportsMap.get(id) ?? []) {
+      markReachable(childId);
+    }
+  }
+  for (const e of [...rootEmployees, ...unsupervisedEmployees]) {
+    markReachable(e.id);
+  }
+
+  const cycleRoots: EmployeeListItem[] = [];
+  for (const e of active) {
+    if (reachable.has(e.id)) continue;
+    cycleRoots.push(e);
+    markReachable(e.id);
+  }
+
+  const roots = [...rootEmployees, ...cycleRoots].map((e) =>
+    toNode(e, new Set()),
+  );
+  const unsupervised = unsupervisedEmployees.map((e) => toNode(e, new Set()));
 
   return { roots, unsupervised };
 }

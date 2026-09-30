@@ -87,6 +87,9 @@ export default async function DepartmentDetailPage({
     (id) => reportingIds.has(id),
   ).length;
   const totalCount = reportingMembers.length;
+  // With no reporting members there is nothing to measure; show "—" rather
+  // than a misleading 0/0 and 0%.
+  const hasReportingMembers = totalCount > 0;
   const missingToday = Math.max(totalCount - submittedToday, 0);
   const completionPct =
     totalCount === 0 ? 0 : Math.round((submittedToday / totalCount) * 100);
@@ -200,20 +203,22 @@ export default async function DepartmentDetailPage({
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <StatCard
           label="Submitted Today"
-          value={`${submittedToday}/${totalCount}`}
+          value={hasReportingMembers ? `${submittedToday}/${totalCount}` : "—"}
           icon={<CheckCircle className="size-4" />}
         />
         <StatCard
           label="Completion"
-          value={`${completionPct}%`}
+          value={hasReportingMembers ? `${completionPct}%` : "—"}
           icon={<TrendingUp className="size-4" />}
         />
         <StatCard
           label="Missing"
-          value={missingToday}
+          value={hasReportingMembers ? missingToday : "—"}
           icon={<AlertCircle className="size-4" />}
           valueClassName={
-            missingToday > 0 ? "text-destructive" : undefined
+            hasReportingMembers && missingToday > 0
+              ? "text-destructive"
+              : undefined
           }
         />
       </div>

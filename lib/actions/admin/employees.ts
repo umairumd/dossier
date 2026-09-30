@@ -165,17 +165,20 @@ export async function inviteEmployee(
         .eq("organization_id", orgId)
         .in("role", ["owner", "admin"]);
 
+      // Don't notify the admin who sent the invite about their own action.
       await Promise.all(
-        (admins ?? []).map((admin) =>
-          createNotification({
-            orgId,
-            profileId: admin.id,
-            type: "employee_invited",
-            title: `${fullName} has been invited`,
-            entityType: "employee",
-            entityId: userId,
-          }),
-        ),
+        (admins ?? [])
+          .filter((admin) => admin.id !== adminUser.id)
+          .map((admin) =>
+            createNotification({
+              orgId,
+              profileId: admin.id,
+              type: "employee_invited",
+              title: `${fullName} has been invited`,
+              entityType: "employee",
+              entityId: userId,
+            }),
+          ),
       );
 
       void logActivity({

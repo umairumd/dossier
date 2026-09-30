@@ -9,7 +9,11 @@ import {
 } from "@/lib/supabase/queries/supervisor/team";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getOrgTemplatesWithFields } from "@/lib/supabase/queries/templates";
-import { formatDate, todayInTimezone } from "@/lib/helpers/dates";
+import {
+  formatDate,
+  isValidDateString,
+  todayInTimezone,
+} from "@/lib/helpers/dates";
 import type { TeamMemberReport } from "@/types/team";
 import { DateNav } from "@/components/shared/date-nav";
 import { TeamReportsView } from "@/components/manager/team-reports-view";
@@ -24,7 +28,7 @@ export default async function TeamReportsPage({
   const profile = await getCurrentProfileWithDepartment();
   const settings = await getOrganizationSettings();
   const today = todayInTimezone(settings.timezone);
-  const date = dateParam ?? today;
+  const date = isValidDateString(dateParam) ? dateParam : today;
 
   const [deptMembers, supervised, templates] = await Promise.all([
     profile?.role === "manager"
