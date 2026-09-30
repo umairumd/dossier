@@ -103,19 +103,30 @@ export async function submitDailyReport(
 
     if (profile?.is_remote && profile.organization_id) {
       const adminClient = createAdminClient();
-      await adminClient.from("attendance_records").upsert(
-        {
-          profile_id: user.id,
-          org_id: profile.organization_id,
-          date: reportDate,
-          status: "present",
-          fine_amount: 0,
-          leave_deducted: 0,
-          source: "report",
-          recorded_by: user.id,
-        },
-        { onConflict: "org_id,profile_id,date" },
-      );
+      // ignoreDuplicates: never overwrite an existing row (e.g. an
+      // HR-recorded leave / half_leave / holiday) when a report is submitted.
+      const { error: attendanceUpsertError } = await adminClient
+        .from("attendance_records")
+        .upsert(
+          {
+            profile_id: user.id,
+            org_id: profile.organization_id,
+            date: reportDate,
+            status: "present",
+            fine_amount: 0,
+            leave_deducted: 0,
+            source: "report",
+            recorded_by: user.id,
+          },
+          { onConflict: "org_id,profile_id,date", ignoreDuplicates: true },
+        );
+
+      if (attendanceUpsertError) {
+        console.error(
+          "Failed to auto-record remote attendance:",
+          attendanceUpsertError,
+        );
+      }
     }
   } catch (attendanceError) {
     console.error("Failed to auto-record remote attendance:", attendanceError);
