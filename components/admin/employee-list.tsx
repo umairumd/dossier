@@ -144,7 +144,7 @@ export function EmployeeList({
           value={statusFilter}
           onValueChange={(value) => setStatusFilter(value as StatusFilter)}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-full sm:w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -167,6 +167,74 @@ export function EmployeeList({
           }
         />
       ) : (
+        <>
+        <div className="flex flex-col gap-3 md:hidden">
+          {filtered.map((employee) => {
+            const resolved = resolveSource(employee, departments, templates);
+
+            return (
+              <div
+                key={employee.id}
+                className="flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10"
+              >
+                <div className="flex items-start gap-3">
+                  <MemberAvatar
+                    userId={employee.id}
+                    name={employee.full_name}
+                    avatarUrl={employee.avatar_url ?? undefined}
+                    size="md"
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Link
+                        href={`/employees/${employee.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {employee.full_name}
+                      </Link>
+                      {employee.is_remote && <RemoteIndicator />}
+                      {employee.employment_type === "part_time" && (
+                        <PartTimeIndicator />
+                      )}
+                    </div>
+                    {employee.designation && (
+                      <span className="text-sm text-muted-foreground">
+                        {employee.designation}
+                      </span>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {employee.department_names.join(", ") || "—"}
+                    </span>
+                  </div>
+                  <EmployeeActionsMenu
+                    employee={employee}
+                    isSelf={employee.id === currentUserId}
+                    departments={departments}
+                    candidates={candidates}
+                    templates={templates}
+                    currentTemplateSource={resolved.source}
+                    currentTemplateSourceName={resolved.sourceName}
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    {getRoleLabel(employee.role)}
+                  </span>
+                  <EmployeeStatusBadge status={employee.status} />
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    Last seen{" "}
+                    {formatLastSeen(
+                      employee.last_sign_in_at,
+                      lastSeenByEmployeeId[employee.id],
+                    )}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -253,6 +321,8 @@ export function EmployeeList({
             })}
           </TableBody>
         </Table>
+        </div>
+        </>
       )}
     </div>
   );

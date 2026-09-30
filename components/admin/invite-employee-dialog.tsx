@@ -217,18 +217,18 @@ export function InviteEmployeeDialog({
           <>
             <DialogBody>
               <div className="flex flex-col gap-2 rounded-lg bg-muted p-4 font-mono text-sm">
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground">Website</span>
-                  <span>{siteHost}</span>
+                  <span className="min-w-0 truncate">{siteHost}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground">Email</span>
-                  <span className="max-w-[180px] truncate">{email}</span>
+                  <span className="min-w-0 truncate">{email}</span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4">
                   <span className="text-muted-foreground">Password</span>
-                  <div className="flex items-center gap-2">
-                    <span>{tempPassword}</span>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="min-w-0 break-all">{tempPassword}</span>
                     <button
                       type="button"
                       onClick={copyPassword}
