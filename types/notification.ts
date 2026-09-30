@@ -5,7 +5,12 @@ export type NotificationType =
   | "employee_invited"
   | "employee_onboarded"
   | "attendance_fine"
-  | "leave_request_submitted";
+  | "leave_request_submitted"
+  | "shift_assigned"
+  | "template_assigned"
+  | "supervisor_assigned"
+  | "employee_deactivated"
+  | "employee_archived";
 
 export interface Notification {
   id: string;

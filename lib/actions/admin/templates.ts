@@ -9,6 +9,7 @@ import {
   getActorLogContext,
   logActivity,
 } from "@/lib/helpers/activity-log";
+import { createNotification } from "@/lib/actions/notifications";
 import type { FieldType } from "@/types/template";
 
 export type TemplateFieldInput = {
@@ -642,6 +643,20 @@ export async function assignProfileTemplate(input: {
         entityId: input.templateId ?? undefined,
         entityName: tmpl?.name ?? "none",
       });
+
+      // Skip notification for template removal (templateId null) and
+      // department-wide (bulk) assignment, which has no target employee.
+      if (input.templateId) {
+        void createNotification({
+          orgId,
+          profileId: input.profileId,
+          type: "template_assigned",
+          title: "Your report template has been updated",
+          body: tmpl?.name,
+          entityType: "employee",
+          entityId: input.profileId,
+        });
+      }
     }
   } catch (logError) {
     console.error("[activity-log] Failed to log template assignment:", logError);

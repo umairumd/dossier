@@ -3,12 +3,16 @@
 import { useState, useTransition, type ComponentType } from "react";
 import {
   AlertTriangle,
+  Archive,
   Bell,
   CalendarClock,
   CheckCircle,
   Clock,
+  FileText,
   UserCheck,
   UserPlus,
+  Users,
+  UserX,
   XCircle,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -34,6 +38,11 @@ const TYPE_ICONS: Record<
   employee_onboarded: { Icon: UserCheck, className: "text-blue-500" },
   attendance_fine: { Icon: AlertTriangle, className: "text-amber-500" },
   leave_request_submitted: { Icon: CalendarClock, className: "text-blue-500" },
+  shift_assigned: { Icon: Clock, className: "text-blue-500" },
+  template_assigned: { Icon: FileText, className: "text-blue-500" },
+  supervisor_assigned: { Icon: Users, className: "text-blue-500" },
+  employee_deactivated: { Icon: UserX, className: "text-amber-500" },
+  employee_archived: { Icon: Archive, className: "text-amber-500" },
 };
 
 export function NotificationBell({

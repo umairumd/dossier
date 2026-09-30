@@ -404,6 +404,17 @@ export async function setEmployeeActive(
         entityId: employeeId,
         entityName: target?.full_name ?? undefined,
       });
+
+      if (!isActive) {
+        void createNotification({
+          orgId,
+          profileId: employeeId,
+          type: "employee_deactivated",
+          title: "Your account has been deactivated",
+          entityType: "employee",
+          entityId: employeeId,
+        });
+      }
     }
   } catch (logError) {
     console.error("[activity-log] Failed to log employee status change:", logError);
@@ -487,6 +498,15 @@ export async function archiveEmployee(
         entityType: "employee",
         entityId: employeeId,
         entityName: target?.full_name ?? undefined,
+      });
+
+      void createNotification({
+        orgId,
+        profileId: employeeId,
+        type: "employee_archived",
+        title: "Your account has been archived",
+        entityType: "employee",
+        entityId: employeeId,
       });
     }
   } catch (logError) {
@@ -870,6 +890,18 @@ export async function assignMemberSupervisors(
         entityName: supervisorNames,
         metadata: { supervisorIds: requested, added: toAdd, removed: toRemove },
       });
+
+      // Skip notification when all supervisors were cleared (removal).
+      if (requested.length > 0) {
+        void createNotification({
+          orgId,
+          profileId: memberId,
+          type: "supervisor_assigned",
+          title: "Your supervisors have been updated",
+          entityType: "employee",
+          entityId: memberId,
+        });
+      }
     }
   } catch (logError) {
     console.error("[activity-log] Failed to log supervisor assignment:", logError);
