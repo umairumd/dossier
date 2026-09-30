@@ -646,26 +646,62 @@ export async function assignMemberDepartments(
   const admin = await requireAdminUser();
 
   const supabase = await createClient();
-  const { error: deleteError } = await supabase
+
+  const { data: currentRows, error: currentError } = await supabase
     .from("profile_departments")
-    .delete()
+    .select("department_id")
     .eq("profile_id", memberId);
 
-  if (deleteError) {
+  if (currentError) {
     return { success: false, error: "Failed to update department assignments." };
   }
 
-  if (departmentIds.length > 0) {
+  // Diff instead of wipe-and-reinsert so a failure can never leave the
+  // member with no departments.
+  const requested = Array.from(new Set(departmentIds));
+  const current = (currentRows ?? []).map((row) => row.department_id);
+  const toAdd = requested.filter((id) => !current.includes(id));
+  const toRemove = current.filter((id) => !requested.includes(id));
+
+  if (toAdd.length > 0) {
     const { error: insertError } = await supabase
       .from("profile_departments")
       .insert(
-        departmentIds.map((department_id) => ({
+        toAdd.map((department_id) => ({
           profile_id: memberId,
           department_id,
         })),
       );
 
     if (insertError) {
+      return { success: false, error: "Failed to update department assignments." };
+    }
+  }
+
+  if (toRemove.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("profile_departments")
+      .delete()
+      .eq("profile_id", memberId)
+      .in("department_id", toRemove);
+
+    if (deleteError) {
+      return { success: false, error: "Failed to update department assignments." };
+    }
+
+    // Same as removeEmployeeFromDepartment: a removed member can't remain
+    // the manager of that department.
+    const { error: clearManagerError } = await supabase
+      .from("departments")
+      .update({ manager_id: null })
+      .in("id", toRemove)
+      .eq("manager_id", memberId);
+
+    if (clearManagerError) {
+      console.error(
+        "[departments] Failed to clear manager after membership removal:",
+        clearManagerError,
+      );
       return { success: false, error: "Failed to update department assignments." };
     }
   }
@@ -679,11 +715,11 @@ export async function assignMemberDepartments(
         .select("full_name")
         .eq("id", memberId)
         .maybeSingle(),
-      departmentIds.length > 0
+      requested.length > 0
         ? adminClient
             .from("departments")
             .select("name")
-            .in("id", departmentIds)
+            .in("id", requested)
         : Promise.resolve({ data: [] as { name: string }[] }),
     ]);
 
@@ -699,7 +735,7 @@ export async function assignMemberDepartments(
         targetName: target?.full_name ?? undefined,
         entityType: "department",
         entityName: deptNames,
-        metadata: { departmentIds },
+        metadata: { departmentIds: requested, added: toAdd, removed: toRemove },
       });
     }
   } catch (logError) {
@@ -709,6 +745,9 @@ export async function assignMemberDepartments(
   revalidateEmployeePaths(memberId);
   revalidatePath("/admin/departments");
   revalidatePath("/departments");
+  for (const departmentId of new Set([...toAdd, ...toRemove])) {
+    revalidatePath(`/departments/${departmentId}`);
+  }
 
   return { success: true };
 }
@@ -719,25 +758,82 @@ export async function assignMemberSupervisors(
 ): Promise<EmployeeActionResult> {
   const admin = await requireAdminUser();
 
+  const requested = Array.from(new Set(supervisorIds));
+
+  if (requested.includes(memberId)) {
+    return { success: false, error: "An employee cannot supervise themselves." };
+  }
+
   const supabase = await createClient();
-  const { error: deleteError } = await supabase
+
+  const { data: currentRows, error: currentError } = await supabase
     .from("member_supervisors")
-    .delete()
+    .select("supervisor_id")
     .eq("member_id", memberId);
 
-  if (deleteError) {
+  if (currentError) {
     return { success: false, error: "Failed to update supervisor assignments." };
   }
 
-  if (supervisorIds.length > 0) {
-    const { error: insertError } = await supabase.from("member_supervisors").insert(
-      supervisorIds.map((supervisor_id) => ({
-        member_id: memberId,
-        supervisor_id,
-      })),
-    );
+  const current = (currentRows ?? []).map((row) => row.supervisor_id);
+  const toAdd = requested.filter((id) => !current.includes(id));
+  const toRemove = current.filter((id) => !requested.includes(id));
+
+  if (toAdd.length > 0) {
+    // Reject cycles: walk upward from each new supervisor; reaching the
+    // member means the new edge would close a loop.
+    const { data: edges, error: edgesError } = await createAdminClient()
+      .from("member_supervisors")
+      .select("member_id, supervisor_id");
+
+    if (edgesError) {
+      return { success: false, error: "Failed to update supervisor assignments." };
+    }
+
+    const supervisorsOf = new Map<string, string[]>();
+    for (const edge of edges ?? []) {
+      const list = supervisorsOf.get(edge.member_id) ?? [];
+      list.push(edge.supervisor_id);
+      supervisorsOf.set(edge.member_id, list);
+    }
+
+    const seen = new Set<string>();
+    const stack = [...toAdd];
+    while (stack.length > 0) {
+      const node = stack.pop()!;
+      if (node === memberId) {
+        return {
+          success: false,
+          error: "That would create a circular reporting line.",
+        };
+      }
+      if (seen.has(node)) continue;
+      seen.add(node);
+      stack.push(...(supervisorsOf.get(node) ?? []));
+    }
+
+    const { error: insertError } = await supabase
+      .from("member_supervisors")
+      .insert(
+        toAdd.map((supervisor_id) => ({
+          member_id: memberId,
+          supervisor_id,
+        })),
+      );
 
     if (insertError) {
+      return { success: false, error: "Failed to update supervisor assignments." };
+    }
+  }
+
+  if (toRemove.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("member_supervisors")
+      .delete()
+      .eq("member_id", memberId)
+      .in("supervisor_id", toRemove);
+
+    if (deleteError) {
       return { success: false, error: "Failed to update supervisor assignments." };
     }
   }
@@ -751,11 +847,11 @@ export async function assignMemberSupervisors(
         .select("full_name")
         .eq("id", memberId)
         .maybeSingle(),
-      supervisorIds.length > 0
+      requested.length > 0
         ? adminClient
             .from("profiles")
             .select("full_name")
-            .in("id", supervisorIds)
+            .in("id", requested)
         : Promise.resolve({ data: [] as { full_name: string }[] }),
     ]);
 
@@ -772,7 +868,7 @@ export async function assignMemberSupervisors(
         targetName: target?.full_name ?? undefined,
         entityType: "employee",
         entityName: supervisorNames,
-        metadata: { supervisorIds },
+        metadata: { supervisorIds: requested, added: toAdd, removed: toRemove },
       });
     }
   } catch (logError) {
