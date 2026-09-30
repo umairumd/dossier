@@ -1,5 +1,6 @@
 import {
   Building2,
+  Cake,
   CalendarCheck,
   FileText,
   Home,
@@ -115,6 +116,12 @@ export const navSections: NavSection[] = [
         label: "Employees",
         href: "/employees",
         icon: <Users className="size-4" />,
+        roles: ["owner", "admin"],
+      },
+      {
+        label: "Birthdays",
+        href: "/birthdays",
+        icon: <Cake className="size-4" />,
         roles: ["owner", "admin"],
       },
       {
