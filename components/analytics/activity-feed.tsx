@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
+  Activity,
   Archive,
   Building2,
   CalendarCheck,
@@ -14,6 +15,7 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import {
@@ -224,9 +226,11 @@ export function ActivityFeed({
 
   if (items.length === 0) {
     return (
-      <p className="py-6 text-center text-sm text-muted-foreground">
-        {emptyMessage}
-      </p>
+      <EmptyState
+        size="sm"
+        icon={<Activity className="size-4" />}
+        title={emptyMessage}
+      />
     );
   }
 
@@ -265,7 +269,10 @@ export function ActivityFeed({
           return (
             <li key={item.id} className="group relative">
               {href ? (
-                <Link href={href} className="block hover:opacity-80">
+                <Link
+                  href={href}
+                  className="-mx-2 -my-1.5 block rounded-md px-2 py-1.5 transition-colors hover:bg-foreground/5"
+                >
                   {content}
                 </Link>
               ) : (

@@ -51,11 +51,13 @@ export function NavLinks({
                 aria-label={collapsed ? item.label : undefined}
                 onClick={() => onNavigate?.()}
                 className={cn(
-                  "group flex items-center font-medium text-muted-foreground transition-all duration-150 hover:translate-x-0.5 hover:bg-muted hover:text-foreground",
+                  "group flex items-center font-medium text-muted-foreground transition-all duration-150 hover:translate-x-0.5 hover:text-foreground",
                   collapsed
                     ? "h-9 w-9 justify-center rounded-md"
                     : "gap-2 rounded-md px-2.5 py-1.5 text-sm",
-                  isActive && "bg-primary/10 text-foreground",
+                  isActive
+                    ? "bg-primary/10 text-foreground"
+                    : "hover:bg-foreground/5",
                 )}
               >
                 <span

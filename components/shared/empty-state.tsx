@@ -285,6 +285,7 @@ export function EmptyState({
   title,
   description,
   action,
+  size = "default",
   className,
 }: {
   icon?: ReactNode;
@@ -292,19 +293,29 @@ export function EmptyState({
   title: string;
   description?: string;
   action?: ReactNode;
+  /** `sm` is a compact layout for dialogs, popovers and in-card lists. */
+  size?: "default" | "sm";
   className?: string;
 }) {
+  const compact = size === "sm";
+
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 py-10 text-center",
+        "flex flex-col items-center justify-center text-center",
+        compact ? "gap-2 py-6" : "gap-3 py-10",
         className,
       )}
     >
-      {illustration ? (
+      {!compact && illustration ? (
         <EmptyIllustrationSvg illustration={illustration} />
       ) : icon ? (
-        <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <div
+          className={cn(
+            "flex items-center justify-center rounded-full bg-muted text-muted-foreground",
+            compact ? "size-9" : "size-12",
+          )}
+        >
           {icon}
         </div>
       ) : null}

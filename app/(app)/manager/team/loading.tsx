@@ -15,7 +15,7 @@ export default function TeamLoading() {
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="flex flex-col items-center gap-3 rounded-xl border border-border p-5"
+              className="flex flex-col items-center gap-3 rounded-xl bg-card ring-1 ring-foreground/10 p-5"
             >
               <Skeleton className="size-14 rounded-full" />
               <Skeleton className="h-4 w-28" />

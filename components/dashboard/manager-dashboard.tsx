@@ -97,7 +97,7 @@ export async function ManagerDashboard({
             {previewMembers.map((member) => (
               <div
                 key={member.employeeId}
-                className="flex items-center justify-between gap-2"
+                className="-mx-2 -my-1 flex items-center justify-between gap-2 rounded-md px-2 py-1 transition-colors hover:bg-foreground/5"
               >
                 <span className="min-w-0 truncate text-sm">
                   {member.fullName}

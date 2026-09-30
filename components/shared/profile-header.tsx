@@ -22,7 +22,6 @@ export function ProfileHeader({
   isRemote,
   employmentType,
   avatarUrl,
-  size = "md",
   avatarSize = "lg",
   roleLabel,
   joinedLabel,
@@ -36,7 +35,6 @@ export function ProfileHeader({
   isRemote?: boolean;
   employmentType?: "full_time" | "part_time";
   avatarUrl?: string | null;
-  size?: "sm" | "md";
   avatarSize?: "md" | "lg" | "xl" | "2xl";
   roleLabel?: string;
   joinedLabel?: string;
@@ -62,7 +60,7 @@ export function ProfileHeader({
         <div className="flex items-center gap-1.5">
           <h2
             className={cn(
-              "font-semibold",
+              "font-semibold tracking-tight",
               showDetailPills ? "text-lg" : "text-2xl",
             )}
           >

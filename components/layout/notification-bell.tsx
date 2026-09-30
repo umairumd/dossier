@@ -8,6 +8,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { EmptyState } from "@/components/shared/empty-state";
+import { Button } from "@/components/ui/button";
 import { markAllNotificationsRead } from "@/lib/actions/notifications";
 import type { Notification } from "@/types/notification";
 import { cn } from "@/lib/utils";
@@ -48,9 +50,11 @@ export function NotificationBell({
   return (
     <Popover open={open} onOpenChange={handleOpen}>
       <PopoverTrigger asChild>
-        <button
+        <Button
           type="button"
-          className="relative flex size-8 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+          variant="ghost"
+          size="icon"
+          className="relative text-foreground/70"
           aria-label="Notifications"
         >
           <Bell className="size-4" />
@@ -59,7 +63,7 @@ export function NotificationBell({
               {displayCount > 9 ? "9+" : displayCount}
             </span>
           )}
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -72,9 +76,11 @@ export function NotificationBell({
         </div>
         <div className="max-h-80 overflow-y-auto">
           {initialNotifications.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No notifications yet.
-            </div>
+            <EmptyState
+              size="sm"
+              icon={<Bell className="size-4" />}
+              title="No notifications yet."
+            />
           ) : (
             <div className="flex flex-col">
               {initialNotifications.map((n) => (

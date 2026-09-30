@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { Users } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -74,9 +76,11 @@ export function AddDepartmentMemberDialog({
         <form onSubmit={handleSubmit}>
           <DialogBody>
             {candidates.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Everyone is already in this department.
-              </p>
+              <EmptyState
+                size="sm"
+                icon={<Users className="size-4" />}
+                title="Everyone is already in this department."
+              />
             ) : (
               <Select value={employeeId} onValueChange={setEmployeeId}>
                 <SelectTrigger className="w-full">

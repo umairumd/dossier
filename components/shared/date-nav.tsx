@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -10,7 +11,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { formatDate, shiftReportDate, todayInTimezone } from "@/lib/helpers/dates";
-import { cn } from "@/lib/utils";
 
 export function DateNav({
   date,
@@ -40,22 +40,25 @@ export function DateNav({
 
   return (
     <div className="flex items-center gap-1" aria-busy={isPending}>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={() => goToDate(previousDate)}
         disabled={isPending}
-        className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
         aria-label="Previous day"
       >
         <ChevronLeft className="size-4" />
-      </button>
+      </Button>
 
       <Popover>
         <PopoverTrigger asChild>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             disabled={isPending}
-            className="min-w-20 rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+            className="min-w-20"
           >
             {isPending ? (
               <Loader2
@@ -65,7 +68,7 @@ export function DateNav({
             ) : (
               centerLabel
             )}
-          </button>
+          </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="center">
           <Calendar
@@ -84,17 +87,16 @@ export function DateNav({
         </PopoverContent>
       </Popover>
 
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={() => goToDate(nextDate)}
         disabled={isPending || isToday}
-        className={cn(
-          "rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
-        )}
         aria-label="Next day"
       >
         <ChevronRight className="size-4" />
-      </button>
+      </Button>
     </div>
   );
 }

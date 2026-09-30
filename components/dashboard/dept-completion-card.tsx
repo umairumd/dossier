@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import {
   Card,
   CardContent,
@@ -10,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -110,21 +112,24 @@ export function DeptCompletionCard({
             <CardDescription>{description}</CardDescription>
           </div>
           <div className="flex items-center gap-1" aria-busy={isPending}>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               onClick={() => goToDate(previousDate)}
               disabled={isPending}
-              className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
               aria-label="Previous day"
             >
               <ChevronLeft className="size-4" />
-            </button>
+            </Button>
             <Popover>
               <PopoverTrigger asChild>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   disabled={isPending}
-                  className="min-w-20 rounded-md px-2 py-1 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+                  className="min-w-20"
                 >
                   {isPending ? (
                     <Loader2
@@ -134,7 +139,7 @@ export function DeptCompletionCard({
                   ) : (
                     centerLabel
                   )}
-                </button>
+                </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="center">
                 <Calendar
@@ -152,23 +157,26 @@ export function DeptCompletionCard({
                 />
               </PopoverContent>
             </Popover>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               onClick={() => goToDate(nextDate)}
               disabled={isPending || isToday}
-              className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
               aria-label="Next day"
             >
               <ChevronRight className="size-4" />
-            </button>
+            </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         {departments.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            No departments with active members yet.
-          </p>
+          <EmptyState
+            size="sm"
+            icon={<Building2 className="size-4" />}
+            title="No departments with active members yet."
+          />
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {departments.map((dept) => {
@@ -198,7 +206,7 @@ export function DeptCompletionCard({
                 <Link
                   key={dept.departmentId}
                   href={`/departments/${dept.departmentId}`}
-                  className="rounded-md px-2 py-2 hover:bg-muted/40 cursor-pointer"
+                  className="rounded-md px-2 py-2 transition-colors hover:bg-foreground/5"
                 >
                   <DeptRow
                     name={name}

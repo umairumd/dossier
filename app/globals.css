@@ -238,6 +238,12 @@
   html {
     @apply font-sans;
   }
+  /* Tailwind v4 preflight no longer sets a pointer cursor on buttons. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
   h1,
   h2,
   h3 {
@@ -279,7 +285,7 @@
   }
 
   .hover-highlight {
-    @apply hover:bg-foreground/8 transition-colors;
+    @apply hover:bg-foreground/5 transition-colors;
   }
 
   .press-effect {

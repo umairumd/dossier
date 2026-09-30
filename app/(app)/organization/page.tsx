@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { getAttendanceSettings } from "@/lib/supabase/queries/attendance";
@@ -102,9 +103,9 @@ export default async function OrganizationSettingsPage() {
                 templates to departments or individual employees.
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" asChild>
+            <Button asChild>
               <Link href="/organization/templates/new">
-                <Plus className="mr-1.5 size-4" />
+                <Plus className="size-4" />
                 New Template
               </Link>
             </Button>
@@ -112,9 +113,11 @@ export default async function OrganizationSettingsPage() {
         </CardHeader>
         <CardContent className="p-0">
           {activeTemplates.length === 0 ? (
-            <p className="px-6 py-8 text-center text-sm text-muted-foreground">
-              No templates yet.
-            </p>
+            <EmptyState
+              size="sm"
+              icon={<FileText className="size-4" />}
+              title="No templates yet."
+            />
           ) : (
             <ul className="divide-y divide-border">
               {activeTemplates.map((template) => {
@@ -122,7 +125,7 @@ export default async function OrganizationSettingsPage() {
                 return (
                   <li
                     key={template.id}
-                    className="flex items-center justify-between gap-3 px-6 py-3"
+                    className="flex items-center justify-between gap-3 px-6 py-3 transition-colors hover:bg-foreground/5"
                   >
                     <div className="flex min-w-0 items-center gap-2">
                       <span className="truncate text-sm font-medium">

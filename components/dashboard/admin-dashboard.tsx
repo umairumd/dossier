@@ -128,7 +128,7 @@ export async function AdminDashboard() {
             orgName={orgName}
             trigger={
               <button type="button" className="w-full text-left">
-                <Card className="card-gradient cursor-pointer transition-colors hover:bg-muted/50">
+                <Card className="card-gradient cursor-pointer transition-colors hover:bg-foreground/5">
                   <CardContent className="flex flex-col items-center justify-center gap-2 py-6">
                     <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
                       <UserPlus className="size-5 text-primary" />
@@ -142,7 +142,7 @@ export async function AdminDashboard() {
           <CreateDepartmentDialog
             trigger={
               <button type="button" className="w-full text-left">
-                <Card className="card-gradient cursor-pointer transition-colors hover:bg-muted/50">
+                <Card className="card-gradient cursor-pointer transition-colors hover:bg-foreground/5">
                   <CardContent className="flex flex-col items-center justify-center gap-2 py-6">
                     <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
                       <Building2 className="size-5 text-primary" />

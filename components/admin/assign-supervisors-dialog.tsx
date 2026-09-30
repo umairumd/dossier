@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { Users } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -83,9 +85,11 @@ export function AssignSupervisorsDialog({
         </DialogHeader>
         <DialogBody>
           {eligibleCandidates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No other team members available.
-            </p>
+            <EmptyState
+              size="sm"
+              icon={<Users className="size-4" />}
+              title="No other team members available."
+            />
           ) : (
             <div className="flex flex-col gap-2">
               {eligibleCandidates.map((candidate) => {

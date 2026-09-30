@@ -35,7 +35,7 @@ export function EmployeeNameCell({
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="flex w-full items-center gap-2 rounded-md text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex w-full items-center gap-2 rounded-md text-left transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <MemberAvatar
               name={fullName}

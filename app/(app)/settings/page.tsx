@@ -26,6 +26,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ProfileForm } from "@/components/settings/profile-form";
+import { PageHeader } from "@/components/shared/page-header";
 import { ProfileHeader } from "@/components/shared/profile-header";
 
 export default async function SettingsPage() {
@@ -63,12 +64,10 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Your personal information and account security.
-        </p>
-      </div>
+      <PageHeader
+        title="Settings"
+        description="Your personal information and account security."
+      />
 
       <Card className="card-gradient">
         <CardHeader className="pb-3">

@@ -1,3 +1,5 @@
+import { BarChart3 } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import {
   Card,
   CardContent,
@@ -75,9 +77,11 @@ export function CompletionTrendCard({
             })}
           />
         ) : (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            {emptyMessage}
-          </p>
+          <EmptyState
+            size="sm"
+            icon={<BarChart3 className="size-4" />}
+            title={emptyMessage}
+          />
         )}
       </CardContent>
     </Card>

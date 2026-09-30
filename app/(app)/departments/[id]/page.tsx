@@ -113,7 +113,9 @@ export default async function DepartmentDetailPage({
         <CardContent className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold">{detail.name}</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {detail.name}
+              </h1>
               {detail.archived_at && (
                 <Badge variant="outline">Archived</Badge>
               )}
@@ -252,7 +254,7 @@ export default async function DepartmentDetailPage({
                 return (
                   <li
                     key={member.id}
-                    className="flex items-center justify-between px-4 py-3"
+                    className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-foreground/5"
                   >
                     <div className="flex items-center gap-2.5">
                       <MemberAvatar

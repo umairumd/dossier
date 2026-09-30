@@ -9,7 +9,7 @@ export default function ActivityLoading() {
         <Skeleton className="h-4 w-72" />
       </div>
       {/* Activity card */}
-      <div className="rounded-xl border border-border p-5 flex flex-col gap-3">
+      <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-5 flex flex-col gap-3">
         <Skeleton className="h-5 w-32" />
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="flex items-center gap-3 py-2">

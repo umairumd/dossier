@@ -1,4 +1,5 @@
-import { Calendar, Flame, TrendingUp } from "lucide-react";
+import { Calendar, FileText, Flame, TrendingUp } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import {
   getAllEmployees,
@@ -254,9 +255,11 @@ export default async function EmployeeDetailPage({
         </CardHeader>
         <CardContent className="p-0">
           {employee.recent_reports.length === 0 ? (
-            <p className="px-6 py-6 text-center text-sm text-muted-foreground">
-              No reports submitted yet.
-            </p>
+            <EmptyState
+              size="sm"
+              icon={<FileText className="size-4" />}
+              title="No reports submitted yet."
+            />
           ) : (
             <ReportHistoryBrowser
               reports={employee.recent_reports}

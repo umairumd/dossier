@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FileText } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -57,10 +58,12 @@ export function SubmitReportSheet({
                 onSubmitted={handleSubmitted}
               />
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Template not configured.
-                Contact your admin.
-              </p>
+              <EmptyState
+                size="sm"
+                icon={<FileText className="size-4" />}
+                title="Template not configured."
+                description="Contact your admin."
+              />
             )}
           </div>
         </div>

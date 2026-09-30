@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Crown } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import {
   PartTimeIndicator,
@@ -112,9 +113,10 @@ export function OrgChart({
 
   if (active.length === 0) {
     return (
-      <div className="py-12 text-center text-sm text-muted-foreground">
-        No active employees to display.
-      </div>
+      <EmptyState
+        illustration="employees"
+        title="No active employees to display."
+      />
     );
   }
 

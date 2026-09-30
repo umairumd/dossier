@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { ListPlus, Loader2, Plus } from "lucide-react";
+import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
 import { TemplateFieldDialog } from "@/components/admin/template-field-dialog";
 import { TemplateFieldRow } from "@/components/admin/template-field-row";
@@ -204,9 +205,12 @@ export function CreateDeptTemplateDialog({
               </div>
 
               {fields.length === 0 && (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  No fields yet. Add your first field above.
-                </p>
+                <EmptyState
+                  size="sm"
+                  icon={<ListPlus className="size-4" />}
+                  title="No fields yet."
+                  description="Add your first field above."
+                />
               )}
 
               {sortedFields.map((field, index) => (
