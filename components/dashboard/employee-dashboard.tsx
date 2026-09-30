@@ -1,6 +1,7 @@
 import { getReportHistory, getReportStatsData, getTodayReport } from "@/lib/supabase/queries/reports";
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
+import { getMyActivityLog } from "@/lib/supabase/queries/admin/activity";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { dateNDaysAgo } from "@/lib/helpers/dates";
@@ -10,12 +11,20 @@ import {
   computeReportStats,
 } from "@/lib/helpers/report-stats";
 import type { AttendanceStatus } from "@/types/attendance";
+import { ActivityFeed } from "@/components/analytics/activity-feed";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ActivityStrip } from "@/components/dashboard/activity-strip";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { ReportBanner } from "@/components/shared/report-banner";
 import { RecentReportsCard } from "@/components/reports/recent-reports-card";
 
 const RECENT_PREVIEW_SIZE = 5;
+const MY_ACTIVITY_LIMIT = 8;
 
 export async function EmployeeDashboard({
   profile,
@@ -23,7 +32,7 @@ export async function EmployeeDashboard({
   profile: ProfileWithDepartment;
 }) {
   const supabase = await createClient();
-  const [todayReport, preview, statsRows, settings, template, templates, attendanceResult] =
+  const [todayReport, preview, statsRows, settings, template, templates, attendanceResult, myActivity] =
     await Promise.all([
       getTodayReport(),
       getReportHistory(1, RECENT_PREVIEW_SIZE),
@@ -36,6 +45,7 @@ export async function EmployeeDashboard({
         .select("date, status")
         .eq("profile_id", profile.id)
         .gte("date", dateNDaysAgo(399)),
+      getMyActivityLog(MY_ACTIVITY_LIMIT),
     ]);
 
   const stats = computeReportStats(statsRows, settings.timezone, {
@@ -110,6 +120,22 @@ export async function EmployeeDashboard({
           templates={templates}
         />
       </div>
+
+      <Card
+        className="animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "150ms" }}
+      >
+        <CardHeader>
+          <CardTitle>Your Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ActivityFeed
+            variant="dashboard"
+            items={myActivity}
+            emptyMessage="No activity yet."
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }
