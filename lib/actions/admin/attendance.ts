@@ -382,26 +382,7 @@ export async function runMonthlyAccrualAction(
     };
   }
 
-  const supabase = await createClient();
   const adminClient = createAdminClient();
-
-  const { count: existingCount, error: guardError } = await supabase
-    .from("leave_accruals")
-    .select("id", { count: "exact", head: true })
-    .eq("year", year)
-    .eq("month", month);
-
-  if (guardError) {
-    return { success: false, count: 0, error: guardError.message };
-  }
-
-  if ((existingCount ?? 0) > 0) {
-    return {
-      success: false,
-      count: 0,
-      error: ACCRUAL_ALREADY_RUN_ERROR,
-    };
-  }
 
   const { data: eligible, error: profilesError } = await adminClient
     .from("profiles")
@@ -414,58 +395,119 @@ export async function runMonthlyAccrualAction(
     return { success: false, count: 0, error: profilesError.message };
   }
 
-  const profiles = eligible ?? [];
-  const creditedProfileIds: string[] = [];
+  const { data: existingAccruals, error: existingError } = await adminClient
+    .from("leave_accruals")
+    .select("profile_id")
+    .eq("year", year)
+    .eq("month", month);
 
-  for (const profile of profiles) {
+  if (existingError) {
+    return { success: false, count: 0, error: existingError.message };
+  }
+
+  // Retry-safe: only profiles without an accrual row for this month are
+  // pending, so a partially failed run can be re-run to finish the rest.
+  const alreadyCredited = new Set(
+    (existingAccruals ?? []).map((row) => row.profile_id),
+  );
+  const pending = (eligible ?? []).filter(
+    (profile) => !alreadyCredited.has(profile.id),
+  );
+
+  if (pending.length === 0) {
+    return {
+      success: false,
+      count: 0,
+      error: ACCRUAL_ALREADY_RUN_ERROR,
+    };
+  }
+
+  // Claim the accrual rows first. With ignoreDuplicates, only rows this call
+  // actually inserted are returned, so concurrent runs can't double-credit.
+  const { data: inserted, error: insertError } = await adminClient
+    .from("leave_accruals")
+    .upsert(
+      pending.map((profile) => ({
+        profile_id: profile.id,
+        year,
+        month,
+        credited: 2,
+      })),
+      { onConflict: "profile_id,year,month", ignoreDuplicates: true },
+    )
+    .select("profile_id");
+
+  if (insertError) {
+    return { success: false, count: 0, error: insertError.message };
+  }
+
+  const balanceByProfile = new Map(
+    pending.map((profile) => [profile.id, Number(profile.leave_balance)]),
+  );
+  const creditedProfileIds: string[] = [];
+  const failed: string[] = [];
+
+  for (const { profile_id: profileId } of inserted ?? []) {
     const { error: updateError } = await adminClient
       .from("profiles")
-      .update({ leave_balance: Number(profile.leave_balance) + 2 })
-      .eq("id", profile.id);
+      .update({ leave_balance: (balanceByProfile.get(profileId) ?? 0) + 2 })
+      .eq("id", profileId);
 
-    if (!updateError) {
-      creditedProfileIds.push(profile.id);
+    if (updateError) {
+      failed.push(profileId);
+      // Remove the claim so a retry picks this profile up again.
+      const { error: rollbackError } = await adminClient
+        .from("leave_accruals")
+        .delete()
+        .eq("profile_id", profileId)
+        .eq("year", year)
+        .eq("month", month);
+
+      if (rollbackError) {
+        console.error(
+          "[accrual] Failed to roll back accrual row:",
+          profileId,
+          rollbackError,
+        );
+      }
+      continue;
     }
+
+    creditedProfileIds.push(profileId);
   }
 
   const count = creditedProfileIds.length;
 
-  if (creditedProfileIds.length > 0) {
-    const accrualRows = creditedProfileIds.map((profileId) => ({
-      profile_id: profileId,
-      year,
-      month,
-      credited: 2,
-    }));
-
-    const { error: insertError } = await adminClient
-      .from("leave_accruals")
-      .insert(accrualRows);
-
-    if (insertError) {
-      return { success: false, count: 0, error: insertError.message };
-    }
-  }
-
-  const { data: balances, error: fetchError } = await supabase
-    .from("leave_balances")
-    .select("id, total_accrued")
-    .eq("status", "active");
-
-  if (fetchError) {
-    return { success: false, count: 0, error: fetchError.message };
-  }
-
-  for (const balance of balances ?? []) {
-    const nextAccrued = Math.min(Number(balance.total_accrued) + 2, 24);
-    if (nextAccrued === Number(balance.total_accrued)) {
-      continue;
-    }
-
-    await supabase
+  if (count > 0) {
+    const { data: balances, error: fetchError } = await adminClient
       .from("leave_balances")
-      .update({ total_accrued: nextAccrued })
-      .eq("id", balance.id);
+      .select("id, total_accrued")
+      .eq("status", "active")
+      .in("profile_id", creditedProfileIds);
+
+    if (fetchError) {
+      console.error("[accrual] Failed to load leave_balances:", fetchError);
+    }
+
+    for (const balance of balances ?? []) {
+      const nextAccrued = Math.min(Number(balance.total_accrued) + 2, 24);
+      if (nextAccrued === Number(balance.total_accrued)) {
+        continue;
+      }
+
+      const { error: balanceError } = await adminClient
+        .from("leave_balances")
+        .update({ total_accrued: nextAccrued })
+        .eq("id", balance.id);
+
+      if (balanceError) {
+        console.error(
+          "[accrual] Failed to update leave_balances:",
+          balance.id,
+          balanceError,
+        );
+      }
+    }
   }
 
   try {
@@ -485,6 +527,15 @@ export async function runMonthlyAccrualAction(
   }
 
   revalidatePath("/attendance");
+
+  if (failed.length > 0) {
+    return {
+      success: false,
+      count,
+      error: `Accrual failed for ${failed.length} employee${failed.length === 1 ? "" : "s"}. Run it again to retry.`,
+    };
+  }
+
   return { success: true, count };
 }
 

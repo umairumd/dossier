@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { initLeaveBalanceAction } from "@/lib/actions/admin/attendance";
 import { formatDate } from "@/lib/helpers/dates";
+import { cn } from "@/lib/utils";
 import type { LeaveBalance } from "@/types/attendance";
 
 export function LeaveBalanceCard({
@@ -59,7 +60,7 @@ export function LeaveBalanceCard({
   const accrued = Number(balance.total_accrued);
   const used = Number(balance.total_used);
   const remaining =
-    balance.balance_remaining ?? Math.max(0, accrued - used);
+    balance.balance_remaining ?? accrued - used;
   const ratio = accrued > 0 ? Math.min(100, (used / accrued) * 100) : 0;
 
   return (
@@ -79,7 +80,14 @@ export function LeaveBalanceCard({
           </div>
           <div className="flex flex-col gap-1">
             <p className="label-eyebrow">Remaining</p>
-            <p className="text-2xl font-semibold tracking-tight">{remaining}</p>
+            <p
+              className={cn(
+                "text-2xl font-semibold tracking-tight",
+                remaining < 0 && "text-destructive",
+              )}
+            >
+              {remaining}
+            </p>
           </div>
         </div>
 
