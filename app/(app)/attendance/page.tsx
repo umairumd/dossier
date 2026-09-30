@@ -64,6 +64,7 @@ export default async function AttendancePage({
     department_name: string | null;
     avatar_url: string | null;
     leave_balance: number;
+    joined_on: string | null;
   }[] = [];
   let records: AttendanceRecord[] = [];
   let attendanceSettings: Awaited<ReturnType<typeof getAttendanceSettings>>;
@@ -98,6 +99,7 @@ export default async function AttendancePage({
             : null,
         avatar_url: emp.avatar_url,
         leave_balance: emp.leave_balance,
+        joined_on: emp.created_at ? emp.created_at.slice(0, 10) : null,
       }));
   } else {
     // Managers see department roster; pure supervisors see supervised members.
@@ -116,6 +118,7 @@ export default async function AttendancePage({
       department_name: null,
       avatar_url: member.avatar_url,
       leave_balance: member.leave_balance,
+      joined_on: member.created_at ? member.created_at.slice(0, 10) : null,
     }));
     records = await getTeamMonthlyAttendance(
       month,
@@ -167,6 +170,7 @@ export default async function AttendancePage({
         deadline={deadline}
         profileBasePath={profileBasePath}
         isReadOnly={isReadOnly}
+        today={today}
       />
     </div>
   );

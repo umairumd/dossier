@@ -26,6 +26,8 @@ interface GridEmployee {
   department_name: string | null;
   avatar_url: string | null;
   leave_balance: number;
+  /** YYYY-MM-DD the profile was created; days before this are not expected. */
+  joined_on: string | null;
 }
 
 function formatLeaveBalance(balance: number): string {
@@ -68,6 +70,7 @@ export function AttendanceGrid({
   deadline,
   profileBasePath,
   isReadOnly = false,
+  today,
 }: {
   onSiteEmployees: GridEmployee[];
   remoteEmployees: GridEmployee[];
@@ -80,6 +83,7 @@ export function AttendanceGrid({
   deadline: DeadlineContext;
   profileBasePath: string;
   isReadOnly?: boolean;
+  today: string; // YYYY-MM-DD in the organization's timezone
 }) {
   const [year, month] = yearMonth.split("-").map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -117,7 +121,7 @@ export function AttendanceGrid({
     return ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"][date.getDay()];
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = today;
 
   if (onSiteEmployees.length === 0 && remoteEmployees.length === 0) {
     return (
@@ -257,6 +261,7 @@ export function AttendanceGrid({
     for (const day of days) {
       const date = dateString(day);
       if (date > todayStr) continue;
+      if (emp.joined_on && date < emp.joined_on) continue;
       if (isDayOff(day)) continue;
       const record = empRecords.get(date) ?? null;
       if (record?.status === "holiday") continue;
@@ -280,9 +285,16 @@ export function AttendanceGrid({
           const isOff = isDayOff(day);
           const isFuture = date > todayStr;
           const isPast = date < todayStr;
+          const isBeforeJoin = Boolean(emp.joined_on && date < emp.joined_on);
           const hasReport = remoteReportSet.has(`${emp.id}_${date}`);
           const isHoliday = record?.status === "holiday";
-          const showPopover = !isFuture && !isOff && !isHoliday;
+          // Days before the employee joined are blank and not editable,
+          // unless a record/report already exists for that date.
+          const showPopover =
+            !isFuture &&
+            !isOff &&
+            !isHoliday &&
+            !(isBeforeJoin && !record && !hasReport);
 
           return (
             <td key={day} className="bg-background px-1 py-1">
@@ -307,6 +319,7 @@ export function AttendanceGrid({
                   isOff={isOff}
                   isFuture={isFuture}
                   isPast={isPast}
+                  isBeforeJoin={isBeforeJoin}
                   record={record}
                   hasReport={hasReport}
                 />
