@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -17,7 +24,6 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LocalDateTime } from "@/components/shared/local-datetime";
-import { MemberAvatar } from "@/components/shared/member-avatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,8 +42,83 @@ import {
 import { formatLocalTime } from "@/lib/helpers/time";
 import { cn } from "@/lib/utils";
 import type { ActivityEventType, ActivityLogEntry } from "@/types/activity";
+import {
+  ATTENDANCE_STATUS_LABELS,
+  LEAVE_REQUEST_TYPE_LABELS,
+} from "@/types/attendance";
 
 const DASHBOARD_MAX_ROWS = 8;
+const RELATIVE_TICK_MS = 30_000;
+
+// --- Formatting helpers ---
+
+/** Replace underscores with spaces and capitalize the first letter. */
+function capitalizeRaw(val: string): string {
+  const spaced = val.replace(/_/g, " ").trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/** Returns `fallback` for null, undefined, or whitespace-only values. */
+function entityName(
+  val: string | null | undefined,
+  fallback: string,
+): string {
+  if (!val || val.trim() === "") return fallback;
+  return val;
+}
+
+/** True when a denormalized name is missing or the literal "none" sentinel. */
+function isNoneName(val: string | null | undefined): boolean {
+  return !val || val.trim() === "" || val.trim().toLowerCase() === "none";
+}
+
+function metaString(
+  metadata: Record<string, unknown> | null,
+  key: string,
+): string | null {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() !== "" ? value : null;
+}
+
+/** "2 Sep" (or "2 Sep 2025" when not the current year) for YYYY-MM-DD. */
+function formatMetaDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return iso;
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  const options: Intl.DateTimeFormatOptions = {
+    day: "numeric",
+    month: "short",
+  };
+  if (date.getFullYear() !== new Date().getFullYear()) {
+    options.year = "numeric";
+  }
+  return new Intl.DateTimeFormat("en-GB", options).format(date);
+}
+
+function formatRelativeTime(iso: string, now: number = Date.now()): string {
+  const then = new Date(iso);
+  const diffSeconds = Math.max(0, Math.floor((now - then.getTime()) / 1000));
+  if (diffSeconds < 60) return "Just now";
+  const minutes = Math.floor(diffSeconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return days === 1 ? "1 day ago" : `${days} days ago`;
+
+  const options: Intl.DateTimeFormatOptions = {
+    day: "numeric",
+    month: "short",
+  };
+  if (then.getFullYear() !== new Date(now).getFullYear()) {
+    options.year = "numeric";
+  }
+  return new Intl.DateTimeFormat("en-GB", options).format(then);
+}
+
+// --- Labels ---
 
 /**
  * A label is split so the leading name can be rendered in font-medium:
@@ -48,93 +129,128 @@ interface EventLabel {
   rest: string;
 }
 
+function attendanceStatusLabel(status: string | null): string {
+  if (!status) return "";
+  const known = (ATTENDANCE_STATUS_LABELS as Record<string, string>)[status];
+  return known ?? capitalizeRaw(status);
+}
+
+function leaveTypeLabel(type: string | null): string {
+  if (!type) return "";
+  const known = (LEAVE_REQUEST_TYPE_LABELS as Record<string, string>)[type];
+  return known ?? capitalizeRaw(type);
+}
+
+function leaveLabel(
+  e: ActivityLogEntry,
+  verb: "approved" | "rejected",
+): EventLabel {
+  const typeLabel = leaveTypeLabel(metaString(e.metadata, "type"));
+  const date = formatMetaDate(metaString(e.metadata, "date"));
+  const details = [typeLabel, date].filter(Boolean).join(", ");
+  return {
+    lead: e.actor_name ?? "Admin",
+    rest: ` ${verb} leave for ${entityName(e.target_name, "someone")}${
+      details ? ` (${details})` : ""
+    }`,
+  };
+}
+
 const EVENT_LABELS: Record<
   ActivityEventType,
   (entry: ActivityLogEntry) => EventLabel
 > = {
   employee_invited: (e) => ({
     lead: e.actor_name ?? "Admin",
-    rest: ` invited ${e.target_name ?? "someone"}`,
+    rest: ` invited ${entityName(e.target_name, "someone")} to Dossier`,
   }),
   employee_onboarded: (e) => ({
-    lead: e.target_name ?? "Someone",
+    lead: entityName(e.target_name, "Someone"),
     rest: " completed onboarding",
   }),
   employee_edited: (e) => ({
     lead: e.actor_name ?? "Admin",
-    rest: ` updated ${e.target_name ?? "someone"}'s profile`,
+    rest: ` updated ${entityName(e.target_name, "someone")}'s profile`,
   }),
   employee_deactivated: (e) => ({
     lead: e.actor_name ?? "Admin",
-    rest: ` deactivated ${e.target_name ?? "someone"}`,
+    rest: ` deactivated ${entityName(e.target_name, "someone")}`,
   }),
   employee_reactivated: (e) => ({
     lead: e.actor_name ?? "Admin",
-    rest: ` reactivated ${e.target_name ?? "someone"}`,
+    rest: ` reactivated ${entityName(e.target_name, "someone")}`,
   }),
   employee_archived: (e) => ({
     lead: e.actor_name ?? "Admin",
-    rest: ` archived ${e.target_name ?? "someone"}`,
+    rest: ` archived ${entityName(e.target_name, "someone")}`,
   }),
   employee_restored: (e) => ({
     lead: e.actor_name ?? "Admin",
-    rest: ` restored ${e.target_name ?? "someone"}`,
+    rest: ` restored ${entityName(e.target_name, "someone")}`,
   }),
   department_assigned: (e) => {
-    const target = e.target_name ?? "someone";
-    const dept = e.entity_name ?? "a department";
+    const lead = e.actor_name ?? "Admin";
+    const target = entityName(e.target_name, "someone");
+    const rawDept = e.entity_name ?? "";
+    // The bulk edit in employees.ts logs one entry with comma-joined (or
+    // "none") department names plus a departmentIds array in metadata.
+    const isBulk =
+      Array.isArray(e.metadata?.departmentIds) || rawDept.includes(",");
+    if (isBulk) {
+      return { lead, rest: ` updated department assignments for ${target}` };
+    }
+    const dept = entityName(e.entity_name, "a department");
     if (e.metadata?.action === "removed") {
-      return {
-        lead: e.actor_name ?? "Admin",
-        rest: ` removed ${target} from ${dept}`,
-      };
+      return { lead, rest: ` removed ${target} from ${dept}` };
+    }
+    return { lead, rest: ` assigned ${target} to ${dept}` };
+  },
+  supervisor_assigned: (e) => {
+    const lead = e.actor_name ?? "Admin";
+    const target = entityName(e.target_name, "someone");
+    if (isNoneName(e.entity_name)) {
+      return { lead, rest: ` removed all supervisors from ${target}` };
     }
     return {
-      lead: e.actor_name ?? "Admin",
-      rest: ` assigned ${target} to ${dept}`,
+      lead,
+      rest: ` set ${entityName(e.entity_name, "someone")} as supervisor for ${target}`,
     };
   },
-  supervisor_assigned: (e) => ({
-    lead: e.actor_name ?? "Admin",
-    rest: ` set ${e.entity_name ?? "someone"} as supervisor for ${e.target_name ?? "someone"}`,
-  }),
   template_assigned: (e) => {
+    const lead = e.actor_name ?? "Admin";
+    const target = entityName(e.target_name, "someone");
     const departmentName =
-      typeof e.metadata?.departmentName === "string"
-        ? e.metadata.departmentName
-        : null;
-    const destination =
-      departmentName ?? e.target_name ?? e.entity_name ?? "someone";
-    const template = e.entity_name ? `the ${e.entity_name} template` : "a template";
-    return {
-      lead: e.actor_name ?? "Admin",
-      rest: ` assigned ${template} to ${destination}`,
-    };
+      metaString(e.metadata, "departmentName") ??
+      metaString(e.metadata, "department");
+
+    if (isNoneName(e.entity_name)) {
+      const from = departmentName ? `${departmentName} department` : target;
+      return { lead, rest: ` removed the template assignment from ${from}` };
+    }
+    const template = `${entityName(e.entity_name, "a")} template`;
+    if (departmentName) {
+      return {
+        lead,
+        rest: ` assigned ${template} to ${departmentName} department`,
+      };
+    }
+    return { lead, rest: ` assigned ${template} to ${target}` };
   },
   shift_assigned: (e) => ({
     lead: e.actor_name ?? "Admin",
-    rest: ` assigned ${e.entity_name ? `a ${e.entity_name} shift` : "a shift"} to ${e.target_name ?? "someone"}`,
+    rest: ` assigned a shift to ${entityName(e.target_name, "someone")}`,
   }),
-  report_submitted: (e) => {
-    const reportDate =
-      typeof e.metadata?.reportDate === "string"
-        ? e.metadata.reportDate
-        : null;
-    return {
-      lead: e.actor_name ?? "Someone",
-      rest: reportDate
-        ? ` submitted a report for ${reportDate}`
-        : " submitted a report",
-    };
-  },
+  report_submitted: (e) => ({
+    lead: e.actor_name ?? "Someone",
+    rest: " submitted their report",
+  }),
   department_created: (e) => ({
     lead: e.actor_name ?? "Admin",
-    rest: ` created ${e.entity_name ?? "a"} department`,
+    rest: ` created ${entityName(e.entity_name, "a")} department`,
   }),
   department_edited: (e) => {
-    const action =
-      typeof e.metadata?.action === "string" ? e.metadata.action : null;
-    const dept = `${e.entity_name ?? "a"} department`;
+    const action = metaString(e.metadata, "action");
+    const dept = `${entityName(e.entity_name, "a")} department`;
     const lead = e.actor_name ?? "Admin";
     if (action === "manager_assigned") {
       return { lead, rest: ` assigned a manager to ${dept}` };
@@ -151,81 +267,62 @@ const EVENT_LABELS: Record<
     lead: e.actor_name ?? "Admin",
     rest:
       e.metadata?.action === "permanently_deleted"
-        ? ` permanently deleted ${e.entity_name ?? "a"} department`
-        : ` archived ${e.entity_name ?? "a"} department`,
+        ? ` permanently deleted ${entityName(e.entity_name, "a")} department`
+        : ` archived ${entityName(e.entity_name, "a")} department`,
   }),
   attendance_recorded: (e) => {
-    const date =
-      typeof e.metadata?.date === "string" ? e.metadata.date : null;
-    const status =
-      typeof e.metadata?.status === "string" ? e.metadata.status : null;
-    let rest = ` recorded attendance for ${e.target_name ?? "someone"}`;
+    const target = entityName(e.target_name, "someone");
+    const status = attendanceStatusLabel(metaString(e.metadata, "status"));
+    const date = formatMetaDate(metaString(e.metadata, "date"));
+    let rest = ` marked ${target}'s attendance`;
+    if (status) rest += ` as ${status}`;
     if (date) rest += ` on ${date}`;
-    if (status) rest += ` (${status})`;
     return { lead: e.actor_name ?? "Admin", rest };
   },
-  leave_approved: (e) => {
-    const type =
-      typeof e.metadata?.type === "string" ? e.metadata.type : null;
-    const date =
-      typeof e.metadata?.date === "string" ? e.metadata.date : null;
-    const base = ` approved leave for ${e.target_name ?? "someone"}`;
-    let rest = base;
-    if (type && date) rest = `${base} (${type}, ${date})`;
-    else if (date) rest = `${base} (${date})`;
-    return { lead: e.actor_name ?? "Admin", rest };
-  },
-  leave_rejected: (e) => {
-    const type =
-      typeof e.metadata?.type === "string" ? e.metadata.type : null;
-    const date =
-      typeof e.metadata?.date === "string" ? e.metadata.date : null;
-    const base = ` rejected leave for ${e.target_name ?? "someone"}`;
-    let rest = base;
-    if (type && date) rest = `${base} (${type}, ${date})`;
-    else if (date) rest = `${base} (${date})`;
-    return { lead: e.actor_name ?? "Admin", rest };
-  },
+  leave_approved: (e) => leaveLabel(e, "approved"),
+  leave_rejected: (e) => leaveLabel(e, "rejected"),
   accrual_run: (e) => {
-    const count = e.metadata?.updatedCount;
-    const base = " ran monthly leave accrual";
+    const count = e.metadata?.count;
     return {
       lead: e.actor_name ?? "Admin",
       rest:
-        typeof count === "number" ? `${base} (${count} balances updated)` : base,
+        typeof count === "number"
+          ? ` ran leave accrual — ${count} balances updated`
+          : " ran leave accrual",
     };
   },
-  org_settings_changed: (e) => {
-    const field =
-      typeof e.metadata?.field === "string" ? e.metadata.field : null;
-    const base = " updated organization settings";
+  org_settings_changed: (e) => ({
+    lead: e.actor_name ?? "Admin",
+    rest: ` updated ${capitalizeRaw(metaString(e.metadata, "field") ?? "org settings")}`,
+  }),
+  template_created: (e) => {
+    const name = entityName(e.entity_name, "");
     return {
       lead: e.actor_name ?? "Admin",
-      rest: field ? `${base} (${field})` : base,
+      rest: name ? ` created template ${name}` : " created a template",
     };
   },
-  template_created: (e) => ({
-    lead: e.actor_name ?? "Admin",
-    rest: ` created template ${e.entity_name ?? ""}`.trimEnd(),
-  }),
   template_edited: (e) => {
-    const action =
-      typeof e.metadata?.action === "string" ? e.metadata.action : null;
+    const action = metaString(e.metadata, "action");
     const verb =
       action === "restored"
         ? "restored"
         : action === "deleted"
           ? "deleted"
           : "updated";
+    const name = entityName(e.entity_name, "");
     return {
       lead: e.actor_name ?? "Admin",
-      rest: ` ${verb} template ${e.entity_name ?? ""}`.trimEnd(),
+      rest: name ? ` ${verb} template ${name}` : ` ${verb} a template`,
     };
   },
-  template_archived: (e) => ({
-    lead: e.actor_name ?? "Admin",
-    rest: ` archived template ${e.entity_name ?? ""}`.trimEnd(),
-  }),
+  template_archived: (e) => {
+    const name = entityName(e.entity_name, "");
+    return {
+      lead: e.actor_name ?? "Admin",
+      rest: name ? ` archived template ${name}` : " archived a template",
+    };
+  },
 };
 
 const EVENT_ICONS: Record<ActivityEventType, typeof UserPlus> = {
@@ -267,7 +364,7 @@ function getHref(entry: ActivityLogEntry): string | undefined {
   return undefined;
 }
 
-// --- Day grouping (local time) ---
+// --- Day keys and grouping (local time) ---
 
 function subscribe() {
   return () => {};
@@ -309,12 +406,100 @@ function formatDayLabel(date: Date, now: Date): string {
     : `${base} ${date.getFullYear()}`;
 }
 
+// --- Attendance collapsing ---
+
+interface CollapsedAttendance {
+  type: "collapsed_attendance";
+  actor_id: string;
+  actor_name: string | null;
+  dayKey: string;
+  count: number;
+  created_at: string;
+}
+
+type DisplayItem = ActivityLogEntry | CollapsedAttendance;
+
+function isCollapsed(item: DisplayItem): item is CollapsedAttendance {
+  return "type" in item && item.type === "collapsed_attendance";
+}
+
+function displayKey(item: DisplayItem): string {
+  return isCollapsed(item)
+    ? `collapsed-${item.actor_id}-${item.dayKey}`
+    : item.id;
+}
+
+/**
+ * Collapse attendance_recorded entries logged by the same actor on the same
+ * local calendar day into one row, when they touch 2+ distinct employees.
+ * The collapsed row sits where the group's latest entry was; order of all
+ * other items is preserved.
+ */
+function collapseAttendance(items: ActivityLogEntry[]): DisplayItem[] {
+  const groups = new Map<
+    string,
+    { dayKey: string; entries: ActivityLogEntry[] }
+  >();
+
+  for (const item of items) {
+    if (item.event_type !== "attendance_recorded" || !item.actor_id) continue;
+    const dayKey = localDayKey(new Date(item.created_at));
+    const key = `${item.actor_id}|${dayKey}`;
+    const group = groups.get(key);
+    if (group) {
+      group.entries.push(item);
+    } else {
+      groups.set(key, { dayKey, entries: [item] });
+    }
+  }
+
+  const collapsedAtLatest = new Map<string, CollapsedAttendance>();
+  const dropped = new Set<string>();
+
+  for (const { dayKey, entries } of groups.values()) {
+    const targets = new Set<string>();
+    for (const entry of entries) {
+      if (entry.target_id) targets.add(entry.target_id);
+    }
+    if (targets.size < 2) continue;
+
+    const latest = entries.reduce((a, b) =>
+      new Date(b.created_at).getTime() > new Date(a.created_at).getTime()
+        ? b
+        : a,
+    );
+    collapsedAtLatest.set(latest.id, {
+      type: "collapsed_attendance",
+      actor_id: latest.actor_id as string,
+      actor_name: latest.actor_name,
+      dayKey,
+      count: targets.size,
+      created_at: latest.created_at,
+    });
+    for (const entry of entries) {
+      if (entry.id !== latest.id) dropped.add(entry.id);
+    }
+  }
+
+  if (collapsedAtLatest.size === 0) return items;
+
+  const result: DisplayItem[] = [];
+  for (const item of items) {
+    const collapsed = collapsedAtLatest.get(item.id);
+    if (collapsed) {
+      result.push(collapsed);
+    } else if (!dropped.has(item.id)) {
+      result.push(item);
+    }
+  }
+  return result;
+}
+
 function groupByDay(
-  items: ActivityLogEntry[],
-): { key: string; label: string; items: ActivityLogEntry[] }[] {
+  items: DisplayItem[],
+): { key: string; label: string; items: DisplayItem[] }[] {
   const now = new Date();
-  const groups: { key: string; label: string; items: ActivityLogEntry[] }[] =
-    [];
+  const groups: { key: string; label: string; items: DisplayItem[] }[] = [];
   for (const item of items) {
     const date = new Date(item.created_at);
     const key = localDayKey(date);
@@ -334,100 +519,121 @@ function ActivityRow({
   item,
   variant,
   showTimeOnly,
+  now,
   canDelete,
   deleteDisabled,
   onDelete,
 }: {
-  item: ActivityLogEntry;
+  item: DisplayItem;
   variant: "page" | "dashboard";
-  /** Day label is shown above, so the row only needs the time of day. */
+  /** Page variant: day label is shown above, so the row only needs the time. */
   showTimeOnly: boolean;
+  /** Dashboard variant: current time for relative labels; null before mount. */
+  now: number | null;
   canDelete: boolean;
   deleteDisabled: boolean;
   onDelete: (id: string) => void;
 }) {
-  const Icon = EVENT_ICONS[item.event_type] ?? FileText;
-  const category = EVENT_CATEGORY[item.event_type] ?? "settings";
-  const labelFn = EVENT_LABELS[item.event_type];
-  const label = labelFn
-    ? labelFn(item)
-    : { lead: "", rest: item.event_type };
-  const href = getHref(item);
   const isPage = variant === "page";
+  const collapsed = isCollapsed(item);
 
-  const timestamp = showTimeOnly ? (
-    formatLocalTime(item.created_at)
-  ) : (
-    <LocalDateTime isoString={item.created_at} />
-  );
+  const Icon = collapsed
+    ? CalendarCheck
+    : (EVENT_ICONS[item.event_type] ?? FileText);
+  const category = collapsed
+    ? "attendance"
+    : (EVENT_CATEGORY[item.event_type] ?? "settings");
 
-  const avatar =
-    item.actor_id && item.actor_name ? (
-      <MemberAvatar
-        name={item.actor_name}
-        userId={item.actor_id}
-        size={isPage ? "sm" : "table"}
-      />
-    ) : null;
+  let label: EventLabel;
+  if (collapsed) {
+    label = {
+      lead: item.actor_name ?? "Admin",
+      rest: ` marked ${item.count} employees' attendance`,
+    };
+  } else {
+    const labelFn = EVENT_LABELS[item.event_type];
+    label = labelFn ? labelFn(item) : { lead: "", rest: item.event_type };
+  }
 
-  const content = (
-    <div
-      className={cn(
-        "flex items-start gap-3",
-        (canDelete || !isPage) && "pr-8",
-      )}
-    >
-      <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">
-        <Icon
-          className={cn("size-3.5", CATEGORY_ICON_COLOR[category])}
-        />
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <p className="text-sm">
-          {label.lead ? (
-            <span className="font-medium">{label.lead}</span>
-          ) : null}
-          {label.rest}
-        </p>
-        {isPage ? (
-          <p className="text-xs text-muted-foreground">{timestamp}</p>
-        ) : (
-          <div className="flex items-center gap-2">
-            {avatar}
-            <p className="text-xs text-muted-foreground">{timestamp}</p>
-          </div>
-        )}
-      </div>
-      {isPage && avatar ? <div className="shrink-0">{avatar}</div> : null}
-    </div>
+  const href = collapsed ? undefined : getHref(item);
+  const rowCanDelete = canDelete && !collapsed;
+
+  // Collapsed rows use the same time formats as normal rows: clock time on
+  // the page (latest entry in the group), relative time on the dashboard.
+  let timestamp: ReactNode;
+  if (isPage) {
+    timestamp =
+      collapsed || showTimeOnly
+        ? formatLocalTime(item.created_at)
+        : <LocalDateTime isoString={item.created_at} />;
+  } else if (now !== null) {
+    timestamp = formatRelativeTime(item.created_at, now);
+  } else {
+    timestamp = null;
+  }
+
+  // [Icon 14px] [Text] [Time]: one line per row, identical height. Hover lives
+  // on the row container (not the Link) so every row highlights. Linked text
+  // uses display:contents so icon/text/time stay direct flex siblings.
+  const text = (
+    <p className="min-w-0 flex-1 truncate text-sm leading-snug">
+      {label.lead ? (
+        <span className="font-medium">{label.lead}</span>
+      ) : null}
+      {label.rest}
+    </p>
   );
 
   return (
     <li className="group relative">
-      {href ? (
-        <Link
-          href={href}
-          className={cn(
-            "block rounded-md transition-colors hover:bg-foreground/5",
-            isPage ? "-mx-2 px-2 py-2" : "-mx-2 -my-1.5 px-2 py-1.5",
-          )}
-        >
-          {content}
-        </Link>
-      ) : (
-        content
-      )}
-      {canDelete && (
-        <button
-          type="button"
-          onClick={() => onDelete(item.id)}
-          disabled={deleteDisabled}
-          className="absolute right-0 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-          aria-label="Delete entry"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-      )}
+      <div
+        className={cn(
+          "-mx-2 flex min-h-0 items-center gap-2 rounded-md px-2 py-2.5 transition-colors hover:bg-foreground/5",
+          href ? "cursor-pointer" : "cursor-default",
+        )}
+      >
+        {href ? (
+          <Link href={href} className="contents">
+            <Icon
+              className={cn(
+                "mt-px h-3.5 w-3.5 shrink-0",
+                CATEGORY_ICON_COLOR[category],
+              )}
+            />
+            {text}
+          </Link>
+        ) : (
+          <>
+            <Icon
+              className={cn(
+                "mt-px h-3.5 w-3.5 shrink-0",
+                CATEGORY_ICON_COLOR[category],
+              )}
+            />
+            {text}
+          </>
+        )}
+        <span className="ml-auto w-20 shrink-0 self-center whitespace-nowrap text-right text-xs tabular-nums text-muted-foreground">
+          {timestamp}
+        </span>
+        {/* Spacer matching delete button width — keeps the time column
+            aligned when canDelete is on, including collapsed rows. */}
+        {canDelete ? (
+          <span className="flex size-7 shrink-0 items-center justify-center">
+            {rowCanDelete ? (
+              <button
+                type="button"
+                onClick={() => onDelete(item.id)}
+                disabled={deleteDisabled}
+                className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                aria-label="Delete entry"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            ) : null}
+          </span>
+        ) : null}
+      </div>
     </li>
   );
 }
@@ -445,19 +651,34 @@ export function ActivityFeed({
 }) {
   const [isPending, startTransition] = useTransition();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [now, setNow] = useState<number | null>(null);
   const mounted = useIsMounted();
   const isPage = variant === "page";
 
-  const visibleItems = useMemo(
-    () => (isPage ? items : items.slice(0, DASHBOARD_MAX_ROWS)),
-    [items, isPage],
-  );
+  // Relative timestamps (dashboard only): tick every 30s.
+  useEffect(() => {
+    if (variant !== "dashboard") return;
+    // setState only inside timer callbacks (not synchronously in the effect
+    // body): the first tick fires immediately after mount.
+    const first = setTimeout(() => setNow(Date.now()), 0);
+    const id = setInterval(() => setNow(Date.now()), RELATIVE_TICK_MS);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
+  }, [variant]);
 
-  // Grouping depends on the viewer's local timezone, so it only runs after
-  // mount; the server render and first client render are a flat list.
+  // Collapsing and day grouping depend on the viewer's local timezone, so
+  // they only run after mount; the server render and first client render use
+  // the raw items.
+  const displayItems = useMemo<DisplayItem[]>(() => {
+    const base: DisplayItem[] = mounted ? collapseAttendance(items) : items;
+    return isPage ? base : base.slice(0, DASHBOARD_MAX_ROWS);
+  }, [items, mounted, isPage]);
+
   const groups = useMemo(
-    () => (isPage && mounted ? groupByDay(visibleItems) : null),
-    [isPage, mounted, visibleItems],
+    () => (isPage && mounted ? groupByDay(displayItems) : null),
+    [isPage, mounted, displayItems],
   );
 
   const handleDelete = (id: string) => {
@@ -482,6 +703,7 @@ export function ActivityFeed({
 
   const rowProps = {
     variant,
+    now,
     canDelete,
     deleteDisabled: isPending,
     onDelete: setPendingDeleteId,
@@ -496,10 +718,10 @@ export function ActivityFeed({
               <h3 className="sticky top-0 z-10 -mx-2 bg-card px-2 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {group.label}
               </h3>
-              <ul className="flex flex-col gap-1 pb-4">
+              <ul className="flex flex-col pb-4">
                 {group.items.map((item) => (
                   <ActivityRow
-                    key={item.id}
+                    key={displayKey(item)}
                     item={item}
                     showTimeOnly
                     {...rowProps}
@@ -510,10 +732,10 @@ export function ActivityFeed({
           ))}
         </div>
       ) : (
-        <ul className={cn("flex flex-col", isPage ? "gap-1" : "gap-3")}>
-          {visibleItems.map((item) => (
+        <ul className="flex flex-col">
+          {displayItems.map((item) => (
             <ActivityRow
-              key={item.id}
+              key={displayKey(item)}
               item={item}
               showTimeOnly={false}
               {...rowProps}

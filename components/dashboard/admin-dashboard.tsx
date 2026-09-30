@@ -14,7 +14,6 @@ import { Building2, UserPlus } from "lucide-react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -26,7 +25,7 @@ import { DeptCompletionCard } from "@/components/dashboard/dept-completion-card"
 import { ReportBanner } from "@/components/shared/report-banner";
 import type { ReportTemplateWithFields } from "@/types/template";
 
-const HOME_ACTIVITY_LIMIT = 8;
+const HOME_ACTIVITY_LIMIT = 20;
 
 // Rendered at both "/" (Home, for the admin role) and "/admin" (kept
 // reachable directly in case it's bookmarked) — one component, not two
@@ -162,9 +161,6 @@ export async function AdminDashboard() {
       >
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>
-            Invitations, archives, new departments, and submitted reports.
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <ActivityFeed items={recentActivity} />
