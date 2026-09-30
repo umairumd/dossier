@@ -89,7 +89,7 @@ export async function markOnboarded(): Promise<{
               orgId: profile.organization_id,
               profileId: admin.id,
               type: "employee_onboarded",
-              title: "A new employee has completed onboarding",
+              title: `${profile.full_name?.trim() || "A new employee"} has completed onboarding`,
               entityType: "employee",
               entityId: user.id,
             }),

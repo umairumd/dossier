@@ -1,7 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Bell } from "lucide-react";
+import { useState, useTransition, type ComponentType } from "react";
+import {
+  AlertTriangle,
+  Bell,
+  CalendarClock,
+  CheckCircle,
+  Clock,
+  UserCheck,
+  UserPlus,
+  XCircle,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   Popover,
@@ -11,17 +20,20 @@ import {
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { markAllNotificationsRead } from "@/lib/actions/notifications";
-import type { Notification } from "@/types/notification";
+import type { Notification, NotificationType } from "@/types/notification";
 import { cn } from "@/lib/utils";
 
-const TYPE_ICONS: Record<string, string> = {
-  leave_approved: "✓",
-  leave_rejected: "✗",
-  report_deadline: "⏰",
-  employee_invited: "👋",
-  employee_onboarded: "🎉",
-  attendance_fine: "⚠",
-  leave_request_submitted: "📋",
+const TYPE_ICONS: Record<
+  NotificationType,
+  { Icon: ComponentType<{ className?: string }>; className: string }
+> = {
+  leave_approved: { Icon: CheckCircle, className: "text-green-500" },
+  leave_rejected: { Icon: XCircle, className: "text-red-500" },
+  report_deadline: { Icon: Clock, className: "text-amber-500" },
+  employee_invited: { Icon: UserPlus, className: "text-blue-500" },
+  employee_onboarded: { Icon: UserCheck, className: "text-blue-500" },
+  attendance_fine: { Icon: AlertTriangle, className: "text-amber-500" },
+  leave_request_submitted: { Icon: CalendarClock, className: "text-blue-500" },
 };
 
 export function NotificationBell({
@@ -83,32 +95,41 @@ export function NotificationBell({
             />
           ) : (
             <div className="flex flex-col">
-              {initialNotifications.map((n) => (
-                <div
-                  key={n.id}
-                  className={cn(
-                    "flex gap-3 border-b border-border/50 px-4 py-3 last:border-0",
-                    !n.read_at && !hasOpened && "bg-primary/5",
-                  )}
-                >
-                  <span className="mt-0.5 text-base leading-none">
-                    {TYPE_ICONS[n.type] ?? "•"}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium leading-snug">{n.title}</p>
-                    {n.body && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {n.body}
-                      </p>
+              {initialNotifications.map((n) => {
+                const icon = TYPE_ICONS[n.type];
+                const Icon = icon?.Icon ?? Bell;
+                return (
+                  <div
+                    key={n.id}
+                    className={cn(
+                      "flex gap-3 border-b border-border/50 px-4 py-3 last:border-0",
+                      !n.read_at && !hasOpened && "bg-primary/5",
                     )}
-                    <p className="mt-1 text-[10px] text-muted-foreground">
-                      {formatDistanceToNow(new Date(n.created_at), {
-                        addSuffix: true,
-                      })}
-                    </p>
+                  >
+                    <Icon
+                      className={cn(
+                        "mt-0.5 h-4 w-4 shrink-0",
+                        icon?.className ?? "text-muted-foreground",
+                      )}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium leading-snug">
+                        {n.title}
+                      </p>
+                      {n.body && (
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {n.body}
+                        </p>
+                      )}
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        {formatDistanceToNow(new Date(n.created_at), {
+                          addSuffix: true,
+                        })}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

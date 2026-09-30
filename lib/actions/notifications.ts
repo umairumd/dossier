@@ -22,18 +22,6 @@ export async function markAllNotificationsRead(): Promise<void> {
   revalidatePath("/", "layout");
 }
 
-// Mark single notification as read
-export async function markNotificationRead(id: string): Promise<void> {
-  const supabase = await createClient();
-  await supabase
-    .from("notifications")
-    .update({ read_at: new Date().toISOString() })
-    .eq("id", id)
-    .is("read_at", null);
-
-  revalidatePath("/", "layout");
-}
-
 // Create a notification (called from other server actions via admin client)
 // This is a helper used internally, not called from client
 export async function createNotification(params: {
