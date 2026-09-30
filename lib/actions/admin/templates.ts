@@ -170,15 +170,64 @@ export async function updateTemplate(input: {
     return { success: false, error: "At least one field is required." };
   }
 
-  const organizationId = await getCurrentOrganizationId();
+  const keys = input.fields.map((field) => field.key);
+  if (keys.some((key) => !key || !key.trim())) {
+    return { success: false, error: "Every field needs a key." };
+  }
+  if (new Set(keys).size !== keys.length) {
+    return { success: false, error: "Field keys must be unique." };
+  }
 
-  if (input.isDefault) {
-    await supabase
+  const { data: current, error: currentError } = await supabase
+    .from("report_templates")
+    .select("organization_id, is_default")
+    .eq("id", input.id)
+    .maybeSingle();
+
+  if (currentError || !current) {
+    return { success: false, error: "Template not found." };
+  }
+
+  // The org must always keep a default template: demoting is only allowed
+  // by promoting a different template.
+  if (current.is_default && input.isDefault === false) {
+    return {
+      success: false,
+      error: "Set another template as default first.",
+    };
+  }
+
+  const nextIsDefault = input.isDefault ?? current.is_default;
+  const promoting = nextIsDefault && !current.is_default;
+
+  // Promote: the partial unique index allows one default per org, so the old
+  // default has to be unset first (and restored if the update fails).
+  let previousDefaultId: string | null = null;
+  if (promoting) {
+    const { data: previousDefault, error: previousError } = await supabase
       .from("report_templates")
-      .update({ is_default: false })
-      .eq("organization_id", organizationId ?? "")
+      .select("id")
+      .eq("organization_id", current.organization_id)
       .eq("is_default", true)
-      .neq("id", input.id);
+      .is("archived_at", null)
+      .neq("id", input.id)
+      .maybeSingle();
+
+    if (previousError) {
+      return { success: false, error: "Failed to update template." };
+    }
+
+    if (previousDefault) {
+      const { error: unsetError } = await supabase
+        .from("report_templates")
+        .update({ is_default: false })
+        .eq("id", previousDefault.id);
+
+      if (unsetError) {
+        return { success: false, error: "Failed to update template." };
+      }
+      previousDefaultId = previousDefault.id;
+    }
   }
 
   const { error: tmplError } = await supabase
@@ -186,23 +235,64 @@ export async function updateTemplate(input: {
     .update({
       name: input.name.trim(),
       description: input.description?.trim() || null,
-      is_default: input.isDefault ?? false,
+      is_default: nextIsDefault,
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.id);
 
   if (tmplError) {
+    if (previousDefaultId) {
+      const { error: restoreError } = await supabase
+        .from("report_templates")
+        .update({ is_default: true })
+        .eq("id", previousDefaultId);
+
+      if (restoreError) {
+        console.error(
+          "[templates] Failed to restore previous default template:",
+          restoreError,
+        );
+      }
+    }
     return { success: false, error: "Failed to update template." };
   }
 
-  await supabase.from("template_fields").delete().eq("template_id", input.id);
-
+  // Upsert by (template_id, key) so existing fields keep their ids; nothing
+  // is deleted until the new definitions are safely written.
   const { error: fieldsError } = await supabase
     .from("template_fields")
-    .insert(toFieldRows(input.id, input.fields));
+    .upsert(toFieldRows(input.id, input.fields), {
+      onConflict: "template_id,key",
+    });
 
   if (fieldsError) {
     return { success: false, error: "Failed to update template fields." };
+  }
+
+  const { data: existingFields, error: existingFieldsError } = await supabase
+    .from("template_fields")
+    .select("key")
+    .eq("template_id", input.id);
+
+  if (existingFieldsError) {
+    return { success: false, error: "Failed to update template fields." };
+  }
+
+  const keepKeys = new Set(keys);
+  const removedKeys = (existingFields ?? [])
+    .map((field) => field.key)
+    .filter((key) => !keepKeys.has(key));
+
+  if (removedKeys.length > 0) {
+    const { error: removeError } = await supabase
+      .from("template_fields")
+      .delete()
+      .eq("template_id", input.id)
+      .in("key", removedKeys);
+
+    if (removeError) {
+      return { success: false, error: "Failed to update template fields." };
+    }
   }
 
   try {
@@ -222,8 +312,11 @@ export async function updateTemplate(input: {
     console.error("[activity-log] Failed to log template edit:", logError);
   }
 
+  revalidatePath("/organization");
   revalidatePath("/organization/templates");
   revalidatePath(`/organization/templates/${input.id}`);
+  revalidatePath("/reports");
+  revalidatePath("/");
   return { success: true };
 }
 
