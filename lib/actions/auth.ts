@@ -79,17 +79,21 @@ export async function markOnboarded(): Promise<{
         .eq("organization_id", profile.organization_id)
         .in("role", ["owner", "admin"]);
 
+      // An admin-role user finishing their own onboarding shouldn't notify
+      // themselves.
       await Promise.all(
-        (admins ?? []).map((admin) =>
-          createNotification({
-            orgId: profile.organization_id,
-            profileId: admin.id,
-            type: "employee_onboarded",
-            title: "A new employee has completed onboarding",
-            entityType: "employee",
-            entityId: user.id,
-          }),
-        ),
+        (admins ?? [])
+          .filter((admin) => admin.id !== user.id)
+          .map((admin) =>
+            createNotification({
+              orgId: profile.organization_id,
+              profileId: admin.id,
+              type: "employee_onboarded",
+              title: "A new employee has completed onboarding",
+              entityType: "employee",
+              entityId: user.id,
+            }),
+          ),
       );
 
       void logActivity({

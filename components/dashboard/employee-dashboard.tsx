@@ -84,7 +84,7 @@ export async function EmployeeDashboard({
           settings.timezone,
         )}
         deadline={deadline}
-        template={template}
+        template={template ?? undefined}
       />
 
       <div

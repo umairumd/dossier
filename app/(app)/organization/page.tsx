@@ -48,7 +48,7 @@ export default async function OrganizationSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <OrgIdentityForm initialName={settings.orgName ?? orgName} />
+          <OrgIdentityForm initialName={orgName ?? settings.orgName} />
         </CardContent>
       </Card>
 

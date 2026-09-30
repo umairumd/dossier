@@ -29,8 +29,8 @@ export function AssignmentsCard({
   candidates: EmployeeListItem[];
   templates: ReportTemplate[];
   templateInfo: {
-    template: { name: string };
-    source: "individual" | "department" | "default";
+    template: { name: string } | null;
+    source: "individual" | "department" | "default" | "none";
     sourceName: string | null;
   };
   currentShift: ShiftAssignment | null;
@@ -50,7 +50,9 @@ export function AssignmentsCard({
       ? "Individual assignment"
       : templateInfo.source === "department"
         ? `From ${templateInfo.sourceName} dept`
-        : "Org default";
+        : templateInfo.source === "default"
+          ? "Org default"
+          : "Set a default template in Organization settings";
 
   return (
     <>
@@ -136,7 +138,7 @@ export function AssignmentsCard({
               </p>
               <div className="flex flex-col gap-1">
                 <span className="text-sm font-medium">
-                  {templateInfo.template.name}
+                  {templateInfo.template?.name ?? "No template configured"}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {templateSourceLabel}

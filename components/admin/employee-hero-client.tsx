@@ -33,7 +33,7 @@ export function EmployeeHeroClient({
   departments: DepartmentOption[];
   candidates: EmployeeListItem[];
   templates: ReportTemplate[];
-  currentTemplateSource: "individual" | "department" | "default";
+  currentTemplateSource: "individual" | "department" | "default" | "none";
   currentTemplateSourceName: string | null;
 }) {
   const [expr, setExpr] = useState<BotExpression>("neutral");

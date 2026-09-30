@@ -485,6 +485,17 @@ export async function permanentlyDeleteDepartment(
     };
   }
 
+  const adminClient = createAdminClient();
+  const { error } = await adminClient
+    .from("departments")
+    .delete()
+    .eq("id", departmentId);
+
+  if (error) {
+    return { success: false, error: "Failed to permanently delete department." };
+  }
+
+  // Log only once the delete has actually succeeded.
   try {
     const { orgId, actorName } = await getActorLogContext(admin.id);
     if (orgId) {
@@ -500,16 +511,6 @@ export async function permanentlyDeleteDepartment(
     }
   } catch (logError) {
     console.error("[activity-log] Failed to log department delete:", logError);
-  }
-
-  const adminClient = createAdminClient();
-  const { error } = await adminClient
-    .from("departments")
-    .delete()
-    .eq("id", departmentId);
-
-  if (error) {
-    return { success: false, error: "Failed to permanently delete department." };
   }
 
   revalidateDepartmentPaths();

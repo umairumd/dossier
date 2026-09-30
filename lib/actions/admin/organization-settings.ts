@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import {
   getActorLogContext,
@@ -73,6 +74,28 @@ export async function updateOrgName(
   const trimmed = name.trim();
   if (!trimmed) {
     return { success: false, error: "Organization name cannot be empty." };
+  }
+
+  // The sidebar, top nav and invite dialogs read organizations.name, not
+  // organization_settings.org_name, so both must be written. The
+  // organizations UPDATE policy allows only `owner`, while this action is
+  // available to admins too — requireAdminUser() above is the authorisation
+  // check, so the service-role client is used for that one table.
+  const { orgId } = await getActorLogContext(admin.id);
+  if (!orgId) {
+    return { success: false, error: "Organization not found." };
+  }
+
+  const adminClient = createAdminClient();
+  const { data: updatedOrg, error: orgError } = await adminClient
+    .from("organizations")
+    .update({ name: trimmed })
+    .eq("id", orgId)
+    .select("id")
+    .maybeSingle();
+
+  if (orgError || !updatedOrg) {
+    return { success: false, error: "Failed to update organization name." };
   }
 
   const supabase = await createClient();

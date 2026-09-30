@@ -169,7 +169,7 @@ export const resolveTemplate = cache(
   async (
     profileId: string,
     departmentIds: string[],
-  ): Promise<ReportTemplateWithFields> => {
+  ): Promise<ReportTemplateWithFields | null> => {
     const supabase = await createClient();
 
     const { data: profile } = await supabase
@@ -208,9 +208,9 @@ export const resolveTemplate = cache(
       return defaultTmpl;
     }
 
-    throw new Error(
-      "No template found. Ensure a default template exists.",
-    );
+    // No individual, department, or default template is available. Callers
+    // render a "template not configured" state instead of crashing.
+    return null;
   },
 );
 
@@ -218,8 +218,8 @@ export async function getTemplateResolutionInfo(
   profileId: string,
   departmentIds: string[],
 ): Promise<{
-  template: ReportTemplateWithFields;
-  source: "individual" | "department" | "default";
+  template: ReportTemplateWithFields | null;
+  source: "individual" | "department" | "default" | "none";
   sourceName: string | null;
 }> {
   const supabase = await createClient();
@@ -272,5 +272,5 @@ export async function getTemplateResolutionInfo(
     };
   }
 
-  throw new Error("No template found.");
+  return { template: null, source: "none", sourceName: null };
 }

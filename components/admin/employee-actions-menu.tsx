@@ -70,7 +70,7 @@ interface EmployeeActionsMenuProps {
   candidates: EmployeeListItem[];
   redirectOnDelete?: string;
   templates: ReportTemplate[];
-  currentTemplateSource: "individual" | "department" | "default";
+  currentTemplateSource: "individual" | "department" | "default" | "none";
   currentTemplateSourceName: string | null;
   hideAssignments?: boolean;
   separateEditButton?: boolean;

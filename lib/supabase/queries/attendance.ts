@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { insertLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
+import { lastDayOfMonth } from "@/lib/helpers/dates";
 import type {
   AttendanceRecord,
   AttendanceRecordWithEmployee,
@@ -139,8 +140,7 @@ export const getMonthlyAttendance = cache(
     const supabase = await createClient();
 
     const startDate = `${yearMonth}-01`;
-    const [year, month] = yearMonth.split("-").map(Number);
-    const endDate = new Date(year, month, 0).toISOString().slice(0, 10);
+    const endDate = lastDayOfMonth(yearMonth);
 
     const { data, error } = await supabase
       .from("attendance_records")
@@ -174,8 +174,7 @@ export const getTeamMonthlyAttendance = cache(
 
     const supabase = await createClient();
     const startDate = `${yearMonth}-01`;
-    const [year, month] = yearMonth.split("-").map(Number);
-    const endDate = new Date(year, month, 0).toISOString().slice(0, 10);
+    const endDate = lastDayOfMonth(yearMonth);
 
     const { data, error } = await supabase
       .from("attendance_records")
@@ -223,8 +222,7 @@ export const getEmployeeAttendance = cache(
   async (profileId: string, yearMonth: string): Promise<AttendanceRecord[]> => {
     const supabase = await createClient();
     const startDate = `${yearMonth}-01`;
-    const [year, month] = yearMonth.split("-").map(Number);
-    const endDate = new Date(year, month, 0).toISOString().slice(0, 10);
+    const endDate = lastDayOfMonth(yearMonth);
 
     const { data } = await supabase
       .from("attendance_records")

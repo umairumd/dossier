@@ -81,7 +81,7 @@ export async function ManagerDashboard({
           settings.timezone,
         )}
         deadline={deadline}
-        template={template}
+        template={template ?? undefined}
       />
 
       <Card

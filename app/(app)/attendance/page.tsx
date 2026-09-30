@@ -14,7 +14,11 @@ import {
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getTeamRoster } from "@/lib/supabase/queries/manager/team";
 import { getSupervisedMembers } from "@/lib/supabase/queries/supervisor/team";
-import { todayInTimezone } from "@/lib/helpers/dates";
+import {
+  lastDayOfMonth,
+  parseYearMonth,
+  todayInTimezone,
+} from "@/lib/helpers/dates";
 import { MonthNav } from "@/components/attendance/month-nav";
 import { AttendanceGrid } from "@/components/attendance/attendance-grid";
 import { AttendanceLegend } from "@/components/attendance/attendance-legend";
@@ -43,7 +47,7 @@ export default async function AttendancePage({
   const settings = await getOrganizationSettings();
   const today = todayInTimezone(settings.timezone);
   const currentMonth = today.slice(0, 7); // "YYYY-MM"
-  const month = monthParam ?? currentMonth;
+  const month = parseYearMonth(monthParam) ?? currentMonth;
 
   const isReadOnly = !isOwnerOrAdmin;
   const orgId = profile.organization_id ?? "";
@@ -123,7 +127,7 @@ export default async function AttendancePage({
   const remoteEmployees = activeEmployees.filter((e) => e.is_remote);
   const isCurrentMonth = month === currentMonth;
   const monthStart = `${month}-01`;
-  const monthEnd = new Date(yearNum, monthNum, 0).toISOString().slice(0, 10);
+  const monthEnd = lastDayOfMonth(month);
   const remoteReportDates = await getRemoteAttendanceDates(
     remoteEmployees.map((e) => e.id),
     monthStart,

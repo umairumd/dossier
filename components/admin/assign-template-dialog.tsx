@@ -23,7 +23,7 @@ interface AssignTemplateDialogProps {
   personName: string;
   currentTemplateId: string | null;
   templates: ReportTemplate[];
-  currentTemplateSource?: "individual" | "department" | "default";
+  currentTemplateSource?: "individual" | "department" | "default" | "none";
   currentTemplateSourceName?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -60,7 +60,9 @@ export function AssignTemplateDialog({
         ? `Currently from ${currentTemplateSourceName ?? "department"}.`
         : currentTemplateSource === "default"
           ? "Currently using the organization default."
-          : null;
+          : currentTemplateSource === "none"
+            ? "No template is configured. Set a default template."
+            : null;
 
   const handleSave = () => {
     startTransition(async () => {

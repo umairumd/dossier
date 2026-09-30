@@ -41,7 +41,7 @@ export default async function DailyReportPage({
   ]);
 
   const template = profile
-    ? await resolveTemplate(profile.id, profile.department_ids)
+    ? ((await resolveTemplate(profile.id, profile.department_ids)) ?? undefined)
     : undefined;
 
   const { reports: reportHistory, total } = history;

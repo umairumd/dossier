@@ -304,6 +304,16 @@ export async function deleteTemplate(
     };
   }
 
+  const { error } = await supabase
+    .from("report_templates")
+    .delete()
+    .eq("id", templateId);
+
+  if (error) {
+    return { success: false, error: "Failed to delete template." };
+  }
+
+  // Log only once the delete has actually succeeded.
   try {
     const { orgId, actorName } = await getActorLogContext(admin.id);
     if (orgId) {
@@ -319,15 +329,6 @@ export async function deleteTemplate(
     }
   } catch (logError) {
     console.error("[activity-log] Failed to log template delete:", logError);
-  }
-
-  const { error } = await supabase
-    .from("report_templates")
-    .delete()
-    .eq("id", templateId);
-
-  if (error) {
-    return { success: false, error: "Failed to delete template." };
   }
 
   revalidatePath("/organization/templates");
