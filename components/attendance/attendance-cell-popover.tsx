@@ -136,6 +136,19 @@ export function AttendanceCellPopover({
   const [notes, setNotes] = useState(existingRecord?.notes ?? "");
   const [isPending, startTransition] = useTransition();
 
+  const resetFromRecord = (record: AttendanceRecord | null = existingRecord) => {
+    setStatus(record?.status ?? defaultStatus);
+    setCheckInTime(record?.check_in_time?.slice(0, 5) ?? "");
+    setNotes(record?.notes ?? "");
+  };
+
+  const handleOpenChange = (next: boolean) => {
+    // Re-seed from the latest server data whenever the popover opens so a
+    // previous save/clear (or edit by someone else) is reflected.
+    if (next) resetFromRecord();
+    setOpen(next);
+  };
+
   const fine = computeFine(status, settings);
   const leaveDeducted = LEAVE_DEDUCTION[status] ?? 0;
   const showCheckIn = NEEDS_CHECKIN.includes(status);
@@ -198,6 +211,7 @@ export function AttendanceCellPopover({
         return;
       }
       toast.success("Attendance cleared.");
+      resetFromRecord(null);
       setOpen(false);
     });
   };
@@ -211,7 +225,7 @@ export function AttendanceCellPopover({
     : "—";
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
           type="button"

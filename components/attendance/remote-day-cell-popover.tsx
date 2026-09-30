@@ -59,12 +59,14 @@ export function RemoteDayCellVisual({
   isOff,
   isFuture,
   isPast,
+  isBeforeJoin = false,
   record,
   hasReport,
 }: {
   isOff: boolean;
   isFuture: boolean;
   isPast: boolean;
+  isBeforeJoin?: boolean;
   record: AttendanceRecord | null;
   hasReport: boolean;
 }) {
@@ -77,6 +79,12 @@ export function RemoteDayCellVisual({
 
   if (isFuture) {
     return <div className={transparentUnsetClass}>—</div>;
+  }
+
+  // Before the employee joined: nothing was expected, so render blank rather
+  // than the "missing" dash.
+  if (isBeforeJoin && !record && !hasReport) {
+    return <div className="h-8 w-full" />;
   }
 
   if (isOff && (!record || record.status === "weekly_off")) {
@@ -177,6 +185,23 @@ export function RemoteDayCellPopover({
       : "";
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<string>(initialStatus);
+
+  const resetFromRecord = (record: AttendanceRecord | null = existingRecord) => {
+    setStatus(
+      record?.status === "leave" ||
+        record?.status === "half_leave" ||
+        record?.status === "present"
+        ? record.status
+        : "",
+    );
+  };
+
+  const handleOpenChange = (next: boolean) => {
+    // Re-seed from the latest server data whenever the popover opens so a
+    // previous save/clear (or edit by someone else) is reflected.
+    if (next) resetFromRecord();
+    setOpen(next);
+  };
   const [isPending, startTransition] = useTransition();
   const [sheetMember, setSheetMember] = useState<SubmittedMember | null>(null);
   const [sheetIndex, setSheetIndex] = useState<number | null>(null);
@@ -220,6 +245,7 @@ export function RemoteDayCellPopover({
         return;
       }
       toast.success("Attendance cleared.");
+      resetFromRecord(null);
       setOpen(false);
     });
   };
@@ -248,7 +274,7 @@ export function RemoteDayCellPopover({
 
   return (
     <>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <button
             type="button"
