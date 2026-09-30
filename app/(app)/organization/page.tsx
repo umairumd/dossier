@@ -30,7 +30,7 @@ export default async function OrganizationSettingsPage() {
       getAttendanceSettings(),
     ]);
 
-  if (profile?.role !== "owner") {
+  if (profile?.role !== "owner" && profile?.role !== "admin") {
     redirect("/");
   }
 

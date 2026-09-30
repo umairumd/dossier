@@ -145,7 +145,7 @@ export const navSections: NavSection[] = [
         label: "Organization",
         href: "/organization",
         icon: <Building2 className="size-4" />,
-        roles: ["owner"],
+        roles: ["owner", "admin"],
       },
     ],
   },

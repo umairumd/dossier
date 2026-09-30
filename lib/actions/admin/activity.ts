@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireOwnerUser } from "@/lib/supabase/require-admin";
+import { requireAdminUser } from "@/lib/supabase/require-admin";
 
 export async function deleteActivityEntry(
   id: string,
 ): Promise<{ success: boolean; error?: string }> {
-  await requireOwnerUser();
+  await requireAdminUser();
   const supabase = await createClient();
 
   const { error } = await supabase

@@ -37,7 +37,7 @@ export default async function ActivityPage() {
         <CardContent>
           <ActivityFeed
             items={activity}
-            canDelete={profile?.role === "owner"}
+            canDelete={profile?.role === "owner" || profile?.role === "admin"}
           />
         </CardContent>
       </Card>
