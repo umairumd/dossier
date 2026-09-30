@@ -24,7 +24,7 @@ import { ReportBanner } from "@/components/shared/report-banner";
 import { RecentReportsCard } from "@/components/reports/recent-reports-card";
 
 const RECENT_PREVIEW_SIZE = 5;
-const MY_ACTIVITY_LIMIT = 8;
+const MY_ACTIVITY_LIMIT = 20;
 
 export async function EmployeeDashboard({
   profile,

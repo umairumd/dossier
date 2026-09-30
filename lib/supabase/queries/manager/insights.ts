@@ -17,7 +17,7 @@ import type { TeamInsights, TeamMemberStanding } from "@/types/team-insights";
 
 const TREND_DAYS = 7;
 const LEADERBOARD_SIZE = 3;
-const RECENT_ACTIVITY_SIZE = 8;
+const RECENT_ACTIVITY_SIZE = 20;
 // Streak/completion here are bounded to this window deliberately — an
 // employee with a streak longer than 90 days would show as capped at 90,
 // which is an acceptable trade-off for "one query for the whole team"
