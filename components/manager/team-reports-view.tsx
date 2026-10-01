@@ -56,6 +56,7 @@ function memberStatus(
     deadline.deadlineHourUtc,
     deadline,
     reportDate,
+    member.isOnLeave,
   );
 }
 
@@ -182,6 +183,7 @@ export function TeamReportsView({
               <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
               <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
               <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
+              <SelectItem value="on_leave">{SUBMISSION_STATUS_LABELS.on_leave}</SelectItem>
             </SelectContent>
           </Select>
         </div>

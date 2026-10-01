@@ -83,6 +83,7 @@ export default async function DepartmentDetailPage({
     (member) => member.has_onboarded && member.is_reporting,
   );
   const reportingIds = new Set(reportingMembers.map((member) => member.id));
+  const onLeaveIds = new Set(detail.onLeaveMemberIds);
   const submittedToday = Object.keys(detail.submittedAtByMemberId).filter(
     (id) => reportingIds.has(id),
   ).length;
@@ -90,7 +91,10 @@ export default async function DepartmentDetailPage({
   // With no reporting members there is nothing to measure; show "—" rather
   // than a misleading 0/0 and 0%.
   const hasReportingMembers = totalCount > 0;
-  const missingToday = Math.max(totalCount - submittedToday, 0);
+  const expectedToday = reportingMembers.filter(
+    (member) => !onLeaveIds.has(member.id),
+  ).length;
+  const missingToday = Math.max(expectedToday - submittedToday, 0);
   const completionPct =
     totalCount === 0 ? 0 : Math.round((submittedToday / totalCount) * 100);
   const today = todayInTimezone(settings.timezone);
@@ -298,6 +302,7 @@ export default async function DepartmentDetailPage({
                             deadline.deadlineHourUtc,
                             deadline,
                             today,
+                            onLeaveIds.has(member.id),
                           )}
                         />
                       ) : member.has_onboarded ? (
@@ -307,6 +312,7 @@ export default async function DepartmentDetailPage({
                             deadline.deadlineHourUtc,
                             deadline,
                             today,
+                            onLeaveIds.has(member.id),
                           )}
                         />
                       ) : (

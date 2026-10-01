@@ -25,7 +25,9 @@ export const getMissingReportsToday = cache(
     }
 
     const todayMembers = await getTeamReportsForDate(today);
-    const missing = todayMembers.filter((member) => !member.report);
+    const missing = todayMembers.filter(
+      (member) => !member.report && !member.isOnLeave,
+    );
 
     if (missing.length === 0) {
       return [];

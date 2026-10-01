@@ -57,6 +57,7 @@ export function TeamTodayRoster({
                   deadline.deadlineHourUtc,
                   deadline,
                   todayInTimezone(deadline.timezone),
+                  member.isOnLeave,
                 );
 
                 return (

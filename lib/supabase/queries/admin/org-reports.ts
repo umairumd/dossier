@@ -49,6 +49,7 @@ export const getOrgReportsForDate = cache(
       { data: employees, error: employeesError },
       { data: reports, error: reportsError },
       { data: departments, error: departmentsError },
+      { data: leaveRows, error: leaveError },
     ] = await Promise.all([
       adminClient
         .from("profiles")
@@ -68,6 +69,11 @@ export const getOrgReportsForDate = cache(
         .select("id, name, manager_id")
         .is("archived_at", null)
         .order("name", { ascending: true }),
+      adminClient
+        .from("attendance_records")
+        .select("profile_id")
+        .eq("date", date)
+        .in("status", ["leave", "half_leave"]),
     ]);
 
     if (employeesError) {
@@ -80,6 +86,10 @@ export const getOrgReportsForDate = cache(
 
     if (departmentsError) {
       throw new Error("Failed to load departments.");
+    }
+
+    if (leaveError) {
+      throw new Error("Failed to load leave records for that date.");
     }
 
     const activeDepartments: OrgDepartment[] = (departments ?? []).map(
@@ -124,6 +134,9 @@ export const getOrgReportsForDate = cache(
         report,
       ]),
     );
+    const onLeaveIds = new Set(
+      (leaveRows ?? []).map((row) => row.profile_id as string),
+    );
 
     const members: OrgMemberReport[] = (employees ?? []).map((employee) => {
       const departmentIds = departmentIdsByProfile.get(employee.id) ?? [];
@@ -135,6 +148,7 @@ export const getOrgReportsForDate = cache(
         avatarUrl: employee.avatar_url,
         isRemote: employee.is_remote,
         employment_type: employee.employment_type,
+        isOnLeave: onLeaveIds.has(employee.id),
         report: reportsByAuthor.get(employee.id) ?? null,
         departmentIds,
         departmentNames: departmentIds
