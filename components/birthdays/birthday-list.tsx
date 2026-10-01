@@ -75,7 +75,7 @@ function BirthdayCard({
   return (
     <div
       className={cn(
-        "relative flex min-h-[200px] flex-col items-center justify-between gap-0 rounded-xl border p-5 text-center",
+        "relative flex min-h-[200px] cursor-default flex-col items-center justify-between gap-0 rounded-xl border p-5 text-center transition-colors hover:bg-foreground/5",
         isTodayCard
           ? "border-primary/30 bg-primary/5"
           : "border-border bg-card",

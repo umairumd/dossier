@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Archive,
   Bell,
+  Cake,
   CalendarClock,
   CheckCircle,
   Clock,
@@ -43,6 +44,7 @@ const TYPE_ICONS: Record<
   supervisor_assigned: { Icon: Users, className: "text-blue-500" },
   employee_deactivated: { Icon: UserX, className: "text-amber-500" },
   employee_archived: { Icon: Archive, className: "text-amber-500" },
+  birthday: { Icon: Cake, className: "text-pink-500" },
 };
 
 export function NotificationBell({
