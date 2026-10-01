@@ -14,6 +14,7 @@ import {
   getActorLogContext,
   logActivity,
 } from "@/lib/helpers/activity-log";
+import { ensureLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
 import {
   validateEditEmployeeInput,
   validateInviteEmployeeInput,
@@ -150,6 +151,27 @@ export async function inviteEmployee(
 
   if (extensionError) {
     console.error("Failed to set invite profile extensions.", extensionError);
+  }
+
+  // Auto-init leave balance (idempotent). Prefer auth user created_at.
+  try {
+    const joinDate =
+      data.user.created_at?.slice(0, 10) ??
+      new Date().toISOString().slice(0, 10);
+    const leaveResult = await ensureLeaveBalanceRecord(
+      adminClient,
+      userId,
+      orgId,
+      joinDate,
+    );
+    if (!leaveResult.success) {
+      console.error(
+        "Failed to initialize leave balance on invite:",
+        leaveResult.error,
+      );
+    }
+  } catch (leaveError) {
+    console.error("Failed to initialize leave balance on invite:", leaveError);
   }
 
   if (departmentId) {

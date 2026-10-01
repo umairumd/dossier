@@ -467,6 +467,89 @@ export async function initLeaveBalanceAction(
   return { success: true };
 }
 
+export async function adjustLeaveBalance(
+  profileId: string,
+  adjustment: number,
+  note: string,
+): Promise<AttendanceActionResult> {
+  await requireAdminUser();
+
+  const trimmedNote = note.trim();
+  if (trimmedNote.length < 10) {
+    return { success: false, error: "A reason is required." };
+  }
+
+  if (!Number.isFinite(adjustment) || adjustment === 0) {
+    return {
+      success: false,
+      error: "Enter a non-zero number of days to adjust.",
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated." };
+  }
+
+  const adminClient = createAdminClient();
+  const { data: balance, error: fetchError } = await adminClient
+    .from("leave_balances")
+    .select("id, total_accrued")
+    .eq("profile_id", profileId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (fetchError) {
+    return { success: false, error: fetchError.message };
+  }
+
+  if (!balance) {
+    return {
+      success: false,
+      error: "No active leave balance found for this employee.",
+    };
+  }
+
+  const nextAccrued = Math.max(0, Number(balance.total_accrued) + adjustment);
+
+  const { error: updateError } = await adminClient
+    .from("leave_balances")
+    .update({
+      total_accrued: nextAccrued,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", balance.id);
+
+  if (updateError) {
+    return { success: false, error: updateError.message };
+  }
+
+  const { error: auditError } = await adminClient
+    .from("leave_balance_adjustments")
+    .insert({
+      leave_balance_id: balance.id,
+      profile_id: profileId,
+      adjusted_by: user.id,
+      adjustment,
+      note: trimmedNote,
+    });
+
+  if (auditError) {
+    console.error(
+      "[leave] Failed to insert leave_balance_adjustments audit row:",
+      auditError,
+    );
+  }
+
+  revalidatePath(`/employees/${profileId}`);
+  revalidatePath("/attendance");
+  return { success: true };
+}
+
 const ACCRUAL_ALREADY_RUN_ERROR = "Accrual already run for this month";
 
 export async function runMonthlyAccrualAction(

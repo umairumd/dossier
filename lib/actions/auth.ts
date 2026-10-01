@@ -6,7 +6,7 @@ import { createNotification } from "@/lib/actions/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyAuthErrorMessage } from "@/lib/helpers/auth-error-messages";
-import { insertLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
+import { ensureLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
 import { logActivity } from "@/lib/helpers/activity-log";
 
 export async function login(
@@ -63,7 +63,7 @@ export async function markOnboarded(): Promise<{
 
     if (profile?.organization_id) {
       const adminClient = createAdminClient();
-      const result = await insertLeaveBalanceRecord(
+      const result = await ensureLeaveBalanceRecord(
         adminClient,
         user.id,
         profile.organization_id,

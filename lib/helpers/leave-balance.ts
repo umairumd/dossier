@@ -53,3 +53,34 @@ export async function insertLeaveBalanceRecord(
   if (error) return { success: false, error: error.message };
   return { success: true };
 }
+
+/** Insert leave balance only if none exists yet (any status). */
+export async function ensureLeaveBalanceRecord(
+  client: SupabaseClient,
+  profileId: string,
+  orgId: string,
+  joinDate: string,
+): Promise<{ success: boolean; error?: string; created: boolean }> {
+  const { data: existing, error: lookupError } = await client
+    .from("leave_balances")
+    .select("id")
+    .eq("profile_id", profileId)
+    .limit(1)
+    .maybeSingle();
+
+  if (lookupError) {
+    return { success: false, error: lookupError.message, created: false };
+  }
+
+  if (existing) {
+    return { success: true, created: false };
+  }
+
+  const result = await insertLeaveBalanceRecord(
+    client,
+    profileId,
+    orgId,
+    joinDate,
+  );
+  return { ...result, created: result.success };
+}
