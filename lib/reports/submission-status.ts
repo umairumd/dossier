@@ -1,9 +1,14 @@
-// Four-state submission status. Null submissions are "pending" before the
-// daily deadline and "missed" after — except historical report dates, which
-// are never pending.
+// Submission status for daily reports. Null submissions are "pending" before
+// the daily deadline and "missed" after — except historical report dates,
+// which are never pending, and approved leave days, which are "on_leave".
 import { todayInTimezone } from "@/lib/helpers/dates";
 
-export type SubmissionStatus = "on_time" | "late" | "missed" | "pending";
+export type SubmissionStatus =
+  | "on_time"
+  | "late"
+  | "missed"
+  | "pending"
+  | "on_leave";
 
 export const DEFAULT_REPORT_DEADLINE_HOUR_UTC = 17;
 
@@ -35,12 +40,18 @@ function localHourInTimezone(isoString: string, timezone: string): number {
 // (or UTC without ctx), a null submission is always "missed" — never
 // "pending". Prevents past-day gaps from flipping to Pending before
 // today's deadline.
+//
+// isOnLeave: when true (approved leave covering the report date), status
+// is always "on_leave" — never missed/pending for that day.
 export function getSubmissionStatus(
   submittedAt: string | null,
   deadlineHourUtc: number = DEFAULT_REPORT_DEADLINE_HOUR_UTC,
   ctx?: DeadlineContext,
   reportDate?: string,
+  isOnLeave?: boolean,
 ): SubmissionStatus {
+  if (isOnLeave) return "on_leave";
+
   if (!submittedAt) {
     if (reportDate) {
       const today = ctx
@@ -73,4 +84,5 @@ export const SUBMISSION_STATUS_LABELS: Record<SubmissionStatus, string> = {
   late: "Late",
   missed: "Missed",
   pending: "Pending",
+  on_leave: "On Leave",
 };

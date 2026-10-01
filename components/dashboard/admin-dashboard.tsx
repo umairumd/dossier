@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getOrganizationSummary } from "@/lib/supabase/queries/admin/overview";
 import { getDeptCompletionToday } from "@/lib/supabase/queries/admin/dept-completion";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
@@ -13,6 +14,7 @@ import { todayInTimezone } from "@/lib/helpers/dates";
 import { Building2, UserPlus } from "lucide-react";
 import {
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
@@ -161,6 +163,14 @@ export async function AdminDashboard() {
       >
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
+          <CardAction>
+            <Link
+              href="/activity"
+              className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+            >
+              View all
+            </Link>
+          </CardAction>
         </CardHeader>
         <CardContent>
           <ActivityFeed items={recentActivity} />

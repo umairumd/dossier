@@ -40,6 +40,7 @@ const STATUS_RANK: Record<SubmissionStatus, number> = {
   late: 1,
   pending: 2,
   missed: 3,
+  on_leave: 4,
 };
 
 function sortByStatusThenName(
@@ -48,8 +49,8 @@ function sortByStatusThenName(
   reportDate?: string,
 ): OrgMemberReport[] {
   return [...members].sort((a, b) => {
-    const rankA = STATUS_RANK[getSubmissionStatus(a.report?.submitted_at ?? null, deadline.deadlineHourUtc, deadline, reportDate)];
-    const rankB = STATUS_RANK[getSubmissionStatus(b.report?.submitted_at ?? null, deadline.deadlineHourUtc, deadline, reportDate)];
+    const rankA = STATUS_RANK[getSubmissionStatus(a.report?.submitted_at ?? null, deadline.deadlineHourUtc, deadline, reportDate, a.isOnLeave)];
+    const rankB = STATUS_RANK[getSubmissionStatus(b.report?.submitted_at ?? null, deadline.deadlineHourUtc, deadline, reportDate, b.isOnLeave)];
     if (rankA !== rankB) {
       return rankA - rankB;
     }
@@ -102,6 +103,7 @@ export function OrgDailyReports({
             deadline.deadlineHourUtc,
             deadline,
             reportDate,
+            member.isOnLeave,
           ) === statusFilter,
       );
     }
@@ -210,6 +212,7 @@ export function OrgDailyReports({
             <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
             <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
             <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
+            <SelectItem value="on_leave">{SUBMISSION_STATUS_LABELS.on_leave}</SelectItem>
           </SelectContent>
         </Select>
       </div>

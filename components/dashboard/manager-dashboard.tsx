@@ -12,6 +12,7 @@ import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -109,6 +110,7 @@ export async function ManagerDashboard({
                       deadline.deadlineHourUtc,
                       deadline,
                       todayDate,
+                      member.isOnLeave,
                     )}
                   />
                 </div>
@@ -160,6 +162,14 @@ export async function ManagerDashboard({
       >
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
+          <CardAction>
+            <Link
+              href="/activity"
+              className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+            >
+              View all
+            </Link>
+          </CardAction>
         </CardHeader>
         <CardContent>
           <ActivityFeed

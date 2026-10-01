@@ -111,15 +111,32 @@ export const getTeamReportsForDate = cache(
       return [];
     }
 
-    const { data: reports, error: reportsError } = await supabase
-      .from("daily_reports")
-      .select(
-        "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at, template_id, field_responses",
-      )
-      .eq("report_date", reportDate);
+    const employeeIds = employees.map((employee) => employee.id);
+
+    const [
+      { data: reports, error: reportsError },
+      { data: leaveRows, error: leaveError },
+    ] = await Promise.all([
+      supabase
+        .from("daily_reports")
+        .select(
+          "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at, template_id, field_responses",
+        )
+        .eq("report_date", reportDate),
+      supabase
+        .from("attendance_records")
+        .select("profile_id")
+        .eq("date", reportDate)
+        .in("status", ["leave", "half_leave"])
+        .in("profile_id", employeeIds),
+    ]);
 
     if (reportsError) {
       throw new Error("Failed to load reports for that date.");
+    }
+
+    if (leaveError) {
+      throw new Error("Failed to load leave records for that date.");
     }
 
     const reportsByAuthor = new Map(
@@ -127,6 +144,9 @@ export const getTeamReportsForDate = cache(
         report.author_id,
         report,
       ]),
+    );
+    const onLeaveIds = new Set(
+      (leaveRows ?? []).map((row) => row.profile_id as string),
     );
 
     return employees.map((employee) => ({
@@ -136,6 +156,7 @@ export const getTeamReportsForDate = cache(
       avatarUrl: employee.avatar_url,
       isRemote: employee.is_remote,
       employment_type: employee.employment_type,
+      isOnLeave: onLeaveIds.has(employee.id),
       report: reportsByAuthor.get(employee.id) ?? null,
     }));
   },

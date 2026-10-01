@@ -162,6 +162,7 @@ export interface DepartmentDetailData {
   manager: DepartmentManager | null;
   members: DepartmentMember[];
   submittedAtByMemberId: Record<string, string>;
+  onLeaveMemberIds: string[];
   trend: CompletionTrendPoint[];
 }
 
@@ -236,12 +237,16 @@ export const getDepartmentDetail = cache(
     const memberIds = members.map((member) => member.id);
     const settings = await getOrganizationSettings();
     const submittedAtByMemberId: Record<string, string> = {};
+    const onLeaveMemberIds: string[] = [];
     let trend: CompletionTrendPoint[] = buildCompletionTrend(7, new Map(), 0);
 
     if (memberIds.length > 0) {
       const today = todayInTimezone(settings.timezone);
-      const [{ data: todayReports, error: todayError }, { data: trendReports, error: trendError }] =
-        await Promise.all([
+      const [
+        { data: todayReports, error: todayError },
+        { data: trendReports, error: trendError },
+        { data: leaveRows, error: leaveError },
+      ] = await Promise.all([
           supabase
             .from("daily_reports")
             .select("author_id, submitted_at")
@@ -252,6 +257,12 @@ export const getDepartmentDetail = cache(
             .select("author_id, report_date")
             .gte("report_date", dateNDaysAgo(6))
             .in("author_id", memberIds),
+          supabase
+            .from("attendance_records")
+            .select("profile_id")
+            .eq("date", today)
+            .in("status", ["leave", "half_leave"])
+            .in("profile_id", memberIds),
         ]);
 
       if (todayError) {
@@ -260,11 +271,18 @@ export const getDepartmentDetail = cache(
       if (trendError) {
         logAndThrow("Failed to load department report trend.", trendError);
       }
+      if (leaveError) {
+        logAndThrow("Failed to load leave records for today.", leaveError);
+      }
 
       for (const report of todayReports ?? []) {
         if (report.submitted_at) {
           submittedAtByMemberId[report.author_id] = report.submitted_at;
         }
+      }
+
+      for (const row of leaveRows ?? []) {
+        onLeaveMemberIds.push(row.profile_id);
       }
 
       trend = buildCompletionTrend(
@@ -295,6 +313,7 @@ export const getDepartmentDetail = cache(
       manager,
       members,
       submittedAtByMemberId,
+      onLeaveMemberIds,
       trend,
     };
   },
