@@ -6,11 +6,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DynamicFieldRenderer } from "@/components/reports/dynamic-field-renderer";
 import {
-  ALREADY_SUBMITTED_ERROR,
   loadTodayReport,
   submitDailyReport,
   updateDailyReport,
 } from "@/lib/actions/reports";
+import { ALREADY_SUBMITTED_ERROR } from "@/lib/reports/constants";
 import type { DailyReport } from "@/types/report";
 import type { ReportTemplateWithFields } from "@/types/template";
 

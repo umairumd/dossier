@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -10,12 +11,8 @@ import {
   getTodayReport,
   searchReports,
 } from "@/lib/supabase/queries/reports";
-import type { DailyReport } from "@/types/report";
-
-export interface SubmitReportResult {
-  success: boolean;
-  error?: string;
-}
+import type { DailyReport, ReportComment, SubmitReportResult } from "@/types/report";
+import { ALREADY_SUBMITTED_ERROR } from "@/lib/reports/constants";
 
 type SubmitReportInput = {
   templateId: string;
@@ -33,7 +30,6 @@ type UpdateReportInput = {
 };
 
 const UNIQUE_VIOLATION = "23505";
-const ALREADY_SUBMITTED_ERROR = "You've already submitted a report for today.";
 
 export async function submitDailyReport(
   input: SubmitReportInput,
@@ -219,4 +215,67 @@ export async function searchMyReports(query: string): Promise<DailyReport[]> {
   return searchReports(query);
 }
 
-export { ALREADY_SUBMITTED_ERROR };
+export const getReportComments = cache(
+  async (reportId: string): Promise<ReportComment[]> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("report_comments")
+      .select("id, body, created_at, profiles(id, full_name, avatar_url)")
+      .eq("report_id", reportId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("getReportComments error:", error);
+      return [];
+    }
+
+    return ((data ?? []) as unknown as ReportComment[]).map((row) => ({
+      id: row.id,
+      body: row.body,
+      created_at: row.created_at,
+      profiles: Array.isArray(row.profiles)
+        ? (row.profiles[0] ?? {
+            id: "",
+            full_name: null,
+            avatar_url: null,
+          })
+        : row.profiles,
+    }));
+  },
+);
+
+export async function addReportComment(
+  reportId: string,
+  body: string,
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "You must be signed in to comment." };
+  }
+
+  const trimmed = body.trim();
+  if (!trimmed) {
+    return { success: false, error: "Comment cannot be empty." };
+  }
+
+  const { error } = await supabase.from("report_comments").insert({
+    report_id: reportId,
+    author_id: user.id,
+    body: trimmed,
+  });
+
+  if (error) {
+    return {
+      success: false,
+      error: "Couldn't post your comment. Please try again.",
+    };
+  }
+
+  revalidatePath("/reports");
+  revalidatePath("/manager/team-reports");
+  return { success: true };
+}
