@@ -99,7 +99,6 @@ export const navSections: NavSection[] = [
         href: "/attendance",
         icon: <CalendarCheck className="size-4" />,
         roles: ["owner", "admin", "manager", "member"],
-        requiresTeam: true,
       },
     ],
   },

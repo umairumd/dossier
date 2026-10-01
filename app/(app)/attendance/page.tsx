@@ -8,6 +8,7 @@ import {
   getAttendanceSettings,
   getMonthAccrualStatus,
   getMonthlyAttendance,
+  getMyAttendance,
   getRemoteAttendanceDates,
   getTeamMonthlyAttendance,
 } from "@/lib/supabase/queries/attendance";
@@ -39,8 +40,12 @@ export default async function AttendancePage({
     profile?.role === "owner" || profile?.role === "admin";
   const isManager = profile?.role === "manager";
   const isSupervisor = Boolean(profile?.is_supervisor);
+  const isMember = profile?.role === "member" && !isSupervisor;
 
-  if (!profile || (!isOwnerOrAdmin && !isManager && !isSupervisor)) {
+  if (
+    !profile ||
+    (!isOwnerOrAdmin && !isManager && !isSupervisor && !isMember)
+  ) {
     redirect("/");
   }
 
@@ -54,6 +59,61 @@ export default async function AttendancePage({
   const orgId = profile.organization_id ?? "";
   const deadline = getDeadlineContext(settings);
   const profileBasePath = isReadOnly ? "/manager/employees" : "/employees";
+  const monthStart = `${month}-01`;
+  const monthEnd = lastDayOfMonth(month);
+
+  if (isMember) {
+    const [myRecords, attendanceSettings] = await Promise.all([
+      getMyAttendance(month),
+      getAttendanceSettings(),
+    ]);
+
+    const selfEmployee = {
+      id: profile.id,
+      full_name: profile.full_name,
+      org_id: orgId,
+      is_remote: profile.is_remote,
+      employment_type: profile.employment_type,
+      designation: profile.designation,
+      department_name: null,
+      avatar_url: profile.avatar_url,
+      leave_balance: 0,
+      joined_on: profile.created_at ? profile.created_at.slice(0, 10) : null,
+    };
+
+    const onSiteEmployees = selfEmployee.is_remote ? [] : [selfEmployee];
+    const remoteEmployees = selfEmployee.is_remote ? [selfEmployee] : [];
+    const remoteReportDates = selfEmployee.is_remote
+      ? await getRemoteAttendanceDates([selfEmployee.id], monthStart, monthEnd)
+      : [];
+
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="Attendance"
+          count={1}
+          countLabel="employee"
+          description={<AttendanceLegend showHolidayHint={false} />}
+          action={<MonthNav month={month} baseHref="/attendance" />}
+        />
+
+        <AttendanceGrid
+          onSiteEmployees={onSiteEmployees}
+          remoteEmployees={remoteEmployees}
+          remoteReportDates={remoteReportDates}
+          records={myRecords}
+          yearMonth={month}
+          settings={attendanceSettings}
+          workingDays={settings.workingDays}
+          orgId={orgId}
+          deadline={deadline}
+          profileBasePath={profileBasePath}
+          isReadOnly
+          today={today}
+        />
+      </div>
+    );
+  }
 
   let activeEmployees: {
     id: string;
@@ -130,8 +190,6 @@ export default async function AttendancePage({
   const onSiteEmployees = activeEmployees.filter((e) => !e.is_remote);
   const remoteEmployees = activeEmployees.filter((e) => e.is_remote);
   const isCurrentMonth = month === currentMonth;
-  const monthStart = `${month}-01`;
-  const monthEnd = lastDayOfMonth(month);
   const remoteReportDates = await getRemoteAttendanceDates(
     remoteEmployees.map((e) => e.id),
     monthStart,
