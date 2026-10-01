@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, type ComponentType } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   Archive,
@@ -46,6 +47,42 @@ const TYPE_ICONS: Record<
   employee_archived: { Icon: Archive, className: "text-amber-500" },
   birthday: { Icon: Cake, className: "text-pink-500" },
 };
+
+function resolveNotificationUrl(
+  type: string,
+  entityType: string | null,
+  entityId: string | null,
+): string | null {
+  // entity-based links take priority
+  if (entityType === "employee" && entityId) return `/employees/${entityId}`;
+  if (entityType === "leave_request" && entityId) return `/leave`;
+  if (entityType === "report" && entityId) return `/reports`;
+
+  // type-based fallbacks
+  switch (type) {
+    case "leave_approved":
+    case "leave_rejected":
+    case "leave_request_submitted":
+      return "/leave";
+    case "report_deadline":
+      return "/reports";
+    case "employee_invited":
+    case "employee_onboarded":
+    case "employee_deactivated":
+    case "employee_archived":
+      return entityId ? `/employees/${entityId}` : "/employees";
+    case "attendance_fine":
+      return "/attendance";
+    case "shift_assigned":
+    case "template_assigned":
+    case "supervisor_assigned":
+      return "/attendance";
+    case "birthday":
+      return "/birthdays";
+    default:
+      return null;
+  }
+}
 
 export function NotificationBell({
   initialCount,
@@ -109,12 +146,19 @@ export function NotificationBell({
               {initialNotifications.map((n) => {
                 const icon = TYPE_ICONS[n.type];
                 const Icon = icon?.Icon ?? Bell;
-                return (
+                const url = resolveNotificationUrl(
+                  n.type,
+                  n.entity_type,
+                  n.entity_id,
+                );
+
+                const item = (
                   <div
-                    key={n.id}
                     className={cn(
                       "flex gap-3 border-b border-border/50 px-4 py-3 last:border-0",
                       !n.read_at && !hasOpened && "bg-primary/5",
+                      url &&
+                        "cursor-pointer transition-colors hover:bg-accent/50",
                     )}
                   >
                     <Icon
@@ -140,6 +184,21 @@ export function NotificationBell({
                     </div>
                   </div>
                 );
+
+                if (url) {
+                  return (
+                    <Link
+                      key={n.id}
+                      href={url}
+                      className="block"
+                      onClick={() => setOpen(false)}
+                    >
+                      {item}
+                    </Link>
+                  );
+                }
+
+                return <div key={n.id}>{item}</div>;
               })}
             </div>
           )}
