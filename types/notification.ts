@@ -10,7 +10,8 @@ export type NotificationType =
   | "template_assigned"
   | "supervisor_assigned"
   | "employee_deactivated"
-  | "employee_archived";
+  | "employee_archived"
+  | "birthday";
 
 export interface Notification {
   id: string;

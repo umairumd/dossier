@@ -6,7 +6,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { logActivity } from "@/lib/helpers/activity-log";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
-import { searchReports } from "@/lib/supabase/queries/reports";
+import {
+  getTodayReport,
+  searchReports,
+} from "@/lib/supabase/queries/reports";
 import type { DailyReport } from "@/types/report";
 
 export interface SubmitReportResult {
@@ -22,7 +25,15 @@ type SubmitReportInput = {
   additionalNotes?: string;
 };
 
+type UpdateReportInput = {
+  fieldResponses: Record<string, unknown>;
+  content?: string;
+  blockers?: string;
+  additionalNotes?: string;
+};
+
 const UNIQUE_VIOLATION = "23505";
+const ALREADY_SUBMITTED_ERROR = "You've already submitted a report for today.";
 
 export async function submitDailyReport(
   input: SubmitReportInput,
@@ -68,7 +79,7 @@ export async function submitDailyReport(
     if (error.code === UNIQUE_VIOLATION) {
       return {
         success: false,
-        error: "You've already submitted a report for today.",
+        error: ALREADY_SUBMITTED_ERROR,
       };
     }
 
@@ -137,6 +148,75 @@ export async function submitDailyReport(
   return { success: true };
 }
 
+export async function updateDailyReport(
+  reportDate: string,
+  input: UpdateReportInput,
+): Promise<SubmitReportResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      success: false,
+      error: "You must be signed in to update a report.",
+    };
+  }
+
+  if (input.fieldResponses === undefined) {
+    return { success: false, error: "No field responses provided." };
+  }
+
+  const settings = await getOrganizationSettings();
+  const today = todayInTimezone(settings.timezone);
+
+  if (reportDate !== today) {
+    return {
+      success: false,
+      error: "You can only edit today's report.",
+    };
+  }
+
+  const { data: updated, error } = await supabase
+    .from("daily_reports")
+    .update({
+      content: input.content ?? "",
+      blockers: input.blockers ?? "",
+      additional_notes: input.additionalNotes ?? "",
+      field_responses: input.fieldResponses,
+    })
+    .eq("author_id", user.id)
+    .eq("report_date", reportDate)
+    .select("id");
+
+  if (error) {
+    return {
+      success: false,
+      error: "Couldn't update your report. Please try again.",
+    };
+  }
+
+  if (!updated || updated.length === 0) {
+    return {
+      success: false,
+      error: "No report found for today.",
+    };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/reports");
+
+  return { success: true };
+}
+
+export async function loadTodayReport(): Promise<DailyReport | null> {
+  return getTodayReport();
+}
+
 export async function searchMyReports(query: string): Promise<DailyReport[]> {
   return searchReports(query);
 }
+
+export { ALREADY_SUBMITTED_ERROR };

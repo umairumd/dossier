@@ -62,6 +62,31 @@ export async function inviteEmployee(
   const adminClient = createAdminClient();
   const tempPassword = generateTempPassword();
 
+  // Resolve org before createUser so the invitee profile can be stamped
+  // with organization_id (handle_new_user does not set it).
+  const supabase = await createClient();
+  const {
+    data: { user: adminUser },
+  } = await supabase.auth.getUser();
+
+  if (!adminUser) {
+    return { success: false, error: "Not authenticated." };
+  }
+
+  const { data: adminProfile } = await supabase
+    .from("profiles")
+    .select("organization_id, full_name")
+    .eq("id", adminUser.id)
+    .maybeSingle();
+
+  const orgId = adminProfile?.organization_id;
+  if (!orgId) {
+    return {
+      success: false,
+      error: "Your account is missing an organization. Contact support.",
+    };
+  }
+
   // createUser with a confirmed email and temp password: no invite token,
   // no shareable link, no WhatsApp-preview expiry. The employee logs in
   // normally and is sent to /onboarding until they set a permanent password.
@@ -92,12 +117,12 @@ export async function inviteEmployee(
   // chose. Department assignment is a separate action.
   // Shift is NOT assigned here — use Assign Shift on the employee detail
   // page after invite.
-  const supabase = await createClient();
   const { error: profileError } = await supabase
     .from("profiles")
     .update({
       full_name: fullName,
       role,
+      organization_id: orgId,
     })
     .eq("id", userId);
 
@@ -112,6 +137,7 @@ export async function inviteEmployee(
   const profileUpdate: Record<string, unknown> = {
     is_remote: isRemote ?? false,
     employment_type: employmentType ?? "full_time",
+    organization_id: orgId,
   };
   if (designation) {
     profileUpdate.designation = designation;
@@ -146,53 +172,40 @@ export async function inviteEmployee(
     }
   }
 
-  const {
-    data: { user: adminUser },
-  } = await supabase.auth.getUser();
-
-  if (adminUser) {
-    const { data: adminProfile } = await supabase
+  {
+    const { data: admins } = await supabase
       .from("profiles")
-      .select("organization_id, full_name")
-      .eq("id", adminUser.id)
-      .maybeSingle();
+      .select("id")
+      .eq("organization_id", orgId)
+      .in("role", ["owner", "admin"]);
 
-    const orgId = adminProfile?.organization_id;
-    if (orgId) {
-      const { data: admins } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("organization_id", orgId)
-        .in("role", ["owner", "admin"]);
+    // Don't notify the admin who sent the invite about their own action.
+    await Promise.all(
+      (admins ?? [])
+        .filter((admin) => admin.id !== adminUser.id)
+        .map((admin) =>
+          createNotification({
+            orgId,
+            profileId: admin.id,
+            type: "employee_invited",
+            title: `${fullName} has been invited`,
+            entityType: "employee",
+            entityId: userId,
+          }),
+        ),
+    );
 
-      // Don't notify the admin who sent the invite about their own action.
-      await Promise.all(
-        (admins ?? [])
-          .filter((admin) => admin.id !== adminUser.id)
-          .map((admin) =>
-            createNotification({
-              orgId,
-              profileId: admin.id,
-              type: "employee_invited",
-              title: `${fullName} has been invited`,
-              entityType: "employee",
-              entityId: userId,
-            }),
-          ),
-      );
-
-      void logActivity({
-        orgId,
-        eventType: "employee_invited",
-        actorId: adminUser.id,
-        actorName: adminProfile?.full_name ?? undefined,
-        targetId: userId,
-        targetName: fullName,
-        entityType: "employee",
-        entityId: userId,
-        entityName: fullName,
-      });
-    }
+    void logActivity({
+      orgId,
+      eventType: "employee_invited",
+      actorId: adminUser.id,
+      actorName: adminProfile?.full_name ?? undefined,
+      targetId: userId,
+      targetName: fullName,
+      entityType: "employee",
+      entityId: userId,
+      entityName: fullName,
+    });
   }
 
   revalidatePath("/employees");
