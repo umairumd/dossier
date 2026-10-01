@@ -190,6 +190,31 @@ export const getTeamMonthlyAttendance = cache(
   },
 );
 
+// Self-scoped monthly attendance for members (RLS: profile_id = auth.uid())
+export const getMyAttendance = cache(
+  async (yearMonth: string): Promise<AttendanceRecord[]> => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const startDate = `${yearMonth}-01`;
+    const endDate = lastDayOfMonth(yearMonth);
+
+    const { data, error } = await supabase
+      .from("attendance_records")
+      .select("*")
+      .eq("profile_id", user.id)
+      .gte("date", startDate)
+      .lte("date", endDate)
+      .order("date", { ascending: true });
+
+    if (error) throw new Error("Failed to load attendance.");
+    return (data as AttendanceRecord[]) ?? [];
+  },
+);
+
 // Submitted daily reports for remote employees in a month (keys: "authorId_YYYY-MM-DD")
 export async function getRemoteAttendanceDates(
   employeeIds: string[],
