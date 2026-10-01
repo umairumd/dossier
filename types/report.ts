@@ -10,3 +10,19 @@ export interface DailyReport {
   template_id: string | null;
   field_responses: Record<string, unknown> | null;
 }
+
+export interface SubmitReportResult {
+  success: boolean;
+  error?: string;
+}
+
+export type ReportComment = {
+  id: string;
+  body: string;
+  created_at: string;
+  profiles: {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  };
+};

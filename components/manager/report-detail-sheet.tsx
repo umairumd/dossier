@@ -1,14 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
 import {
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   FileText,
+  MessageSquare,
   UserCircle,
   XIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,11 +25,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { DynamicFieldRenderer } from "@/components/reports/dynamic-field-renderer";
-import type { DailyReport } from "@/types/report";
+import {
+  addReportComment,
+  getReportComments,
+} from "@/lib/actions/reports";
+import { cn } from "@/lib/utils";
+import type { DailyReport, ReportComment } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
 import type { ReportTemplateWithFields } from "@/types/template";
@@ -70,6 +81,61 @@ export function ReportDetailSheet({
     ? templates?.find((template) => template.id === current.report.template_id)
     : null;
   const profileBasePath = adminView ? "/employees" : "/manager/employees";
+  const showComments = adminView || showProfileLink;
+
+  const [comments, setComments] = useState<ReportComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentBody, setCommentBody] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+
+  const isMac =
+    typeof navigator !== "undefined" &&
+    /Mac|iPhone|iPad/.test(navigator.platform);
+  const shortcutLabel = isMac ? "⌘ Enter" : "Ctrl + Enter";
+
+  useEffect(() => {
+    if (!showComments || !current?.report?.id) {
+      setComments([]);
+      return;
+    }
+
+    let cancelled = false;
+    setComments([]);
+    setCommentsLoading(true);
+    getReportComments(current.report.id)
+      .then((data) => {
+        if (!cancelled) {
+          setComments(data);
+          setCommentsOpen(data.length > 0);
+          setCommentsLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error("getReportComments failed:", err);
+        if (!cancelled) {
+          setCommentsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [current?.report?.id, showComments]);
+
+  async function handleSendComment() {
+    if (!current?.report?.id || !commentBody.trim()) return;
+    setIsSending(true);
+    const result = await addReportComment(current.report.id, commentBody);
+    if (result.success) {
+      setCommentBody("");
+      const updated = await getReportComments(current.report.id);
+      setComments(updated);
+    } else {
+      toast.error(result.error ?? "Failed to send comment.");
+    }
+    setIsSending(false);
+  }
 
   return (
     <Dialog
@@ -153,43 +219,151 @@ export function ReportDetailSheet({
               </DialogDescription>
             </DialogHeader>
 
-            <DialogBody className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-              {templateForReport && current.report.field_responses
-                ? [...templateForReport.fields]
-                    .sort((a, b) => a.fieldOrder - b.fieldOrder)
-                    .map((field) => (
-                      <div
-                        key={field.key}
-                        className="border-b border-border/40 pb-4 last:border-0 last:pb-0"
-                      >
-                        <DynamicFieldRenderer
-                          field={field}
-                          value={current.report.field_responses?.[field.key]}
-                          mode="display"
-                        />
-                      </div>
-                    ))
-                : current.report.field_responses
-                  ? Object.entries(current.report.field_responses)
-                      .sort(([a], [b]) => a.localeCompare(b))
-                      .map(([key, value]) => (
+            <DialogBody
+              className={cn(
+                "min-h-0 flex-1 overflow-y-auto px-4 pt-4",
+                showComments ? "pb-0" : "pb-4",
+              )}
+            >
+              <div className="-mx-4">
+                {templateForReport && current.report.field_responses
+                  ? [...templateForReport.fields]
+                      .sort((a, b) => a.fieldOrder - b.fieldOrder)
+                      .map((field) => (
                         <div
-                          key={key}
-                          className="border-b border-border/40 pb-4 last:border-0 last:pb-0"
+                          key={field.key}
+                          className="border-b border-border px-4 py-4 first:pt-0 last:border-0 last:pb-0"
                         >
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                            {key.replace(/_/g, " ")}
-                          </p>
-                          <p className="text-sm text-foreground">
-                            {String(value) || "None reported"}
-                          </p>
+                          <DynamicFieldRenderer
+                            field={field}
+                            value={current.report.field_responses?.[field.key]}
+                            mode="display"
+                          />
                         </div>
                       ))
-                  : (
-                    <p className="text-sm text-muted-foreground">
-                      No report data available.
-                    </p>
-                  )}
+                  : current.report.field_responses
+                    ? Object.entries(current.report.field_responses)
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([key, value]) => (
+                          <div
+                            key={key}
+                            className="border-b border-border px-4 py-4 first:pt-0 last:border-0 last:pb-0"
+                          >
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                              {key.replace(/_/g, " ")}
+                            </p>
+                            <p className="text-sm text-foreground">
+                              {String(value) || "None reported"}
+                            </p>
+                          </div>
+                        ))
+                    : (
+                      <p className="px-4 text-sm text-muted-foreground">
+                        No report data available.
+                      </p>
+                    )}
+              </div>
+
+              {showComments && (
+                <div className="-mx-4 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => setCommentsOpen((open) => !open)}
+                    className="flex w-full items-center justify-between px-4 py-4 text-sm font-medium transition-colors hover:bg-foreground/5"
+                  >
+                    <span className="flex items-center">
+                      <MessageSquare className="mr-2 h-4 w-4 text-muted-foreground" />
+                      <span>Comments</span>
+                      {!commentsLoading && comments.length > 0 && (
+                        <span className="ml-1.5 rounded-full bg-foreground/10 px-1.5 py-0.5 text-xs font-medium tabular-nums">
+                          {comments.length}
+                        </span>
+                      )}
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 text-muted-foreground transition-transform",
+                        commentsOpen && "rotate-180",
+                      )}
+                    />
+                  </button>
+
+                  {commentsOpen ? (
+                    <div className="flex flex-col gap-4 px-4 pb-4">
+                      <div className="flex flex-col gap-3">
+                        {commentsLoading && (
+                          <p className="text-xs text-muted-foreground">
+                            Loading…
+                          </p>
+                        )}
+                        {!commentsLoading && comments.length === 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            No comments yet.
+                          </p>
+                        )}
+                        {comments.map((c) => (
+                          <div key={c.id} className="flex gap-2.5">
+                            <MemberAvatar
+                              userId={c.profiles.id}
+                              name={c.profiles.full_name ?? "Unknown"}
+                              avatarUrl={c.profiles.avatar_url ?? undefined}
+                              size="sm"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                <span className="text-xs font-medium text-foreground">
+                                  {c.profiles.full_name ?? "Unknown"}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {formatDistanceToNow(
+                                    new Date(c.created_at),
+                                    { addSuffix: true },
+                                  )}
+                                </span>
+                              </div>
+                              <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground">
+                                {c.body}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <Textarea
+                          value={commentBody}
+                          onChange={(e) => setCommentBody(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (
+                              e.key === "Enter" &&
+                              (e.metaKey || e.ctrlKey)
+                            ) {
+                              e.preventDefault();
+                              void handleSendComment();
+                            }
+                          }}
+                          placeholder="Add a comment…"
+                          className="min-h-[60px] resize-none text-sm"
+                          disabled={isSending}
+                        />
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {shortcutLabel} to send
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={isSending || !commentBody.trim()}
+                            onClick={() => void handleSendComment()}
+                          >
+                            {isSending ? "Sending…" : "Send"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </DialogBody>
 
             <DialogFooter className="!flex-row flex-row items-center justify-between gap-2 sm:justify-between">
