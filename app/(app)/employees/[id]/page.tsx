@@ -28,7 +28,11 @@ import {
   getActiveLeaveBalance,
   getCurrentShift,
 } from "@/lib/supabase/queries/attendance";
+import { ensureLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { LeaveBalanceCard } from "@/components/attendance/leave-balance-card";
+import type { LeaveBalance } from "@/types/attendance";
 
 function countWorkingDaysThisMonth(
   timezone: string,
@@ -151,6 +155,38 @@ export default async function EmployeeDetailPage({
     notFound();
   }
 
+  const isOwnerOrAdmin =
+    profile?.role === "owner" || profile?.role === "admin";
+  const orgIdForLeave =
+    profile?.organization_id ?? employee.organization_id ?? "";
+
+  // Auto-init leave balance for admins viewing the page (idempotent).
+  let resolvedLeaveBalance = leaveBalance;
+  if (isOwnerOrAdmin && !resolvedLeaveBalance && orgIdForLeave) {
+    const adminClient = createAdminClient();
+    await ensureLeaveBalanceRecord(
+      adminClient,
+      employee.id,
+      orgIdForLeave,
+      employee.created_at.slice(0, 10),
+    );
+    // Bypass React cache() from getActiveLeaveBalance for this request.
+    const supabase = await createClient();
+    const { data: fresh } = await supabase
+      .from("leave_balances")
+      .select("*")
+      .eq("profile_id", employee.id)
+      .eq("status", "active")
+      .maybeSingle();
+    if (fresh) {
+      resolvedLeaveBalance = {
+        ...(fresh as LeaveBalance),
+        balance_remaining:
+          Number(fresh.total_accrued) - Number(fresh.total_used),
+      };
+    }
+  }
+
   const isSelf = employee.id === profile?.id;
   const departments = allDepartments
     .filter((department) => department.archived_at === null)
@@ -233,16 +269,18 @@ export default async function EmployeeDetailPage({
           }
           icon={<Calendar className="size-4" />}
         />
+        {isOwnerOrAdmin && (
+          <div className="sm:col-span-3">
+            <LeaveBalanceCard
+              balance={resolvedLeaveBalance}
+              profileId={employee.id}
+              orgId={orgIdForLeave}
+              joinDate={employee.created_at.slice(0, 10)}
+              canAdjust
+            />
+          </div>
+        )}
       </div>
-
-      {(profile?.role === "owner" || profile?.role === "admin") && (
-        <LeaveBalanceCard
-          balance={leaveBalance}
-          profileId={employee.id}
-          orgId={profile?.organization_id ?? employee.organization_id ?? ""}
-          joinDate={employee.created_at.slice(0, 10)}
-        />
-      )}
 
       <Card className="card-gradient">
         <CardHeader className="pb-3">
