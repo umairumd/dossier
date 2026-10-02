@@ -11,6 +11,7 @@ export type ActivityEventType =
   | "template_assigned"
   | "shift_assigned"
   | "report_submitted"
+  | "report_commented"
   | "department_created"
   | "department_edited"
   | "department_archived"

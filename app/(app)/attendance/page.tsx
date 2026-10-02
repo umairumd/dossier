@@ -110,6 +110,8 @@ export default async function AttendancePage({
           profileBasePath={profileBasePath}
           isReadOnly
           today={today}
+          viewerRole={profile.role}
+          currentUserId={profile.id}
         />
       </div>
     );
@@ -226,6 +228,8 @@ export default async function AttendancePage({
         profileBasePath={profileBasePath}
         isReadOnly={isReadOnly}
         today={today}
+        viewerRole={profile?.role}
+        currentUserId={profile?.id}
       />
     </div>
   );

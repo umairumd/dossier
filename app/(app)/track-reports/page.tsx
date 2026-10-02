@@ -1,4 +1,5 @@
 import { getOrgReportsForDate } from "@/lib/supabase/queries/admin/org-reports";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getOrgTemplatesWithFields } from "@/lib/supabase/queries/templates";
 import {
@@ -20,9 +21,10 @@ export default async function TrackReportsPage({
   const today = todayInTimezone(settings.timezone);
   const date = isValidDateString(dateParam) ? dateParam : today;
 
-  const [{ members, departments }, templates] = await Promise.all([
+  const [{ members, departments }, templates, profile] = await Promise.all([
     getOrgReportsForDate(date),
     getOrgTemplatesWithFields(),
+    getCurrentProfile(),
   ]);
 
   return (
@@ -45,6 +47,8 @@ export default async function TrackReportsPage({
         deadline={getDeadlineContext(settings)}
         templates={templates}
         reportDate={date}
+        viewerRole={profile?.role}
+        currentUserId={profile?.id}
       />
     </div>
   );

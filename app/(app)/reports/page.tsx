@@ -73,6 +73,8 @@ export default async function DailyReportPage({
             deadline={deadline}
             userName={profile?.full_name ?? ""}
             templates={templates}
+            viewerRole={profile?.role}
+            currentUserId={profile?.id}
           >
             {reportHistory.length === 0 && page === 1 ? (
               <EmptyState
@@ -99,6 +101,9 @@ export default async function DailyReportPage({
                   userName={profile?.full_name ?? ""}
                   showProfileLink={false}
                   templates={templates}
+                  isOwnReport
+                  viewerRole={profile?.role}
+                  currentUserId={profile?.id}
                 />
 
                 {totalPages > 1 && (

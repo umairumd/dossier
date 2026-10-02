@@ -88,6 +88,8 @@ export default async function TeamReportsPage({
           }
           templates={templates}
           reportDate={date}
+          viewerRole={profile?.role}
+          currentUserId={profile?.id}
         />
       </div>
 
@@ -104,6 +106,8 @@ export default async function TeamReportsPage({
               emptyMessage="No supervisees to show."
               templates={templates}
               reportDate={date}
+              viewerRole={profile?.role}
+              currentUserId={profile?.id}
             />
           </div>
         </>

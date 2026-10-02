@@ -10,6 +10,7 @@ import {
   ChevronRight,
   FileText,
   MessageSquare,
+  Trash2,
   UserCircle,
   XIcon,
 } from "lucide-react";
@@ -28,10 +29,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
+import { ConfirmActionDialog } from "@/components/admin/confirm-action-dialog";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { DynamicFieldRenderer } from "@/components/reports/dynamic-field-renderer";
 import {
   addReportComment,
+  deleteReportComment,
   getReportComments,
 } from "@/lib/actions/reports";
 import { cn } from "@/lib/utils";
@@ -39,6 +42,7 @@ import type { DailyReport, ReportComment } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
 import type { ReportTemplateWithFields } from "@/types/template";
+import type { UserRole } from "@/types/profile";
 
 type SubmittedMember = TeamMemberReport & { report: DailyReport };
 
@@ -67,6 +71,9 @@ export function ReportDetailSheet({
   adminView = false,
   showProfileLink = true,
   templates,
+  isOwnReport = false,
+  viewerRole,
+  currentUserId,
 }: {
   members: SubmittedMember[];
   index: number | null;
@@ -75,13 +82,19 @@ export function ReportDetailSheet({
   adminView?: boolean;
   showProfileLink?: boolean;
   templates?: ReportTemplateWithFields[];
+  isOwnReport?: boolean;
+  viewerRole?: UserRole;
+  currentUserId?: string;
 }) {
   const current = index !== null ? members[index] : null;
   const templateForReport = current?.report.template_id
     ? templates?.find((template) => template.id === current.report.template_id)
     : null;
   const profileBasePath = adminView ? "/employees" : "/manager/employees";
-  const showComments = adminView || showProfileLink;
+  const showComments = adminView || showProfileLink || isOwnReport;
+  const commentsReadOnly = Boolean(isOwnReport && viewerRole === "member");
+  const canModerateComments =
+    viewerRole === "owner" || viewerRole === "admin";
 
   const [comments, setComments] = useState<ReportComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -124,7 +137,7 @@ export function ReportDetailSheet({
   }, [current?.report?.id, showComments]);
 
   async function handleSendComment() {
-    if (!current?.report?.id || !commentBody.trim()) return;
+    if (!current?.report?.id || !commentBody.trim() || commentsReadOnly) return;
     setIsSending(true);
     const result = await addReportComment(current.report.id, commentBody);
     if (result.success) {
@@ -135,6 +148,13 @@ export function ReportDetailSheet({
       toast.error(result.error ?? "Failed to send comment.");
     }
     setIsSending(false);
+  }
+
+  function canDeleteComment(comment: ReportComment): boolean {
+    if (commentsReadOnly || !currentUserId) return false;
+    return (
+      comment.profiles.id === currentUserId || canModerateComments
+    );
   }
 
   return (
@@ -325,41 +345,70 @@ export function ReportDetailSheet({
                                 {c.body}
                               </p>
                             </div>
+                            {canDeleteComment(c) && (
+                              <ConfirmActionDialog
+                                trigger={
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                                    aria-label="Delete comment"
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                  </Button>
+                                }
+                                title="Delete comment?"
+                                description="This comment will be permanently removed."
+                                confirmLabel="Delete"
+                                confirmVariant="destructive"
+                                successMessage="Comment deleted."
+                                errorMessage="Failed to delete comment."
+                                action={() => deleteReportComment(c.id)}
+                                onSuccess={() => {
+                                  setComments((prev) =>
+                                    prev.filter((item) => item.id !== c.id),
+                                  );
+                                }}
+                              />
+                            )}
                           </div>
                         ))}
                       </div>
 
-                      <div className="flex flex-col gap-2">
-                        <Textarea
-                          value={commentBody}
-                          onChange={(e) => setCommentBody(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (
-                              e.key === "Enter" &&
-                              (e.metaKey || e.ctrlKey)
-                            ) {
-                              e.preventDefault();
-                              void handleSendComment();
-                            }
-                          }}
-                          placeholder="Add a comment…"
-                          className="min-h-[60px] resize-none text-sm"
-                          disabled={isSending}
-                        />
-                        <div className="flex items-center justify-between pt-1">
-                          <span className="text-xs text-muted-foreground">
-                            {shortcutLabel} to send
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            disabled={isSending || !commentBody.trim()}
-                            onClick={() => void handleSendComment()}
-                          >
-                            {isSending ? "Sending…" : "Send"}
-                          </Button>
+                      {!commentsReadOnly && (
+                        <div className="flex flex-col gap-2">
+                          <Textarea
+                            value={commentBody}
+                            onChange={(e) => setCommentBody(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (
+                                e.key === "Enter" &&
+                                (e.metaKey || e.ctrlKey)
+                              ) {
+                                e.preventDefault();
+                                void handleSendComment();
+                              }
+                            }}
+                            placeholder="Add a comment…"
+                            className="min-h-[60px] resize-none text-sm"
+                            disabled={isSending}
+                          />
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-xs text-muted-foreground">
+                              {shortcutLabel} to send
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              disabled={isSending || !commentBody.trim()}
+                              onClick={() => void handleSendComment()}
+                            >
+                              {isSending ? "Sending…" : "Send"}
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   ) : null}
                 </div>

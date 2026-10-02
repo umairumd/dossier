@@ -43,6 +43,7 @@ import { SubmissionStatusBadge } from "@/components/manager/submission-status-ba
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 import type { ReportTemplateWithFields } from "@/types/template";
+import type { UserRole } from "@/types/profile";
 
 type StatusFilter = "all" | SubmissionStatus;
 
@@ -87,6 +88,8 @@ export function TeamReportsView({
   managerId,
   templates,
   reportDate,
+  viewerRole,
+  currentUserId,
 }: {
   members: TeamMemberReport[];
   deadline: DeadlineContext;
@@ -96,6 +99,8 @@ export function TeamReportsView({
   managerId?: string;
   templates?: ReportTemplateWithFields[];
   reportDate?: string;
+  viewerRole?: UserRole;
+  currentUserId?: string;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -366,6 +371,8 @@ export function TeamReportsView({
         deadline={deadline}
         adminView={adminView}
         templates={templates}
+        viewerRole={viewerRole}
+        currentUserId={currentUserId}
       />
     </div>
   );

@@ -11,6 +11,7 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  MessageSquare,
   UserCheck,
   UserPlus,
   Users,
@@ -46,6 +47,7 @@ const TYPE_ICONS: Record<
   employee_deactivated: { Icon: UserX, className: "text-amber-500" },
   employee_archived: { Icon: Archive, className: "text-amber-500" },
   birthday: { Icon: Cake, className: "text-pink-500" },
+  report_commented: { Icon: MessageSquare, className: "text-blue-500" },
 };
 
 function resolveNotificationUrl(
@@ -65,6 +67,7 @@ function resolveNotificationUrl(
     case "leave_request_submitted":
       return "/leave";
     case "report_deadline":
+    case "report_commented":
       return "/reports";
     case "employee_invited":
     case "employee_onboarded":
