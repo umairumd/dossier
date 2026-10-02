@@ -4,6 +4,7 @@ import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createNotification } from "@/lib/actions/notifications";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { logActivity } from "@/lib/helpers/activity-log";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
@@ -262,6 +263,16 @@ export async function addReportComment(
     return { success: false, error: "Comment cannot be empty." };
   }
 
+  const { data: report, error: reportError } = await supabase
+    .from("daily_reports")
+    .select("id, author_id")
+    .eq("id", reportId)
+    .maybeSingle();
+
+  if (reportError || !report) {
+    return { success: false, error: "Report not found." };
+  }
+
   const { error } = await supabase.from("report_comments").insert({
     report_id: reportId,
     author_id: user.id,
@@ -272,6 +283,113 @@ export async function addReportComment(
     return {
       success: false,
       error: "Couldn't post your comment. Please try again.",
+    };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+    const [{ data: commenter }, { data: author }] = await Promise.all([
+      adminClient
+        .from("profiles")
+        .select("organization_id, full_name")
+        .eq("id", user.id)
+        .maybeSingle(),
+      adminClient
+        .from("profiles")
+        .select("full_name")
+        .eq("id", report.author_id)
+        .maybeSingle(),
+    ]);
+
+    const orgId = commenter?.organization_id;
+    const actorName = commenter?.full_name ?? "Someone";
+
+    if (orgId) {
+      if (user.id !== report.author_id) {
+        void createNotification({
+          orgId,
+          profileId: report.author_id,
+          type: "report_commented",
+          title: `${actorName} commented on your report`,
+          body: trimmed.length > 120 ? `${trimmed.slice(0, 117)}...` : trimmed,
+          entityType: "report",
+          entityId: reportId,
+        });
+      }
+
+      void logActivity({
+        orgId,
+        eventType: "report_commented",
+        actorId: user.id,
+        actorName,
+        targetId: report.author_id,
+        targetName: author?.full_name ?? undefined,
+        entityType: "report",
+        entityId: reportId,
+        metadata: { preview: trimmed.slice(0, 120) },
+      });
+    }
+  } catch (sideEffectError) {
+    console.error(
+      "[report-comment] Failed to notify/log after comment:",
+      sideEffectError,
+    );
+  }
+
+  revalidatePath("/reports");
+  revalidatePath("/manager/team-reports");
+  return { success: true };
+}
+
+export async function deleteReportComment(
+  commentId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "You must be signed in to delete a comment." };
+  }
+
+  const { data: comment, error: fetchError } = await supabase
+    .from("report_comments")
+    .select("id, author_id, report_id")
+    .eq("id", commentId)
+    .maybeSingle();
+
+  if (fetchError || !comment) {
+    return { success: false, error: "Comment not found." };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const role = profile?.role;
+  const isOwnerOrAdmin = role === "owner" || role === "admin";
+  const isAuthor = comment.author_id === user.id;
+
+  if (!isAuthor && !isOwnerOrAdmin) {
+    return {
+      success: false,
+      error: "You don't have permission to delete this comment.",
+    };
+  }
+
+  const adminClient = createAdminClient();
+  const { error: deleteError } = await adminClient
+    .from("report_comments")
+    .delete()
+    .eq("id", commentId);
+
+  if (deleteError) {
+    return {
+      success: false,
+      error: "Couldn't delete the comment. Please try again.",
     };
   }
 

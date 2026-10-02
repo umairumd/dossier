@@ -36,6 +36,7 @@ import type {
 } from "@/types/attendance";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
+import type { UserRole } from "@/types/profile";
 import { cn } from "@/lib/utils";
 import { cellColorClass } from "./attendance-cell-popover";
 import { AttendanceCell } from "./attendance-cell";
@@ -162,6 +163,8 @@ export function RemoteDayCellPopover({
   isPast,
   deadline,
   isReadOnly = false,
+  viewerRole,
+  currentUserId,
 }: {
   profileId: string;
   orgId: string;
@@ -176,6 +179,8 @@ export function RemoteDayCellPopover({
   isPast: boolean;
   deadline: DeadlineContext;
   isReadOnly?: boolean;
+  viewerRole?: UserRole;
+  currentUserId?: string;
 }) {
   const initialStatus =
     existingRecord?.status === "leave" ||
@@ -398,6 +403,8 @@ export function RemoteDayCellPopover({
           deadline={deadline}
           adminView
           showProfileLink={false}
+          viewerRole={viewerRole}
+          currentUserId={currentUserId}
         />
       )}
     </>

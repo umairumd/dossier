@@ -16,6 +16,7 @@ import type {
   AttendanceRecord,
   AttendanceSettings,
 } from "@/types/attendance";
+import type { UserRole } from "@/types/profile";
 
 interface GridEmployee {
   id: string;
@@ -72,6 +73,8 @@ export function AttendanceGrid({
   profileBasePath,
   isReadOnly = false,
   today,
+  viewerRole,
+  currentUserId,
 }: {
   onSiteEmployees: GridEmployee[];
   remoteEmployees: GridEmployee[];
@@ -85,6 +88,8 @@ export function AttendanceGrid({
   profileBasePath: string;
   isReadOnly?: boolean;
   today: string; // YYYY-MM-DD in the organization's timezone
+  viewerRole?: UserRole;
+  currentUserId?: string;
 }) {
   const [year, month] = yearMonth.split("-").map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -310,6 +315,8 @@ export function AttendanceGrid({
                   isPast={isPast}
                   deadline={deadline}
                   isReadOnly={isReadOnly}
+                  viewerRole={viewerRole}
+                  currentUserId={currentUserId}
                 />
               ) : (
                 <RemoteDayCellVisual

@@ -13,6 +13,7 @@ import { ReportHistoryBrowser } from "@/components/reports/report-history-browse
 import type { DailyReport } from "@/types/report";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
 import type { ReportTemplateWithFields } from "@/types/template";
+import type { UserRole } from "@/types/profile";
 
 export function RecentReportsCard({
   reports,
@@ -20,12 +21,16 @@ export function RecentReportsCard({
   deadline,
   userName,
   templates,
+  viewerRole,
+  currentUserId,
 }: {
   reports: DailyReport[];
   viewAllHref?: string;
   deadline: DeadlineContext;
   userName: string;
   templates?: ReportTemplateWithFields[];
+  viewerRole?: UserRole;
+  currentUserId?: string;
 }) {
   return (
     <Card className="card-gradient">
@@ -58,6 +63,9 @@ export function RecentReportsCard({
             deadline={deadline}
             showProfileLink={false}
             templates={templates}
+            isOwnReport
+            viewerRole={viewerRole}
+            currentUserId={currentUserId}
           />
         )}
       </CardContent>

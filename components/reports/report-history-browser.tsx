@@ -8,6 +8,7 @@ import type { DeadlineContext } from "@/lib/reports/submission-status";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 import type { ReportTemplateWithFields } from "@/types/template";
+import type { UserRole } from "@/types/profile";
 
 type SubmittedMember = TeamMemberReport & { report: DailyReport };
 
@@ -18,6 +19,9 @@ export function ReportHistoryBrowser({
   adminView = false,
   showProfileLink = true,
   templates,
+  isOwnReport = false,
+  viewerRole,
+  currentUserId,
 }: {
   reports: DailyReport[];
   userName: string;
@@ -25,6 +29,9 @@ export function ReportHistoryBrowser({
   adminView?: boolean;
   showProfileLink?: boolean;
   templates?: ReportTemplateWithFields[];
+  isOwnReport?: boolean;
+  viewerRole?: UserRole;
+  currentUserId?: string;
 }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -62,6 +69,9 @@ export function ReportHistoryBrowser({
         adminView={adminView}
         showProfileLink={showProfileLink}
         templates={templates}
+        isOwnReport={isOwnReport}
+        viewerRole={viewerRole}
+        currentUserId={currentUserId}
       />
     </>
   );

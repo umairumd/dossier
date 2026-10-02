@@ -9,17 +9,22 @@ import { Input } from "@/components/ui/input";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
 import type { DailyReport } from "@/types/report";
 import type { ReportTemplateWithFields } from "@/types/template";
+import type { UserRole } from "@/types/profile";
 
 export function ReportSearch({
   deadline,
   userName,
   children,
   templates,
+  viewerRole,
+  currentUserId,
 }: {
   deadline: DeadlineContext;
   userName: string;
   children: ReactNode;
   templates?: ReportTemplateWithFields[];
+  viewerRole?: UserRole;
+  currentUserId?: string;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{
@@ -103,6 +108,9 @@ export function ReportSearch({
               userName={userName}
               showProfileLink={false}
               templates={templates}
+              isOwnReport
+              viewerRole={viewerRole}
+              currentUserId={currentUserId}
             />
           )}
         </div>

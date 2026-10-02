@@ -31,6 +31,7 @@ export const EVENT_CATEGORY: Record<ActivityEventType, ActivityCategory> = {
   accrual_run: "attendance",
   shift_assigned: "attendance",
   report_submitted: "reports",
+  report_commented: "reports",
   department_created: "organization",
   department_edited: "organization",
   department_archived: "organization",

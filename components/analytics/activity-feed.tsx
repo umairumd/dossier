@@ -16,6 +16,7 @@ import {
   Building2,
   CalendarCheck,
   FileText,
+  MessageSquare,
   Settings,
   Trash2,
   UserCheck,
@@ -244,6 +245,10 @@ const EVENT_LABELS: Record<
     lead: e.actor_name ?? "Someone",
     rest: " submitted their report",
   }),
+  report_commented: (e) => ({
+    lead: e.actor_name ?? "Someone",
+    rest: ` commented on ${entityName(e.target_name, "someone")}'s report`,
+  }),
   department_created: (e) => ({
     lead: e.actor_name ?? "Admin",
     rest: ` created ${entityName(e.entity_name, "a")} department`,
@@ -338,6 +343,7 @@ const EVENT_ICONS: Record<ActivityEventType, typeof UserPlus> = {
   template_assigned: FileText,
   shift_assigned: CalendarCheck,
   report_submitted: FileText,
+  report_commented: MessageSquare,
   department_created: Building2,
   department_edited: Building2,
   department_archived: Archive,

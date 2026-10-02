@@ -120,6 +120,8 @@ export async function EmployeeDashboard({
           deadline={deadline}
           userName={profile.full_name}
           templates={templates}
+          viewerRole={profile.role}
+          currentUserId={profile.id}
         />
       </div>
 

@@ -288,6 +288,8 @@ export default async function EmployeeDetailPage({
               deadline={getDeadlineContext(settings)}
               adminView
               templates={templates}
+              viewerRole={profile?.role}
+              currentUserId={profile?.id}
             />
           )}
         </CardContent>
