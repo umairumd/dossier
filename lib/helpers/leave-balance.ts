@@ -51,6 +51,24 @@ export async function insertLeaveBalanceRecord(
   });
 
   if (error) return { success: false, error: error.message };
+
+  // Keep the running bank in lockstep with the contract-year ledger.
+  const { error: bankError } = await client
+    .from("profiles")
+    .update({ leave_balance: totalAccrued })
+    .eq("id", profileId);
+
+  if (bankError) {
+    // Best-effort rollback so we don't leave an orphan ledger row.
+    await client
+      .from("leave_balances")
+      .delete()
+      .eq("profile_id", profileId)
+      .eq("contract_year_start", contractYearStart)
+      .eq("status", "active");
+    return { success: false, error: bankError.message };
+  }
+
   return { success: true };
 }
 

@@ -90,27 +90,25 @@ async function adjustLeaveLedgers(
     .eq("status", "active")
     .maybeSingle();
 
-  let ledgerError = ledgerFetchError;
+  let ledgerErrorMessage: string | null = ledgerFetchError?.message ?? null;
 
-  if (!ledgerError) {
+  if (!ledgerErrorMessage) {
     if (!ledger) {
-      console.warn(
-        `[leave] No active leave_balances row for ${profileId}; skipping total_used update.`,
-      );
-      return { success: true };
+      ledgerErrorMessage =
+        "No active leave balance found for this employee.";
+    } else {
+      const { error: ledgerUpdateError } = await adminClient
+        .from("leave_balances")
+        .update({ total_used: Number(ledger.total_used) + delta })
+        .eq("id", ledger.id);
+      ledgerErrorMessage = ledgerUpdateError?.message ?? null;
     }
-
-    const { error: ledgerUpdateError } = await adminClient
-      .from("leave_balances")
-      .update({ total_used: Number(ledger.total_used) + delta })
-      .eq("id", ledger.id);
-    ledgerError = ledgerUpdateError;
   }
 
-  if (ledgerError) {
+  if (ledgerErrorMessage) {
     console.error(
       `[leave] Failed to update leave_balances.total_used for ${profileId}:`,
-      ledgerError,
+      ledgerErrorMessage,
     );
     const { error: undoError } = await adminClient
       .from("profiles")
@@ -123,7 +121,7 @@ async function adjustLeaveLedgers(
         undoError,
       );
     }
-    return { success: false, error: ledgerError.message };
+    return { success: false, error: ledgerErrorMessage };
   }
 
   return { success: true };
@@ -222,6 +220,18 @@ export async function saveAttendanceRecordAction(record: {
     record.profileId,
     record.date,
   );
+  const delta = record.leaveDeducted - oldLeaveDeducted;
+  const adminClient = createAdminClient();
+
+  // Ledger first so a failed balance write never leaves an orphan leave day.
+  const balanceResult = await adjustLeaveLedgers(
+    adminClient,
+    record.profileId,
+    delta,
+  );
+  if (!balanceResult.success) {
+    return balanceResult;
+  }
 
   const { error } = await supabase.from("attendance_records").upsert(
     {
@@ -239,20 +249,25 @@ export async function saveAttendanceRecordAction(record: {
     { onConflict: "org_id,profile_id,date" },
   );
 
-  if (error) return { success: false, error: error.message };
-
-  const balanceResult = await adjustLeaveLedgers(
-    createAdminClient(),
-    record.profileId,
-    record.leaveDeducted - oldLeaveDeducted,
-  );
-  if (!balanceResult.success) {
-    return balanceResult;
+  if (error) {
+    if (delta !== 0) {
+      const reverseResult = await adjustLeaveLedgers(
+        adminClient,
+        record.profileId,
+        -delta,
+      );
+      if (!reverseResult.success) {
+        console.error(
+          `[leave] LEDGER MISMATCH: could not reverse ${delta} day(s) for profile ${record.profileId} after attendance write failed:`,
+          reverseResult.error,
+        );
+      }
+    }
+    return { success: false, error: error.message };
   }
 
   try {
     const { actorName } = await getActorLogContext(admin.id);
-    const adminClient = createAdminClient();
     const { data: target } = await adminClient
       .from("profiles")
       .select("full_name")
@@ -451,9 +466,8 @@ export async function initLeaveBalanceAction(
   joinDate: string,
 ): Promise<AttendanceActionResult> {
   await requireAdminUser();
-  const supabase = await createClient();
   const result = await insertLeaveBalanceRecord(
-    supabase,
+    createAdminClient(),
     profileId,
     orgId,
     joinDate,
@@ -514,7 +528,25 @@ export async function adjustLeaveBalance(
     };
   }
 
-  const nextAccrued = Math.max(0, Number(balance.total_accrued) + adjustment);
+  const previousAccrued = Number(balance.total_accrued);
+  const nextAccrued = Math.max(0, previousAccrued + adjustment);
+  const bankDelta = nextAccrued - previousAccrued;
+
+  const { data: profile, error: profileFetchError } = await adminClient
+    .from("profiles")
+    .select("leave_balance")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  if (profileFetchError) {
+    return { success: false, error: profileFetchError.message };
+  }
+
+  if (!profile) {
+    return { success: false, error: "Employee profile not found." };
+  }
+
+  const previousBank = Number(profile.leave_balance);
 
   const { error: updateError } = await adminClient
     .from("leave_balances")
@@ -526,6 +558,28 @@ export async function adjustLeaveBalance(
 
   if (updateError) {
     return { success: false, error: updateError.message };
+  }
+
+  if (bankDelta !== 0) {
+    const { error: bankError } = await adminClient
+      .from("profiles")
+      .update({ leave_balance: previousBank + bankDelta })
+      .eq("id", profileId);
+
+    if (bankError) {
+      console.error(
+        `[leave] Failed to sync profiles.leave_balance after adjust for ${profileId}:`,
+        bankError,
+      );
+      await adminClient
+        .from("leave_balances")
+        .update({
+          total_accrued: previousAccrued,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", balance.id);
+      return { success: false, error: bankError.message };
+    }
   }
 
   const { error: auditError } = await adminClient

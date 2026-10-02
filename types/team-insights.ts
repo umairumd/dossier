@@ -11,6 +11,9 @@ export interface TeamMemberStanding {
   streak: number;
   completionPercentage: number;
   reportsThisMonth: number;
+  reportsSubmitted: number;
+  expectedWorkingDays: number;
+  submissionRate: number;
   lastSubmittedDate: string | null;
 }
 

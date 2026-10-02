@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { insertLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
 import { lastDayOfMonth } from "@/lib/helpers/dates";
@@ -343,8 +344,12 @@ export async function initLeaveBalance(
   joinDate: string, // YYYY-MM-DD
 ): Promise<{ success: boolean; error?: string }> {
   await requireAdminUser();
-  const supabase = await createClient();
-  return insertLeaveBalanceRecord(supabase, profileId, orgId, joinDate);
+  return insertLeaveBalanceRecord(
+    createAdminClient(),
+    profileId,
+    orgId,
+    joinDate,
+  );
 }
 
 // ── Leave requests ────────────────────────────────────────────────
@@ -382,82 +387,3 @@ export const getEmployeeLeaveRequests = cache(
     return (data as LeaveRequest[]) ?? [];
   },
 );
-
-// Approve or reject a leave request
-// On approval: creates attendance_records row + updates leave balance
-export async function reviewLeaveRequest(
-  requestId: string,
-  action: "approved" | "rejected",
-  adminNotes?: string,
-): Promise<{ success: boolean; error?: string }> {
-  await requireAdminUser();
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-
-  // Fetch the request first
-  const { data: req, error: fetchError } = await supabase
-    .from("leave_requests")
-    .select("*")
-    .eq("id", requestId)
-    .single();
-
-  if (fetchError || !req) {
-    return { success: false, error: "Leave request not found." };
-  }
-
-  // Update the request status
-  const { error: updateError } = await supabase
-    .from("leave_requests")
-    .update({
-      status: action,
-      admin_notes: adminNotes ?? null,
-      reviewed_by: userData.user?.id ?? null,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq("id", requestId);
-
-  if (updateError) return { success: false, error: updateError.message };
-
-  if (action === "approved") {
-    // Determine leave_deducted from type
-    const leaveDeducted = req.type === "full_day" ? 1 : 0.5;
-
-    // Create attendance record
-    const { error: arError } = await supabase
-      .from("attendance_records")
-      .upsert(
-        {
-          profile_id: req.profile_id,
-          org_id: req.org_id,
-          date: req.date,
-          status: req.type === "full_day" ? "leave" : "half_leave",
-          fine_amount: 0,
-          leave_deducted: leaveDeducted,
-          source: "manual",
-          recorded_by: userData.user?.id ?? null,
-        },
-        { onConflict: "org_id,profile_id,date" },
-      );
-
-    if (arError) return { success: false, error: arError.message };
-
-    // Increment total_used on the active leave balance
-    const { data: balance } = await supabase
-      .from("leave_balances")
-      .select("id, total_used")
-      .eq("profile_id", req.profile_id)
-      .eq("status", "active")
-      .maybeSingle();
-
-    if (balance) {
-      await supabase
-        .from("leave_balances")
-        .update({
-          total_used: Number(balance.total_used) + leaveDeducted,
-        })
-        .eq("id", balance.id);
-    }
-  }
-
-  return { success: true };
-}

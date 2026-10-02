@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import {
   computeReportStats,
+  computeTenureSubmissionRate,
   type ReportStatsInput,
 } from "@/lib/helpers/report-stats";
 import { dateNDaysAgo } from "@/lib/helpers/dates";
@@ -45,6 +46,19 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
     };
   }
 
+  const earliestJoin = roster.reduce((min, member) => {
+    const joinDate = member.created_at.slice(0, 10);
+    return !min || joinDate < min ? joinDate : min;
+  }, "");
+  // Tenure submission needs reports back to join; streak still uses the
+  // attendance window below. Use the earlier of join vs insights window.
+  const reportsSince = (() => {
+    const windowStart = dateNDaysAgo(INSIGHTS_WINDOW_DAYS - 1);
+    return earliestJoin && earliestJoin < windowStart
+      ? earliestJoin
+      : windowStart;
+  })();
+
   const [
     { data: reports, error },
     { data: attendanceRows },
@@ -53,7 +67,7 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
     supabase
       .from("daily_reports")
       .select("id, author_id, report_date, submitted_at")
-      .gte("report_date", dateNDaysAgo(INSIGHTS_WINDOW_DAYS - 1)),
+      .gte("report_date", reportsSince),
     supabase
       .from("attendance_records")
       .select("profile_id, date, status")
@@ -119,12 +133,21 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
       workingDays: settings.workingDays,
       attendanceByDate: attendanceByAuthor.get(member.id),
     });
+    const tenure = computeTenureSubmissionRate(
+      memberReports,
+      member.created_at,
+      settings.workingDays,
+      settings.timezone,
+    );
     return {
       employeeId: member.id,
       fullName: member.full_name,
       streak: stats.currentStreak,
       completionPercentage: stats.completionPercentage,
       reportsThisMonth: stats.reportsThisMonth,
+      reportsSubmitted: tenure.submitted,
+      expectedWorkingDays: tenure.expected,
+      submissionRate: tenure.rate,
       lastSubmittedDate: stats.lastSubmittedDate,
     };
   });

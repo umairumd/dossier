@@ -166,12 +166,9 @@ export function HolidayDayHeader({
     <>
       <th
         className={cn(
-          "w-10 px-1 py-1.5 text-center",
-          isHoliday
-            ? "bg-teal-500/10 text-teal-600 dark:text-teal-400"
-            : isOff
-              ? "bg-muted"
-              : undefined,
+          "sticky top-0 z-30 w-10 bg-card px-1 py-1.5 text-center",
+          isHoliday && "text-teal-600 dark:text-teal-400",
+          isOff && !isHoliday && "text-muted-foreground",
         )}
       >
         <button
@@ -179,6 +176,8 @@ export function HolidayDayHeader({
           onClick={handleOpen}
           className={cn(
             "flex w-full flex-col items-center gap-0.5 rounded-md px-0.5 py-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            isHoliday && "bg-teal-500/10",
+            isOff && !isHoliday && "bg-muted",
             isToday
               ? "bg-foreground text-background hover:bg-foreground"
               : "hover:bg-foreground/5",
