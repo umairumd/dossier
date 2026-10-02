@@ -13,6 +13,7 @@ import { formatDeadlineHint } from "@/lib/helpers/time";
 import { ReportBanner } from "@/components/shared/report-banner";
 import { PageHeader } from "@/components/shared/page-header";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
+import { ReportHistoryPagination } from "@/components/reports/report-history-pagination";
 import { ReportSearch } from "@/components/reports/report-search";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -107,29 +108,10 @@ export default async function DailyReportPage({
                 />
 
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between border-t border-border py-4">
-                    <p className="text-xs text-muted-foreground">
-                      Page {page} of {totalPages}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {page > 1 && (
-                        <Link
-                          href={`/reports?page=${page - 1}`}
-                          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          ← Previous
-                        </Link>
-                      )}
-                      {page < totalPages && (
-                        <Link
-                          href={`/reports?page=${page + 1}`}
-                          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          Next →
-                        </Link>
-                      )}
-                    </div>
-                  </div>
+                  <ReportHistoryPagination
+                    page={page}
+                    totalPages={totalPages}
+                  />
                 )}
               </>
             )}

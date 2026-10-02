@@ -10,7 +10,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { formatDate, shiftReportDate, todayInTimezone } from "@/lib/helpers/dates";
+import {
+  dateInTimezone,
+  formatDate,
+  shiftReportDate,
+  todayInTimezone,
+} from "@/lib/helpers/dates";
 
 export function DateNav({
   date,
@@ -76,12 +81,13 @@ export function DateNav({
             selected={new Date(`${date}T00:00:00`)}
             onSelect={(selected) => {
               if (!selected) return;
-              const y = selected.getFullYear();
-              const m = String(selected.getMonth() + 1).padStart(2, "0");
-              const d = String(selected.getDate()).padStart(2, "0");
-              goToDate(`${y}-${m}-${d}`);
+              // Same Intl en-CA + timeZone path as todayInTimezone /
+              // getSubmissionStatus — never browser getFullYear/getMonth.
+              goToDate(dateInTimezone(selected, timezone));
             }}
-            disabled={(day) => day > new Date() || isPending}
+            disabled={(day) =>
+              isPending || dateInTimezone(day, timezone) > today
+            }
             autoFocus
           />
         </PopoverContent>

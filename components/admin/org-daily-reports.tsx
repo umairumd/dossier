@@ -149,6 +149,7 @@ export function OrgDailyReports({
         const visible = sortByStatusThenName(
           all.filter((member) => visibleIds.has(member.employeeId)),
           deadline,
+          reportDate,
         );
 
         return {
@@ -183,6 +184,7 @@ export function OrgDailyReports({
         visible: sortByStatusThenName(
           unassignedAll.filter((member) => visibleIds.has(member.employeeId)),
           deadline,
+          reportDate,
         ),
       });
     }

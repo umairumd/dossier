@@ -60,12 +60,20 @@ export function shiftReportDate(date: string, deltaDays: number): string {
 }
 
 export function todayInTimezone(tz: string): string {
+  return dateInTimezone(new Date(), tz);
+}
+
+/**
+ * Format an instant as YYYY-MM-DD in the given IANA timezone — same
+ * Intl.DateTimeFormat("en-CA") path as todayInTimezone / getSubmissionStatus.
+ */
+export function dateInTimezone(date: Date, tz: string): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date());
+  }).format(date);
 }
 
 export function isWorkingDay(

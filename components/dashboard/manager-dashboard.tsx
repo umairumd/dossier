@@ -24,8 +24,6 @@ import { ReportBanner } from "@/components/shared/report-banner";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { TeamHighlights } from "@/components/manager/team-highlights";
 
-const HOME_ROSTER_PREVIEW = 5;
-
 export async function ManagerDashboard({
   profile,
 }: {
@@ -47,8 +45,6 @@ export async function ManagerDashboard({
   const todayDate = todayInTimezone(settings.timezone);
   const deadline = getDeadlineContext(settings);
   const sortedMembers = sortTeamMembersBySubmission(members);
-  const previewMembers = sortedMembers.slice(0, HOME_ROSTER_PREVIEW);
-  const remainingCount = sortedMembers.length - previewMembers.length;
 
   let contextLine: string;
   if (teamSize === 0) {
@@ -95,7 +91,7 @@ export async function ManagerDashboard({
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-2">
-            {previewMembers.map((member) => (
+            {sortedMembers.map((member) => (
               <div
                 key={member.employeeId}
                 className="-mx-2 -my-1 flex items-center justify-between gap-2 rounded-md px-2 py-1 transition-colors hover:bg-foreground/5"
@@ -117,14 +113,6 @@ export async function ManagerDashboard({
               </div>
             ))}
           </div>
-          {remainingCount > 0 && (
-            <Link
-              href="/manager/team-reports"
-              className="mt-4 inline-block text-xs text-muted-foreground hover:text-foreground"
-            >
-              + {remainingCount} more
-            </Link>
-          )}
           <Link
             href="/manager/team-reports"
             className="mt-4 block text-xs text-muted-foreground hover:text-foreground"
