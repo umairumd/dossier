@@ -8,7 +8,7 @@ export default async function ActivityLayout({
 }) {
   const profile = await getCurrentProfile();
 
-  if (!["owner", "admin"].includes(profile?.role ?? "")) {
+  if (!profile) {
     redirect("/");
   }
 

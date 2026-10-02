@@ -6,6 +6,7 @@ import {
 } from "@/lib/supabase/queries/organization-settings";
 import {
   getAttendanceSettings,
+  getCurrentShift,
   getMonthAccrualStatus,
   getMonthlyAttendance,
   getMyAttendance,
@@ -23,6 +24,7 @@ import {
 import { MonthNav } from "@/components/attendance/month-nav";
 import { AttendanceGrid } from "@/components/attendance/attendance-grid";
 import { AttendanceLegend } from "@/components/attendance/attendance-legend";
+import { PersonalMonthCalendar } from "@/components/attendance/personal-month-calendar";
 import { RunAccrualButton } from "@/components/attendance/run-accrual-button";
 import { PageHeader } from "@/components/shared/page-header";
 import type { AttendanceRecord } from "@/types/attendance";
@@ -61,62 +63,147 @@ export default async function AttendancePage({
   const profileBasePath = isReadOnly ? "/manager/employees" : "/employees";
   const monthStart = `${month}-01`;
   const monthEnd = lastDayOfMonth(month);
+  const isCurrentMonth = month === currentMonth;
 
+  // ── Member: personal calendar only ──────────────────────────────
   if (isMember) {
-    const [myRecords, attendanceSettings] = await Promise.all([
+    const [myRecords, attendanceSettings, myShift] = await Promise.all([
       getMyAttendance(month),
       getAttendanceSettings(),
+      getCurrentShift(profile.id),
     ]);
-
-    const selfEmployee = {
-      id: profile.id,
-      full_name: profile.full_name,
-      org_id: orgId,
-      is_remote: profile.is_remote,
-      employment_type: profile.employment_type,
-      designation: profile.designation,
-      department_name: null,
-      avatar_url: profile.avatar_url,
-      leave_balance: 0,
-      joined_on: profile.created_at ? profile.created_at.slice(0, 10) : null,
-    };
-
-    const onSiteEmployees = selfEmployee.is_remote ? [] : [selfEmployee];
-    const remoteEmployees = selfEmployee.is_remote ? [selfEmployee] : [];
-    const remoteReportDates = selfEmployee.is_remote
-      ? await getRemoteAttendanceDates([selfEmployee.id], monthStart, monthEnd)
-      : [];
 
     return (
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Attendance"
-          count={1}
-          countLabel="employee"
-          description={<AttendanceLegend showHolidayHint={false} />}
-          action={<MonthNav month={month} baseHref="/attendance" />}
+          action={
+            <MonthNav
+              month={month}
+              baseHref="/attendance"
+              currentMonth={currentMonth}
+            />
+          }
         />
 
-        <AttendanceGrid
-          onSiteEmployees={onSiteEmployees}
-          remoteEmployees={remoteEmployees}
-          remoteReportDates={remoteReportDates}
+        <PersonalMonthCalendar
           records={myRecords}
           yearMonth={month}
-          settings={attendanceSettings}
           workingDays={settings.workingDays}
-          orgId={orgId}
-          deadline={deadline}
-          profileBasePath={profileBasePath}
-          isReadOnly
           today={today}
-          viewerRole={profile.role}
-          currentUserId={profile.id}
+          shift={myShift}
+          leaveBalance={undefined}
+          fines={undefined}
         />
       </div>
     );
   }
 
+  // ── Manager / supervisor: personal calendar + slim team grid ────
+  if (!isOwnerOrAdmin) {
+    const members = isManager
+      ? await getTeamRoster()
+      : await getSupervisedMembers();
+
+    // Exclude self from the team query entirely (not just UI hide).
+    const teamMembers = members.filter((member) => member.id !== profile.id);
+
+    const [
+      myRecords,
+      myShift,
+      attendanceSettings,
+      teamRecords,
+      remoteReportDates,
+    ] = await Promise.all([
+      getMyAttendance(month),
+      getCurrentShift(profile.id),
+      getAttendanceSettings(),
+      getTeamMonthlyAttendance(
+        month,
+        teamMembers.map((member) => member.id),
+      ),
+      getRemoteAttendanceDates(
+        teamMembers.filter((m) => m.is_remote).map((m) => m.id),
+        monthStart,
+        monthEnd,
+      ),
+    ]);
+
+    const activeEmployees = teamMembers.map((member) => ({
+      id: member.id,
+      full_name: member.full_name,
+      org_id: orgId,
+      is_remote: member.is_remote,
+      employment_type: member.employment_type,
+      designation: member.designation,
+      department_name: null,
+      avatar_url: member.avatar_url,
+      leave_balance: member.leave_balance,
+      joined_on: member.created_at ? member.created_at.slice(0, 10) : null,
+    }));
+
+    const onSiteEmployees = activeEmployees.filter((e) => !e.is_remote);
+    const remoteEmployees = activeEmployees.filter((e) => e.is_remote);
+
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="Attendance"
+          count={activeEmployees.length}
+          countLabel={
+            activeEmployees.length === 1 ? "teammate" : "teammates"
+          }
+          action={
+            <MonthNav
+              month={month}
+              baseHref="/attendance"
+              currentMonth={currentMonth}
+            />
+          }
+        />
+
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            Your attendance
+          </h2>
+          <PersonalMonthCalendar
+            records={myRecords}
+            yearMonth={month}
+            workingDays={settings.workingDays}
+            today={today}
+            shift={myShift}
+            leaveBalance={undefined}
+            fines={undefined}
+          />
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            Your team
+          </h2>
+          <AttendanceGrid
+            onSiteEmployees={onSiteEmployees}
+            remoteEmployees={remoteEmployees}
+            remoteReportDates={remoteReportDates}
+            records={teamRecords}
+            yearMonth={month}
+            settings={attendanceSettings}
+            workingDays={settings.workingDays}
+            orgId={orgId}
+            deadline={deadline}
+            profileBasePath={profileBasePath}
+            isReadOnly
+            today={today}
+            viewerRole={profile.role}
+            currentUserId={profile.id}
+            showBalanceAndFines={false}
+          />
+        </section>
+      </div>
+    );
+  }
+
+  // ── Owner / admin: full org grid ────────────────────────────────
   let activeEmployees: {
     id: string;
     full_name: string;
@@ -135,63 +222,37 @@ export default async function AttendancePage({
 
   const [yearNum, monthNum] = month.split("-").map(Number);
 
-  if (isOwnerOrAdmin) {
-    const [employees, attSettings, monthlyRecords, monthAccrualDone] =
-      await Promise.all([
-        getAllEmployees(),
-        getAttendanceSettings(),
-        getMonthlyAttendance(month),
-        getMonthAccrualStatus(yearNum, monthNum),
-      ]);
+  const [employees, attSettings, monthlyRecords, monthAccrualDone] =
+    await Promise.all([
+      getAllEmployees(),
+      getAttendanceSettings(),
+      getMonthlyAttendance(month),
+      getMonthAccrualStatus(yearNum, monthNum),
+    ]);
 
-    attendanceSettings = attSettings;
-    records = monthlyRecords;
-    accrualDone = monthAccrualDone;
-    activeEmployees = employees
-      .filter((emp) => emp.status === "active" || emp.status === "invited")
-      .map((emp) => ({
-        id: emp.id,
-        full_name: emp.full_name,
-        org_id: emp.organization_id ?? orgId,
-        is_remote: emp.is_remote,
-        employment_type: emp.employment_type,
-        designation: emp.designation,
-        department_name:
-          emp.department_names.length > 0
-            ? emp.department_names.join(", ")
-            : null,
-        avatar_url: emp.avatar_url,
-        leave_balance: emp.leave_balance,
-        joined_on: emp.created_at ? emp.created_at.slice(0, 10) : null,
-      }));
-  } else {
-    // Managers see department roster; pure supervisors see supervised members.
-    const members = isManager
-      ? await getTeamRoster()
-      : await getSupervisedMembers();
-
-    attendanceSettings = await getAttendanceSettings();
-    activeEmployees = members.map((member) => ({
-      id: member.id,
-      full_name: member.full_name,
-      org_id: orgId,
-      is_remote: member.is_remote,
-      employment_type: member.employment_type,
-      designation: member.designation,
-      department_name: null,
-      avatar_url: member.avatar_url,
-      leave_balance: member.leave_balance,
-      joined_on: member.created_at ? member.created_at.slice(0, 10) : null,
+  attendanceSettings = attSettings;
+  records = monthlyRecords;
+  accrualDone = monthAccrualDone;
+  activeEmployees = employees
+    .filter((emp) => emp.status === "active" || emp.status === "invited")
+    .map((emp) => ({
+      id: emp.id,
+      full_name: emp.full_name,
+      org_id: emp.organization_id ?? orgId,
+      is_remote: emp.is_remote,
+      employment_type: emp.employment_type,
+      designation: emp.designation,
+      department_name:
+        emp.department_names.length > 0
+          ? emp.department_names.join(", ")
+          : null,
+      avatar_url: emp.avatar_url,
+      leave_balance: emp.leave_balance,
+      joined_on: emp.created_at ? emp.created_at.slice(0, 10) : null,
     }));
-    records = await getTeamMonthlyAttendance(
-      month,
-      activeEmployees.map((emp) => emp.id),
-    );
-  }
 
   const onSiteEmployees = activeEmployees.filter((e) => !e.is_remote);
   const remoteEmployees = activeEmployees.filter((e) => e.is_remote);
-  const isCurrentMonth = month === currentMonth;
   const remoteReportDates = await getRemoteAttendanceDates(
     remoteEmployees.map((e) => e.id),
     monthStart,
@@ -204,13 +265,17 @@ export default async function AttendancePage({
         title="Attendance"
         count={activeEmployees.length}
         countLabel={activeEmployees.length === 1 ? "employee" : "employees"}
-        description={<AttendanceLegend showHolidayHint={!isReadOnly} />}
+        description={<AttendanceLegend showHolidayHint />}
         action={
           <div className="flex flex-wrap items-center gap-3">
-            {isOwnerOrAdmin && isCurrentMonth && (
+            {isCurrentMonth && (
               <RunAccrualButton yearMonth={month} accrualDone={accrualDone} />
             )}
-            <MonthNav month={month} baseHref="/attendance" />
+            <MonthNav
+              month={month}
+              baseHref="/attendance"
+              currentMonth={currentMonth}
+            />
           </div>
         }
       />
@@ -226,10 +291,11 @@ export default async function AttendancePage({
         orgId={orgId}
         deadline={deadline}
         profileBasePath={profileBasePath}
-        isReadOnly={isReadOnly}
+        isReadOnly={false}
         today={today}
-        viewerRole={profile?.role}
-        currentUserId={profile?.id}
+        viewerRole={profile.role}
+        currentUserId={profile.id}
+        showBalanceAndFines
       />
     </div>
   );

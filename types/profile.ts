@@ -17,5 +17,6 @@ export interface Profile {
   avatar_url: string | null;
   template_id: string | null;
   date_of_birth?: string | null;
+  last_seen_at?: string | null;
   created_at: string;
 }

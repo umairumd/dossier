@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
+import { updateLastSeen } from "@/lib/actions/profile";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
+
+const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
 
 export default async function AppLayout({
   children,
@@ -24,6 +27,13 @@ export default async function AppLayout({
 
   if (!profile.has_onboarded) {
     redirect("/onboarding");
+  }
+
+  const lastSeenMs = profile.last_seen_at
+    ? new Date(profile.last_seen_at).getTime()
+    : 0;
+  if (!lastSeenMs || Date.now() - lastSeenMs > LAST_SEEN_THROTTLE_MS) {
+    void updateLastSeen(profile.id);
   }
 
   return <AppShell profile={profile}>{children}</AppShell>;

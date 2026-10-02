@@ -100,7 +100,7 @@ export function ReportDetailSheet({
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentBody, setCommentBody] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(true);
 
   const isMac =
     typeof navigator !== "undefined" &&
@@ -152,9 +152,8 @@ export function ReportDetailSheet({
 
   function canDeleteComment(comment: ReportComment): boolean {
     if (commentsReadOnly || !currentUserId) return false;
-    return (
-      comment.profiles.id === currentUserId || canModerateComments
-    );
+    if (!comment.profiles) return canModerateComments;
+    return comment.profiles.id === currentUserId || canModerateComments;
   }
 
   return (
@@ -321,18 +320,23 @@ export function ReportDetailSheet({
                             No comments yet.
                           </p>
                         )}
-                        {comments.map((c) => (
+                        {comments.map((c) => {
+                          const authorName =
+                            c.profiles?.full_name ?? "Deleted user";
+                          const authorAvatar =
+                            c.profiles?.avatar_url ?? undefined;
+                          return (
                           <div key={c.id} className="flex gap-2.5">
                             <MemberAvatar
-                              userId={c.profiles.id}
-                              name={c.profiles.full_name ?? "Unknown"}
-                              avatarUrl={c.profiles.avatar_url ?? undefined}
+                              userId={c.profiles?.id ?? ""}
+                              name={authorName}
+                              avatarUrl={authorAvatar}
                               size="sm"
                             />
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                                 <span className="text-xs font-medium text-foreground">
-                                  {c.profiles.full_name ?? "Unknown"}
+                                  {authorName}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground">
                                   {formatDistanceToNow(
@@ -373,7 +377,8 @@ export function ReportDetailSheet({
                               />
                             )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       {!commentsReadOnly && (

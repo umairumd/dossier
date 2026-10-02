@@ -95,7 +95,11 @@ export default async function DailyReportPage({
                 }
               />
             ) : (
-              <>
+              <ReportHistoryPagination
+                page={page}
+                totalPages={totalPages}
+                rowCount={reportHistory.length}
+              >
                 <ReportHistoryBrowser
                   reports={reportHistory}
                   deadline={deadline}
@@ -106,14 +110,7 @@ export default async function DailyReportPage({
                   viewerRole={profile?.role}
                   currentUserId={profile?.id}
                 />
-
-                {totalPages > 1 && (
-                  <ReportHistoryPagination
-                    page={page}
-                    totalPages={totalPages}
-                  />
-                )}
-              </>
+              </ReportHistoryPagination>
             )}
           </ReportSearch>
         </CardContent>

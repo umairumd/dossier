@@ -14,9 +14,10 @@ import {
   getOrgTemplatesWithFields,
   getTemplateResolutionInfo,
 } from "@/lib/supabase/queries/templates";
-import { formatDate, formatDateTime } from "@/lib/helpers/dates";
+import { formatDate } from "@/lib/helpers/dates";
 import { computeTenureSubmissionRate } from "@/lib/helpers/report-stats";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
+import { formatDistanceToNow } from "date-fns";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { StatCard } from "@/components/analytics/stat-card";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
@@ -97,9 +98,13 @@ function QuickInfoCard({ employee }: { employee: EmployeeDetail }) {
         <div className="flex flex-col gap-1">
           <p className="label-eyebrow">Last Seen</p>
           <p className="text-sm font-medium">
-            {employee.last_sign_in_at
-              ? formatDateTime(employee.last_sign_in_at)
-              : "—"}
+            {(() => {
+              const lastSeen =
+                employee.last_seen_at ?? employee.last_sign_in_at;
+              return lastSeen
+                ? formatDistanceToNow(new Date(lastSeen), { addSuffix: true })
+                : "Never";
+            })()}
           </p>
         </div>
       </CardContent>
