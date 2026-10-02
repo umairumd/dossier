@@ -6,10 +6,6 @@ import {
 import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
 import { getSupervisedMembers } from "@/lib/supabase/queries/supervisor/team";
 import { createClient } from "@/lib/supabase/server";
-import {
-  getOrganizationSettings,
-} from "@/lib/supabase/queries/organization-settings";
-import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { TeamMemberCard } from "@/components/manager/team-member-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Separator } from "@/components/ui/separator";
@@ -66,36 +62,19 @@ function MemberGrid({
 export default async function TeamMembersPage() {
   const profile = await getCurrentProfileWithDepartment();
 
-  const [deptMembers, supervisedMembers, insights, settings] =
-    await Promise.all([
-      profile?.role === "manager" ? getTeamRoster() : Promise.resolve([]),
-      profile?.is_supervisor
-        ? getSupervisedMembers()
-        : Promise.resolve([]),
-      getTeamInsights().catch(() => null),
-      getOrganizationSettings(),
-    ]);
-
-  const today = todayInTimezone(settings.timezone);
-  const [year, month, todayDay] = today.split("-").map(Number);
-  let workingDaysThisMonth = 0;
-  for (let day = 1; day <= todayDay; day++) {
-    const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    if (isWorkingDay(dateStr, settings.workingDays)) workingDaysThisMonth++;
-  }
+  const [deptMembers, supervisedMembers, insights] = await Promise.all([
+    profile?.role === "manager" ? getTeamRoster() : Promise.resolve([]),
+    profile?.is_supervisor ? getSupervisedMembers() : Promise.resolve([]),
+    getTeamInsights().catch(() => null),
+  ]);
 
   const memberStatsMap = new Map(
     (insights?.memberStandings ?? []).map((standing) => [
       standing.employeeId,
       {
         streak: standing.streak,
-        submissionRate:
-          workingDaysThisMonth === 0
-            ? 0
-            : Math.round(
-                (standing.reportsThisMonth / workingDaysThisMonth) * 100,
-              ),
-        submissionDetail: `${standing.reportsThisMonth} of ${workingDaysThisMonth} days`,
+        submissionRate: standing.submissionRate,
+        submissionDetail: `${standing.reportsSubmitted} of ${standing.expectedWorkingDays} days`,
         lastSubmittedDaysAgo: daysAgo(standing.lastSubmittedDate),
       },
     ]),

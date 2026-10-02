@@ -10,24 +10,45 @@ import {
   todayInTimezone,
 } from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
+import type { AttendanceStatus } from "@/types/attendance";
 import type { DailyReport } from "@/types/report";
 
 const STRIP_DAYS = 30;
 const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5];
 
-type DayTone = "submitted" | "missed" | "weekend" | "open";
+const LEAVE_STATUSES: ReadonlySet<AttendanceStatus> = new Set([
+  "leave",
+  "half_leave",
+]);
+
+const OFF_STATUSES: ReadonlySet<AttendanceStatus> = new Set([
+  "weekly_off",
+  "holiday",
+]);
+
+type DayTone = "submitted" | "missed" | "weekend" | "leave" | "open";
 
 function dayTone(
   date: string,
   today: string,
   submittedDates: Set<string>,
   workingDays: number[],
+  attendanceByDate?: Map<string, AttendanceStatus>,
 ): DayTone {
+  const status = attendanceByDate?.get(date);
+
+  if (status && LEAVE_STATUSES.has(status)) {
+    return "leave";
+  }
+
   if (submittedDates.has(date)) {
     return "submitted";
   }
 
-  if (!isWorkingDay(date, workingDays)) {
+  if (
+    (status && OFF_STATUSES.has(status)) ||
+    !isWorkingDay(date, workingDays)
+  ) {
     return "weekend";
   }
 
@@ -40,8 +61,9 @@ function dayTone(
 
 const TONE_CLASS: Record<DayTone, string> = {
   submitted: "bg-primary",
-  missed: "bg-destructive/40",
-  weekend: "bg-muted",
+  missed: "bg-destructive",
+  weekend: "bg-foreground/15 dark:bg-foreground/20",
+  leave: "bg-amber-500/80",
   open: "border border-border bg-transparent",
 };
 
@@ -49,10 +71,12 @@ export function ActivityStrip({
   reports,
   timezone,
   workingDays = DEFAULT_WORKING_DAYS,
+  attendanceByDate,
 }: {
   reports: Pick<DailyReport, "report_date">[];
   timezone: string;
   workingDays?: number[];
+  attendanceByDate?: Map<string, AttendanceStatus>;
 }) {
   const today = todayInTimezone(timezone);
   const submittedDates = new Set(reports.map((report) => report.report_date));
@@ -73,7 +97,17 @@ export function ActivityStrip({
               title={date}
               className={cn(
                 "aspect-square rounded-sm",
-                TONE_CLASS[dayTone(date, today, submittedDates, workingDays)],
+                TONE_CLASS[
+                  dayTone(
+                    date,
+                    today,
+                    submittedDates,
+                    workingDays,
+                    attendanceByDate,
+                  )
+                ],
+                date === today &&
+                  "ring-2 ring-foreground ring-offset-1 ring-offset-card",
               )}
             />
           ))}
@@ -94,6 +128,18 @@ export function ActivityStrip({
           <span className="flex items-center gap-1.5">
             <span className={cn("size-2.5 rounded-sm", TONE_CLASS.weekend)} />
             Off
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className={cn("size-2.5 rounded-sm", TONE_CLASS.leave)} />
+            On Leave
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span
+              className={cn(
+                "size-2.5 rounded-sm border border-border bg-transparent ring-1 ring-foreground ring-offset-1 ring-offset-card",
+              )}
+            />
+            Today
           </span>
         </div>
       </CardContent>

@@ -14,7 +14,8 @@ import {
   getOrgTemplatesWithFields,
   getTemplateResolutionInfo,
 } from "@/lib/supabase/queries/templates";
-import { formatDate, formatDateTime, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { formatDate, formatDateTime } from "@/lib/helpers/dates";
+import { computeTenureSubmissionRate } from "@/lib/helpers/report-stats";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { StatCard } from "@/components/analytics/stat-card";
@@ -33,24 +34,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { LeaveBalanceCard } from "@/components/attendance/leave-balance-card";
 import type { LeaveBalance } from "@/types/attendance";
-
-function countWorkingDaysThisMonth(
-  timezone: string,
-  workingDays: number[],
-): number {
-  const today = todayInTimezone(timezone);
-  const [year, month] = today.split("-").map(Number);
-  const [, , todayDay] = today.split("-").map(Number);
-  let count = 0;
-
-  for (let day = 1; day <= todayDay; day++) {
-    const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    if (isWorkingDay(dateStr, workingDays)) {
-      count++;
-    }
-  }
-  return count;
-}
 
 function daysAgo(dateStr: string | null): string {
   if (!dateStr) return "Never";
@@ -201,9 +184,11 @@ export default async function EmployeeDetailPage({
     employee.id,
     employee.department_ids,
   );
-  const workingDaysThisMonth = countWorkingDaysThisMonth(
-    settings.timezone,
+  const tenureRate = computeTenureSubmissionRate(
+    employee.recent_reports,
+    employee.created_at,
     settings.workingDays,
+    settings.timezone,
   );
 
   return (
@@ -252,11 +237,9 @@ export default async function EmployeeDetailPage({
         <StatCard
           label="Submission Rate"
           value={
-            workingDaysThisMonth === 0
-              ? "—"
-              : `${Math.round((employee.stats.reportsThisMonth / workingDaysThisMonth) * 100)}%`
+            tenureRate.expected === 0 ? "—" : `${tenureRate.rate}%`
           }
-          hint={`${employee.stats.reportsThisMonth} of ${workingDaysThisMonth} working days`}
+          hint={`${tenureRate.submitted} of ${tenureRate.expected} working days`}
           icon={<TrendingUp className="size-4" />}
         />
         <StatCard

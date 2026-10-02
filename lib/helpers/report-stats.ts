@@ -38,6 +38,12 @@ export interface ReportStatsOptions {
   attendanceByDate?: Map<string, AttendanceStatus>;
 }
 
+export interface TenureSubmissionRate {
+  submitted: number;
+  expected: number;
+  rate: number;
+}
+
 export function buildAttendanceStatusMap(
   rows: { date: string; status: AttendanceStatus }[],
 ): Map<string, AttendanceStatus> {
@@ -46,6 +52,69 @@ export function buildAttendanceStatusMap(
     map.set(row.date, row.status);
   }
   return map;
+}
+
+/** Inclusive working-day count between two YYYY-MM-DD dates. */
+export function countWorkingDaysBetween(
+  startDate: string,
+  endDate: string,
+  workingDays: number[],
+): number {
+  if (startDate > endDate || workingDays.length === 0) {
+    return 0;
+  }
+
+  let count = 0;
+  let cursor = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+
+  while (cursor.getTime() <= end.getTime()) {
+    const dateStr = cursor.toISOString().slice(0, 10);
+    if (isWorkingDay(dateStr, workingDays)) {
+      count += 1;
+    }
+    cursor = new Date(cursor.getTime() + 86_400_000);
+  }
+
+  return count;
+}
+
+/**
+ * Submission rate from join date (or first report, if earlier) through
+ * org-local today, counting only org working days in the denominator.
+ */
+export function computeTenureSubmissionRate(
+  reports: Pick<DailyReport, "report_date">[],
+  joinedOn: string,
+  workingDays: number[],
+  timezone: string,
+): TenureSubmissionRate {
+  const today = todayInTimezone(timezone);
+  const joinDate = joinedOn.slice(0, 10);
+  let earliestReport: string | null = null;
+  for (const report of reports) {
+    if (!earliestReport || report.report_date < earliestReport) {
+      earliestReport = report.report_date;
+    }
+  }
+  const start =
+    earliestReport && earliestReport < joinDate ? earliestReport : joinDate;
+  const clampedStart = start > today ? today : start;
+  const expected = countWorkingDaysBetween(clampedStart, today, workingDays);
+  const submitted = new Set(
+    reports
+      .filter(
+        (report) =>
+          report.report_date >= clampedStart && report.report_date <= today,
+      )
+      .map((report) => report.report_date),
+  ).size;
+
+  return {
+    submitted,
+    expected,
+    rate: expected === 0 ? 0 : Math.round((submitted / expected) * 100),
+  };
 }
 
 export function computeReportStats(
@@ -89,6 +158,19 @@ export function computeReportStats(
 
     if (reportDates.has(dateStr)) {
       currentStreak += 1;
+      cursor = new Date(cursor.getTime() - 86_400_000);
+      continue;
+    }
+
+    // Today-grace: an unsubmitted working day today does not break the
+    // streak — the employee still has time to submit. Off days fall through
+    // the weekend/neutral skips above and never reach here.
+    if (
+      dateStr === todayStr &&
+      workingDays &&
+      workingDays.length > 0 &&
+      isWorkingDay(dateStr, workingDays)
+    ) {
       cursor = new Date(cursor.getTime() - 86_400_000);
       continue;
     }

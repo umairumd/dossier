@@ -358,8 +358,8 @@ export function AttendanceGrid({
     <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
       <table className="w-full min-w-max border-collapse text-sm">
         <thead>
-          <tr className="sticky top-0 z-10 border-b border-border bg-card">
-            <th className="sticky left-0 z-20 min-w-36 bg-card px-3 py-2 text-left label-eyebrow md:min-w-48 md:px-4">
+          <tr className="border-b border-border">
+            <th className="sticky top-0 left-0 z-40 min-w-36 bg-card px-3 py-2 text-left label-eyebrow md:min-w-48 md:px-4">
               Employee
             </th>
             {days.map((day) => {
@@ -389,17 +389,16 @@ export function AttendanceGrid({
                 <th
                   key={day}
                   className={cn(
-                    "w-10 px-1 py-1.5 text-center",
-                    isHoliday
-                      ? "bg-teal-500/10 text-teal-600 dark:text-teal-400"
-                      : isOff
-                        ? "bg-muted/50"
-                        : undefined,
+                    "sticky top-0 z-30 w-10 bg-card px-1 py-1.5 text-center",
+                    isHoliday && "text-teal-600 dark:text-teal-400",
+                    isOff && !isHoliday && "text-muted-foreground",
                   )}
                 >
                   <div
                     className={cn(
                       "flex flex-col items-center gap-0.5 rounded-md px-0.5 py-0.5",
+                      isHoliday && "bg-teal-500/10",
+                      isOff && !isHoliday && "bg-muted/50",
                       isToday && "bg-foreground text-background",
                     )}
                   >
@@ -440,19 +439,19 @@ export function AttendanceGrid({
                 </th>
               );
             })}
-            <th className="bg-muted/30 px-3 py-2 text-center label-eyebrow">
+            <th className="sticky top-0 z-30 bg-card px-3 py-2 text-center label-eyebrow">
               Late
             </th>
-            <th className="bg-muted/30 px-3 py-2 text-center label-eyebrow">
+            <th className="sticky top-0 z-30 bg-card px-3 py-2 text-center label-eyebrow">
               Absent
             </th>
-            <th className="bg-muted/30 px-3 py-2 text-center label-eyebrow">
+            <th className="sticky top-0 z-30 bg-card px-3 py-2 text-center label-eyebrow">
               Leaves
             </th>
-            <th className="bg-muted/30 px-3 py-2 text-center label-eyebrow">
+            <th className="sticky top-0 z-30 bg-card px-3 py-2 text-center label-eyebrow">
               Balance
             </th>
-            <th className="bg-muted/30 px-3 py-2 text-center label-eyebrow">
+            <th className="sticky top-0 z-30 bg-card px-3 py-2 text-center label-eyebrow">
               Fines
             </th>
           </tr>

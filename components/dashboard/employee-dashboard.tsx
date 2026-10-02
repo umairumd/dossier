@@ -48,12 +48,13 @@ export async function EmployeeDashboard({
       getMyActivityLog(MY_ACTIVITY_LIMIT),
     ]);
 
+  const attendanceByDate = buildAttendanceStatusMap(
+    (attendanceResult.data as { date: string; status: AttendanceStatus }[]) ??
+      [],
+  );
   const stats = computeReportStats(statsRows, settings.timezone, {
     workingDays: settings.workingDays,
-    attendanceByDate: buildAttendanceStatusMap(
-      (attendanceResult.data as { date: string; status: AttendanceStatus }[]) ??
-        [],
-    ),
+    attendanceByDate,
   });
   const deadline = getDeadlineContext(settings);
   const submittedToday = !!todayReport;
@@ -105,6 +106,7 @@ export async function EmployeeDashboard({
           reports={statsRows}
           timezone={settings.timezone}
           workingDays={settings.workingDays}
+          attendanceByDate={attendanceByDate}
         />
       </div>
 
