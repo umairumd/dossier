@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -29,29 +28,35 @@ const MONTH_ABBREVS = [
 
 function formatMonthLabel(yearMonth: string): string {
   const [year, month] = yearMonth.split("-").map(Number);
-  return new Date(year, month - 1, 1).toLocaleDateString("en-US", {
+  return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   });
 }
 
 function shiftMonth(yearMonth: string, delta: number): string {
   const [year, month] = yearMonth.split("-").map(Number);
-  const d = new Date(year, month - 1 + delta, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const d = new Date(Date.UTC(year, month - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 export function MonthNav({
   month,
   baseHref,
+  currentMonth: currentMonthProp,
 }: {
   month: string; // "YYYY-MM"
   baseHref: string;
+  /** Org-timezone current month (YYYY-MM). Caps forward navigation. */
+  currentMonth?: string;
 }) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const currentYear = now.getFullYear();
+  const browserCurrentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentMonth = currentMonthProp ?? browserCurrentMonth;
+  const currentYear = Number(currentMonth.split("-")[0]);
   const isCurrentMonth = month >= currentMonth;
   const prevMonth = shiftMonth(month, -1);
   const nextMonth = shiftMonth(month, 1);
@@ -70,28 +75,49 @@ export function MonthNav({
 
   const canGoNextYear = pickerYear < currentYear;
 
-  const handleSelectMonth = (monthIndex: number) => {
-    const yearMonth = `${pickerYear}-${String(monthIndex + 1).padStart(2, "0")}`;
+  const goToMonth = (yearMonth: string) => {
     if (yearMonth > currentMonth) return;
     setOpen(false);
-    router.push(`${baseHref}?month=${yearMonth}`);
+    startTransition(() => {
+      router.push(`${baseHref}?month=${yearMonth}`);
+    });
+  };
+
+  const handleSelectMonth = (monthIndex: number) => {
+    const yearMonth = `${pickerYear}-${String(monthIndex + 1).padStart(2, "0")}`;
+    goToMonth(yearMonth);
   };
 
   return (
-    <div className="flex items-center gap-1">
-      <Button variant="ghost" size="icon" className="size-8" asChild>
-        <Link href={`${baseHref}?month=${prevMonth}`} aria-label="Previous month">
-          <ChevronLeft className="size-4" />
-        </Link>
+    <div className="flex items-center gap-1" aria-busy={isPending}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-8"
+        onClick={() => goToMonth(prevMonth)}
+        disabled={isPending}
+        aria-label="Previous month"
+      >
+        <ChevronLeft className="size-4" />
       </Button>
 
       <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
+            type="button"
             variant="ghost"
+            disabled={isPending}
             className="min-w-28 px-2 py-1 text-sm font-medium"
           >
-            {formatMonthLabel(month)}
+            {isPending ? (
+              <Loader2
+                className="mx-auto size-4 animate-spin text-muted-foreground"
+                aria-label="Loading"
+              />
+            ) : (
+              formatMonthLabel(month)
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-56 p-3" align="center">
@@ -149,23 +175,17 @@ export function MonthNav({
         </PopoverContent>
       </Popover>
 
-      {isCurrentMonth ? (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8"
-          disabled
-          aria-label="Next month"
-        >
-          <ChevronRight className="size-4" />
-        </Button>
-      ) : (
-        <Button variant="ghost" size="icon" className="size-8" asChild>
-          <Link href={`${baseHref}?month=${nextMonth}`} aria-label="Next month">
-            <ChevronRight className="size-4" />
-          </Link>
-        </Button>
-      )}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-8"
+        onClick={() => goToMonth(nextMonth)}
+        disabled={isPending || isCurrentMonth}
+        aria-label="Next month"
+      >
+        <ChevronRight className="size-4" />
+      </Button>
     </div>
   );
 }

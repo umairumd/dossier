@@ -96,18 +96,18 @@ export function ActivityStrip({
               key={date}
               title={date}
               className={cn(
-                "aspect-square rounded-sm",
-                TONE_CLASS[
-                  dayTone(
-                    date,
-                    today,
-                    submittedDates,
-                    workingDays,
-                    attendanceByDate,
-                  )
-                ],
-                date === today &&
-                  "ring-2 ring-foreground ring-offset-1 ring-offset-card",
+                "aspect-square w-full rounded-sm",
+                date === today
+                  ? "bg-transparent ring-2 ring-foreground ring-inset"
+                  : TONE_CLASS[
+                      dayTone(
+                        date,
+                        today,
+                        submittedDates,
+                        workingDays,
+                        attendanceByDate,
+                      )
+                    ],
               )}
             />
           ))}
@@ -136,7 +136,7 @@ export function ActivityStrip({
           <span className="flex items-center gap-1.5">
             <span
               className={cn(
-                "size-2.5 rounded-sm border border-border bg-transparent ring-1 ring-foreground ring-offset-1 ring-offset-card",
+                "size-2.5 rounded-sm bg-transparent ring-2 ring-foreground ring-inset",
               )}
             />
             Today

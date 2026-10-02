@@ -75,6 +75,7 @@ export function AttendanceGrid({
   today,
   viewerRole,
   currentUserId,
+  showBalanceAndFines = true,
 }: {
   onSiteEmployees: GridEmployee[];
   remoteEmployees: GridEmployee[];
@@ -90,6 +91,7 @@ export function AttendanceGrid({
   today: string; // YYYY-MM-DD in the organization's timezone
   viewerRole?: UserRole;
   currentUserId?: string;
+  showBalanceAndFines?: boolean;
 }) {
   const [year, month] = yearMonth.split("-").map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -234,16 +236,20 @@ export function AttendanceGrid({
             <span className="text-muted-foreground">0</span>
           )}
         </td>
-        {renderBalanceCell(emp.leave_balance)}
-        <td className="bg-background px-3 py-2 text-center text-xs">
-          {fineTotal > 0 ? (
-            <span className="font-medium text-red-600 dark:text-red-400">
-              PKR {fineTotal}
-            </span>
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          )}
-        </td>
+        {showBalanceAndFines && (
+          <>
+            {renderBalanceCell(emp.leave_balance)}
+            <td className="bg-background px-3 py-2 text-center text-xs">
+              {fineTotal > 0 ? (
+                <span className="font-medium text-red-600 dark:text-red-400">
+                  PKR {fineTotal}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </td>
+          </>
+        )}
       </tr>
     );
   }
@@ -353,10 +359,14 @@ export function AttendanceGrid({
             <span className="text-muted-foreground">0</span>
           )}
         </td>
-        {renderBalanceCell(emp.leave_balance)}
-        <td className="bg-background px-3 py-2 text-center text-xs">
-          <span className="text-muted-foreground">—</span>
-        </td>
+        {showBalanceAndFines && (
+          <>
+            {renderBalanceCell(emp.leave_balance)}
+            <td className="bg-background px-3 py-2 text-center text-xs">
+              <span className="text-muted-foreground">—</span>
+            </td>
+          </>
+        )}
       </tr>
     );
   }
@@ -455,12 +465,16 @@ export function AttendanceGrid({
             <th className="sticky top-0 z-30 bg-card px-3 py-2 text-center label-eyebrow">
               Leaves
             </th>
-            <th className="sticky top-0 z-30 bg-card px-3 py-2 text-center label-eyebrow">
-              Balance
-            </th>
-            <th className="sticky top-0 z-30 bg-card px-3 py-2 text-center label-eyebrow">
-              Fines
-            </th>
+            {showBalanceAndFines && (
+              <>
+                <th className="sticky top-0 z-30 bg-card px-3 py-2 text-center label-eyebrow">
+                  Balance
+                </th>
+                <th className="sticky top-0 z-30 bg-card px-3 py-2 text-center label-eyebrow">
+                  Fines
+                </th>
+              </>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -472,7 +486,7 @@ export function AttendanceGrid({
                 Remote Employees
               </td>
               <td
-                colSpan={days.length + 5}
+                colSpan={days.length + (showBalanceAndFines ? 5 : 3)}
                 className="h-10 border-y border-border bg-background"
               />
             </tr>

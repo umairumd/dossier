@@ -64,6 +64,12 @@ export const navSections: NavSection[] = [
         icon: <FileText className="size-4" />,
         roles: ALL_ROLES,
       },
+      {
+        label: "Activity",
+        href: "/activity",
+        icon: <Zap className="size-4" />,
+        roles: ALL_ROLES,
+      },
     ],
   },
   {
@@ -127,12 +133,6 @@ export const navSections: NavSection[] = [
         label: "Invitations",
         href: "/invitations",
         icon: <Mail className="size-4" />,
-        roles: ["owner", "admin"],
-      },
-      {
-        label: "Activity",
-        href: "/activity",
-        icon: <Zap className="size-4" />,
         roles: ["owner", "admin"],
       },
     ],

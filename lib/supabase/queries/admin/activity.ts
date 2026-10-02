@@ -24,9 +24,9 @@ export const getActivityLog = cache(
   },
 );
 
-// Personal feed: events where the current user is the target. No role check
-// (members call this); RLS plus the explicit target_id filter keep it scoped
-// so it is also safe if an owner/admin/manager calls it.
+// Personal feed: events where the current user is the actor or the target.
+// No role check (members call this); RLS plus the explicit OR filter keep
+// it scoped so it is also safe if an owner/admin/manager calls it.
 export const getMyActivityLog = cache(
   async (limit: number): Promise<ActivityLogEntry[]> => {
     const supabase = await createClient();
@@ -40,7 +40,7 @@ export const getMyActivityLog = cache(
       const { data, error } = await supabase
         .from("activity_log")
         .select("*")
-        .eq("target_id", user.id)
+        .or(`actor_id.eq.${user.id},target_id.eq.${user.id}`)
         .order("created_at", { ascending: false })
         .limit(limit);
 

@@ -2,6 +2,7 @@
 
 import { CalendarDays, Info } from "lucide-react";
 import { cellColorClass } from "@/components/attendance/attendance-cell-popover";
+import { calendarDayToneClass } from "@/lib/helpers/attendance-day-tones";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -56,9 +57,15 @@ const LEGEND_ITEMS: {
 
 export function AttendanceLegend({
   showHolidayHint = false,
+  variant = "grid",
 }: {
   showHolidayHint?: boolean;
+  /** "calendar" uses amber leave tones to match PersonalMonthCalendar. */
+  variant?: "grid" | "calendar";
 }) {
+  const toneClass =
+    variant === "calendar" ? calendarDayToneClass : cellColorClass;
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -82,7 +89,7 @@ export function AttendanceLegend({
                   "inline-flex h-5 w-5 items-center justify-center rounded text-[10px] font-semibold",
                   status === "weekly_off"
                     ? "bg-muted text-muted-foreground"
-                    : cellColorClass(status),
+                    : toneClass(status),
                 )}
               >
                 {code}
@@ -90,6 +97,15 @@ export function AttendanceLegend({
               <span className="text-[11px] text-muted-foreground">{label}</span>
             </div>
           ))}
+          {variant === "calendar" && (
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-foreground bg-transparent"
+                aria-hidden
+              />
+              <span className="text-[11px] text-muted-foreground">Today</span>
+            </div>
+          )}
         </div>
         {showHolidayHint && (
           <p className="mt-3 flex items-center gap-1 text-[11px] text-muted-foreground">

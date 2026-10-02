@@ -93,6 +93,7 @@ export function ReportHistoryTable({
                   type="button"
                   variant="ghost"
                   size="sm"
+                  className="hover:bg-transparent dark:hover:bg-transparent"
                   onClick={() => onView(index)}
                 >
                   View

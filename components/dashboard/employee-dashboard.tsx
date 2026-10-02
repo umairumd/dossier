@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getReportHistory, getReportStatsData, getTodayReport } from "@/lib/supabase/queries/reports";
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
@@ -14,6 +15,7 @@ import type { AttendanceStatus } from "@/types/attendance";
 import { ActivityFeed } from "@/components/analytics/activity-feed";
 import {
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
@@ -131,6 +133,14 @@ export async function EmployeeDashboard({
       >
         <CardHeader>
           <CardTitle>Your Activity</CardTitle>
+          <CardAction>
+            <Link
+              href="/activity"
+              className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+            >
+              View all
+            </Link>
+          </CardAction>
         </CardHeader>
         <CardContent>
           <ActivityFeed

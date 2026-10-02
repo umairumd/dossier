@@ -27,6 +27,7 @@ export interface EmployeeListItem {
   archived_at: string | null;
   invited_at: string | null;
   last_sign_in_at: string | null;
+  last_seen_at: string | null;
   status: EmployeeStatus;
   designation: string | null;
   is_remote: boolean;

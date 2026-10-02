@@ -224,7 +224,7 @@ export function EmployeeList({
                   <span className="ml-auto text-xs text-muted-foreground">
                     Last seen{" "}
                     {formatLastSeen(
-                      employee.last_sign_in_at,
+                      employee.last_seen_at ?? employee.last_sign_in_at,
                       lastSeenByEmployeeId[employee.id],
                     )}
                   </span>
@@ -301,7 +301,7 @@ export function EmployeeList({
                 </TableCell>
                 <TableCell className="w-28 text-sm text-muted-foreground">
                   {formatLastSeen(
-                    employee.last_sign_in_at,
+                    employee.last_seen_at ?? employee.last_sign_in_at,
                     lastSeenByEmployeeId[employee.id],
                   )}
                 </TableCell>
