@@ -125,125 +125,130 @@ export function LeaveBalanceCard({
   const remaining = balance.balance_remaining ?? accrued - used;
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-foreground">Leave Balance</p>
+    <Card className="card-gradient-subtle">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <CardDescription>Leave Balance</CardDescription>
+          {canAdjust && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setOpen(true)}
+            >
+              Adjust
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] divide-x divide-border">
+          <div className="flex min-w-0 flex-col justify-center pr-3 sm:pr-4">
+            <p className="text-xs text-muted-foreground">Contract Period</p>
+            <p className="mt-1 text-sm font-medium text-foreground">
+              <span>{formatDate(balance.contract_year_start)} → </span>
+              <br className="md:hidden" />
+              <span>{formatDate(balance.contract_year_end)}</span>
+            </p>
+          </div>
+          <div className="flex flex-col items-center px-2 text-center sm:px-4">
+            <p className="text-2xl font-semibold">{accrued}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Accrued</p>
+          </div>
+          <div className="flex flex-col items-center px-2 text-center sm:px-4">
+            <p className="text-2xl font-semibold">{used}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Used</p>
+          </div>
+          <div className="flex flex-col items-center px-2 text-center sm:px-4">
+            <p
+              className={cn(
+                "text-2xl font-semibold",
+                remaining < 0 && "text-destructive",
+              )}
+            >
+              {remaining}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Remaining</p>
+          </div>
+        </div>
+
         {canAdjust && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => setOpen(true)}
+          <Dialog
+            open={open}
+            onOpenChange={(next) => {
+              setOpen(next);
+              if (!next) {
+                setNote("");
+                setDays("");
+              }
+            }}
           >
-            Adjust
-          </Button>
-        )}
-      </div>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Adjust Leave Balance</DialogTitle>
+                <DialogDescription>
+                  This adjustment will be logged with your name and reason.
+                </DialogDescription>
+              </DialogHeader>
 
-      <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] divide-x divide-border">
-        <div className="flex min-w-0 flex-col justify-center pr-3 sm:pr-4">
-          <p className="text-xs text-muted-foreground">Contract Period</p>
-          <p className="mt-1 text-sm font-medium text-foreground">
-            <span>{formatDate(balance.contract_year_start)} → </span>
-            <br className="md:hidden" />
-            <span>{formatDate(balance.contract_year_end)}</span>
-          </p>
-        </div>
-        <div className="flex flex-col items-center px-2 text-center sm:px-4">
-          <p className="text-2xl font-semibold">{accrued}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Accrued</p>
-        </div>
-        <div className="flex flex-col items-center px-2 text-center sm:px-4">
-          <p className="text-2xl font-semibold">{used}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Used</p>
-        </div>
-        <div className="flex flex-col items-center px-2 text-center sm:px-4">
-          <p
-            className={cn(
-              "text-2xl font-semibold",
-              remaining < 0 && "text-destructive",
-            )}
-          >
-            {remaining}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">Remaining</p>
-        </div>
-      </div>
+              <DialogBody>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="leave-adjustment-days">
+                    Adjustment (days)
+                  </Label>
+                  <Input
+                    id="leave-adjustment-days"
+                    type="number"
+                    step="0.5"
+                    value={days}
+                    onChange={(event) => setDays(event.target.value)}
+                    placeholder="e.g. 2 or -1"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use a negative number to deduct days.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="leave-adjustment-note">Reason</Label>
+                  <Textarea
+                    id="leave-adjustment-note"
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                    placeholder="Why is this balance being adjusted?"
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Minimum 10 characters. This is stored for audit purposes.
+                  </p>
+                </div>
+              </DialogBody>
 
-      {canAdjust && (
-        <Dialog
-          open={open}
-          onOpenChange={(next) => {
-            setOpen(next);
-            if (!next) {
-              setNote("");
-              setDays("");
-            }
-          }}
-        >
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Adjust Leave Balance</DialogTitle>
-              <DialogDescription>
-                This adjustment will be logged with your name and reason.
-              </DialogDescription>
-            </DialogHeader>
-
-            <DialogBody>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="leave-adjustment-days">Adjustment (days)</Label>
-                <Input
-                  id="leave-adjustment-days"
-                  type="number"
-                  step="0.5"
-                  value={days}
-                  onChange={(event) => setDays(event.target.value)}
-                  placeholder="e.g. 2 or -1"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Use a negative number to deduct days.
-                </p>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="leave-adjustment-note">Reason</Label>
-                <Textarea
-                  id="leave-adjustment-note"
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                  placeholder="Why is this balance being adjusted?"
-                  rows={3}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Minimum 10 characters. This is stored for audit purposes.
-                </p>
-              </div>
-            </DialogBody>
-
-            <DialogFooter>
-              <DialogClose asChild>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setNote("");
+                      setDays("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </DialogClose>
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setNote("");
-                    setDays("");
-                  }}
+                  disabled={!canSubmit}
+                  onClick={handleAdjust}
                 >
-                  Cancel
+                  {isPending ? "Saving..." : "Save Adjustment"}
                 </Button>
-              </DialogClose>
-              <Button
-                type="button"
-                disabled={!canSubmit}
-                onClick={handleAdjust}
-              >
-                {isPending ? "Saving..." : "Save Adjustment"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </CardContent>
+    </Card>
   );
 }

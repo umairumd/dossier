@@ -105,11 +105,22 @@ export function ReportDetailSheet({
       current.report.report_date === todayInTimezone(deadline.timezone),
   );
 
-  const [comments, setComments] = useState<ReportComment[]>([]);
-  const [commentsLoading, setCommentsLoading] = useState(false);
+  const activeReportId =
+    showComments && current?.report?.id ? current.report.id : null;
+  const [commentsByReport, setCommentsByReport] = useState<{
+    reportId: string;
+    comments: ReportComment[];
+  } | null>(null);
   const [commentBody, setCommentBody] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+
+  const comments =
+    activeReportId && commentsByReport?.reportId === activeReportId
+      ? commentsByReport.comments
+      : [];
+  const commentsLoading =
+    Boolean(activeReportId) && commentsByReport?.reportId !== activeReportId;
 
   const isMac =
     typeof navigator !== "undefined" &&
@@ -117,33 +128,29 @@ export function ReportDetailSheet({
   const shortcutLabel = isMac ? "⌘ Enter" : "Ctrl + Enter";
 
   useEffect(() => {
-    if (!showComments || !current?.report?.id) {
-      setComments([]);
+    if (!activeReportId) {
       return;
     }
 
     let cancelled = false;
-    setComments([]);
-    setCommentsLoading(true);
-    getReportComments(current.report.id)
+    getReportComments(activeReportId)
       .then((data) => {
         if (!cancelled) {
-          setComments(data);
+          setCommentsByReport({ reportId: activeReportId, comments: data });
           setCommentsOpen(data.length > 0);
-          setCommentsLoading(false);
         }
       })
       .catch((err) => {
         console.error("getReportComments failed:", err);
         if (!cancelled) {
-          setCommentsLoading(false);
+          setCommentsByReport({ reportId: activeReportId, comments: [] });
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [current?.report?.id, showComments]);
+  }, [activeReportId]);
 
   async function handleSendComment() {
     if (!current?.report?.id || !commentBody.trim() || commentsReadOnly) return;
@@ -152,7 +159,10 @@ export function ReportDetailSheet({
     if (result.success) {
       setCommentBody("");
       const updated = await getReportComments(current.report.id);
-      setComments(updated);
+      setCommentsByReport({
+        reportId: current.report.id,
+        comments: updated,
+      });
     } else {
       toast.error(result.error ?? "Failed to send comment.");
     }
@@ -379,9 +389,21 @@ export function ReportDetailSheet({
                                 errorMessage="Failed to delete comment."
                                 action={() => deleteReportComment(c.id)}
                                 onSuccess={() => {
-                                  setComments((prev) =>
-                                    prev.filter((item) => item.id !== c.id),
-                                  );
+                                  if (!activeReportId) return;
+                                  setCommentsByReport((prev) => {
+                                    if (
+                                      !prev ||
+                                      prev.reportId !== activeReportId
+                                    ) {
+                                      return prev;
+                                    }
+                                    return {
+                                      reportId: activeReportId,
+                                      comments: prev.comments.filter(
+                                        (item) => item.id !== c.id,
+                                      ),
+                                    };
+                                  });
                                 }}
                               />
                             )}

@@ -43,7 +43,7 @@ export default async function OrganizationSettingsPage() {
 
       <Card className="card-gradient">
         <CardHeader>
-          <CardTitle>Identity</CardTitle>
+          <CardTitle className="text-base">Identity</CardTitle>
           <CardDescription>
             How your organization appears in Dossier.
           </CardDescription>
@@ -55,7 +55,7 @@ export default async function OrganizationSettingsPage() {
 
       <Card className="card-gradient">
         <CardHeader>
-          <CardTitle>Schedule</CardTitle>
+          <CardTitle className="text-base">Schedule</CardTitle>
           <CardDescription>
             Configure when reports are due and which days count as working days.
           </CardDescription>
@@ -71,7 +71,7 @@ export default async function OrganizationSettingsPage() {
 
       <Card className="card-gradient">
         <CardHeader>
-          <CardTitle>Attendance</CardTitle>
+          <CardTitle className="text-base">Attendance</CardTitle>
           <CardDescription>
             Configure shift times, grace periods, and fine amounts for
             attendance tracking.
@@ -97,7 +97,7 @@ export default async function OrganizationSettingsPage() {
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <CardTitle>Report Templates</CardTitle>
+              <CardTitle className="text-base">Report Templates</CardTitle>
               <CardDescription>
                 Manage templates for daily report submissions. Assign different
                 templates to departments or individual employees.
