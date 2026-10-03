@@ -58,16 +58,24 @@ export function ReportBanner({
             </span>
           </div>
         </div>
-        {!hideHistoryLink && (
-          <div className="flex shrink-0 items-center gap-3 pl-7 sm:pl-0">
+        <div className="flex shrink-0 items-center gap-3 pl-7 sm:pl-0">
+          {!hideHistoryLink && (
             <Link
               href="/reports"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               View history
             </Link>
-          </div>
-        )}
+          )}
+          <SubmitReportSheet
+            alreadySubmitted
+            initialReport={todayReport}
+            triggerLabel="Edit Report"
+            triggerVariant="outline"
+            template={template}
+            onSubmitted={handleSubmitted}
+          />
+        </div>
       </div>
     );
   }

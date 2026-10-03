@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { getTodayReport, getReportHistory } from "@/lib/supabase/queries/reports";
+import {
+  getMyReportById,
+  getTodayReport,
+  getReportHistory,
+} from "@/lib/supabase/queries/reports";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import {
   getOrgTemplatesWithFields,
@@ -29,18 +33,20 @@ const PAGE_SIZE = 10;
 export default async function DailyReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; view?: string }>;
 }) {
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, view } = await searchParams;
   const page = Math.max(1, Number(pageParam ?? "1") || 1);
 
-  const [todayReport, history, settings, profile, templates] = await Promise.all([
-    getTodayReport(),
-    getReportHistory(page, PAGE_SIZE),
-    getOrganizationSettings(),
-    getCurrentProfile(),
-    getOrgTemplatesWithFields(),
-  ]);
+  const [todayReport, history, settings, profile, templates, viewReport] =
+    await Promise.all([
+      getTodayReport(),
+      getReportHistory(page, PAGE_SIZE),
+      getOrganizationSettings(),
+      getCurrentProfile(),
+      getOrgTemplatesWithFields(),
+      view ? getMyReportById(view) : Promise.resolve(null),
+    ]);
 
   const template = profile
     ? ((await resolveTemplate(profile.id, profile.department_ids)) ?? undefined)
@@ -77,14 +83,14 @@ export default async function DailyReportPage({
             viewerRole={profile?.role}
             currentUserId={profile?.id}
           >
-            {reportHistory.length === 0 && page === 1 ? (
+            {reportHistory.length === 0 && page === 1 && !viewReport ? (
               <EmptyState
                 illustration="reports"
                 title="No reports submitted yet."
                 description="Submit your first daily report above."
                 className="py-8"
               />
-            ) : reportHistory.length === 0 ? (
+            ) : reportHistory.length === 0 && !viewReport ? (
               <EmptyState
                 illustration="reports"
                 title="No more reports."
@@ -93,6 +99,19 @@ export default async function DailyReportPage({
                     <Link href="/reports">Back to My Reports</Link>
                   </Button>
                 }
+              />
+            ) : reportHistory.length === 0 && viewReport ? (
+              <ReportHistoryBrowser
+                reports={[]}
+                deadline={deadline}
+                userName={profile?.full_name ?? ""}
+                showProfileLink={false}
+                templates={templates}
+                isOwnReport
+                viewerRole={profile?.role}
+                currentUserId={profile?.id}
+                initialViewId={view}
+                viewReport={viewReport}
               />
             ) : (
               <ReportHistoryPagination
@@ -109,6 +128,8 @@ export default async function DailyReportPage({
                   isOwnReport
                   viewerRole={profile?.role}
                   currentUserId={profile?.id}
+                  initialViewId={view}
+                  viewReport={viewReport}
                 />
               </ReportHistoryPagination>
             )}
