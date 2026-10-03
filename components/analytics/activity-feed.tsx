@@ -649,11 +649,13 @@ export function ActivityFeed({
   emptyMessage = "No recent activity.",
   canDelete = false,
   variant = "dashboard",
+  footer,
 }: {
   items: ActivityLogEntry[];
   emptyMessage?: string;
   canDelete?: boolean;
   variant?: "page" | "dashboard";
+  footer?: ReactNode;
 }) {
   const [isPending, startTransition] = useTransition();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -749,6 +751,8 @@ export function ActivityFeed({
           ))}
         </ul>
       )}
+
+      {footer}
 
       <AlertDialog
         open={pendingDeleteId !== null}

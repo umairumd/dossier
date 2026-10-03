@@ -110,7 +110,7 @@ export function ReportDetailSheet({
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentBody, setCommentBody] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(true);
+  const [commentsOpen, setCommentsOpen] = useState(false);
 
   const isMac =
     typeof navigator !== "undefined" &&

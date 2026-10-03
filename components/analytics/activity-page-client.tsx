@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { ActivityFeed } from "@/components/analytics/activity-feed";
 import {
@@ -18,9 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { loadActivityPage } from "@/lib/actions/admin/activity";
 import {
   ACTIVITY_CATEGORY_LABELS,
-  EVENT_CATEGORY,
   type ActivityCategory,
 } from "@/lib/helpers/activity-categories";
 import type { ActivityLogEntry } from "@/types/activity";
@@ -41,52 +41,130 @@ const RANGE_OPTIONS: { value: RangeFilter; label: string }[] = [
   { value: "all", label: "All time" },
 ];
 
-/** Start of the current week (Monday) or month in the viewer's local time. */
-function rangeStart(range: RangeFilter): number | null {
-  if (range === "all") return null;
-  const now = new Date();
-  if (range === "month") {
-    return new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-  }
-  const daysSinceMonday = (now.getDay() + 6) % 7;
-  return new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() - daysSinceMonday,
-  ).getTime();
-}
-
 export function ActivityPageClient({
-  items,
+  initialItems,
+  initialHasMore,
   canDelete,
 }: {
-  items: ActivityLogEntry[];
+  initialItems: ActivityLogEntry[];
+  initialHasMore: boolean;
   canDelete: boolean;
 }) {
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [query, setQuery] = useState("");
   const [range, setRange] = useState<RangeFilter>("all");
 
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const start = rangeStart(range);
-    return items.filter((item) => {
-      if (category !== "all" && EVENT_CATEGORY[item.event_type] !== category) {
-        return false;
-      }
-      if (start !== null && new Date(item.created_at).getTime() < start) {
-        return false;
-      }
-      if (needle) {
-        const haystack = `${item.actor_name ?? ""} ${item.target_name ?? ""}`
-          .toLowerCase();
-        if (!haystack.includes(needle)) return false;
-      }
-      return true;
-    });
-  }, [items, category, query, range]);
+  const [items, setItems] = useState(initialItems);
+  const [cursor, setCursor] = useState<string | null>(
+    initialHasMore
+      ? (initialItems[initialItems.length - 1]?.created_at ?? null)
+      : null,
+  );
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const isFiltering = category !== "all" || query.trim() !== "" || range !== "all";
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const skipCategoryRangeEffect = useRef(true);
+  const skipQueryEffect = useRef(true);
+  const loadingMoreRef = useRef(false);
+
+  const filtersRef = useRef({ category, range, query });
+  filtersRef.current = { category, range, query };
+
+  const cursorRef = useRef(cursor);
+  cursorRef.current = cursor;
+  const hasMoreRef = useRef(hasMore);
+  hasMoreRef.current = hasMore;
+
+  const refreshFromTop = useCallback(async () => {
+    const { category: nextCategory, range: nextRange, query: nextQuery } =
+      filtersRef.current;
+    setIsRefreshing(true);
+    setItems([]);
+    setCursor(null);
+    setHasMore(true);
+    try {
+      const result = await loadActivityPage({
+        cursor: null,
+        category: nextCategory,
+        range: nextRange,
+        query: nextQuery,
+      });
+      setItems(result.items);
+      setCursor(result.nextCursor);
+      setHasMore(result.hasMore);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMoreRef.current || !hasMoreRef.current || !cursorRef.current) {
+      return;
+    }
+    loadingMoreRef.current = true;
+    setIsLoadingMore(true);
+    const { category: nextCategory, range: nextRange, query: nextQuery } =
+      filtersRef.current;
+    try {
+      const result = await loadActivityPage({
+        cursor: cursorRef.current,
+        category: nextCategory,
+        range: nextRange,
+        query: nextQuery,
+      });
+      setItems((prev) => [...prev, ...result.items]);
+      setCursor(result.nextCursor);
+      setHasMore(result.hasMore);
+    } finally {
+      loadingMoreRef.current = false;
+      setIsLoadingMore(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (skipCategoryRangeEffect.current) {
+      skipCategoryRangeEffect.current = false;
+      return;
+    }
+    void refreshFromTop();
+  }, [category, range, refreshFromTop]);
+
+  useEffect(() => {
+    if (skipQueryEffect.current) {
+      skipQueryEffect.current = false;
+      return;
+    }
+    const timeoutId = window.setTimeout(() => {
+      void refreshFromTop();
+    }, 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [query, refreshFromTop]);
+
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries.some((entry) => entry.isIntersecting) &&
+          hasMoreRef.current &&
+          !loadingMoreRef.current
+        ) {
+          void loadMore();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [loadMore, items.length]);
+
+  const isFiltering =
+    category !== "all" || query.trim() !== "" || range !== "all";
 
   return (
     <div className="flex flex-col gap-4">
@@ -100,36 +178,42 @@ export function ActivityPageClient({
             className="pl-8"
           />
         </div>
-        <Select
-          value={category}
-          onValueChange={(value) => setCategory(value as CategoryFilter)}
-        >
-          <SelectTrigger className="w-full sm:w-56" aria-label="Event category">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {CATEGORY_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={range}
-          onValueChange={(value) => setRange(value as RangeFilter)}
-        >
-          <SelectTrigger className="w-full sm:w-40" aria-label="Date range">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {RANGE_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex w-full gap-2 sm:w-auto sm:flex-none">
+          <div className="min-w-0 flex-1">
+            <Select
+              value={category}
+              onValueChange={(value) => setCategory(value as CategoryFilter)}
+            >
+              <SelectTrigger className="w-full" aria-label="Event category">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORY_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="min-w-0 flex-1">
+            <Select
+              value={range}
+              onValueChange={(value) => setRange(value as RangeFilter)}
+            >
+              <SelectTrigger className="w-full" aria-label="Date range">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RANGE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       <Card>
@@ -141,16 +225,32 @@ export function ActivityPageClient({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ActivityFeed
-            variant="page"
-            items={filtered}
-            canDelete={canDelete}
-            emptyMessage={
-              isFiltering
-                ? "No activity matches your filters."
-                : "No recent activity."
-            }
-          />
+          {isRefreshing && items.length === 0 ? (
+            <p className="py-6 text-center text-xs text-muted-foreground">
+              Loading…
+            </p>
+          ) : (
+            <ActivityFeed
+              variant="page"
+              items={items}
+              canDelete={canDelete}
+              emptyMessage={
+                isFiltering
+                  ? "No activity matches your filters."
+                  : "No recent activity."
+              }
+              footer={
+                <>
+                  <div ref={sentinelRef} className="h-1" aria-hidden />
+                  {isLoadingMore ? (
+                    <p className="py-3 text-center text-xs text-muted-foreground">
+                      Loading…
+                    </p>
+                  ) : null}
+                </>
+              }
+            />
+          )}
         </CardContent>
       </Card>
     </div>

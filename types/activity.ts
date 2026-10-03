@@ -39,6 +39,12 @@ export interface ActivityLogEntry {
   created_at: string;
 }
 
+export interface ActivityPageResult {
+  items: ActivityLogEntry[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
 // Keep ActivityItem for backward compat with any remaining usages
 export interface ActivityItem {
   id: string;
