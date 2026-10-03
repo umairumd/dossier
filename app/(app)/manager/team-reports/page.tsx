@@ -20,6 +20,24 @@ import { PageHeader } from "@/components/shared/page-header";
 import { TeamReportsView } from "@/components/manager/team-reports-view";
 import { Separator } from "@/components/ui/separator";
 
+function submittedAside(members: { report: unknown }[]) {
+  const submitted = members.filter((member) => member.report).length;
+  const total = members.length;
+  const pct = total === 0 ? 0 : Math.round((submitted / total) * 100);
+  const color =
+    pct >= 80
+      ? "text-primary"
+      : pct >= 50
+        ? "text-yellow-500/70"
+        : "text-destructive";
+
+  return (
+    <span className={`shrink-0 text-sm font-medium ${color}`}>
+      {submitted}/{total} submitted
+    </span>
+  );
+}
+
 export default async function TeamReportsPage({
   searchParams,
 }: {
@@ -75,7 +93,7 @@ export default async function TeamReportsPage({
       />
 
       <div>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+        <h2 className="mb-3 hidden text-sm font-medium text-muted-foreground md:block">
           {section1Label}
         </h2>
         <TeamReportsView
@@ -90,6 +108,8 @@ export default async function TeamReportsPage({
           reportDate={date}
           viewerRole={profile?.role}
           currentUserId={profile?.id}
+          groupTitle={section1Label}
+          groupAside={submittedAside(section1Members)}
         />
       </div>
 
@@ -97,7 +117,7 @@ export default async function TeamReportsPage({
         <>
           <Separator className="my-6" />
           <div>
-            <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+            <h2 className="mb-3 hidden text-sm font-medium text-muted-foreground md:block">
               Also Reporting to You
             </h2>
             <TeamReportsView
@@ -108,6 +128,8 @@ export default async function TeamReportsPage({
               reportDate={date}
               viewerRole={profile?.role}
               currentUserId={profile?.id}
+              groupTitle="Also Reporting to You"
+              groupAside={submittedAside(exclusiveSupervisees)}
             />
           </div>
         </>

@@ -20,6 +20,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
+import {
+  FilterToolbar,
+  filterSelectTriggerClassName,
+} from "@/components/shared/filter-toolbar";
 import { NoMembersIndicator } from "@/components/shared/employee-indicators";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { DepartmentActionsMenu } from "@/components/admin/department-actions-menu";
@@ -66,32 +70,37 @@ export function DepartmentList({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-0 flex-1">
-          <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search departments..."
-            className="pl-8"
-          />
-        </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-        >
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FILTER_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <FilterToolbar
+        search={
+          <div className="relative min-w-0">
+            <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search departments..."
+              className="pl-8"
+            />
+          </div>
+        }
+        filters={[
+          <Select
+            key="status"
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+          >
+            <SelectTrigger className={filterSelectTriggerClassName}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FILTER_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>,
+        ]}
+      />
 
       {filtered.length === 0 ? (
         <EmptyState
@@ -104,50 +113,36 @@ export function DepartmentList({
         />
       ) : (
         <>
-        <div className="flex flex-col gap-3 md:hidden">
+        <div className="grid grid-cols-2 gap-3 md:hidden">
           {filtered.map((department) => (
             <div
               key={department.id}
-              className="flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10"
+              className="flex h-full flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <Link
-                    href={`/departments/${department.id}`}
-                    className="font-medium hover:underline"
-                  >
-                    {department.name}
-                  </Link>
-                  {department.employee_count === 0 && <NoMembersIndicator />}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <Link
+                      href={`/departments/${department.id}`}
+                      className="line-clamp-2 font-medium hover:underline"
+                    >
+                      {department.name}
+                    </Link>
+                    {department.employee_count === 0 && <NoMembersIndicator />}
+                  </div>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {department.manager_name ?? "Unassigned"}
+                  </p>
                 </div>
                 <DepartmentActionsMenu
                   department={department}
                   managerCandidates={managerCandidates}
                 />
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                {department.manager_name ? (
-                  <>
-                    <MemberAvatar
-                      userId={department.manager_id ?? undefined}
-                      name={department.manager_name}
-                      size="sm"
-                    />
-                    <span className="min-w-0 truncate">
-                      {department.manager_name}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                      —
-                    </div>
-                    <span>Unassigned</span>
-                  </>
+              <div className="mt-auto flex flex-wrap items-center gap-2">
+                {department.archived_at && (
+                  <DepartmentStatusBadge archivedAt={department.archived_at} />
                 )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <DepartmentStatusBadge archivedAt={department.archived_at} />
                 <span className="ml-auto text-xs text-muted-foreground">
                   {department.employee_count}{" "}
                   {department.employee_count === 1 ? "employee" : "employees"}

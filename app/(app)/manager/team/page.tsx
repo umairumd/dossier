@@ -16,6 +16,7 @@ type MemberCardStats = {
   submissionRate: number;
   submissionDetail: string;
   lastSubmittedDaysAgo: string | null;
+  lastSubmittedDate: string | null;
 };
 
 function daysAgo(dateStr: string | null | undefined): string | null {
@@ -46,7 +47,7 @@ function MemberGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
       {members.map((member) => (
         <TeamMemberCard
           key={member.id}
@@ -76,6 +77,7 @@ export default async function TeamMembersPage() {
         submissionRate: standing.submissionRate,
         submissionDetail: `${standing.reportsSubmitted} of ${standing.expectedWorkingDays} days`,
         lastSubmittedDaysAgo: daysAgo(standing.lastSubmittedDate),
+        lastSubmittedDate: standing.lastSubmittedDate,
       },
     ]),
   );

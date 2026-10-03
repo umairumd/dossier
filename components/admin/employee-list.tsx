@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { differenceInCalendarDays, format } from "date-fns";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,7 +22,14 @@ import {
 } from "@/components/ui/table";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/shared/empty-state";
+import {
+  FilterToolbar,
+  filterSelectTriggerClassName,
+} from "@/components/shared/filter-toolbar";
+import { ListGroupCard } from "@/components/shared/list-group-card";
+import { ListRow } from "@/components/shared/list-row";
 import {
   PartTimeIndicator,
   RemoteIndicator,
@@ -36,7 +44,7 @@ import type { ReportTemplate } from "@/types/template";
 type StatusFilter = "all" | EmployeeStatus;
 
 const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "All (except archived)" },
+  { value: "all", label: "Current" },
   { value: "active", label: "Active" },
   { value: "invited", label: "Invited" },
   { value: "disabled", label: "Disabled" },
@@ -73,7 +81,7 @@ function resolveSource(
   return { source: "default", sourceName: null };
 }
 
-function formatLastSeen(
+function formatTableLastSeen(
   lastSignInAt: string | null,
   lastReportDate: string | undefined,
 ): string {
@@ -90,6 +98,29 @@ function formatLastSeen(
     return formatDate((lastSignInAt as string).slice(0, 10));
   }
   return formatDate(lastReportDate as string);
+}
+
+function resolveLastSeenAt(
+  lastSeenAt: string | null,
+  lastSignInAt: string | null,
+  lastReportDate: string | undefined,
+): string | null {
+  const activity = lastSeenAt ?? lastSignInAt;
+  if (!activity) return lastReportDate ?? null;
+  if (!lastReportDate) return activity;
+  return new Date(activity) > new Date(lastReportDate)
+    ? activity
+    : lastReportDate;
+}
+
+function formatLastSeen(lastSeenAt: string | null): string {
+  if (!lastSeenAt) return "Never";
+  const seen = new Date(lastSeenAt);
+  const diff = differenceInCalendarDays(new Date(), seen);
+  if (diff <= 0) return "Today";
+  if (diff < 7) return `Seen ${diff}d`;
+  const sameYear = seen.getFullYear() === new Date().getFullYear();
+  return `Seen ${format(seen, sameYear ? "MMM d" : "MMM d, yyyy")}`;
 }
 
 export function EmployeeList({
@@ -130,32 +161,37 @@ export function EmployeeList({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-0 flex-1">
-          <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search employees..."
-            className="pl-8"
-          />
-        </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-        >
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FILTER_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <FilterToolbar
+        search={
+          <div className="relative min-w-0">
+            <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search employees..."
+              className="pl-8"
+            />
+          </div>
+        }
+        filters={[
+          <Select
+            key="status"
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+          >
+            <SelectTrigger className={filterSelectTriggerClassName}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FILTER_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>,
+        ]}
+      />
 
       {filtered.length === 0 ? (
         <EmptyState
@@ -168,44 +204,52 @@ export function EmployeeList({
         />
       ) : (
         <>
-        <div className="flex flex-col gap-3 md:hidden">
+        <ListGroupCard className="md:hidden">
           {filtered.map((employee) => {
             const resolved = resolveSource(employee, departments, templates);
-
+            const showRole =
+              employee.role === "owner" ||
+              employee.role === "admin" ||
+              employee.role === "manager";
             return (
-              <div
+              <ListRow
                 key={employee.id}
-                className="flex flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10"
-              >
-                <div className="flex items-start gap-3">
+                href={`/employees/${employee.id}`}
+                showChevron={false}
+                leading={
                   <MemberAvatar
                     userId={employee.id}
                     name={employee.full_name}
                     avatarUrl={employee.avatar_url ?? undefined}
                     size="md"
                   />
-                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Link
-                        href={`/employees/${employee.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {employee.full_name}
-                      </Link>
-                      {employee.is_remote && <RemoteIndicator />}
-                      {employee.employment_type === "part_time" && (
-                        <PartTimeIndicator />
-                      )}
-                    </div>
-                    {employee.designation && (
-                      <span className="text-sm text-muted-foreground">
-                        {employee.designation}
-                      </span>
+                }
+                title={employee.full_name}
+                titleAddon={
+                  <>
+                    {showRole && (
+                      <Badge variant="outline">{getRoleLabel(employee.role)}</Badge>
                     )}
-                    <span className="text-xs text-muted-foreground">
-                      {employee.department_names.join(", ") || "—"}
-                    </span>
-                  </div>
+                    {employee.is_remote && <RemoteIndicator />}
+                    {employee.employment_type === "part_time" && (
+                      <PartTimeIndicator />
+                    )}
+                    {employee.status !== "active" && (
+                      <EmployeeStatusBadge status={employee.status} />
+                    )}
+                  </>
+                }
+                meta={[
+                  employee.designation,
+                  formatLastSeen(
+                    resolveLastSeenAt(
+                      employee.last_seen_at,
+                      employee.last_sign_in_at,
+                      lastSeenByEmployeeId[employee.id],
+                    ),
+                  ),
+                ]}
+                trailing={
                   <EmployeeActionsMenu
                     employee={employee}
                     isSelf={employee.id === currentUserId}
@@ -215,24 +259,11 @@ export function EmployeeList({
                     currentTemplateSource={resolved.source}
                     currentTemplateSourceName={resolved.sourceName}
                   />
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                    {getRoleLabel(employee.role)}
-                  </span>
-                  <EmployeeStatusBadge status={employee.status} />
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    Last seen{" "}
-                    {formatLastSeen(
-                      employee.last_seen_at ?? employee.last_sign_in_at,
-                      lastSeenByEmployeeId[employee.id],
-                    )}
-                  </span>
-                </div>
-              </div>
+                }
+              />
             );
           })}
-        </div>
+        </ListGroupCard>
 
         <div className="hidden md:block">
         <Table>
@@ -300,7 +331,7 @@ export function EmployeeList({
                   <EmployeeStatusBadge status={employee.status} />
                 </TableCell>
                 <TableCell className="w-28 text-sm text-muted-foreground">
-                  {formatLastSeen(
+                  {formatTableLastSeen(
                     employee.last_seen_at ?? employee.last_sign_in_at,
                     lastSeenByEmployeeId[employee.id],
                   )}

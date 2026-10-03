@@ -5,6 +5,17 @@ import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -36,11 +47,29 @@ export function RunAccrualButton({
   const [isPending, startTransition] = useTransition();
 
   if (accrualDone) {
+    const label = `Leaves credited for ${monthLabel(year, month)}`;
     return (
-      <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
-        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-        Leaves credited
-      </div>
+      <TooltipProvider>
+        <Tooltip>
+          <Popover>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex size-8 items-center justify-center rounded-md text-emerald-500 hover:bg-foreground/5"
+                  aria-label={label}
+                >
+                  <CheckCircle2 className="size-4" />
+                </button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+            <PopoverContent className="w-auto px-3 py-2 text-sm">
+              {label}
+            </PopoverContent>
+          </Popover>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 

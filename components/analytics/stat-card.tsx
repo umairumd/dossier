@@ -17,6 +17,7 @@ export function StatCard({
   hint,
   icon,
   valueClassName,
+  labelClassName,
   className,
 }: {
   label: string;
@@ -25,6 +26,7 @@ export function StatCard({
   hint?: string;
   icon?: ReactNode;
   valueClassName?: string;
+  labelClassName?: string;
   className?: string;
 }): ReactNode {
   return (
@@ -35,7 +37,9 @@ export function StatCard({
       )}
     >
       <CardHeader>
-        <CardDescription className="flex items-center gap-1.5">
+        <CardDescription
+          className={cn("flex items-center gap-1.5", labelClassName)}
+        >
           {icon}
           {label}
         </CardDescription>

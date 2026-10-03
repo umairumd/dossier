@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { formatDate } from "@/lib/helpers/dates";
+import { DateTile } from "@/components/shared/date-tile";
 import { LocalTime } from "@/components/shared/local-time";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
@@ -34,8 +34,11 @@ export function ReportHistoryTable({
       <Table className="table-fixed w-full">
         <TableHeader>
           <TableRow>
-            <TableHead className="text-muted-foreground font-medium">
+            <TableHead className="w-14 shrink-0 text-muted-foreground font-medium">
               Date
+            </TableHead>
+            <TableHead className="text-muted-foreground font-medium">
+              Report
             </TableHead>
             {showStatus && (
               <TableHead className="w-[120px] text-muted-foreground font-medium">
@@ -58,17 +61,11 @@ export function ReportHistoryTable({
 
             return (
             <TableRow key={report.id}>
+              <TableCell className="w-14 shrink-0 text-foreground">
+                <DateTile date={report.report_date} />
+              </TableCell>
               <TableCell>
-                <div className="flex flex-col gap-0.5">
-                  <span className="whitespace-nowrap text-sm">
-                    {formatDate(report.report_date)}
-                  </span>
-                  {templateName && (
-                    <span className="text-xs text-muted-foreground">
-                      {templateName}
-                    </span>
-                  )}
-                </div>
+                <span className="font-normal">{templateName ?? "Report"}</span>
               </TableCell>
               {showStatus && (
                 <TableCell>

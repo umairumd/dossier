@@ -18,6 +18,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/empty-state";
+import {
+  FilterToolbar,
+  filterSelectTriggerClassName,
+} from "@/components/shared/filter-toolbar";
 import { cn } from "@/lib/utils";
 import {
   getSubmissionStatus,
@@ -196,33 +200,38 @@ export function OrgDailyReports({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search employees..."
-            className="pl-8"
-          />
-        </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="on_time">{SUBMISSION_STATUS_LABELS.on_time}</SelectItem>
-            <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
-            <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
-            <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
-            <SelectItem value="on_leave">{SUBMISSION_STATUS_LABELS.on_leave}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <FilterToolbar
+        search={
+          <div className="relative min-w-0">
+            <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search employees..."
+              className="pl-8"
+            />
+          </div>
+        }
+        filters={[
+          <Select
+            key="status"
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+          >
+            <SelectTrigger className={filterSelectTriggerClassName}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="on_time">{SUBMISSION_STATUS_LABELS.on_time}</SelectItem>
+              <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
+              <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
+              <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
+              <SelectItem value="on_leave">{SUBMISSION_STATUS_LABELS.on_leave}</SelectItem>
+            </SelectContent>
+          </Select>,
+        ]}
+      />
 
       {members.length === 0 && (
         <EmptyState title="No employees in the organization yet." />
@@ -235,26 +244,35 @@ export function OrgDailyReports({
             ? "Everyone submitted today."
             : "No employees in this department.";
 
+        const sectionTitle =
+          section.id === UNASSIGNED_ID
+            ? section.name
+            : `${section.name} Department`;
+        const submittedAside = (
+          <span
+            className={cn(
+              "shrink-0 text-sm font-medium",
+              completionClass(section.completionPct),
+            )}
+          >
+            {section.submitted}/{section.total} submitted
+          </span>
+        );
+
         return (
-          <Card key={section.id} className="card-gradient">
-            <CardHeader className="pb-3">
+          <Card
+            key={section.id}
+            className="card-gradient max-md:gap-0 max-md:bg-transparent max-md:bg-none max-md:py-0 max-md:ring-0 max-md:shadow-none"
+          >
+            <CardHeader className="hidden pb-3 md:block">
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="min-w-0 truncate text-base">
-                  {section.id === UNASSIGNED_ID
-                    ? section.name
-                    : `${section.name} Department`}
+                  {sectionTitle}
                 </CardTitle>
-                <span
-                  className={cn(
-                    "shrink-0 text-sm font-medium",
-                    completionClass(section.completionPct),
-                  )}
-                >
-                  {section.submitted}/{section.total} submitted
-                </span>
+                {submittedAside}
               </div>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 max-md:px-0">
               <TeamReportsView
                 members={section.visible}
                 deadline={deadline}
@@ -266,6 +284,8 @@ export function OrgDailyReports({
                 reportDate={reportDate}
                 viewerRole={viewerRole}
                 currentUserId={currentUserId}
+                groupTitle={sectionTitle}
+                groupAside={submittedAside}
               />
             </CardContent>
           </Card>

@@ -40,19 +40,6 @@ export function TopNav({
 
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-4">
-      <div className="hidden md:flex min-w-0 flex-1 items-center">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="shrink-0"
-          aria-label="Toggle sidebar"
-          onClick={() => window.dispatchEvent(new Event("sidebar-toggle"))}
-        >
-          <PanelLeft className="size-4" />
-        </Button>
-        <Breadcrumbs />
-      </div>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button
@@ -103,20 +90,24 @@ export function TopNav({
         </SheetContent>
       </Sheet>
 
-      <div className="flex items-center gap-2 md:hidden">
-        <Image
-          src="/logo.png"
-          alt="Dossier"
-          width={28}
-          height={28}
-          className="rounded-sm"
-          style={{ width: 28, height: 28 }}
-        />
-        <span className="text-sm font-semibold tracking-tight">Dossier</span>
+      <div className="flex min-w-0 flex-1 items-center">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="hidden shrink-0 md:inline-flex"
+          aria-label="Toggle sidebar"
+          onClick={() => window.dispatchEvent(new Event("sidebar-toggle"))}
+        >
+          <PanelLeft className="size-4" />
+        </Button>
+        <Breadcrumbs />
       </div>
 
       <div className="ml-auto flex items-center gap-1">
-        <AccentPicker />
+        <div className="hidden sm:block">
+          <AccentPicker />
+        </div>
         <ThemeToggle />
         <NotificationBell
           initialCount={notificationCount}

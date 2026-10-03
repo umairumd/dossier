@@ -39,8 +39,8 @@ export function EmployeeHeroClient({
   const [expr, setExpr] = useState<BotExpression>("neutral");
 
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div className="flex min-w-0 flex-1 basis-64 flex-col gap-2">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+      <div className="min-w-0 flex-1">
         <ProfileHeader
           userId={employee.id}
           name={name}
@@ -54,11 +54,7 @@ export function EmployeeHeroClient({
         />
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">Expressions</span>
-          <ExpressionPills onExpression={setExpr} />
-        </div>
+      <div className="ml-auto flex shrink-0 items-center gap-2 sm:order-2">
         <EmployeeActionsMenu
           employee={employee}
           isSelf={isSelf}
@@ -71,6 +67,11 @@ export function EmployeeHeroClient({
           hideAssignments={true}
           separateEditButton
         />
+      </div>
+
+      <div className="flex basis-full items-center gap-3 sm:order-1 sm:basis-auto">
+        <span className="text-xs text-muted-foreground">Expressions</span>
+        <ExpressionPills onExpression={setExpr} />
       </div>
     </div>
   );
