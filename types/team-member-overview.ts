@@ -5,6 +5,15 @@ export interface TeamMemberOverview {
   id: string;
   full_name: string;
   role: UserRole;
+  designation: string | null;
+  is_remote: boolean;
+  employment_type: "full_time" | "part_time";
+  avatar_url: string | null;
+  last_seen_at: string | null;
+  created_at: string;
+  template_id: string | null;
+  organization_id: string | null;
+  department_ids: string[];
   department_names: string[];
   report_count: number;
   recent_reports: DailyReport[];

@@ -252,11 +252,6 @@ export function TeamReportsView({
                               <EmployeeNameLink
                                 employeeId={member.employeeId}
                                 fullName={member.fullName}
-                                basePath={
-                                  adminView
-                                    ? "/employees"
-                                    : "/manager/employees"
-                                }
                               />
                               <NameIndicators
                                 isManager={isManager}

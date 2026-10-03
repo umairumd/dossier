@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import {
   getAllEmployees,
@@ -12,14 +13,18 @@ import { PageHeader } from "@/components/shared/page-header";
 import { buildOrgTree } from "@/lib/helpers/org-tree";
 
 export default async function EmployeesPage() {
-  const [employees, profile, allDepartments, orgName, templates] =
-    await Promise.all([
-      getAllEmployees(),
-      getCurrentProfile(),
-      getAllDepartments(),
-      getOrganizationName(),
-      getOrgTemplates(),
-    ]);
+  const profile = await getCurrentProfile();
+
+  if (profile?.role !== "owner" && profile?.role !== "admin") {
+    redirect("/team");
+  }
+
+  const [employees, allDepartments, orgName, templates] = await Promise.all([
+    getAllEmployees(),
+    getAllDepartments(),
+    getOrganizationName(),
+    getOrgTemplates(),
+  ]);
 
   const lastSeenByEmployeeId = await getEmployeeLastSeen(
     employees.map((employee) => employee.id),

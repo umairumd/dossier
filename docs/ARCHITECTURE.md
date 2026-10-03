@@ -58,12 +58,12 @@ inoma-hub/
 │   │   │   ├── invitations/      # Invitation tracking
 │   │   │   ├── activity/         # Activity feed
 │   │   │   └── settings/         # Org settings
-│   │   ├── manager/              # Manager-only routes
-│   │   │   ├── layout.tsx        # Role gate (UI only)
-│   │   │   ├── team-reports/     # Date-filterable reports
-│   │   │   ├── missing-reports/  # Who hasn't submitted
-│   │   │   ├── team/             # Team roster
-│   │   │   └── employees/[id]/   # Per-employee view
+│   │   ├── (team)/               # Team routes (no URL segment)
+│   │   │   ├── layout.tsx        # Role gate: owner, admin, manager, or supervisor
+│   │   │   ├── team-reports/     # /team-reports: date-filterable reports
+│   │   │   └── team/             # /team: team roster
+│   │   ├── employees/[id]/       # One profile for all roles, branched by viewer
+│   │   ├── manager/              # Legacy redirects to /team, /team-reports, /employees/[id]
 │   │   ├── reports/              # Employee report submission
 │   │   │   ├── page.tsx          # Submit today's report
 │   │   │   └── history/          # Personal history
@@ -83,7 +83,7 @@ inoma-hub/
 │   ├── layout/                   # AppShell, Sidebar, TopNav, NavConfig
 │   ├── dashboard/                # Admin/Manager/Employee dashboards
 │   ├── reports/                  # Report form, history, status cards
-│   ├── manager/                  # Team reports, missing, highlights
+│   ├── manager/                  # Team reports view, member cards, highlights
 │   ├── admin/                    # Employee/department sheets
 │   ├── analytics/                # StatCard, ActivityFeed, trends
 │   └── settings/                 # Profile form, password form
@@ -125,13 +125,13 @@ sequenceDiagram
     participant Query as lib/supabase/queries/*
     participant Postgres as Postgres (RLS)
     
-    Browser->>Proxy: GET /manager/team-reports
+    Browser->>Proxy: GET /team-reports
     Proxy->>Proxy: getUser() → refresh session
     Proxy->>Layout: (app)/layout.tsx
     Layout->>Query: getCurrentProfile()
     Query->>Postgres: SELECT profiles WHERE id = auth.uid()
     Postgres-->>Query: profile
-    Layout->>Page: manager/team-reports/page.tsx
+    Layout->>Page: (team)/team-reports/page.tsx
     Page->>Query: getTeamReportsForDate()
     Query->>Postgres: SELECT daily_reports (RLS filters by department)
     Postgres-->>Query: reports
@@ -203,7 +203,9 @@ Authorization happens at **three levels**:
 Route layouts redirect non-matching roles:
 - `(app)/layout.tsx`: Requires profile + `is_active` + `has_onboarded`
 - `admin/layout.tsx`: Redirects non-admins to `/`
-- `manager/layout.tsx`: Redirects non-managers to `/`
+- `(team)/layout.tsx`: Redirects anyone who is not owner, admin, manager, or a supervisor to `/`
+- `employees/layout.tsx`: Same gate as `(team)`. The `/employees` list redirects non-admins to `/team`, and `/employees/[id]` renders the admin profile for owner/admin and the RLS-scoped team profile for managers and supervisors
+- `manager/layout.tsx`: Same gate; only wraps legacy redirect pages
 
 ### Level 3: RLS + requireAdminUser (True Boundary)
 The database enforces all real access control:

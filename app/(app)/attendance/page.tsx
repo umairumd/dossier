@@ -57,10 +57,9 @@ export default async function AttendancePage({
   const currentMonth = today.slice(0, 7); // "YYYY-MM"
   const month = parseYearMonth(monthParam) ?? currentMonth;
 
-  const isReadOnly = !isOwnerOrAdmin;
   const orgId = profile.organization_id ?? "";
   const deadline = getDeadlineContext(settings);
-  const profileBasePath = isReadOnly ? "/manager/employees" : "/employees";
+  const profileBasePath = "/employees";
   const monthStart = `${month}-01`;
   const monthEnd = lastDayOfMonth(month);
   const isCurrentMonth = month === currentMonth;

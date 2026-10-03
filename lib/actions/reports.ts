@@ -381,7 +381,7 @@ export async function addReportComment(
   }
 
   revalidatePath("/reports");
-  revalidatePath("/manager/team-reports");
+  revalidatePath("/team-reports");
   return { success: true };
 }
 
@@ -438,6 +438,6 @@ export async function deleteReportComment(
   }
 
   revalidatePath("/reports");
-  revalidatePath("/manager/team-reports");
+  revalidatePath("/team-reports");
   return { success: true };
 }

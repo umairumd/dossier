@@ -554,7 +554,7 @@ export async function assignDepartmentTemplate(input: {
 
   revalidatePath(`/departments/${input.departmentId}`);
   revalidatePath("/departments");
-  revalidatePath("/manager/team");
+  revalidatePath("/team");
   return { success: true };
 }
 
@@ -664,6 +664,6 @@ export async function assignProfileTemplate(input: {
 
   revalidatePath(`/employees/${input.profileId}`);
   revalidatePath("/employees");
-  revalidatePath("/manager/team");
+  revalidatePath("/team");
   return { success: true };
 }
