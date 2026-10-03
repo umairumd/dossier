@@ -94,18 +94,20 @@ export function Breadcrumbs() {
   }
 
   return (
-    <nav className="ml-4 hidden items-center gap-1.5 text-sm text-muted-foreground md:flex">
+    <nav className="flex min-w-0 items-center gap-1.5 overflow-hidden text-sm text-muted-foreground md:ml-4">
       {crumbs.map((segment, index) => (
         <Fragment key={`${segment.href}-${index}`}>
           {index > 0 && (
-            <ChevronRight className="size-3.5 text-muted-foreground/50" />
+            <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50" />
           )}
           {index === crumbs.length - 1 ? (
-            <span className="font-medium text-foreground">{segment.label}</span>
+            <span className="min-w-0 truncate font-medium whitespace-nowrap text-foreground">
+              {segment.label}
+            </span>
           ) : (
             <Link
               href={segment.href}
-              className="transition-colors hover:text-foreground"
+              className="min-w-0 truncate whitespace-nowrap transition-colors hover:text-foreground"
             >
               {segment.label}
             </Link>

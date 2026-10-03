@@ -1,12 +1,19 @@
 "use client";
 
-import { formatDate } from "@/lib/helpers/dates";
+import { DateTile } from "@/components/shared/date-tile";
+import { ListRow } from "@/components/shared/list-row";
 import { LocalTime } from "@/components/shared/local-time";
-import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
-import { Button } from "@/components/ui/button";
-import type { DailyReport } from "@/types/report";
+import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
+import type { DailyReport } from "@/types/report";
+
+function formatWeekday(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
+    weekday: "short",
+    timeZone: "UTC",
+  });
+}
 
 export function ReportHistoryCards({
   reports,
@@ -22,54 +29,38 @@ export function ReportHistoryCards({
   const showStatus = deadline !== undefined;
 
   return (
-    <div className="flex flex-col gap-3 md:hidden">
+    <div className="-mx-(--card-spacing) divide-y divide-border border-t border-border md:hidden">
       {reports.map((report, index) => {
         const templateName = report.template_id
           ? templatesMap?.get(report.template_id)
           : undefined;
 
         return (
-        <div key={report.id} className="rounded-lg border border-border p-3">
-          <div className="flex items-center justify-between gap-2 text-sm">
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <span className="font-medium">
-                {formatDate(report.report_date)}
-              </span>
-              {templateName && (
-                <span className="text-xs text-muted-foreground">
-                  {templateName}
-                </span>
-              )}
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {report.submitted_at ? (
-                <LocalTime isoString={report.submitted_at} />
+          <ListRow
+            key={report.id}
+            leading={<DateTile date={report.report_date} />}
+            title={templateName ?? "Report"}
+            meta={[
+              formatWeekday(report.report_date),
+              report.submitted_at ? (
+                <LocalTime key="time" isoString={report.submitted_at} />
               ) : (
                 "—"
-              )}
-            </span>
-          </div>
-          {showStatus && (
-            <div className="mt-2">
-              <SubmissionStatusBadge
-                status={getSubmissionStatus(
-                  report.submitted_at,
-                  deadline.deadlineHourUtc,
-                  deadline,
-                )}
-              />
-            </div>
-          )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="mt-2 px-0"
+              ),
+            ]}
+            trailing={
+              showStatus ? (
+                <SubmissionStatusBadge
+                  status={getSubmissionStatus(
+                    report.submitted_at,
+                    deadline.deadlineHourUtc,
+                    deadline,
+                  )}
+                />
+              ) : null
+            }
             onClick={() => onView(index)}
-          >
-            View
-          </Button>
-        </div>
+          />
         );
       })}
     </div>

@@ -267,7 +267,7 @@ export default async function AttendancePage({
         countLabel={activeEmployees.length === 1 ? "employee" : "employees"}
         description={<AttendanceLegend showHolidayHint />}
         action={
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-nowrap items-center gap-2">
             {isCurrentMonth && (
               <RunAccrualButton yearMonth={month} accrualDone={accrualDone} />
             )}

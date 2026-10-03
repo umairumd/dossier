@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { ActivityFeed } from "@/components/analytics/activity-feed";
 import {
+  FilterToolbar,
+  filterSelectTriggerClassName,
+} from "@/components/shared/filter-toolbar";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -29,7 +33,7 @@ type CategoryFilter = "all" | ActivityCategory;
 type RangeFilter = "week" | "month" | "all";
 
 const CATEGORY_OPTIONS: { value: CategoryFilter; label: string }[] = [
-  { value: "all", label: "All" },
+  { value: "all", label: "All activities" },
   ...(Object.keys(ACTIVITY_CATEGORY_LABELS) as ActivityCategory[]).map(
     (value) => ({ value, label: ACTIVITY_CATEGORY_LABELS[value] }),
   ),
@@ -168,53 +172,59 @@ export function ActivityPageClient({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-0 flex-1">
-          <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by person..."
-            className="pl-8"
-          />
-        </div>
-        <div className="flex w-full gap-2 sm:w-auto sm:flex-none">
-          <div className="min-w-0 flex-1">
-            <Select
-              value={category}
-              onValueChange={(value) => setCategory(value as CategoryFilter)}
-            >
-              <SelectTrigger className="w-full" aria-label="Event category">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORY_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <FilterToolbar
+        search={
+          <div className="relative min-w-0">
+            <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by person..."
+              className="pl-8"
+            />
           </div>
-          <div className="min-w-0 flex-1">
-            <Select
-              value={range}
-              onValueChange={(value) => setRange(value as RangeFilter)}
+        }
+        filters={[
+          <Select
+            key="category"
+            value={category}
+            onValueChange={(value) => setCategory(value as CategoryFilter)}
+          >
+            <SelectTrigger
+              className={filterSelectTriggerClassName}
+              aria-label="Event category"
             >
-              <SelectTrigger className="w-full" aria-label="Date range">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RANGE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORY_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>,
+          <Select
+            key="range"
+            value={range}
+            onValueChange={(value) => setRange(value as RangeFilter)}
+          >
+            <SelectTrigger
+              className={filterSelectTriggerClassName}
+              aria-label="Date range"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {RANGE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>,
+        ]}
+      />
 
       <Card>
         <CardHeader>

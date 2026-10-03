@@ -114,6 +114,7 @@ export function AttendanceCellPopover({
   existingRecord,
   settings,
   isWeeklyOff,
+  triggerClassName,
 }: {
   profileId: string;
   orgId: string;
@@ -122,6 +123,7 @@ export function AttendanceCellPopover({
   existingRecord: AttendanceRecord | null;
   settings: AttendanceSettings;
   isWeeklyOff: boolean;
+  triggerClassName?: string;
 }) {
   const defaultStatus: AttendanceStatus = isWeeklyOff
     ? "weekly_off"
@@ -235,6 +237,7 @@ export function AttendanceCellPopover({
               ? "bg-muted text-[10px] text-muted-foreground/40"
               : cn("text-xs", cellColorClass(currentStatus)),
             existingRecord?.notes && "border border-dashed border-foreground/40",
+            triggerClassName,
           )}
         >
           {isOffCell ? "OFF" : shortCode}

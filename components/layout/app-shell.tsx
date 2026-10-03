@@ -66,7 +66,7 @@ export async function AppShell({
           notificationCount={unreadCount}
           notifications={notifications}
         />
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 md:p-6">
           <div className="mx-auto max-w-5xl">{children}</div>
         </main>
       </div>

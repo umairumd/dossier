@@ -139,23 +139,24 @@ export function LeaveBalanceCard({
         )}
       </div>
 
-      <div className="grid grid-cols-4 divide-x divide-border">
-        <div className="flex flex-col justify-center pr-4">
+      <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] divide-x divide-border">
+        <div className="flex min-w-0 flex-col justify-center pr-3 sm:pr-4">
           <p className="text-xs text-muted-foreground">Contract Period</p>
           <p className="mt-1 text-sm font-medium text-foreground">
-            {formatDate(balance.contract_year_start)} →{" "}
-            {formatDate(balance.contract_year_end)}
+            <span>{formatDate(balance.contract_year_start)} → </span>
+            <br className="md:hidden" />
+            <span>{formatDate(balance.contract_year_end)}</span>
           </p>
         </div>
-        <div className="flex flex-col items-center px-4">
+        <div className="flex flex-col items-center px-2 text-center sm:px-4">
           <p className="text-2xl font-semibold">{accrued}</p>
           <p className="mt-1 text-xs text-muted-foreground">Accrued</p>
         </div>
-        <div className="flex flex-col items-center px-4">
+        <div className="flex flex-col items-center px-2 text-center sm:px-4">
           <p className="text-2xl font-semibold">{used}</p>
           <p className="mt-1 text-xs text-muted-foreground">Used</p>
         </div>
-        <div className="flex flex-col items-center pl-4">
+        <div className="flex flex-col items-center px-2 text-center sm:px-4">
           <p
             className={cn(
               "text-2xl font-semibold",

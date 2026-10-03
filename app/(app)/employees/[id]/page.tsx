@@ -231,42 +231,51 @@ export default async function EmployeeDetailPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-        <StatCard
-          label="Current Streak"
-          value={employee.stats.currentStreak}
-          unit="days"
-          hint="Consecutive days with a report"
-          icon={<Flame className="size-4" />}
-        />
-        <StatCard
-          label="Submission Rate"
-          value={
-            tenureRate.expected === 0 ? "—" : `${tenureRate.rate}%`
-          }
-          hint={`${tenureRate.submitted} of ${tenureRate.expected} working days`}
-          icon={<TrendingUp className="size-4" />}
-        />
-        <StatCard
-          label="Last Submitted"
-          value={daysAgo(employee.stats.lastSubmittedDate)}
-          hint={
-            employee.stats.lastSubmittedDate
-              ? formatDate(employee.stats.lastSubmittedDate)
-              : "No reports yet"
-          }
-          icon={<Calendar className="size-4" />}
-        />
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-row gap-2 sm:grid sm:grid-cols-3 sm:gap-6">
+          <StatCard
+            label="Current Streak"
+            value={employee.stats.currentStreak}
+            unit="days"
+            hint="Days in a row"
+            icon={<Flame className="size-4" />}
+            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
+            labelClassName="text-[10px] sm:text-sm"
+            valueClassName="text-2xl sm:text-3xl"
+          />
+          <StatCard
+            label="Submission Rate"
+            value={
+              tenureRate.expected === 0 ? "—" : `${tenureRate.rate}%`
+            }
+            hint={`${tenureRate.submitted} of ${tenureRate.expected} working days`}
+            icon={<TrendingUp className="size-4" />}
+            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
+            labelClassName="text-[10px] sm:text-sm"
+            valueClassName="text-2xl sm:text-3xl"
+          />
+          <StatCard
+            label="Last Submitted"
+            value={daysAgo(employee.stats.lastSubmittedDate)}
+            hint={
+              employee.stats.lastSubmittedDate
+                ? formatDate(employee.stats.lastSubmittedDate)
+                : "No reports yet"
+            }
+            icon={<Calendar className="size-4" />}
+            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
+            labelClassName="text-[10px] sm:text-sm"
+            valueClassName="text-2xl sm:text-3xl"
+          />
+        </div>
         {isOwnerOrAdmin && (
-          <div className="sm:col-span-3">
-            <LeaveBalanceCard
-              balance={resolvedLeaveBalance}
-              profileId={employee.id}
-              orgId={orgIdForLeave}
-              joinDate={employee.created_at.slice(0, 10)}
-              canAdjust
-            />
-          </div>
+          <LeaveBalanceCard
+            balance={resolvedLeaveBalance}
+            profileId={employee.id}
+            orgId={orgIdForLeave}
+            joinDate={employee.created_at.slice(0, 10)}
+            canAdjust
+          />
         )}
       </div>
 
@@ -279,7 +288,7 @@ export default async function EmployeeDetailPage({
             </span>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent>
           {employee.recent_reports.length === 0 ? (
             <EmptyState
               size="sm"

@@ -165,6 +165,8 @@ export function RemoteDayCellPopover({
   isReadOnly = false,
   viewerRole,
   currentUserId,
+  triggerClassName,
+  triggerLabel,
 }: {
   profileId: string;
   orgId: string;
@@ -181,6 +183,8 @@ export function RemoteDayCellPopover({
   isReadOnly?: boolean;
   viewerRole?: UserRole;
   currentUserId?: string;
+  triggerClassName?: string;
+  triggerLabel?: string;
 }) {
   const initialStatus =
     existingRecord?.status === "leave" ||
@@ -283,15 +287,24 @@ export function RemoteDayCellPopover({
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="w-full rounded bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={
+              triggerLabel
+                ? cn(
+                    "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    triggerClassName,
+                  )
+                : "w-full rounded bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            }
           >
-            <RemoteDayCellVisual
-              isOff={false}
-              isFuture={false}
-              isPast={isPast}
-              record={existingRecord}
-              hasReport={hasReport}
-            />
+            {triggerLabel ?? (
+              <RemoteDayCellVisual
+                isOff={false}
+                isFuture={false}
+                isPast={isPast}
+                record={existingRecord}
+                hasReport={hasReport}
+              />
+            )}
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-72" align="center">

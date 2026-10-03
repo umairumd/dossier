@@ -47,8 +47,11 @@ function ReportHistorySkeleton({ rows }: { rows: number }) {
         <Table className="w-full table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead className="font-medium text-muted-foreground">
+              <TableHead className="w-14 shrink-0 font-medium text-muted-foreground">
                 Date
+              </TableHead>
+              <TableHead className="font-medium text-muted-foreground">
+                Report
               </TableHead>
               <TableHead className="w-[120px] font-medium text-muted-foreground">
                 Status
@@ -62,6 +65,9 @@ function ReportHistorySkeleton({ rows }: { rows: number }) {
           <TableBody>
             {Array.from({ length: count }, (_, index) => (
               <TableRow key={index}>
+                <TableCell className="w-14 shrink-0">
+                  <Skeleton className="h-9 w-9 rounded-lg" />
+                </TableCell>
                 <TableCell>
                   <Skeleton className="h-4 w-28" />
                 </TableCell>

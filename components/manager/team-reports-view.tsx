@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -38,6 +38,12 @@ import {
   EmptyState,
   illustrationForTeamEmpty,
 } from "@/components/shared/empty-state";
+import {
+  FilterToolbar,
+  filterSelectTriggerClassName,
+} from "@/components/shared/filter-toolbar";
+import { ListGroupCard } from "@/components/shared/list-group-card";
+import { ListRow } from "@/components/shared/list-row";
 import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import type { DailyReport } from "@/types/report";
@@ -90,6 +96,8 @@ export function TeamReportsView({
   reportDate,
   viewerRole,
   currentUserId,
+  groupTitle,
+  groupAside,
 }: {
   members: TeamMemberReport[];
   deadline: DeadlineContext;
@@ -101,6 +109,8 @@ export function TeamReportsView({
   reportDate?: string;
   viewerRole?: UserRole;
   currentUserId?: string;
+  groupTitle?: string;
+  groupAside?: ReactNode;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -165,33 +175,38 @@ export function TeamReportsView({
   return (
     <div className="flex flex-col gap-4">
       {showFilters && (
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-0 flex-1">
-            <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search employees..."
-              className="pl-8"
-            />
-          </div>
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="on_time">{SUBMISSION_STATUS_LABELS.on_time}</SelectItem>
-              <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
-              <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
-              <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
-              <SelectItem value="on_leave">{SUBMISSION_STATUS_LABELS.on_leave}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <FilterToolbar
+          search={
+            <div className="relative min-w-0">
+              <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search employees..."
+                className="pl-8"
+              />
+            </div>
+          }
+          filters={[
+            <Select
+              key="status"
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+            >
+              <SelectTrigger className={filterSelectTriggerClassName}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="on_time">{SUBMISSION_STATUS_LABELS.on_time}</SelectItem>
+                <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
+                <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
+                <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
+                <SelectItem value="on_leave">{SUBMISSION_STATUS_LABELS.on_leave}</SelectItem>
+              </SelectContent>
+            </Select>,
+          ]}
+        />
       )}
 
       {filtered.length === 0 ? (
@@ -296,71 +311,56 @@ export function TeamReportsView({
             </Table>
           </div>
 
-          <div className="md:hidden divide-y divide-border">
+          <ListGroupCard
+            className="md:hidden"
+            title={groupTitle}
+            aside={groupAside}
+          >
             {filtered.map((member) => {
               const status = memberStatus(member, deadline, reportDate);
               const isManager = managerId === member.employeeId;
+              const hasReport = member.report !== null;
 
               return (
-                <div
+                <ListRow
                   key={member.employeeId}
-                  className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-foreground/5"
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                  leading={
                     <MemberAvatar
                       userId={member.employeeId}
                       name={member.fullName}
                       avatarUrl={member.avatarUrl ?? undefined}
                       size="sm"
                     />
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <EmployeeNameLink
-                          employeeId={member.employeeId}
-                          fullName={member.fullName}
-                          className="truncate text-sm font-medium hover:underline"
-                          basePath={
-                            adminView
-                              ? "/employees"
-                              : "/manager/employees"
-                          }
-                        />
-                        <NameIndicators
-                          isManager={isManager}
-                          isRemote={member.isRemote}
-                          employmentType={member.employment_type}
-                        />
-                      </div>
-                      {member.designation && (
-                        <p className="truncate text-xs text-muted-foreground">
-                          {member.designation}
-                        </p>
-                      )}
-                      {member.report ? (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <LocalTime isoString={member.report.submitted_at} />
-                          <button
-                            type="button"
-                            onClick={() => openReport(member.employeeId)}
-                            className="text-xs text-primary hover:underline"
-                          >
-                            · View
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          No report
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="shrink-0">
-                    <SubmissionStatusBadge status={status} />
-                  </div>
-                </div>
+                  }
+                  title={member.fullName}
+                  titleAddon={
+                    <NameIndicators
+                      isManager={isManager}
+                      isRemote={member.isRemote}
+                      employmentType={member.employment_type}
+                    />
+                  }
+                  meta={[
+                    member.designation,
+                    member.report ? (
+                      <LocalTime
+                        key="time"
+                        isoString={member.report.submitted_at}
+                      />
+                    ) : (
+                      "No report"
+                    ),
+                  ]}
+                  trailing={<SubmissionStatusBadge status={status} />}
+                  onClick={
+                    hasReport
+                      ? () => openReport(member.employeeId)
+                      : undefined
+                  }
+                />
               );
             })}
-          </div>
+          </ListGroupCard>
         </>
       )}
 
