@@ -7,7 +7,7 @@ import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { ActivityPageClient } from "@/components/analytics/activity-page-client";
 import { PageHeader } from "@/components/shared/page-header";
 
-const ACTIVITY_PAGE_LIMIT = 100;
+const ACTIVITY_PAGE_LIMIT = 30;
 
 export default async function ActivityPage() {
   const profile = await getCurrentProfile();
@@ -34,7 +34,8 @@ export default async function ActivityPage() {
       </PageHeader>
 
       <ActivityPageClient
-        items={activity}
+        initialItems={activity}
+        initialHasMore={activity.length === 30}
         canDelete={profile?.role === "owner"}
       />
     </div>
