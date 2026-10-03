@@ -47,16 +47,16 @@ function ReportHistorySkeleton({ rows }: { rows: number }) {
         <Table className="w-full table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-14 shrink-0 font-medium text-muted-foreground">
+              <TableHead className="w-14 shrink-0">
                 Date
               </TableHead>
-              <TableHead className="font-medium text-muted-foreground">
+              <TableHead>
                 Report
               </TableHead>
-              <TableHead className="w-[120px] font-medium text-muted-foreground">
+              <TableHead className="w-[120px]">
                 Status
               </TableHead>
-              <TableHead className="w-[140px] font-medium text-muted-foreground">
+              <TableHead className="w-[140px]">
                 Time
               </TableHead>
               <TableHead className="w-[60px]" />

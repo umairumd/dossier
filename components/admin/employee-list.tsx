@@ -3,8 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { differenceInCalendarDays, format } from "date-fns";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -22,9 +20,9 @@ import {
 } from "@/components/ui/table";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
+  FilterSearchInput,
   FilterToolbar,
   filterSelectTriggerClassName,
 } from "@/components/shared/filter-toolbar";
@@ -36,7 +34,7 @@ import {
 } from "@/components/shared/employee-indicators";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { formatDate } from "@/lib/helpers/dates";
-import { getRoleLabel } from "@/lib/helpers/role-labels";
+import { RoleChip } from "@/components/shared/role-chip";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem, EmployeeStatus } from "@/types/employee";
 import type { ReportTemplate } from "@/types/template";
@@ -163,15 +161,11 @@ export function EmployeeList({
     <div className="flex flex-col gap-4">
       <FilterToolbar
         search={
-          <div className="relative min-w-0">
-            <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search employees..."
-              className="pl-8"
-            />
-          </div>
+          <FilterSearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Search employees..."
+          />
         }
         filters={[
           <Select
@@ -227,9 +221,7 @@ export function EmployeeList({
                 title={employee.full_name}
                 titleAddon={
                   <>
-                    {showRole && (
-                      <Badge variant="outline">{getRoleLabel(employee.role)}</Badge>
-                    )}
+                    {showRole && <RoleChip role={employee.role} />}
                     {employee.is_remote && <RemoteIndicator />}
                     {employee.employment_type === "part_time" && (
                       <PartTimeIndicator />
@@ -323,9 +315,7 @@ export function EmployeeList({
                   </span>
                 </TableCell>
                 <TableCell className="text-center">
-                  <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                    {getRoleLabel(employee.role)}
-                  </span>
+                  <RoleChip role={employee.role} />
                 </TableCell>
                 <TableCell className="text-center">
                   <EmployeeStatusBadge status={employee.status} />

@@ -1,27 +1,8 @@
 import Link from "next/link";
 import { MemberAvatar } from "@/components/shared/member-avatar";
-import { formatDate } from "@/lib/helpers/dates";
+import { RoleChip } from "@/components/shared/role-chip";
+import { formatShortLastReport } from "@/lib/helpers/dates";
 import type { TeamRosterMember } from "@/lib/supabase/queries/manager/team";
-
-function shortLastReport(dateStr: string | null | undefined): {
-  label: string;
-  title?: string;
-} {
-  if (!dateStr) return { label: "—" };
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const submitted = new Date(`${dateStr}T00:00:00Z`);
-  const diff = Math.floor((today.getTime() - submitted.getTime()) / 86400000);
-  const title = formatDate(dateStr);
-  if (diff <= 0) return { label: "Today", title };
-  if (diff < 7) return { label: `${diff}d`, title };
-  const short = submitted.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-  return { label: short, title };
-}
 
 export function TeamMemberCard({
   member,
@@ -38,10 +19,10 @@ export function TeamMemberCard({
     lastSubmittedDate?: string | null;
   };
 }) {
-  const shortLast = shortLastReport(stats?.lastSubmittedDate);
+  const shortLast = formatShortLastReport(stats?.lastSubmittedDate);
   return (
     <Link
-      href={`/employees/${member.id}`}
+      href={`/manager/employees/${member.id}`}
       className="card-gradient flex flex-col gap-3 rounded-xl p-3 ring-1 ring-foreground/10 transition-colors hover:bg-foreground/5 sm:items-center sm:p-5"
     >
       <div className="flex items-center gap-2 sm:flex-col sm:gap-3">
@@ -63,17 +44,11 @@ export function TeamMemberCard({
         </div>
       </div>
       <div className="hidden flex-wrap items-center justify-center gap-1.5 sm:flex">
-        <span className="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
-          {member.employment_type === "part_time" ? "Part-time" : "Full-time"}
-        </span>
-        <span className="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
-          {member.is_remote ? "Remote" : "On-site"}
-        </span>
-        {isManager && (
-          <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/5 px-2.5 py-0.5 text-xs text-primary">
-            Manager
-          </span>
-        )}
+        <RoleChip
+          label={member.employment_type === "part_time" ? "Part-time" : "Full-time"}
+        />
+        <RoleChip label={member.is_remote ? "Remote" : "On-site"} />
+        {isManager && <RoleChip label="Manager" tone="accent" />}
       </div>
       <div className="grid grid-cols-3 divide-x divide-border sm:mt-1 sm:flex sm:items-center sm:justify-center sm:gap-3 sm:divide-x-0">
         <div className="flex min-w-0 flex-col items-center gap-0.5 px-1">

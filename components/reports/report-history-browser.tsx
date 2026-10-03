@@ -86,12 +86,14 @@ export function ReportHistoryBrowser({
 
   return (
     <>
-      <ReportHistoryTable
-        reports={displayReports}
-        deadline={deadline}
-        onView={setOpenIndex}
-        templatesMap={templatesMap}
-      />
+      <div className="pr-4">
+        <ReportHistoryTable
+          reports={displayReports}
+          deadline={deadline}
+          onView={setOpenIndex}
+          templatesMap={templatesMap}
+        />
+      </div>
       <ReportHistoryCards
         reports={displayReports}
         deadline={deadline}

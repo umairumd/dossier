@@ -258,7 +258,7 @@ export default async function DepartmentDetailPage({
                 return (
                   <li
                     key={member.id}
-                    className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-foreground/5"
+                    className="flex items-center justify-between px-4 py-3"
                   >
                     <div className="flex items-center gap-2.5">
                       <MemberAvatar

@@ -29,7 +29,7 @@ export function ReportHistoryCards({
   const showStatus = deadline !== undefined;
 
   return (
-    <div className="-mx-(--card-spacing) divide-y divide-border border-t border-border md:hidden">
+    <div className="-ml-(--card-spacing) divide-y divide-border border-t border-border md:hidden">
       {reports.map((report, index) => {
         const templateName = report.template_id
           ? templatesMap?.get(report.template_id)

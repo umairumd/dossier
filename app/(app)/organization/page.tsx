@@ -123,28 +123,27 @@ export default async function OrganizationSettingsPage() {
               {activeTemplates.map((template) => {
                 const count = template.fieldCount ?? 0;
                 return (
-                  <li
-                    key={template.id}
-                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-foreground/5 sm:px-6"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-sm font-medium">
-                        {template.name}
-                      </span>
-                      {template.isDefault && (
-                        <Badge variant="secondary" className="text-xs">
-                          Default
-                        </Badge>
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {count} field{count !== 1 ? "s" : ""}
-                      </span>
-                    </div>
+                  <li key={template.id}>
                     <Link
                       href={`/organization/templates/${template.id}`}
-                      className="shrink-0 text-sm text-muted-foreground hover:text-foreground"
+                      className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-foreground/5 sm:px-6"
                     >
-                      Edit
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm font-medium">
+                          {template.name}
+                        </span>
+                        {template.isDefault && (
+                          <Badge variant="secondary" className="text-xs">
+                            Default
+                          </Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {count} field{count !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      <span className="shrink-0 text-sm text-muted-foreground">
+                        Edit
+                      </span>
                     </Link>
                   </li>
                 );

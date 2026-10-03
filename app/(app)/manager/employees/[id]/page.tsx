@@ -89,7 +89,7 @@ export default async function ManagerEmployeeOverviewPage({
         </Card>
       </div>
 
-      <Card>
+      <Card className="card-gradient">
         <CardHeader>
           <CardTitle>Last 10 Reports</CardTitle>
           <CardDescription>
@@ -98,7 +98,7 @@ export default async function ManagerEmployeeOverviewPage({
             total.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pr-0">
           {overview.recent_reports.length === 0 ? (
             <EmptyState
               size="sm"

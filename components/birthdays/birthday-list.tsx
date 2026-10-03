@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useSyncExternalStore, type ReactNode } from "react";
+import Link from "next/link";
 import {
   differenceInYears,
   format,
@@ -75,7 +76,7 @@ function BirthdayCard({
   return (
     <div
       className={cn(
-        "relative flex min-h-[200px] cursor-default flex-col items-center justify-between gap-0 rounded-xl border p-5 text-center transition-colors hover:bg-foreground/5",
+        "relative flex h-full min-h-[200px] flex-col items-center justify-between gap-0 rounded-xl border p-5 text-center transition-colors hover:bg-foreground/5",
         isTodayCard
           ? "border-primary/30 bg-primary/5"
           : "border-border bg-card",
@@ -205,12 +206,13 @@ export function BirthdayList({
           <SectionHeader label="Today" count={today.length} />
           <CardGrid>
             {today.map((person) => (
-              <BirthdayCard
-                key={person.id}
-                person={person}
-                now={now}
-                variant="today"
-              />
+              <Link key={person.id} href={`/employees/${person.id}`} className="block h-full">
+                <BirthdayCard
+                  person={person}
+                  now={now}
+                  variant="today"
+                />
+              </Link>
             ))}
           </CardGrid>
         </section>
@@ -224,12 +226,13 @@ export function BirthdayList({
           />
           <CardGrid>
             {thisMonth.map((person) => (
-              <BirthdayCard
-                key={person.id}
-                person={person}
-                now={now}
-                variant="default"
-              />
+              <Link key={person.id} href={`/employees/${person.id}`} className="block h-full">
+                <BirthdayCard
+                  person={person}
+                  now={now}
+                  variant="default"
+                />
+              </Link>
             ))}
           </CardGrid>
         </section>
@@ -245,12 +248,13 @@ export function BirthdayList({
           <SectionHeader label={group.label} count={group.people.length} />
           <CardGrid>
             {group.people.map((person) => (
-              <BirthdayCard
-                key={person.id}
-                person={person}
-                now={now}
-                variant="default"
-              />
+              <Link key={person.id} href={`/employees/${person.id}`} className="block h-full">
+                <BirthdayCard
+                  person={person}
+                  now={now}
+                  variant="default"
+                />
+              </Link>
             ))}
           </CardGrid>
         </section>
@@ -271,12 +275,13 @@ export function BirthdayList({
           />
           <CardGrid>
             {missingDOB.map((person) => (
-              <BirthdayCard
-                key={person.id}
-                person={person}
-                now={now}
-                variant="missing"
-              />
+              <Link key={person.id} href={`/employees/${person.id}`} className="block h-full">
+                <BirthdayCard
+                  person={person}
+                  now={now}
+                  variant="missing"
+                />
+              </Link>
             ))}
           </CardGrid>
         </section>

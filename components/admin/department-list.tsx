@@ -2,8 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -21,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
+  FilterSearchInput,
   FilterToolbar,
   filterSelectTriggerClassName,
 } from "@/components/shared/filter-toolbar";
@@ -72,15 +71,11 @@ export function DepartmentList({
     <div className="flex flex-col gap-4">
       <FilterToolbar
         search={
-          <div className="relative min-w-0">
-            <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search departments..."
-              className="pl-8"
-            />
-          </div>
+          <FilterSearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Search departments..."
+          />
         }
         filters={[
           <Select
@@ -183,13 +178,13 @@ export function DepartmentList({
                       <MemberAvatar
                         userId={department.manager_id ?? undefined}
                         name={department.manager_name}
-                        size="sm"
+                        size="md"
                       />
                       <span>{department.manager_name}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
                         —
                       </div>
                       <span className="text-sm text-muted-foreground">

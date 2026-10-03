@@ -56,7 +56,7 @@ export function TeamHighlights({
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <Card>
+      <Card className="card-gradient">
         <CardHeader>
           <CardTitle>Longest Streaks</CardTitle>
           <CardDescription>Most consecutive days reporting.</CardDescription>
@@ -70,7 +70,7 @@ export function TeamHighlights({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="card-gradient">
         <CardHeader>
           <CardTitle>Frequently Missing</CardTitle>
           <CardDescription>Lowest completion in the last 30 days.</CardDescription>

@@ -128,7 +128,7 @@ export async function EmployeeDashboard({
       </div>
 
       <Card
-        className="animate-in fade-in-0 duration-300 fill-mode-both"
+        className="card-gradient animate-in fade-in-0 duration-300 fill-mode-both"
         style={{ animationDelay: "150ms" }}
       >
         <CardHeader>

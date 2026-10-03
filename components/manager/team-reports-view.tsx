@@ -1,8 +1,6 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -39,6 +37,7 @@ import {
   illustrationForTeamEmpty,
 } from "@/components/shared/empty-state";
 import {
+  FilterSearchInput,
   FilterToolbar,
   filterSelectTriggerClassName,
 } from "@/components/shared/filter-toolbar";
@@ -177,15 +176,11 @@ export function TeamReportsView({
       {showFilters && (
         <FilterToolbar
           search={
-            <div className="relative min-w-0">
-              <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search employees..."
-                className="pl-8"
-              />
-            </div>
+            <FilterSearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder="Search employees..."
+            />
           }
           filters={[
             <Select
@@ -220,19 +215,19 @@ export function TeamReportsView({
             <Table className="table-fixed w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[180px] text-muted-foreground font-medium">
+                  <TableHead className="w-[180px]">
                     Employee
                   </TableHead>
-                  <TableHead className="w-[160px] text-sm font-medium text-muted-foreground">
+                  <TableHead className="w-[160px]">
                     Designation
                   </TableHead>
-                  <TableHead className="w-[120px] text-muted-foreground font-medium">
+                  <TableHead className="w-[120px]">
                     <div className="flex justify-center">Status</div>
                   </TableHead>
-                  <TableHead className="w-[160px] text-right text-muted-foreground font-medium">
+                  <TableHead className="w-[160px] text-right">
                     Submitted
                   </TableHead>
-                  <TableHead className="w-[60px] text-muted-foreground font-medium">
+                  <TableHead className="w-[60px]">
                     <div className="flex justify-end">{""}</div>
                   </TableHead>
                 </TableRow>
@@ -250,7 +245,7 @@ export function TeamReportsView({
                             userId={member.employeeId}
                             name={member.fullName}
                             avatarUrl={member.avatarUrl ?? undefined}
-                            size="sm"
+                            size="md"
                           />
                           <div className="flex min-w-0 flex-col gap-0.5">
                             <div className="flex min-w-0 items-center gap-1">

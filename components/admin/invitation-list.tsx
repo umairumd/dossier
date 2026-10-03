@@ -1,8 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -14,7 +12,11 @@ import {
 import { EmptyState } from "@/components/shared/empty-state";
 import { InvitationActionsMenu } from "@/components/admin/invitation-actions-menu";
 import { LocalDateTime } from "@/components/shared/local-datetime";
-import { getRoleLabel } from "@/lib/helpers/role-labels";
+import {
+  FilterSearchInput,
+  FilterToolbar,
+} from "@/components/shared/filter-toolbar";
+import { RoleChip } from "@/components/shared/role-chip";
 import type { EmployeeListItem } from "@/types/employee";
 
 export function InvitationList({
@@ -41,17 +43,16 @@ export function InvitationList({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <div className="relative min-w-0 flex-1">
-          <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-          <Input
+      <FilterToolbar
+        search={
+          <FilterSearchInput
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={setQuery}
             placeholder="Search invitations..."
-            className="pl-8"
           />
-        </div>
-      </div>
+        }
+        filters={[]}
+      />
 
       {filtered.length === 0 ? (
         <EmptyState
@@ -83,9 +84,7 @@ export function InvitationList({
                 />
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 font-medium">
-                  {getRoleLabel(invitation.role)}
-                </span>
+                <RoleChip role={invitation.role} />
                 <span>{invitation.department_names.join(", ") || "—"}</span>
                 <span className="ml-auto">
                   Invited{" "}
@@ -121,7 +120,9 @@ export function InvitationList({
                 <TableCell className="text-muted-foreground">
                   {invitation.email ?? "—"}
                 </TableCell>
-                <TableCell>{getRoleLabel(invitation.role)}</TableCell>
+                <TableCell>
+                  <RoleChip role={invitation.role} />
+                </TableCell>
                 <TableCell className="text-muted-foreground">
                   {invitation.department_names.join(", ") || "—"}
                 </TableCell>
