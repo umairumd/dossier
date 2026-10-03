@@ -1,6 +1,32 @@
+"use client";
+
+import { Search } from "lucide-react";
 import type { ReactNode } from "react";
+import { Input } from "@/components/ui/input";
 
 export const filterSelectTriggerClassName = "w-full min-w-0 overflow-hidden";
+
+export function FilterSearchInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="relative min-w-0">
+      <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+      <Input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="pl-8"
+      />
+    </div>
+  );
+}
 
 export function FilterToolbar({
   search,

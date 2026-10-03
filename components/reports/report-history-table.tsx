@@ -34,21 +34,21 @@ export function ReportHistoryTable({
       <Table className="table-fixed w-full">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-14 shrink-0 text-muted-foreground font-medium">
+            <TableHead className="w-14 shrink-0">
               Date
             </TableHead>
-            <TableHead className="text-muted-foreground font-medium">
+            <TableHead>
               Report
             </TableHead>
             {showStatus && (
-              <TableHead className="w-[120px] text-muted-foreground font-medium">
+              <TableHead className="w-[120px]">
                 Status
               </TableHead>
             )}
-            <TableHead className="w-[140px] text-muted-foreground font-medium">
+            <TableHead className="w-[140px]">
               Time
             </TableHead>
-            <TableHead className="w-[60px] text-right text-muted-foreground font-medium">
+            <TableHead className="w-[60px] pe-4 text-right">
               {""}
             </TableHead>
           </TableRow>
@@ -60,7 +60,7 @@ export function ReportHistoryTable({
               : undefined;
 
             return (
-            <TableRow key={report.id}>
+            <TableRow key={report.id} className="hover:bg-transparent">
               <TableCell className="w-14 shrink-0 text-foreground">
                 <DateTile date={report.report_date} />
               </TableCell>
@@ -85,16 +85,17 @@ export function ReportHistoryTable({
                   "—"
                 )}
               </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="hover:bg-transparent dark:hover:bg-transparent"
-                  onClick={() => onView(index)}
-                >
-                  View
-                </Button>
+              <TableCell className="pe-0">
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onView(index)}
+                  >
+                    View
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
             );

@@ -48,7 +48,7 @@ export function RecentReportsCard({
           </CardAction>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="pr-0">
         {reports.length === 0 ? (
           <EmptyState
             size="sm"

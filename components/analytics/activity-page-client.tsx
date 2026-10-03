@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Search } from "lucide-react";
 import { ActivityFeed } from "@/components/analytics/activity-feed";
 import {
+  FilterSearchInput,
   FilterToolbar,
   filterSelectTriggerClassName,
 } from "@/components/shared/filter-toolbar";
@@ -14,7 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -174,15 +173,11 @@ export function ActivityPageClient({
     <div className="flex flex-col gap-4">
       <FilterToolbar
         search={
-          <div className="relative min-w-0">
-            <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by person..."
-              className="pl-8"
-            />
-          </div>
+          <FilterSearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Search by person..."
+          />
         }
         filters={[
           <Select

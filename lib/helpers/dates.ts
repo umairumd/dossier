@@ -28,6 +28,47 @@ export function formatDate(dateString: string): string {
   return DATE_FORMATTER.format(new Date(`${dateString}T00:00:00Z`));
 }
 
+function daysSinceReportDate(dateStr: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const submitted = new Date(`${dateStr}T00:00:00Z`);
+  return Math.floor((today.getTime() - submitted.getTime()) / 86400000);
+}
+
+export function formatDaysAgoLong(dateStr: string | null): string {
+  if (!dateStr) return "Never";
+  const days = daysSinceReportDate(dateStr);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return `${days} days ago`;
+}
+
+export function formatDaysAgoShort(
+  dateStr: string | null | undefined,
+): string | null {
+  if (!dateStr) return null;
+  const days = daysSinceReportDate(dateStr);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return `${days}d ago`;
+}
+
+export function formatShortLastReport(
+  dateStr: string | null | undefined,
+): { label: string; title?: string } {
+  if (!dateStr) return { label: "—" };
+  const diff = daysSinceReportDate(dateStr);
+  const title = formatDate(dateStr);
+  if (diff <= 0) return { label: "Today", title };
+  if (diff < 7) return { label: `${diff}d`, title };
+  const short = new Date(`${dateStr}T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+  return { label: short, title };
+}
+
 export function formatDateTime(isoString: string): string {
   return DATE_TIME_FORMATTER.format(new Date(isoString));
 }

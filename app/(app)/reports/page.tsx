@@ -75,7 +75,7 @@ export default async function DailyReportPage({
         <CardHeader>
           <CardTitle className="text-base">Report History</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-4 pr-0">
           <ReportSearch
             deadline={deadline}
             userName={profile?.full_name ?? ""}

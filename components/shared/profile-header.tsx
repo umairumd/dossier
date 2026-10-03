@@ -5,11 +5,9 @@ import {
   RemoteIndicator,
 } from "@/components/shared/employee-indicators";
 import { MemberAvatar } from "@/components/shared/member-avatar";
+import { RoleChip } from "@/components/shared/role-chip";
 import { cn } from "@/lib/utils";
 import type { BotExpression } from "@/components/shared/bot-avatar";
-
-const outlinedPillClassName =
-  "inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground";
 
 const filledPillClassName =
   "inline-flex max-w-full items-center rounded-full bg-foreground px-2.5 py-0.5 text-xs font-medium text-background";
@@ -66,9 +64,7 @@ export function ProfileHeader({
           >
             {name}
           </h2>
-          {showDetailPills && roleLabel && (
-            <span className={outlinedPillClassName}>{roleLabel}</span>
-          )}
+          {showDetailPills && roleLabel && <RoleChip label={roleLabel} />}
           {!showDetailPills && isRemote && <RemoteIndicator />}
           {!showDetailPills && employmentType === "part_time" && (
             <PartTimeIndicator />

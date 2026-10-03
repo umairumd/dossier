@@ -14,9 +14,9 @@ import {
   getOrgTemplatesWithFields,
   getTemplateResolutionInfo,
 } from "@/lib/supabase/queries/templates";
-import { formatDate } from "@/lib/helpers/dates";
+import { formatDate, formatDaysAgoLong } from "@/lib/helpers/dates";
 import { computeTenureSubmissionRate } from "@/lib/helpers/report-stats";
-import { getRoleLabel } from "@/lib/helpers/role-labels";
+import { RoleChip } from "@/components/shared/role-chip";
 import { formatDistanceToNow } from "date-fns";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { StatCard } from "@/components/analytics/stat-card";
@@ -36,18 +36,6 @@ import { createClient } from "@/lib/supabase/server";
 import { LeaveBalanceCard } from "@/components/attendance/leave-balance-card";
 import type { LeaveBalance } from "@/types/attendance";
 
-function daysAgo(dateStr: string | null): string {
-  if (!dateStr) return "Never";
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const submitted = new Date(`${dateStr}T00:00:00Z`);
-  const diffMs = today.getTime() - submitted.getTime();
-  const days = Math.floor(diffMs / 86400000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  return `${days} days ago`;
-}
-
 function QuickInfoCard({ employee }: { employee: EmployeeDetail }) {
   return (
     <Card className="card-gradient h-full">
@@ -63,9 +51,7 @@ function QuickInfoCard({ employee }: { employee: EmployeeDetail }) {
         </div>
         <div className="flex flex-col gap-1">
           <p className="label-eyebrow">Role</p>
-          <span className="inline-flex w-fit items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            {getRoleLabel(employee.role)}
-          </span>
+          <RoleChip role={employee.role} />
         </div>
         <div className="flex flex-col gap-1">
           <p className="label-eyebrow">Employment</p>
@@ -256,7 +242,7 @@ export default async function EmployeeDetailPage({
           />
           <StatCard
             label="Last Submitted"
-            value={daysAgo(employee.stats.lastSubmittedDate)}
+            value={formatDaysAgoLong(employee.stats.lastSubmittedDate)}
             hint={
               employee.stats.lastSubmittedDate
                 ? formatDate(employee.stats.lastSubmittedDate)
@@ -288,7 +274,7 @@ export default async function EmployeeDetailPage({
             </span>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pr-0">
           {employee.recent_reports.length === 0 ? (
             <EmptyState
               size="sm"

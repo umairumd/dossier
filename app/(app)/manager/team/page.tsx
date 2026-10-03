@@ -10,6 +10,7 @@ import { TeamMemberCard } from "@/components/manager/team-member-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
+import { formatDaysAgoShort } from "@/lib/helpers/dates";
 
 type MemberCardStats = {
   streak: number;
@@ -18,18 +19,6 @@ type MemberCardStats = {
   lastSubmittedDaysAgo: string | null;
   lastSubmittedDate: string | null;
 };
-
-function daysAgo(dateStr: string | null | undefined): string | null {
-  if (!dateStr) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const submitted = new Date(`${dateStr}T00:00:00Z`);
-  const diffMs = today.getTime() - submitted.getTime();
-  const days = Math.floor(diffMs / 86400000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  return `${days}d ago`;
-}
 
 function MemberGrid({
   members,
@@ -76,7 +65,7 @@ export default async function TeamMembersPage() {
         streak: standing.streak,
         submissionRate: standing.submissionRate,
         submissionDetail: `${standing.reportsSubmitted} of ${standing.expectedWorkingDays} days`,
-        lastSubmittedDaysAgo: daysAgo(standing.lastSubmittedDate),
+        lastSubmittedDaysAgo: formatDaysAgoShort(standing.lastSubmittedDate),
         lastSubmittedDate: standing.lastSubmittedDate,
       },
     ]),

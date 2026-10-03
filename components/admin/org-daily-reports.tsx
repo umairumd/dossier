@@ -1,9 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
 import { TeamReportsView } from "@/components/manager/team-reports-view";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -19,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
+  FilterSearchInput,
   FilterToolbar,
   filterSelectTriggerClassName,
 } from "@/components/shared/filter-toolbar";
@@ -202,15 +201,11 @@ export function OrgDailyReports({
     <div className="flex flex-col gap-6">
       <FilterToolbar
         search={
-          <div className="relative min-w-0">
-            <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search employees..."
-              className="pl-8"
-            />
-          </div>
+          <FilterSearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Search employees..."
+          />
         }
         filters={[
           <Select

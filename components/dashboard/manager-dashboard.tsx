@@ -92,8 +92,9 @@ export async function ManagerDashboard({
         <CardContent>
           <div className="flex flex-col gap-2">
             {sortedMembers.map((member) => (
-              <div
+              <Link
                 key={member.employeeId}
+                href={`/manager/employees/${member.employeeId}`}
                 className="-mx-2 -my-1 flex items-center justify-between gap-2 rounded-md px-2 py-1 transition-colors hover:bg-foreground/5"
               >
                 <span className="min-w-0 truncate text-sm">
@@ -110,7 +111,7 @@ export async function ManagerDashboard({
                     )}
                   />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
           <Link
@@ -145,7 +146,7 @@ export async function ManagerDashboard({
       </div>
 
       <Card
-        className="animate-in fade-in-0 duration-300 fill-mode-both"
+        className="card-gradient animate-in fade-in-0 duration-300 fill-mode-both"
         style={{ animationDelay: "225ms" }}
       >
         <CardHeader>
