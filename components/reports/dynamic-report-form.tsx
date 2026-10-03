@@ -31,10 +31,13 @@ function valuesFromReport(
     responses != null && Object.keys(responses).length > 0;
 
   if (hasResponses) {
-    // Prefill by field UUID id — not by key/name.
+    // Prefer field UUID id (update path); fall back to field.key
+    // (submit path stores key-keyed responses).
     for (const field of template.fields) {
       if (Object.prototype.hasOwnProperty.call(responses, field.id)) {
         next[field.key] = responses[field.id];
+      } else if (Object.prototype.hasOwnProperty.call(responses, field.key)) {
+        next[field.key] = responses[field.key];
       }
     }
     return next;
@@ -65,19 +68,21 @@ function fieldResponsesById(
 export function DynamicReportForm({
   template,
   onSubmitted,
+  initialReport,
 }: {
   template: ReportTemplateWithFields;
   onSubmitted: () => void;
+  initialReport?: DailyReport;
 }) {
   const [values, setValues] = useState<Record<string, unknown>>(() =>
-    emptyValues(template),
+    initialReport ? valuesFromReport(template, initialReport) : emptyValues(template),
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
   const [showEditPrompt, setShowEditPrompt] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(Boolean(initialReport));
   const [editingReportDate, setEditingReportDate] = useState<string | null>(
-    null,
+    initialReport?.report_date ?? null,
   );
 
   const handleLoadForEdit = () => {

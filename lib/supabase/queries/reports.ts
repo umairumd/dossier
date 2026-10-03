@@ -116,6 +116,33 @@ export async function getReportByAuthorAndDate(
   return (data as DailyReport) ?? null;
 }
 
+export const getMyReportById = cache(
+  async (id: string): Promise<DailyReport | null> => {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from("daily_reports")
+      .select(REPORT_SELECT)
+      .eq("id", id)
+      .eq("author_id", user.id)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error("Failed to load report.");
+    }
+
+    return (data as DailyReport) ?? null;
+  },
+);
+
 export const getReportStatsData = cache(async () => {
   const supabase = await createClient();
 

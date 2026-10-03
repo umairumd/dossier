@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
 import { ReportHistoryCards } from "@/components/reports/report-history-cards";
 import { ReportHistoryTable } from "@/components/reports/report-history-table";
@@ -22,6 +23,8 @@ export function ReportHistoryBrowser({
   isOwnReport = false,
   viewerRole,
   currentUserId,
+  initialViewId,
+  viewReport,
 }: {
   reports: DailyReport[];
   userName: string;
@@ -32,10 +35,21 @@ export function ReportHistoryBrowser({
   isOwnReport?: boolean;
   viewerRole?: UserRole;
   currentUserId?: string;
+  initialViewId?: string;
+  viewReport?: DailyReport | null;
 }) {
+  const router = useRouter();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [didOpenView, setDidOpenView] = useState(false);
 
-  const members: SubmittedMember[] = reports.map((report) => ({
+  const displayReports = useMemo(() => {
+    if (viewReport && !reports.some((report) => report.id === viewReport.id)) {
+      return [viewReport, ...reports];
+    }
+    return reports;
+  }, [reports, viewReport]);
+
+  const members: SubmittedMember[] = displayReports.map((report) => ({
     employeeId: report.author_id,
     fullName: userName,
     designation: null,
@@ -47,16 +61,39 @@ export function ReportHistoryBrowser({
     (templates ?? []).map((template) => [template.id, template.name]),
   );
 
+  useEffect(() => {
+    if (!initialViewId || didOpenView) return;
+    const index = displayReports.findIndex(
+      (report) => report.id === initialViewId,
+    );
+    if (index >= 0) {
+      setOpenIndex(index);
+      setDidOpenView(true);
+    }
+  }, [initialViewId, displayReports, didOpenView]);
+
+  function handleIndexChange(next: number | null) {
+    setOpenIndex(next);
+    if (next === null && initialViewId) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete("view");
+      const query = params.toString();
+      router.replace(query ? `/reports?${query}` : "/reports", {
+        scroll: false,
+      });
+    }
+  }
+
   return (
     <>
       <ReportHistoryTable
-        reports={reports}
+        reports={displayReports}
         deadline={deadline}
         onView={setOpenIndex}
         templatesMap={templatesMap}
       />
       <ReportHistoryCards
-        reports={reports}
+        reports={displayReports}
         deadline={deadline}
         onView={setOpenIndex}
         templatesMap={templatesMap}
@@ -64,7 +101,7 @@ export function ReportHistoryBrowser({
       <ReportDetailSheet
         members={members}
         index={openIndex}
-        onIndexChange={setOpenIndex}
+        onIndexChange={handleIndexChange}
         deadline={deadline}
         adminView={adminView}
         showProfileLink={showProfileLink}

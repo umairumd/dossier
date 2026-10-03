@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type ComponentType } from "react";
+import { useEffect, useState, useTransition, type ComponentType } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -16,6 +16,7 @@ import {
   UserPlus,
   Users,
   UserX,
+  X,
   XCircle,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -26,7 +27,11 @@ import {
 } from "@/components/ui/popover";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
-import { markAllNotificationsRead } from "@/lib/actions/notifications";
+import {
+  clearAllNotifications,
+  deleteNotification,
+  markAllNotificationsRead,
+} from "@/lib/actions/notifications";
 import type { Notification, NotificationType } from "@/types/notification";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +63,7 @@ function resolveNotificationUrl(
   // entity-based links take priority
   if (entityType === "employee" && entityId) return `/employees/${entityId}`;
   if (entityType === "leave_request" && entityId) return `/leave`;
-  if (entityType === "report" && entityId) return `/reports`;
+  if (entityType === "report" && entityId) return `/reports?view=${entityId}`;
 
   // type-based fallbacks
   switch (type) {
@@ -66,8 +71,9 @@ function resolveNotificationUrl(
     case "leave_rejected":
     case "leave_request_submitted":
       return "/leave";
-    case "report_deadline":
     case "report_commented":
+      return entityId ? `/reports?view=${entityId}` : "/reports";
+    case "report_deadline":
       return "/reports";
     case "employee_invited":
     case "employee_onboarded":
@@ -96,11 +102,18 @@ export function NotificationBell({
 }) {
   const [open, setOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
+  const [items, setItems] = useState(initialNotifications);
+  const [unreadCount, setUnreadCount] = useState(initialCount);
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    setItems(initialNotifications);
+    setUnreadCount(initialCount);
+  }, [initialNotifications, initialCount]);
 
   const handleOpen = (isOpen: boolean) => {
     setOpen(isOpen);
-    if (isOpen && !hasOpened && initialCount > 0) {
+    if (isOpen && !hasOpened && unreadCount > 0) {
       setHasOpened(true);
       startTransition(async () => {
         await markAllNotificationsRead();
@@ -108,7 +121,25 @@ export function NotificationBell({
     }
   };
 
-  const displayCount = hasOpened ? 0 : initialCount;
+  const handleDelete = (id: string, wasUnread: boolean) => {
+    setItems((prev) => prev.filter((n) => n.id !== id));
+    if (wasUnread && !hasOpened) {
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+    startTransition(async () => {
+      await deleteNotification(id);
+    });
+  };
+
+  const handleClearAll = () => {
+    setItems([]);
+    setUnreadCount(0);
+    startTransition(async () => {
+      await clearAllNotifications();
+    });
+  };
+
+  const displayCount = hasOpened ? 0 : unreadCount;
 
   return (
     <Popover open={open} onOpenChange={handleOpen}>
@@ -131,14 +162,25 @@ export function NotificationBell({
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <p className="text-sm font-medium">Notifications</p>
-          {initialCount > 0 && !hasOpened && (
-            <span className="text-xs text-muted-foreground">
-              {initialCount} unread
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && !hasOpened && (
+              <span className="text-xs text-muted-foreground">
+                {unreadCount} unread
+              </span>
+            )}
+            {items.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
         </div>
         <div className="max-h-80 overflow-y-auto">
-          {initialNotifications.length === 0 ? (
+          {items.length === 0 ? (
             <EmptyState
               size="sm"
               icon={<Bell className="size-4" />}
@@ -146,7 +188,7 @@ export function NotificationBell({
             />
           ) : (
             <div className="flex flex-col">
-              {initialNotifications.map((n) => {
+              {items.map((n) => {
                 const icon = TYPE_ICONS[n.type];
                 const Icon = icon?.Icon ?? Bell;
                 const url = resolveNotificationUrl(
@@ -154,12 +196,13 @@ export function NotificationBell({
                   n.entity_type,
                   n.entity_id,
                 );
+                const wasUnread = !n.read_at;
 
                 const item = (
                   <div
                     className={cn(
-                      "flex gap-3 border-b border-border/50 px-4 py-3 last:border-0",
-                      !n.read_at && !hasOpened && "bg-primary/5",
+                      "group relative flex gap-3 border-b border-border/50 px-4 py-3 last:border-0",
+                      wasUnread && !hasOpened && "bg-primary/5",
                       url &&
                         "cursor-pointer transition-colors hover:bg-accent/50",
                     )}
@@ -170,7 +213,7 @@ export function NotificationBell({
                         icon?.className ?? "text-muted-foreground",
                       )}
                     />
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 pr-5">
                       <p className="text-sm font-medium leading-snug">
                         {n.title}
                       </p>
@@ -185,6 +228,18 @@ export function NotificationBell({
                         })}
                       </p>
                     </div>
+                    <button
+                      type="button"
+                      aria-label="Delete notification"
+                      className="absolute right-2 top-2 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleDelete(n.id, wasUnread);
+                      }}
+                    >
+                      <X className="size-3.5" />
+                    </button>
                   </div>
                 );
 

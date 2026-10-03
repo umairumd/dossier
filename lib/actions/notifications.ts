@@ -22,6 +22,30 @@ export async function markAllNotificationsRead(): Promise<void> {
   revalidatePath("/", "layout");
 }
 
+export async function deleteNotification(id: string): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("notifications").delete().eq("id", id);
+
+  revalidatePath("/", "layout");
+}
+
+export async function clearAllNotifications(): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("notifications").delete().eq("profile_id", user.id);
+
+  revalidatePath("/", "layout");
+}
+
 // Create a notification (called from other server actions via admin client)
 // This is a helper used internally, not called from client
 export async function createNotification(params: {
