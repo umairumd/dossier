@@ -91,28 +91,34 @@ export async function ManagerDashboard({
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-2">
-            {sortedMembers.map((member) => (
-              <Link
-                key={member.employeeId}
-                href={`/employees/${member.employeeId}`}
-                className="-mx-2 -my-1 flex items-center justify-between gap-2 rounded-md px-2 py-1 transition-colors hover:bg-foreground/5"
-              >
-                <span className="min-w-0 truncate text-sm">
-                  {member.fullName}
-                </span>
-                <div className="shrink-0">
-                  <SubmissionStatusBadge
-                    status={getSubmissionStatus(
-                      member.report?.submitted_at ?? null,
-                      deadline.deadlineHourUtc,
-                      deadline,
-                      todayDate,
-                      member.isOnLeave,
-                    )}
-                  />
-                </div>
-              </Link>
-            ))}
+            {sortedMembers.length === 0 ? (
+              <p className="py-2 text-sm text-muted-foreground">
+                No team activity today.
+              </p>
+            ) : (
+              sortedMembers.map((member) => (
+                <Link
+                  key={member.employeeId}
+                  href={`/employees/${member.employeeId}`}
+                  className="-mx-2 -my-1 flex items-center justify-between gap-2 rounded-md px-2 py-1 transition-colors hover:bg-foreground/5"
+                >
+                  <span className="min-w-0 truncate text-sm">
+                    {member.fullName}
+                  </span>
+                  <div className="shrink-0">
+                    <SubmissionStatusBadge
+                      status={getSubmissionStatus(
+                        member.report?.submitted_at ?? null,
+                        deadline.deadlineHourUtc,
+                        deadline,
+                        todayDate,
+                        member.isOnLeave,
+                      )}
+                    />
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
           <Link
             href="/team-reports"

@@ -71,7 +71,7 @@ export default async function SettingsPage() {
 
       <Card className="card-gradient">
         <CardHeader className="pb-3">
-          <CardTitle>Profile</CardTitle>
+          <CardTitle className="text-base">Profile</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <ProfileHeader
@@ -104,7 +104,7 @@ export default async function SettingsPage() {
 
       <Card className="card-gradient">
         <CardHeader className="pb-3">
-          <CardTitle>Performance</CardTitle>
+          <CardTitle className="text-base">Performance</CardTitle>
           <CardDescription>Last 30 days</CardDescription>
         </CardHeader>
         <CardContent>
@@ -132,7 +132,7 @@ export default async function SettingsPage() {
 
       <Card className="card-gradient">
         <CardHeader className="pb-3">
-          <CardTitle>Security</CardTitle>
+          <CardTitle className="text-base">Security</CardTitle>
           <CardDescription>
             Choose a new password for your account.
           </CardDescription>
@@ -144,7 +144,7 @@ export default async function SettingsPage() {
 
       <Card className="card-gradient">
         <CardHeader className="pb-3">
-          <CardTitle>Session</CardTitle>
+          <CardTitle className="text-base">Session</CardTitle>
           <CardDescription>
             Sign out of Dossier on this device.
           </CardDescription>

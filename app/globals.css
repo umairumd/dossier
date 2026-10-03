@@ -273,7 +273,7 @@
     @apply bg-gradient-to-b from-card to-card/60;
   }
   .card-base {
-    @apply bg-gradient-to-b from-white/[0.03] to-transparent;
+    @apply bg-gradient-to-b from-foreground/[0.03] to-transparent;
   }
 
   .animate-in-fast {

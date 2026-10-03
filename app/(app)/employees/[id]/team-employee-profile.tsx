@@ -99,6 +99,7 @@ export async function TeamEmployeeProfile({
             value={`${overview.completion_percentage}%`}
             icon={<Percent size={14} />}
             className="card-gradient"
+            valueClassName="text-2xl sm:text-3xl"
           />
           <StatCard
             label="Current Streak"
@@ -106,12 +107,14 @@ export async function TeamEmployeeProfile({
             unit={overview.current_streak === 1 ? "day" : "days"}
             icon={<Flame size={14} />}
             className="card-gradient"
+            valueClassName="text-2xl sm:text-3xl"
           />
           <StatCard
             label="Avg. Submission Time"
             value={overview.average_submission_time ?? "—"}
             icon={<Clock size={14} />}
             className="card-gradient col-span-2 lg:col-span-1"
+            valueClassName="text-2xl sm:text-3xl"
           />
         </div>
         {inDepartment && (
@@ -127,7 +130,7 @@ export async function TeamEmployeeProfile({
 
       <Card className="card-gradient">
         <CardHeader>
-          <CardTitle>Last 10 Reports</CardTitle>
+          <CardTitle className="text-base">Last 10 Reports</CardTitle>
           <CardDescription>
             {overview.report_count} total{" "}
             {overview.report_count === 1 ? "report" : "reports"}

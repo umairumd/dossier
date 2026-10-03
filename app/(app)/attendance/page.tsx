@@ -27,8 +27,6 @@ import { AttendanceLegend } from "@/components/attendance/attendance-legend";
 import { PersonalMonthCalendar } from "@/components/attendance/personal-month-calendar";
 import { RunAccrualButton } from "@/components/attendance/run-accrual-button";
 import { PageHeader } from "@/components/shared/page-header";
-import type { AttendanceRecord } from "@/types/attendance";
-
 export const dynamic = "force-dynamic";
 
 export default async function AttendancePage({
@@ -66,9 +64,8 @@ export default async function AttendancePage({
 
   // ── Member: personal calendar only ──────────────────────────────
   if (isMember) {
-    const [myRecords, attendanceSettings, myShift] = await Promise.all([
+    const [myRecords, myShift] = await Promise.all([
       getMyAttendance(month),
-      getAttendanceSettings(),
       getCurrentShift(profile.id),
     ]);
 
@@ -203,25 +200,9 @@ export default async function AttendancePage({
   }
 
   // ── Owner / admin: full org grid ────────────────────────────────
-  let activeEmployees: {
-    id: string;
-    full_name: string;
-    org_id: string;
-    is_remote: boolean;
-    employment_type: "full_time" | "part_time";
-    designation: string | null;
-    department_name: string | null;
-    avatar_url: string | null;
-    leave_balance: number;
-    joined_on: string | null;
-  }[] = [];
-  let records: AttendanceRecord[] = [];
-  let attendanceSettings: Awaited<ReturnType<typeof getAttendanceSettings>>;
-  let accrualDone = false;
-
   const [yearNum, monthNum] = month.split("-").map(Number);
 
-  const [employees, attSettings, monthlyRecords, monthAccrualDone] =
+  const [employees, attendanceSettings, records, accrualDone] =
     await Promise.all([
       getAllEmployees(),
       getAttendanceSettings(),
@@ -229,10 +210,7 @@ export default async function AttendancePage({
       getMonthAccrualStatus(yearNum, monthNum),
     ]);
 
-  attendanceSettings = attSettings;
-  records = monthlyRecords;
-  accrualDone = monthAccrualDone;
-  activeEmployees = employees
+  const activeEmployees = employees
     .filter((emp) => emp.status === "active" || emp.status === "invited")
     .map((emp) => ({
       id: emp.id,

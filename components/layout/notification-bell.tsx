@@ -62,7 +62,7 @@ function resolveNotificationUrl(
 ): string | null {
   // entity-based links take priority
   if (entityType === "employee" && entityId) return `/employees/${entityId}`;
-  if (entityType === "leave_request" && entityId) return `/leave`;
+  if (entityType === "leave_request" && entityId) return `/attendance`;
   if (entityType === "report" && entityId) return `/reports?view=${entityId}`;
 
   // type-based fallbacks
@@ -70,7 +70,7 @@ function resolveNotificationUrl(
     case "leave_approved":
     case "leave_rejected":
     case "leave_request_submitted":
-      return "/leave";
+      return "/attendance";
     case "report_commented":
       return entityId ? `/reports?view=${entityId}` : "/reports";
     case "report_deadline":
