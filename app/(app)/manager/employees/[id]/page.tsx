@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { FileText, Flame, Percent, Timer } from "lucide-react";
+import { Clock, FileText, Flame, Percent } from "lucide-react";
+import { StatCard } from "@/components/analytics/stat-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { getTeamMemberOverview } from "@/lib/supabase/queries/manager/employee-overview";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
@@ -49,44 +50,25 @@ export default async function ManagerEmployeeOverviewPage({
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-        <Card className="card-gradient">
-          <CardHeader>
-            <CardDescription className="flex items-center gap-1.5">
-              <Flame className="size-3.5" />
-              Current Streak
-            </CardDescription>
-            <CardTitle className="text-3xl">
-              {overview.current_streak}{" "}
-              <span className="text-base font-normal text-muted-foreground">
-                {overview.current_streak === 1 ? "day" : "days"}
-              </span>
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card className="card-gradient">
-          <CardHeader>
-            <CardDescription className="flex items-center gap-1.5">
-              <Percent className="size-3.5" />
-              Completion (30 days)
-            </CardDescription>
-            <CardTitle className="text-3xl">
-              {overview.completion_percentage}%
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card className="card-gradient col-span-2 lg:col-span-1">
-          <CardHeader>
-            <CardDescription className="flex items-center gap-1.5">
-              <Timer className="size-3.5" />
-              Avg. Submission Time (30 days)
-            </CardDescription>
-            <CardTitle className="text-3xl">
-              {overview.average_submission_time ?? "—"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
+        <StatCard
+          label="Completion"
+          value={`${overview.completion_percentage}%`}
+          icon={<Percent size={14} />}
+          className="card-gradient"
+        />
+        <StatCard
+          label="Current Streak"
+          value={overview.current_streak}
+          unit={overview.current_streak === 1 ? "day" : "days"}
+          icon={<Flame size={14} />}
+          className="card-gradient"
+        />
+        <StatCard
+          label="Avg. Submission Time"
+          value={overview.average_submission_time ?? "—"}
+          icon={<Clock size={14} />}
+          className="card-gradient col-span-2 lg:col-span-1"
+        />
       </div>
 
       <Card className="card-gradient">
