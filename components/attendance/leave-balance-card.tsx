@@ -103,17 +103,19 @@ export function LeaveBalanceCard({
             Not initialized
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={handleInitialize}
-            disabled={isPending || !orgId}
-          >
-            {isPending ? "Initializing..." : "Initialize"}
-          </Button>
-        </CardContent>
+        {canAdjust && (
+          <CardContent>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleInitialize}
+              disabled={isPending || !orgId}
+            >
+              {isPending ? "Initializing..." : "Initialize"}
+            </Button>
+          </CardContent>
+        )}
       </Card>
     );
   }

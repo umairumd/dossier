@@ -15,35 +15,71 @@ import type { DepartmentOption } from "@/types/department";
 import type { EmployeeDetail, EmployeeListItem } from "@/types/employee";
 import type { ReportTemplate } from "@/types/template";
 
-export function AssignmentsCard({
-  employee,
-  departments,
-  candidates,
-  templates,
-  templateInfo,
-  currentShift,
-  orgId,
-}: {
+type TemplateInfo = {
+  template: { name: string } | null;
+  source: "individual" | "department" | "default" | "none";
+  sourceName: string | null;
+};
+
+type EditableAssignmentsProps = {
+  readOnly?: false;
   employee: EmployeeDetail;
   departments: DepartmentOption[];
   candidates: EmployeeListItem[];
   templates: ReportTemplate[];
-  templateInfo: {
-    template: { name: string } | null;
-    source: "individual" | "department" | "default" | "none";
-    sourceName: string | null;
-  };
+  templateInfo: TemplateInfo;
   currentShift: ShiftAssignment | null;
   orgId: string;
+};
+
+// Reports To is omitted in read-only mode: member_supervisors RLS only
+// returns rows where the viewer is the supervisor, so a non-admin would
+// see an incomplete list.
+type ReadOnlyAssignmentsProps = {
+  readOnly: true;
+  employee: { department_names: string[] };
+  templateInfo: TemplateInfo;
+  currentShift: ShiftAssignment | null;
+};
+
+function EditButton({
+  label = "Edit",
+  onClick,
+}: {
+  label?: string;
+  onClick: () => void;
 }) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 shrink-0 text-xs text-muted-foreground"
+      onClick={onClick}
+    >
+      <Pencil className="mr-1 size-3" />
+      {label}
+    </Button>
+  );
+}
+
+export function AssignmentsCard(
+  props: EditableAssignmentsProps | ReadOnlyAssignmentsProps,
+) {
+  const { employee, templateInfo, currentShift } = props;
+  const editable = props.readOnly ? null : props;
+
   const [assignDeptOpen, setAssignDeptOpen] = useState(false);
   const [assignSupervisorsOpen, setAssignSupervisorsOpen] = useState(false);
   const [assignTemplateOpen, setAssignTemplateOpen] = useState(false);
   const [assignShiftOpen, setAssignShiftOpen] = useState(false);
 
-  const supervisorNames = candidates
-    .filter((candidate) => employee.supervisor_ids.includes(candidate.id))
-    .map((candidate) => candidate.full_name);
+  const supervisorNames = editable
+    ? editable.candidates
+        .filter((candidate) =>
+          editable.employee.supervisor_ids.includes(candidate.id),
+        )
+        .map((candidate) => candidate.full_name)
+    : [];
 
   const templateSourceLabel =
     templateInfo.source === "individual"
@@ -84,49 +120,37 @@ export function AssignmentsCard({
                 )}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 shrink-0 text-xs text-muted-foreground"
-              onClick={() => setAssignDeptOpen(true)}
-            >
-              <Pencil className="mr-1 size-3" />
-              Edit
-            </Button>
+            {editable && <EditButton onClick={() => setAssignDeptOpen(true)} />}
           </div>
 
-          <Separator />
+          {editable && (
+            <>
+              <Separator />
 
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <p className="label-eyebrow flex items-center gap-1.5">
-                <UserCheck className="size-3.5" />
-                Reports To
-              </p>
-              {supervisorNames.length > 0 ? (
+              <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-1">
-                  {supervisorNames.map((name) => (
-                    <span key={name} className="text-sm font-medium">
-                      {name}
+                  <p className="label-eyebrow flex items-center gap-1.5">
+                    <UserCheck className="size-3.5" />
+                    Reports To
+                  </p>
+                  {supervisorNames.length > 0 ? (
+                    <div className="flex flex-col gap-1">
+                      {supervisorNames.map((name) => (
+                        <span key={name} className="text-sm font-medium">
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      No supervisor assigned
                     </span>
-                  ))}
+                  )}
                 </div>
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  No supervisor assigned
-                </span>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 shrink-0 text-xs text-muted-foreground"
-              onClick={() => setAssignSupervisorsOpen(true)}
-            >
-              <Pencil className="mr-1 size-3" />
-              Edit
-            </Button>
-          </div>
+                <EditButton onClick={() => setAssignSupervisorsOpen(true)} />
+              </div>
+            </>
+          )}
 
           <Separator />
 
@@ -145,15 +169,9 @@ export function AssignmentsCard({
                 </span>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 shrink-0 text-xs text-muted-foreground"
-              onClick={() => setAssignTemplateOpen(true)}
-            >
-              <Pencil className="mr-1 size-3" />
-              Edit
-            </Button>
+            {editable && (
+              <EditButton onClick={() => setAssignTemplateOpen(true)} />
+            )}
           </div>
 
           <Separator />
@@ -179,48 +197,49 @@ export function AssignmentsCard({
                 </span>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 shrink-0 text-xs text-muted-foreground"
-              onClick={() => setAssignShiftOpen(true)}
-            >
-              <Pencil className="mr-1 size-3" />
-              {currentShift ? "Edit" : "Assign"}
-            </Button>
+            {editable && (
+              <EditButton
+                label={currentShift ? "Edit" : "Assign"}
+                onClick={() => setAssignShiftOpen(true)}
+              />
+            )}
           </div>
         </CardContent>
       </Card>
 
-      <AssignDepartmentsDialog
-        employee={employee}
-        departments={departments}
-        open={assignDeptOpen}
-        onOpenChange={setAssignDeptOpen}
-      />
-      <AssignSupervisorsDialog
-        employee={employee}
-        candidates={candidates}
-        open={assignSupervisorsOpen}
-        onOpenChange={setAssignSupervisorsOpen}
-      />
-      <AssignTemplateDialog
-        profileId={employee.id}
-        personName={employee.full_name}
-        currentTemplateId={employee.template_id}
-        templates={templates}
-        currentTemplateSource={templateInfo.source}
-        currentTemplateSourceName={templateInfo.sourceName}
-        open={assignTemplateOpen}
-        onOpenChange={setAssignTemplateOpen}
-      />
-      <AssignShiftDialog
-        profileId={employee.id}
-        orgId={orgId}
-        currentShift={currentShift}
-        open={assignShiftOpen}
-        onOpenChange={setAssignShiftOpen}
-      />
+      {editable && (
+        <>
+          <AssignDepartmentsDialog
+            employee={editable.employee}
+            departments={editable.departments}
+            open={assignDeptOpen}
+            onOpenChange={setAssignDeptOpen}
+          />
+          <AssignSupervisorsDialog
+            employee={editable.employee}
+            candidates={editable.candidates}
+            open={assignSupervisorsOpen}
+            onOpenChange={setAssignSupervisorsOpen}
+          />
+          <AssignTemplateDialog
+            profileId={editable.employee.id}
+            personName={editable.employee.full_name}
+            currentTemplateId={editable.employee.template_id}
+            templates={editable.templates}
+            currentTemplateSource={templateInfo.source}
+            currentTemplateSourceName={templateInfo.sourceName}
+            open={assignTemplateOpen}
+            onOpenChange={setAssignTemplateOpen}
+          />
+          <AssignShiftDialog
+            profileId={editable.employee.id}
+            orgId={editable.orgId}
+            currentShift={currentShift}
+            open={assignShiftOpen}
+            onOpenChange={setAssignShiftOpen}
+          />
+        </>
+      )}
     </>
   );
 }

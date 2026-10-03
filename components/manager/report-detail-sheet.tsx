@@ -94,7 +94,6 @@ export function ReportDetailSheet({
   const templateForReport = current?.report.template_id
     ? templates?.find((template) => template.id === current.report.template_id)
     : null;
-  const profileBasePath = adminView ? "/employees" : "/manager/employees";
   const showComments = adminView || showProfileLink || isOwnReport;
   const commentsReadOnly = Boolean(isOwnReport && viewerRole === "member");
   const canModerateComments =
@@ -235,7 +234,7 @@ export function ReportDetailSheet({
                         ·
                       </span>
                       <Link
-                        href={`${profileBasePath}/${current.employeeId}`}
+                        href={`/employees/${current.employeeId}`}
                         onClick={(event) => event.stopPropagation()}
                         className="inline-flex items-center gap-1 text-xs text-foreground underline-offset-2 transition-colors hover:text-primary hover:underline"
                       >

@@ -22,7 +22,7 @@ export function TeamMemberCard({
   const shortLast = formatShortLastReport(stats?.lastSubmittedDate);
   return (
     <Link
-      href={`/manager/employees/${member.id}`}
+      href={`/employees/${member.id}`}
       className="card-gradient flex flex-col gap-3 rounded-xl p-3 ring-1 ring-foreground/10 transition-colors hover:bg-foreground/5 sm:items-center sm:p-5"
     >
       <div className="flex items-center gap-2 sm:flex-col sm:gap-3">

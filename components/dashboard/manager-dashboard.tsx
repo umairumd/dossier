@@ -94,7 +94,7 @@ export async function ManagerDashboard({
             {sortedMembers.map((member) => (
               <Link
                 key={member.employeeId}
-                href={`/manager/employees/${member.employeeId}`}
+                href={`/employees/${member.employeeId}`}
                 className="-mx-2 -my-1 flex items-center justify-between gap-2 rounded-md px-2 py-1 transition-colors hover:bg-foreground/5"
               >
                 <span className="min-w-0 truncate text-sm">
@@ -115,7 +115,7 @@ export async function ManagerDashboard({
             ))}
           </div>
           <Link
-            href="/manager/team-reports"
+            href="/team-reports"
             className="mt-4 block text-xs text-muted-foreground hover:text-foreground"
           >
             View full team reports →

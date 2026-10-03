@@ -6,9 +6,16 @@ export default async function EmployeesLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // The list page and the admin profile branch re-check for owner/admin.
   const profile = await getCurrentProfile();
 
-  if (!["owner", "admin"].includes(profile?.role ?? "")) {
+  const canViewProfiles =
+    profile?.role === "owner" ||
+    profile?.role === "admin" ||
+    profile?.role === "manager" ||
+    profile?.is_supervisor;
+
+  if (!canViewProfiles) {
     redirect("/");
   }
 

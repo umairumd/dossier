@@ -19,7 +19,7 @@ export function EmployeeNameLink({
   employeeId,
   fullName,
   className,
-  basePath = "/manager/employees",
+  basePath = "/employees",
 }: {
   employeeId: string;
   fullName: string;

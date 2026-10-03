@@ -77,14 +77,14 @@ export const navSections: NavSection[] = [
     items: [
       {
         label: "Team Reports",
-        href: "/manager/team-reports",
+        href: "/team-reports",
         icon: <FileText className="size-4" />,
         roles: ALL_ROLES,
         requiresTeam: true,
       },
       {
         label: "Team Members",
-        href: "/manager/team",
+        href: "/team",
         icon: <Users className="size-4" />,
         roles: ALL_ROLES,
         requiresTeam: true,
