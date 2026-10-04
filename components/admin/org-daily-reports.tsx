@@ -48,13 +48,14 @@ const STATUS_RANK: Record<SubmissionStatus, number> = {
   pending: 2,
   missed: 3,
   on_leave: 4,
-  holiday: 5,
+  off: 5,
 };
 
 function memberStatus(
   member: TeamMemberReport,
   deadline: DeadlineContext,
   reportDate?: string,
+  isOffDay?: boolean,
 ): SubmissionStatus {
   return getSubmissionStatus(
     member.report?.submitted_at ?? null,
@@ -62,7 +63,7 @@ function memberStatus(
     deadline,
     reportDate,
     member.isOnLeave,
-    member.attendanceStatus,
+    isOffDay,
   );
 }
 
@@ -121,10 +122,11 @@ function sortByStatusThenName(
   members: OrgMemberReport[],
   deadline: DeadlineContext,
   reportDate?: string,
+  isOffDay?: boolean,
 ): OrgMemberReport[] {
   return [...members].sort((a, b) => {
-    const rankA = STATUS_RANK[memberStatus(a, deadline, reportDate)];
-    const rankB = STATUS_RANK[memberStatus(b, deadline, reportDate)];
+    const rankA = STATUS_RANK[memberStatus(a, deadline, reportDate, isOffDay)];
+    const rankB = STATUS_RANK[memberStatus(b, deadline, reportDate, isOffDay)];
     if (rankA !== rankB) {
       return rankA - rankB;
     }
@@ -151,6 +153,7 @@ export function OrgDailyReports({
   reportDate,
   viewerRole,
   currentUserId,
+  isOffDay = false,
 }: {
   members: OrgMemberReport[];
   departments: OrgDepartment[];
@@ -159,6 +162,7 @@ export function OrgDailyReports({
   reportDate?: string;
   viewerRole?: UserRole;
   currentUserId?: string;
+  isOffDay?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -183,12 +187,13 @@ export function OrgDailyReports({
 
     if (statusFilter !== "all") {
       result = result.filter(
-        (member) => memberStatus(member, deadline, reportDate) === statusFilter,
+        (member) =>
+          memberStatus(member, deadline, reportDate, isOffDay) === statusFilter,
       );
     }
 
-    return sortByStatusThenName(result, deadline, reportDate);
-  }, [visibleMembers, query, statusFilter, deadline, reportDate]);
+    return sortByStatusThenName(result, deadline, reportDate, isOffDay);
+  }, [visibleMembers, query, statusFilter, deadline, reportDate, isOffDay]);
 
   const sections = useMemo(() => {
     const byDepartment = new Map<string, OrgMemberReport[]>();
@@ -225,6 +230,7 @@ export function OrgDailyReports({
           all.filter((member) => visibleIds.has(member.employeeId)),
           deadline,
           reportDate,
+          isOffDay,
         );
 
         return {
@@ -263,12 +269,13 @@ export function OrgDailyReports({
           unassignedAll.filter((member) => visibleIds.has(member.employeeId)),
           deadline,
           reportDate,
+          isOffDay,
         ),
       });
     }
 
     return departmentSections;
-  }, [visibleMembers, departments, filtered, deadline, reportDate]);
+  }, [visibleMembers, departments, filtered, deadline, reportDate, isOffDay]);
 
   const hasQuery = query.trim().length > 0;
 
@@ -298,7 +305,7 @@ export function OrgDailyReports({
               <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
               <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
               <SelectItem value="on_leave">{SUBMISSION_STATUS_LABELS.on_leave}</SelectItem>
-              <SelectItem value="holiday">{SUBMISSION_STATUS_LABELS.holiday}</SelectItem>
+              <SelectItem value="off">{SUBMISSION_STATUS_LABELS.off}</SelectItem>
             </SelectContent>
           </Select>,
         ]}
@@ -357,6 +364,7 @@ export function OrgDailyReports({
                 currentUserId={currentUserId}
                 groupTitle={sectionTitle}
                 groupAside={submittedAside}
+                isOffDay={isOffDay}
               />
             </CardContent>
           </Card>

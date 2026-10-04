@@ -2,7 +2,6 @@
 // the daily deadline and "missed" after — except historical report dates,
 // which are never pending, and approved leave days, which are "on_leave".
 import { todayInTimezone } from "@/lib/helpers/dates";
-import type { AttendanceStatus } from "@/types/attendance";
 
 export type SubmissionStatus =
   | "on_time"
@@ -10,7 +9,7 @@ export type SubmissionStatus =
   | "missed"
   | "pending"
   | "on_leave"
-  | "holiday";
+  | "off";
 
 export const DEFAULT_REPORT_DEADLINE_HOUR_UTC = 17;
 
@@ -45,19 +44,23 @@ function localHourInTimezone(isoString: string, timezone: string): number {
 //
 // isOnLeave: when true (approved leave covering the report date), status
 // is always "on_leave" — never missed/pending for that day.
-// attendanceStatus: when "holiday", status is "holiday".
+//
+// isOffDay: when true and no report was submitted, status is "off" —
+// never "missed". A submitted report on an off day is still on_time/late.
 export function getSubmissionStatus(
   submittedAt: string | null,
   deadlineHourUtc: number = DEFAULT_REPORT_DEADLINE_HOUR_UTC,
   ctx?: DeadlineContext,
   reportDate?: string,
   isOnLeave?: boolean,
-  attendanceStatus?: AttendanceStatus | null,
+  isOffDay?: boolean,
 ): SubmissionStatus {
-  if (attendanceStatus === "holiday") return "holiday";
   if (isOnLeave) return "on_leave";
 
   if (!submittedAt) {
+    // Off days: no report is fine, show "off" not "missed".
+    if (isOffDay) return "off";
+
     if (reportDate) {
       const today = ctx
         ? todayInTimezone(ctx.timezone)
@@ -90,5 +93,5 @@ export const SUBMISSION_STATUS_LABELS: Record<SubmissionStatus, string> = {
   missed: "Missed",
   pending: "Pending",
   on_leave: "On Leave",
-  holiday: "Holiday",
+  off: "Day Off",
 };

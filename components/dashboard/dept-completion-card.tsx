@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { fetchDeptCompletion } from "@/lib/actions/admin/dept-completion";
-import { formatDate, shiftReportDate, todayInTimezone } from "@/lib/helpers/dates";
+import { formatDate, isWorkingDay, shiftReportDate, todayInTimezone } from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
 import type { DeptCompletionRow } from "@/lib/supabase/queries/admin/dept-completion";
 
@@ -39,17 +39,19 @@ function DeptRow({
   submitted,
   total,
   completionPct,
+  dimmed = false,
 }: {
   name: string;
   submitted: number;
   total: number;
   completionPct: number;
+  dimmed?: boolean;
 }) {
   const missing = total - submitted;
   const widthPct = Math.max(completionPct, completionPct > 0 ? 2 : 0);
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={cn("flex flex-col gap-1.5", dimmed && "opacity-50")}>
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-sm font-medium">{name}</span>
         <span className="shrink-0 text-sm text-muted-foreground">
@@ -58,13 +60,17 @@ function DeptRow({
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-foreground/10">
         <div
-          className={cn("h-full rounded-full", barClass(completionPct))}
+          className={cn(
+            "h-full rounded-full",
+            dimmed ? "bg-foreground/20" : barClass(completionPct),
+          )}
           style={{ width: `${widthPct}%` }}
         />
       </div>
       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>{completionPct}% complete</span>
-        {missing > 0 && <span>{missing} missing</span>}
+        {/* Hide "missing" label on off days — those aren't actually missing */}
+        {missing > 0 && !dimmed && <span>{missing} missing</span>}
       </div>
     </div>
   );
@@ -74,16 +80,24 @@ export function DeptCompletionCard({
   initialDepartments,
   timezone,
   initialDate,
+  workingDays = [],
+  initialIsOffDay = false,
 }: {
   initialDepartments: DeptCompletionRow[];
   timezone: string;
   initialDate: string;
+  workingDays?: number[];
+  initialIsOffDay?: boolean;
 }) {
   const today = todayInTimezone(timezone);
   const [date, setDate] = useState(initialDate);
   const [departments, setDepartments] =
     useState<DeptCompletionRow[]>(initialDepartments);
   const [isPending, startTransition] = useTransition();
+  // Off-day: use server-computed value for today, recompute from workingDays
+  // on nav (holiday detection only works server-side; this is a best-effort
+  // client-side check for non-today dates).
+  const [isOffDay, setIsOffDay] = useState(initialIsOffDay);
 
   const isToday = date >= today;
   const previousDate = shiftReportDate(date, -1);
@@ -95,6 +109,13 @@ export function DeptCompletionCard({
       const rows = await fetchDeptCompletion(next);
       setDepartments(rows);
       setDate(next);
+      // Recompute off-day for non-today dates using working days bitmask.
+      // Holiday detection requires a server round-trip; omit for simplicity.
+      setIsOffDay(
+        next === today
+          ? initialIsOffDay
+          : workingDays.length > 0 && !isWorkingDay(next, workingDays),
+      );
     });
   };
 
@@ -171,6 +192,11 @@ export function DeptCompletionCard({
         </div>
       </CardHeader>
       <CardContent>
+        {isOffDay && (
+          <p className="mb-4 text-xs text-muted-foreground">
+            Day off — stats shown for context, no reports expected.
+          </p>
+        )}
         {departments.length === 0 ? (
           <EmptyState
             size="sm"
@@ -197,6 +223,7 @@ export function DeptCompletionCard({
                       submitted={dept.submitted}
                       total={dept.total}
                       completionPct={dept.completionPct}
+                      dimmed={isOffDay}
                     />
                   </div>
                 );
@@ -213,6 +240,7 @@ export function DeptCompletionCard({
                     submitted={dept.submitted}
                     total={dept.total}
                     completionPct={dept.completionPct}
+                    dimmed={isOffDay}
                   />
                 </Link>
               );
