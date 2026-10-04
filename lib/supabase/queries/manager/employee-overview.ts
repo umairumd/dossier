@@ -101,6 +101,7 @@ export const getTeamMemberOverview = cache(
       .eq("profile_id", employeeId)
       .gte("date", dateNDaysAgo(399));
 
+    const profileRow = profile as unknown as ProfileRow;
     const attendanceByDate = buildAttendanceStatusMap(
       (attendanceRows as { date: string; status: AttendanceStatus }[]) ?? [],
     );
@@ -108,13 +109,11 @@ export const getTeamMemberOverview = cache(
       workingDays: settings.workingDays,
       attendanceByDate,
     });
-    const profileRow = profile as unknown as ProfileRow;
-    const tenure_rate = computeTenureSubmissionRate(
+    const tenureRate = computeTenureSubmissionRate(
       allReports,
       profileRow.created_at,
       settings.workingDays,
       settings.timezone,
-      attendanceByDate,
     );
 
     return {
@@ -136,7 +135,7 @@ export const getTeamMemberOverview = cache(
       current_streak: stats.currentStreak,
       completion_percentage: stats.completionPercentage,
       average_submission_time: stats.averageSubmissionTime,
-      tenure_rate,
+      tenure_rate: tenureRate,
       last_submitted_date: stats.lastSubmittedDate,
     };
   },

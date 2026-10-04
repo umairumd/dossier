@@ -24,10 +24,10 @@ import {
   getOrgTemplatesWithFields,
   getTemplateResolutionInfo,
 } from "@/lib/supabase/queries/templates";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDaysAgoLong } from "@/lib/helpers/dates";
 import { ensureLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import type { LeaveBalance } from "@/types/attendance";
 import type { Profile } from "@/types/profile";
 import type { TeamMemberOverview } from "@/types/team-member-overview";
@@ -60,6 +60,10 @@ export async function TeamEmployeeProfile({
       inDepartment ? getActiveLeaveBalance(overview.id) : Promise.resolve(null),
     ]);
 
+  // Auto-init leave balance if none exists yet. Mirrors the admin branch so
+  // managers aren't shown "Not initialized" just because an admin hasn't
+  // visited the page first. Uses the service-role client (safe here because
+  // the write is idempotent and scoped to this employee's org).
   let resolvedLeaveBalance = leaveBalance;
   if (inDepartment && !resolvedLeaveBalance && overview.organization_id) {
     const adminClient = createAdminClient();
@@ -69,6 +73,7 @@ export async function TeamEmployeeProfile({
       overview.organization_id,
       overview.created_at.slice(0, 10),
     );
+    // Bypass React cache() from getActiveLeaveBalance for this request.
     const supabase = await createClient();
     const { data: fresh } = await supabase
       .from("leave_balances")
@@ -127,10 +132,10 @@ export async function TeamEmployeeProfile({
           <StatCard
             label="Current Streak"
             value={overview.current_streak}
-            unit="days"
+            unit={overview.current_streak === 1 ? "day" : "days"}
             hint="Days in a row"
-            icon={<Flame className="size-4" />}
-            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
+            icon={<Flame size={14} />}
+            className="min-w-0 flex-1 card-gradient max-sm:[--card-spacing:--spacing(3)]"
             labelClassName="text-[10px] sm:text-sm"
             valueClassName="text-2xl sm:text-3xl"
           />
@@ -142,8 +147,8 @@ export async function TeamEmployeeProfile({
                 : `${overview.tenure_rate.rate}%`
             }
             hint={`${overview.tenure_rate.submitted} of ${overview.tenure_rate.expected} working days`}
-            icon={<TrendingUp className="size-4" />}
-            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
+            icon={<TrendingUp size={14} />}
+            className="min-w-0 flex-1 card-gradient max-sm:[--card-spacing:--spacing(3)]"
             labelClassName="text-[10px] sm:text-sm"
             valueClassName="text-2xl sm:text-3xl"
           />
@@ -155,8 +160,8 @@ export async function TeamEmployeeProfile({
                 ? formatDate(overview.last_submitted_date)
                 : "No reports yet"
             }
-            icon={<Calendar className="size-4" />}
-            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
+            icon={<Calendar size={14} />}
+            className="min-w-0 flex-1 card-gradient max-sm:[--card-spacing:--spacing(3)]"
             labelClassName="text-[10px] sm:text-sm"
             valueClassName="text-2xl sm:text-3xl"
           />

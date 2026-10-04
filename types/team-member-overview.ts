@@ -1,6 +1,6 @@
-import type { TenureSubmissionRate } from "@/lib/helpers/report-stats";
 import type { UserRole } from "@/types/profile";
 import type { DailyReport } from "@/types/report";
+import type { TenureSubmissionRate } from "@/lib/helpers/report-stats";
 
 export interface TeamMemberOverview {
   id: string;
@@ -19,8 +19,6 @@ export interface TeamMemberOverview {
   report_count: number;
   recent_reports: DailyReport[];
   current_streak: number;
-  // Both scoped to a trailing 30-day window — no per-project "expected
-  // reporting days" setting exists to define an all-time rate against.
   completion_percentage: number;
   average_submission_time: string | null;
   tenure_rate: TenureSubmissionRate;
