@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { BotAvatar } from "@/components/shared/bot-avatar";
 import type { BotExpression } from "@/components/shared/bot-avatar";
 import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
@@ -12,7 +13,7 @@ interface DashboardHeroProps {
   name: string;
   designation?: string | null;
   departmentNames?: string[];
-  contextLine: string;
+  contextLine: ReactNode;
   stats?: HeroStat[];
   expression?: BotExpression;
 }
@@ -40,7 +41,13 @@ export function DashboardHero({
           {meta && (
             <p className="truncate text-sm text-muted-foreground">{meta}</p>
           )}
-          <p className="mt-1 text-sm text-foreground/70">{contextLine}</p>
+          {typeof contextLine === "string" ? (
+            <p className="mt-1 text-sm text-foreground/70">{contextLine}</p>
+          ) : (
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              {contextLine}
+            </div>
+          )}
         </div>
       </div>
 

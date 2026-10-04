@@ -13,6 +13,7 @@ import {
   getOrganizationSettings,
   getDeadlineContext,
 } from "@/lib/supabase/queries/organization-settings";
+import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import { ReportBanner } from "@/components/shared/report-banner";
 import { PageHeader } from "@/components/shared/page-header";
@@ -54,6 +55,8 @@ export default async function DailyReportPage({
 
   const { reports: reportHistory, total } = history;
   const deadline = getDeadlineContext(settings);
+  const today = todayInTimezone(settings.timezone);
+  const isOffDay = !isWorkingDay(today, settings.workingDays);
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
@@ -69,6 +72,7 @@ export default async function DailyReportPage({
         deadline={deadline}
         hideHistoryLink={true}
         template={template}
+        isOffDay={isOffDay}
       />
 
       <Card className="card-gradient">

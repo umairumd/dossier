@@ -20,13 +20,17 @@ export function SubmitReportSheet({
   alreadySubmitted,
   triggerLabel,
   triggerVariant = "default",
+  triggerSize,
+  triggerClassName,
   onSubmitted,
   template,
   initialReport,
 }: {
   alreadySubmitted: boolean;
   triggerLabel?: string;
-  triggerVariant?: "default" | "outline" | "ghost";
+  triggerVariant?: "default" | "outline" | "ghost" | "link";
+  triggerSize?: "default" | "sm";
+  triggerClassName?: string;
   onSubmitted?: () => void;
   template?: ReportTemplateWithFields;
   initialReport?: DailyReport;
@@ -44,9 +48,11 @@ export function SubmitReportSheet({
       <SheetTrigger asChild>
         <Button
           disabled={alreadySubmitted && !initialReport}
-          variant={isEditEntry ? triggerVariant : "default"}
+          variant={triggerVariant}
+          size={triggerSize}
+          className={triggerClassName}
         >
-          <FileText />
+          {triggerVariant !== "link" && <FileText />}
           {isEditEntry
             ? (triggerLabel ?? "Edit Report")
             : alreadySubmitted

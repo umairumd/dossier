@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { getReportHistory, getReportStatsData, getTodayReport } from "@/lib/supabase/queries/reports";
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
@@ -5,7 +6,7 @@ import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/quer
 import { getMyActivityLog } from "@/lib/supabase/queries/admin/activity";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { createClient } from "@/lib/supabase/server";
-import { dateNDaysAgo } from "@/lib/helpers/dates";
+import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import {
   buildAttendanceStatusMap,
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { ActivityStrip } from "@/components/dashboard/activity-strip";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { OffDayHeroContext } from "@/components/dashboard/off-day-hero-context";
 import { ReportBanner } from "@/components/shared/report-banner";
 import { RecentReportsCard } from "@/components/reports/recent-reports-card";
 
@@ -61,9 +63,18 @@ export async function EmployeeDashboard({
   const deadline = getDeadlineContext(settings);
   const submittedToday = !!todayReport;
   const streak = stats.currentStreak;
+  const todayDate = todayInTimezone(settings.timezone);
+  const isOffDay = !isWorkingDay(todayDate, settings.workingDays);
 
-  let contextLine: string;
-  if (!submittedToday && streak > 0) {
+  let contextLine: React.ReactNode;
+  if (isOffDay) {
+    contextLine = (
+      <OffDayHeroContext
+        todayReport={todayReport}
+        template={template ?? undefined}
+      />
+    );
+  } else if (!submittedToday && streak > 0) {
     contextLine = `🔥 ${streak}-day streak — submit today's report to keep it going`;
   } else if (!submittedToday && streak === 0) {
     contextLine = "Submit today's report to start your streak";
@@ -98,6 +109,7 @@ export async function EmployeeDashboard({
         )}
         deadline={deadline}
         template={template ?? undefined}
+        isOffDay={isOffDay}
       />
 
       <div

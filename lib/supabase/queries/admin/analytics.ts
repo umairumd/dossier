@@ -35,7 +35,17 @@ export const getOrganizationTrends = cache(
       throw new Error("Failed to load organization report history.");
     }
 
-    const submittersByDate = buildSubmittersByDate(reportRows ?? []);
+    const eligibleIds = new Set(
+      employees
+        .filter(
+          (employee) =>
+            employee.role === "member" && employee.status === "active",
+        )
+        .map((employee) => employee.id),
+    );
+    const submittersByDate = buildSubmittersByDate(
+      (reportRows ?? []).filter((row) => eligibleIds.has(row.author_id)),
+    );
 
     return {
       weeklyTrend: buildCompletionTrend(

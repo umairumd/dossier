@@ -10,23 +10,28 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { DayOffTag } from "@/components/shared/day-off-tag";
 import {
   dateInTimezone,
   formatDate,
   shiftReportDate,
   todayInTimezone,
 } from "@/lib/helpers/dates";
+import { cn } from "@/lib/utils";
 
 export function DateNav({
   date,
   baseHref,
   timezone,
+  isOffDay = false,
 }: {
   date: string;
   baseHref: string;
   /** @deprecated Center always shows "Today" or formatDate(date). */
   label?: string;
   timezone: string;
+  /** When true, center control shows DayOffTag instead of the date label. */
+  isOffDay?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -63,13 +68,18 @@ export function DateNav({
             variant="ghost"
             size="sm"
             disabled={isPending}
-            className="min-w-20"
+            className={cn(
+              "min-w-20",
+              isOffDay && "hover:bg-transparent dark:hover:bg-transparent",
+            )}
           >
             {isPending ? (
               <Loader2
                 className="mx-auto size-4 animate-spin text-muted-foreground"
                 aria-label="Loading"
               />
+            ) : isOffDay ? (
+              <DayOffTag />
             ) : (
               centerLabel
             )}

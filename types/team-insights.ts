@@ -3,6 +3,8 @@ import type { ActivityLogEntry } from "@/types/activity";
 export interface CompletionTrendPoint {
   date: string;
   completionPercentage: number;
+  /** Roster members who did not submit on this date (when known). */
+  missingNames?: string[];
 }
 
 export interface TeamMemberStanding {

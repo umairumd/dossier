@@ -86,7 +86,15 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
   const allReports =
     (reports as (ReportStatsInput & { id: string; author_id: string })[]) ?? [];
 
-  const submittersByDate = buildSubmittersByDate(allReports);
+  // The reports query is scoped by RLS, not by the roster, so it can
+  // include authors who aren't in the denominator (e.g. a non-reporting
+  // manager or a supervisee). Counting them made the trend exceed 100%
+  // (8 submitters / 7 roster = 114%). Numerator and denominator must
+  // come from the same set of people.
+  const rosterIds = new Set(roster.map((member) => member.id));
+  const submittersByDate = buildSubmittersByDate(
+    allReports.filter((report) => rosterIds.has(report.author_id)),
+  );
 
   // Grouped by author for the streak/completion computation below — a
   // different shape than submittersByDate (which only needs to know
@@ -115,14 +123,24 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
     roster.length,
     settings.workingDays,
     settings.timezone,
-  );
+  ).map((point) => {
+    const submitters = submittersByDate.get(point.date) ?? new Set();
+    const missingNames = roster
+      .filter((member) => !submitters.has(member.id))
+      .map((member) => member.full_name)
+      .sort((a, b) => a.localeCompare(b));
+    return { ...point, missingNames };
+  });
 
   const weeklyCompletionPercentage =
     trend.length === 0
       ? 0
-      : Math.round(
-          trend.reduce((sum, point) => sum + point.completionPercentage, 0) /
-            trend.length,
+      : Math.min(
+          100,
+          Math.round(
+            trend.reduce((sum, point) => sum + point.completionPercentage, 0) /
+              trend.length,
+          ),
         );
 
   const standings: TeamMemberStanding[] = roster.map((member) => {
