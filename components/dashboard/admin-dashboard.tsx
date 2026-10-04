@@ -10,7 +10,8 @@ import { resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { formatDeadlineHint } from "@/lib/helpers/time";
-import { todayInTimezone } from "@/lib/helpers/dates";
+import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
 import { Building2, UserPlus } from "lucide-react";
 import {
   Card,
@@ -50,8 +51,19 @@ export async function AdminDashboard() {
     ? ((await resolveTemplate(profile.id, profile.department_ids)) ?? undefined)
     : undefined;
 
+  const todayDate = todayInTimezone(settings.timezone);
+  const todayAttendanceStatus = await getMyTodayAttendanceStatus(todayDate);
+  const isHoliday = todayAttendanceStatus === "holiday";
+  const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
+
   let contextLine: string;
-  if (summary.totalMembers === 0 && summary.pendingInvites > 0) {
+  if (isOffDay) {
+    if (summary.submittedToday > 0) {
+      contextLine = `${summary.submittedToday} employee${summary.submittedToday === 1 ? "" : "s"} submitted a report today`;
+    } else {
+      contextLine = "It's a day off — no reports expected today";
+    }
+  } else if (summary.totalMembers === 0 && summary.pendingInvites > 0) {
     contextLine = `${summary.pendingInvites} invitation${summary.pendingInvites === 1 ? "" : "s"} pending — waiting for your first employee to sign in`;
   } else if (summary.totalMembers === 0) {
     contextLine = "Start by inviting your first employee";
@@ -80,18 +92,34 @@ export async function AdminDashboard() {
         designation={profile?.designation}
         departmentNames={[]}
         contextLine={contextLine}
-        stats={[
-          { label: "Total Members", value: String(summary.totalMembers) },
-          { label: "Submitted Today", value: String(summary.submittedToday) },
-          { label: "Missing Today", value: String(summary.missingToday) },
-          {
-            label: "Today's Completion",
-            value:
-              summary.totalMembers === 0
-                ? "—"
-                : `${summary.completionPercentageToday}%`,
-          },
-        ]}
+        stats={
+          isOffDay
+            ? [
+                { label: "Total Members", value: String(summary.totalMembers) },
+                {
+                  label: "Submitted Today",
+                  value: String(summary.submittedToday),
+                },
+              ]
+            : [
+                { label: "Total Members", value: String(summary.totalMembers) },
+                {
+                  label: "Submitted Today",
+                  value: String(summary.submittedToday),
+                },
+                {
+                  label: "Missing Today",
+                  value: String(summary.missingToday),
+                },
+                {
+                  label: "Today's Completion",
+                  value:
+                    summary.totalMembers === 0
+                      ? "—"
+                      : `${summary.completionPercentageToday}%`,
+                },
+              ]
+        }
       />
 
       <ReportBanner
@@ -102,6 +130,7 @@ export async function AdminDashboard() {
         )}
         deadline={deadline}
         template={template}
+        isOffDay={isOffDay}
       />
 
       <div
@@ -111,7 +140,9 @@ export async function AdminDashboard() {
         <DeptCompletionCard
           initialDepartments={deptCompletion}
           timezone={settings.timezone}
-          initialDate={todayInTimezone(settings.timezone)}
+          initialDate={todayDate}
+          workingDays={settings.workingDays}
+          initialIsOffDay={isOffDay}
         />
       </div>
 

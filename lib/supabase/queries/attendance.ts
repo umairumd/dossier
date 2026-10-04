@@ -387,3 +387,24 @@ export const getEmployeeLeaveRequests = cache(
     return (data as LeaveRequest[]) ?? [];
   },
 );
+
+// Lightweight query: today's attendance status for the current user.
+// Used to detect holidays for off-day UX without fetching a full month.
+export const getMyTodayAttendanceStatus = cache(
+  async (today: string): Promise<AttendanceStatus | null> => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data } = await supabase
+      .from("attendance_records")
+      .select("status")
+      .eq("profile_id", user.id)
+      .eq("date", today)
+      .maybeSingle();
+
+    return (data?.status as AttendanceStatus) ?? null;
+  },
+);

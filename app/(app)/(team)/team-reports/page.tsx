@@ -89,6 +89,10 @@ export default async function TeamReportsPage({
 
   const [superviseeReports] = supervised;
 
+  // Off-day awareness: today's view shows "Day Off" not "Missed" for non-working days.
+  const isOffDay =
+    date === today && !isWorkingDay(today, settings.workingDays);
+
   const isDeptManager =
     profile?.role === "manager" && deptMembers.length > 0;
   const deptMemberIds = new Set(
@@ -102,6 +106,8 @@ export default async function TeamReportsPage({
     ? profile?.department_names.join(", ") || "Your Team"
     : "Reporting to You";
   const section1Members = isDeptManager ? deptMembers : superviseeReports;
+
+  const deadline = getDeadlineContext(settings);
 
   return (
     <div className="flex flex-col gap-6">
@@ -158,7 +164,7 @@ export default async function TeamReportsPage({
             </h2>
             <TeamReportsView
               members={exclusiveSupervisees}
-              deadline={getDeadlineContext(settings)}
+              deadline={deadline}
               emptyMessage="No supervisees to show."
               templates={templates}
               reportDate={date}

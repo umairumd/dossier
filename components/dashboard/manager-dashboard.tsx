@@ -4,8 +4,9 @@ import { resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
 import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
+import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
-import { formatLongDate, todayInTimezone } from "@/lib/helpers/dates";
+import { formatLongDate, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
@@ -46,8 +47,25 @@ export async function ManagerDashboard({
   const deadline = getDeadlineContext(settings);
   const sortedMembers = sortTeamMembersBySubmission(members);
 
+  // Off-day awareness: weekends/non-working days from org config, plus
+  // holidays recorded in attendance_records.
+  const todayAttendanceStatus = await getMyTodayAttendanceStatus(todayDate);
+  const isHoliday = todayAttendanceStatus === "holiday";
+  const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
+
+  // On off days: show only working members, skip missing counts.
+  const workingMembersToday = isOffDay
+    ? sortedMembers.filter((m) => m.report)
+    : sortedMembers;
+
   let contextLine: string;
-  if (teamSize === 0) {
+  if (isOffDay) {
+    if (workingMembersToday.length > 0) {
+      contextLine = `${workingMembersToday.length} team member${workingMembersToday.length === 1 ? "" : "s"} submitted a report today`;
+    } else {
+      contextLine = "Your team has the day off — no reports expected";
+    }
+  } else if (teamSize === 0) {
     contextLine = "No team members assigned yet";
   } else if (missingToday === 0) {
     contextLine = `✓ Your entire team has submitted today`;
@@ -63,12 +81,19 @@ export async function ManagerDashboard({
         designation={profile.designation}
         departmentNames={profile.department_names}
         contextLine={contextLine}
-        stats={[
-          { label: "Team Size", value: String(teamSize) },
-          { label: "Submitted", value: String(submittedToday) },
-          { label: "Missing", value: String(missingToday) },
-          { label: "Completion", value: `${completionPercentage}%` },
-        ]}
+        stats={
+          isOffDay
+            ? [
+                { label: "Team Size", value: String(teamSize) },
+                { label: "Submitted", value: String(submittedToday) },
+              ]
+            : [
+                { label: "Team Size", value: String(teamSize) },
+                { label: "Submitted", value: String(submittedToday) },
+                { label: "Missing", value: String(missingToday) },
+                { label: "Completion", value: `${completionPercentage}%` },
+              ]
+        }
       />
 
       <ReportBanner
@@ -79,6 +104,7 @@ export async function ManagerDashboard({
         )}
         deadline={deadline}
         template={template ?? undefined}
+        isOffDay={isOffDay}
       />
 
       <Card
@@ -91,12 +117,16 @@ export async function ManagerDashboard({
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-2">
-            {sortedMembers.length === 0 ? (
+            {isOffDay && workingMembersToday.length === 0 ? (
+              <p className="py-2 text-sm text-muted-foreground">
+                Day off — no reports expected.
+              </p>
+            ) : sortedMembers.length === 0 ? (
               <p className="py-2 text-sm text-muted-foreground">
                 No team activity today.
               </p>
             ) : (
-              sortedMembers.map((member) => (
+              (isOffDay ? workingMembersToday : sortedMembers).map((member) => (
                 <Link
                   key={member.employeeId}
                   href={`/employees/${member.employeeId}`}
@@ -113,6 +143,7 @@ export async function ManagerDashboard({
                         deadline,
                         todayDate,
                         member.isOnLeave,
+                        isOffDay,
                       )}
                     />
                   </div>

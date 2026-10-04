@@ -25,7 +25,6 @@ import {
   type DeadlineContext,
   type SubmissionStatus,
 } from "@/lib/reports/submission-status";
-import { isWorkingDay } from "@/lib/helpers/dates";
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import {
@@ -57,6 +56,7 @@ function memberStatus(
   member: TeamMemberReport,
   deadline: DeadlineContext,
   reportDate?: string,
+  isOffDay?: boolean,
 ): SubmissionStatus {
   return getSubmissionStatus(
     member.report?.submitted_at ?? null,
@@ -64,24 +64,8 @@ function memberStatus(
     deadline,
     reportDate,
     member.isOnLeave,
-    member.attendanceStatus,
+    isOffDay,
   );
-}
-
-function isVisibleOnReportDate(
-  member: TeamMemberReport,
-  reportDate: string | undefined,
-  workingDays: number[],
-): boolean {
-  const hasReport = member.report != null;
-  const isOrgOffDay =
-    Boolean(reportDate) &&
-    workingDays.length > 0 &&
-    !isWorkingDay(reportDate!, workingDays);
-  if (isOrgOffDay && !hasReport) {
-    return false;
-  }
-  return true;
 }
 
 function NameIndicators({
@@ -115,6 +99,7 @@ export function TeamReportsView({
   currentUserId,
   groupTitle,
   groupAside,
+  isOffDay,
 }: {
   members: TeamMemberReport[];
   deadline: DeadlineContext;
@@ -128,15 +113,14 @@ export function TeamReportsView({
   currentUserId?: string;
   groupTitle?: string;
   groupAside?: ReactNode;
+  isOffDay?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const filtered = useMemo(() => {
-    let result = members.filter((member) =>
-      isVisibleOnReportDate(member, reportDate, deadline.workingDays),
-    );
+    let result = members;
 
     if (showFilters) {
       const normalized = query.trim().toLowerCase();
@@ -149,7 +133,8 @@ export function TeamReportsView({
 
       if (statusFilter !== "all") {
         result = result.filter(
-          (member) => memberStatus(member, deadline, reportDate) === statusFilter,
+          (member) =>
+            memberStatus(member, deadline, reportDate, isOffDay) === statusFilter,
         );
       }
 
@@ -165,7 +150,7 @@ export function TeamReportsView({
     }
 
     return result;
-  }, [members, query, statusFilter, deadline, showFilters, managerId, reportDate]);
+  }, [members, query, statusFilter, deadline, showFilters, managerId, reportDate, isOffDay]);
 
   const submittedMembers = useMemo(
     () =>
@@ -218,7 +203,6 @@ export function TeamReportsView({
                 <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
                 <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
                 <SelectItem value="on_leave">{SUBMISSION_STATUS_LABELS.on_leave}</SelectItem>
-                <SelectItem value="holiday">{SUBMISSION_STATUS_LABELS.holiday}</SelectItem>
               </SelectContent>
             </Select>,
           ]}
@@ -255,7 +239,7 @@ export function TeamReportsView({
               </TableHeader>
               <TableBody>
                 {filtered.map((member) => {
-                  const status = memberStatus(member, deadline, reportDate);
+                  const status = memberStatus(member, deadline, reportDate, isOffDay);
                   const isManager = managerId === member.employeeId;
 
                   return (
@@ -328,7 +312,7 @@ export function TeamReportsView({
             aside={groupAside}
           >
             {filtered.map((member) => {
-              const status = memberStatus(member, deadline, reportDate);
+              const status = memberStatus(member, deadline, reportDate, isOffDay);
               const isManager = managerId === member.employeeId;
               const hasReport = member.report !== null;
 

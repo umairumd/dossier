@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, FileText } from "lucide-react";
+import { CheckCircle2, Coffee, FileText } from "lucide-react";
 import { SubmitReportSheet } from "@/components/reports/submit-report-sheet";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
@@ -20,6 +20,7 @@ export function ReportBanner({
   onSubmitted,
   hideHistoryLink = false,
   template,
+  isOffDay = false,
 }: {
   todayReport: DailyReport | null;
   deadlineHint?: string;
@@ -27,12 +28,36 @@ export function ReportBanner({
   onSubmitted?: () => void;
   hideHistoryLink?: boolean;
   template?: ReportTemplateWithFields;
+  isOffDay?: boolean;
 }) {
   const router = useRouter();
 
   function handleSubmitted() {
     router.refresh();
     onSubmitted?.();
+  }
+
+  // Off day and no report: show a calm, friendly rest message.
+  // If they already submitted, we still show the confirmation below —
+  // submitting on an off day is valid and should be acknowledged.
+  if (isOffDay && !todayReport) {
+    return (
+      <div className="flex flex-row items-center gap-3 rounded-lg border border-border card-gradient px-4 py-3">
+        <Coffee className="size-4 shrink-0 text-muted-foreground" />
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <p className="min-w-0 flex-1 text-sm text-muted-foreground">
+            It&apos;s a day off — no report needed today.
+          </p>
+          <SubmitReportSheet
+            alreadySubmitted={false}
+            triggerLabel="Submit anyway"
+            triggerVariant="ghost"
+            onSubmitted={handleSubmitted}
+            template={template}
+          />
+        </div>
+      </div>
+    );
   }
 
   if (todayReport) {

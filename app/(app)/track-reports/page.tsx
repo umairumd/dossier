@@ -31,6 +31,11 @@ export default async function TrackReportsPage({
     getCurrentProfile(),
   ]);
 
+  // Off-day: today only (for historical dates the user navigated to, all
+  // statuses show correctly regardless).
+  const isOffDay =
+    date === today && !isWorkingDay(today, settings.workingDays);
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -60,6 +65,7 @@ export default async function TrackReportsPage({
         reportDate={date}
         viewerRole={profile?.role}
         currentUserId={profile?.id}
+        isOffDay={isOffDay}
       />
     </div>
   );
