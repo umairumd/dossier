@@ -117,6 +117,44 @@ export function dateInTimezone(date: Date, tz: string): string {
   }).format(date);
 }
 
+/**
+ * UTC ISO bounds for one calendar day in an IANA timezone.
+ * `startIso` is inclusive midnight; `endIso` is exclusive next midnight —
+ * use with `.gte(startIso).lt(endIso)` on timestamptz columns.
+ */
+export function orgDayUtcBounds(
+  dateYYYYMMDD: string,
+  timeZone: string,
+): { startIso: string; endIso: string } {
+  const startMs = zonedMidnightUtcMs(dateYYYYMMDD, timeZone);
+  const nextDay = shiftReportDate(dateYYYYMMDD, 1);
+  const endMs = zonedMidnightUtcMs(nextDay, timeZone);
+  return {
+    startIso: new Date(startMs).toISOString(),
+    endIso: new Date(endMs).toISOString(),
+  };
+}
+
+/** UTC ms of local 00:00:00 on `dateYYYYMMDD` in `timeZone`. */
+function zonedMidnightUtcMs(dateYYYYMMDD: string, timeZone: string): number {
+  const utcGuess = Date.parse(`${dateYYYYMMDD}T00:00:00.000Z`);
+  // Search ±36h around UTC midnight to cover any offset / DST shift.
+  let lo = utcGuess - 36 * 3_600_000;
+  let hi = utcGuess + 36 * 3_600_000;
+
+  // Earliest UTC instant whose calendar date in `timeZone` is dateYYYYMMDD.
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (dateInTimezone(new Date(mid), timeZone) < dateYYYYMMDD) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+
+  return lo;
+}
+
 export function isWorkingDay(
   dateString: string,
   workingDays: number[],

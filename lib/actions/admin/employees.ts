@@ -322,6 +322,8 @@ export async function updateEmployee(
     return { success: false, error: "Failed to update employee email." };
   }
 
+  // date_of_birth is stored only — birthday notifications are cron-only
+  // (app/api/cron/birthdays), never triggered by this profile update.
   const { error } = await supabase
     .from("profiles")
     .update({

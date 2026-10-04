@@ -1,7 +1,6 @@
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getBirthdayData } from "@/lib/supabase/queries/admin/birthdays";
-import { sendBirthdayNotifications } from "@/lib/actions/admin/birthdays";
 import { BirthdayList } from "@/components/birthdays/birthday-list";
 import { PageHeader } from "@/components/shared/page-header";
 
@@ -13,11 +12,11 @@ export default async function BirthdaysPage() {
     throw new Error("Organization not found.");
   }
 
+  // Birthday notifications are sent by the hourly cron
+  // (app/api/cron/birthdays) — never on page load or DOB save.
   const { withDOB, missingDOB } = await getBirthdayData(
     profile.organization_id,
   );
-
-  void sendBirthdayNotifications(profile.organization_id);
 
   return (
     <div className="flex flex-col gap-6">

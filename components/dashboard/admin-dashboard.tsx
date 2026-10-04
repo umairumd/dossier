@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { getOrganizationSummary } from "@/lib/supabase/queries/admin/overview";
 import { getDeptCompletionToday } from "@/lib/supabase/queries/admin/dept-completion";
@@ -9,7 +8,7 @@ import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
-import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
@@ -25,9 +24,8 @@ import { ActivityFeed } from "@/components/analytics/activity-feed";
 import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
 import { CreateDepartmentDialog } from "@/components/admin/create-department-dialog";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
-import { OffDayHeroContext } from "@/components/dashboard/off-day-hero-context";
+import { HeroReportStatus } from "@/components/dashboard/hero-report-status";
 import { DeptCompletionCard } from "@/components/dashboard/dept-completion-card";
-import { ReportBanner } from "@/components/shared/report-banner";
 import type { ReportTemplateWithFields } from "@/types/template";
 
 const HOME_ACTIVITY_LIMIT = 20;
@@ -48,7 +46,6 @@ export async function AdminDashboard() {
       getCurrentProfile(),
       getOrganizationName(),
     ]);
-  const deadline = getDeadlineContext(settings);
   const template: ReportTemplateWithFields | undefined = profile
     ? ((await resolveTemplate(profile.id, profile.department_ids)) ?? undefined)
     : undefined;
@@ -57,13 +54,14 @@ export async function AdminDashboard() {
   const todayAttendanceStatus = await getMyTodayAttendanceStatus(todayDate);
   const isHoliday = todayAttendanceStatus === "holiday";
   const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
+  // TODO: remove — temporary override so we can preview working-day hero
+  // report-status rows on a Sunday.
+  const debugIsOffDay = true;
 
-  let contextLine: React.ReactNode;
-  if (isOffDay) {
-    contextLine = (
-      <OffDayHeroContext todayReport={todayReport} template={template} />
-    );
-  } else if (summary.totalMembers === 0 && summary.pendingInvites > 0) {
+  // Context line is org status only — report/off-day actions live in
+  // HeroReportStatus below the divider.
+  let contextLine: string;
+  if (summary.totalMembers === 0 && summary.pendingInvites > 0) {
     contextLine = `${summary.pendingInvites} invitation${summary.pendingInvites === 1 ? "" : "s"} pending — waiting for your first employee to sign in`;
   } else if (summary.totalMembers === 0) {
     contextLine = "Start by inviting your first employee";
@@ -120,20 +118,18 @@ export async function AdminDashboard() {
                 },
               ]
         }
+        reportStatus={
+          <HeroReportStatus
+            todayReport={todayReport}
+            isOffDay={debugIsOffDay}
+            deadlineHint={formatDeadlineHint(
+              settings.reportDeadlineHourLocal,
+              settings.timezone,
+            )}
+            template={template}
+          />
+        }
       />
-
-      {(!isOffDay || todayReport) && (
-        <ReportBanner
-          todayReport={todayReport}
-          deadlineHint={formatDeadlineHint(
-            settings.reportDeadlineHourLocal,
-            settings.timezone,
-          )}
-          deadline={deadline}
-          template={template}
-          isOffDay={isOffDay}
-        />
-      )}
 
       <div
         className="animate-in fade-in-0 duration-300 fill-mode-both"
