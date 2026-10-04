@@ -36,6 +36,8 @@ export async function updateOwnProfile(
   const update: { full_name: string; date_of_birth?: string | null } = {
     full_name: trimmed,
   };
+  // DOB saves must not send birthday notifications — those run only from
+  // the hourly cron (app/api/cron/birthdays), once per org-local day.
   if (dateOfBirth !== undefined) {
     update.date_of_birth = dateOfBirth?.trim() || null;
   }

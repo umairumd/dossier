@@ -317,13 +317,17 @@ export async function addReportComment(
     return { success: false, error: "Report not found." };
   }
 
-  const { error } = await supabase.from("report_comments").insert({
-    report_id: reportId,
-    author_id: user.id,
-    body: trimmed,
-  });
+  const { data: inserted, error } = await supabase
+    .from("report_comments")
+    .insert({
+      report_id: reportId,
+      author_id: user.id,
+      body: trimmed,
+    })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !inserted) {
     return {
       success: false,
       error: "Couldn't post your comment. Please try again.",
@@ -349,8 +353,10 @@ export async function addReportComment(
     const actorName = commenter?.full_name ?? "Someone";
 
     if (orgId) {
+      // Every new comment notifies — entityId stays the report for deep
+      // links (/reports?view=…). No per-report dedup.
       if (user.id !== report.author_id) {
-        void createNotification({
+        await createNotification({
           orgId,
           profileId: report.author_id,
           type: "report_commented",
@@ -370,7 +376,10 @@ export async function addReportComment(
         targetName: author?.full_name ?? undefined,
         entityType: "report",
         entityId: reportId,
-        metadata: { preview: trimmed.slice(0, 120) },
+        metadata: {
+          commentId: inserted.id,
+          preview: trimmed.slice(0, 120),
+        },
       });
     }
   } catch (sideEffectError) {
@@ -382,6 +391,7 @@ export async function addReportComment(
 
   revalidatePath("/reports");
   revalidatePath("/team-reports");
+  revalidatePath("/", "layout");
   return { success: true };
 }
 

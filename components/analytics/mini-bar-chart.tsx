@@ -108,7 +108,9 @@ export function MiniBarChart({
       config={chartConfig}
       className={cn(
         "w-full justify-start aspect-auto",
-        compact ? "h-full min-h-[60px]" : "h-28 min-h-28",
+        // Compact (embedded): fixed height on mobile so the chart isn't
+        // zero-height when the parent only gets md:min-h; fill on md+.
+        compact ? "h-28 min-h-28 md:h-full md:min-h-[60px]" : "h-28 min-h-28",
         // Off-day dim: fade the SVG plot, never the tooltip wrapper.
         dimmed && "[&_.recharts-surface]:opacity-50",
         className,

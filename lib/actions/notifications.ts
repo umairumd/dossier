@@ -58,7 +58,7 @@ export async function createNotification(params: {
   entityId?: string;
 }): Promise<void> {
   const adminClient = createAdminClient();
-  await adminClient.from("notifications").insert({
+  const { error } = await adminClient.from("notifications").insert({
     org_id: params.orgId,
     profile_id: params.profileId,
     type: params.type,
@@ -67,4 +67,9 @@ export async function createNotification(params: {
     entity_type: params.entityType ?? null,
     entity_id: params.entityId ?? null,
   });
+
+  if (error) {
+    console.error("[notifications] Failed to create notification:", error);
+    throw new Error(error.message);
+  }
 }

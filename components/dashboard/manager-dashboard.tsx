@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { resolveTemplate } from "@/lib/supabase/queries/templates";
@@ -10,7 +9,7 @@ import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
-import { OffDayHeroContext } from "@/components/dashboard/off-day-hero-context";
+import { HeroReportStatus } from "@/components/dashboard/hero-report-status";
 import { TeamTodayPanel } from "@/components/dashboard/team-today-panel";
 import {
   Card,
@@ -21,7 +20,6 @@ import {
 } from "@/components/ui/card";
 import { ActivityFeed } from "@/components/analytics/activity-feed";
 import { CompletionTrendCard } from "@/components/analytics/completion-trend-card";
-import { ReportBanner } from "@/components/shared/report-banner";
 import { TeamHighlights } from "@/components/manager/team-highlights";
 
 export async function ManagerDashboard({
@@ -49,16 +47,14 @@ export async function ManagerDashboard({
   const todayAttendanceStatus = await getMyTodayAttendanceStatus(todayDate);
   const isHoliday = todayAttendanceStatus === "holiday";
   const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
+  // TODO: remove — temporary override so we can preview working-day hero
+  // report-status rows on a Sunday.
+  const debugIsOffDay = true;
 
-  let contextLine: React.ReactNode;
-  if (isOffDay) {
-    contextLine = (
-      <OffDayHeroContext
-        todayReport={todayReport}
-        template={template ?? undefined}
-      />
-    );
-  } else if (teamSize === 0) {
+  // Context line is team status only — report/off-day actions live in
+  // HeroReportStatus below the divider.
+  let contextLine: string;
+  if (teamSize === 0) {
     contextLine = "No team members assigned yet";
   } else if (missingToday === 0) {
     contextLine = `✓ Your entire team has submitted today`;
@@ -87,20 +83,18 @@ export async function ManagerDashboard({
                 { label: "Completion", value: `${completionPercentage}%` },
               ]
         }
+        reportStatus={
+          <HeroReportStatus
+            todayReport={todayReport}
+            isOffDay={debugIsOffDay}
+            deadlineHint={formatDeadlineHint(
+              settings.reportDeadlineHourLocal,
+              settings.timezone,
+            )}
+            template={template ?? undefined}
+          />
+        }
       />
-
-      {(!isOffDay || todayReport) && (
-        <ReportBanner
-          todayReport={todayReport}
-          deadlineHint={formatDeadlineHint(
-            settings.reportDeadlineHourLocal,
-            settings.timezone,
-          )}
-          deadline={deadline}
-          template={template ?? undefined}
-          isOffDay={isOffDay}
-        />
-      )}
 
       <Card
         className="card-gradient animate-in fade-in-0 duration-300 fill-mode-both"
@@ -116,7 +110,9 @@ export async function ManagerDashboard({
               deadline={deadline}
               initialIsOffDay={isOffDay}
             />
-            <div className="min-h-0 md:h-full">
+            {/* Explicit min-height on small screens — embedded chart uses
+                h-full, which collapses when the grid row has no md:min-h. */}
+            <div className="min-h-[200px] md:h-full md:min-h-0">
               <CompletionTrendCard
                 embedded
                 dimmed={isOffDay}

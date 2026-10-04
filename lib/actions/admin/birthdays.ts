@@ -1,29 +1,46 @@
 "use server";
 
 import { createNotification } from "@/lib/actions/notifications";
-import { todayInTimezone } from "@/lib/helpers/dates";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import {
+  orgDayUtcBounds,
+  todayInTimezone,
+} from "@/lib/helpers/dates";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 function monthDay(isoDate: string): string {
   return isoDate.slice(5, 10); // "MM-DD"
 }
 
+/**
+ * Send once-per-org-day birthday notifications for profiles whose DOB
+ * month-day matches "today" in the org timezone. Idempotent within that
+ * org-local day. Called from the hourly cron — not from profile DOB
+ * saves or the /birthdays page.
+ */
 export async function sendBirthdayNotifications(
   orgId: string,
 ): Promise<void> {
   if (!orgId) return;
 
-  const settings = await getOrganizationSettings();
-  const today = todayInTimezone(settings.timezone);
-  const todayMonthDay = monthDay(today);
-
   const adminClient = createAdminClient();
+
+  // Admin client so this works from cron (no user session).
+  const { data: settings } = await adminClient
+    .from("organization_settings")
+    .select("timezone")
+    .eq("id", true)
+    .maybeSingle();
+
+  const timezone = settings?.timezone ?? "UTC";
+  const today = todayInTimezone(timezone);
+  const todayMonthDay = monthDay(today);
+  const { startIso, endIso } = orgDayUtcBounds(today, timezone);
 
   const { data: people, error } = await adminClient
     .from("profiles")
     .select("id, full_name, date_of_birth")
     .eq("organization_id", orgId)
+    .eq("is_active", true)
     .is("archived_at", null)
     .not("date_of_birth", "is", null);
 
@@ -42,7 +59,8 @@ export async function sendBirthdayNotifications(
     return;
   }
 
-  // Idempotency: birthday notifications already created for these profiles today.
+  // Idempotency: birthday notifications already created for these profiles
+  // during the org-local calendar day (not UTC midnight–midnight).
   const { data: existing } = await adminClient
     .from("notifications")
     .select("profile_id")
@@ -52,8 +70,8 @@ export async function sendBirthdayNotifications(
       "profile_id",
       celebrating.map((person) => person.id),
     )
-    .gte("created_at", `${today}T00:00:00.000Z`)
-    .lt("created_at", `${today}T23:59:59.999Z`);
+    .gte("created_at", startIso)
+    .lt("created_at", endIso);
 
   const alreadySent = new Set(
     (existing ?? []).map((row) => row.profile_id as string),
@@ -62,15 +80,16 @@ export async function sendBirthdayNotifications(
   await Promise.all(
     celebrating
       .filter((person) => !alreadySent.has(person.id))
-      .map((person) =>
-        createNotification({
+      .map((person) => {
+        const name = person.full_name?.trim() || "a teammate";
+        return createNotification({
           orgId,
           profileId: person.id,
           type: "birthday",
-          title: `🎂 Happy Birthday, ${person.full_name?.trim() || "there"}!`,
+          title: `Today is ${name}'s birthday`,
           entityType: "employee",
           entityId: person.id,
-        }),
-      ),
+        });
+      }),
   );
 }

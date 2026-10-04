@@ -126,7 +126,7 @@ export function CompletionTrendCard({
 
   if (embedded) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="flex h-full min-h-[200px] flex-col gap-4 md:min-h-0">
         <div className={cn(dimmed && "opacity-50")}>{header}</div>
         {content}
       </div>

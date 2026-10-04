@@ -54,13 +54,16 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/reset-password");
   const isAuthConfirmRoute =
     request.nextUrl.pathname.startsWith("/auth/confirm");
+  // Cron routes authenticate via CRON_SECRET, not a user session.
+  const isCronRoute = request.nextUrl.pathname.startsWith("/api/cron/");
 
   if (
     !user &&
     !isLoginRoute &&
     !isForgotPasswordRoute &&
     !isResetPasswordRoute &&
-    !isAuthConfirmRoute
+    !isAuthConfirmRoute &&
+    !isCronRoute
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

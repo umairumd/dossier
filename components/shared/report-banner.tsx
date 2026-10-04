@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, FileText } from "lucide-react";
 import { SubmitReportSheet } from "@/components/reports/submit-report-sheet";
+import { DayOffTag } from "@/components/shared/day-off-tag";
 import { LocalDateTime } from "@/components/shared/local-datetime";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import {
@@ -35,12 +36,6 @@ export function ReportBanner({
   function handleSubmitted() {
     router.refresh();
     onSubmitted?.();
-  }
-
-  // Hero owns the off-day message. A submitted report still gets the
-  // confirmation below — submitting on an off day is valid.
-  if (isOffDay && !todayReport) {
-    return null;
   }
 
   if (todayReport) {
@@ -84,6 +79,27 @@ export function ReportBanner({
             onSubmitted={handleSubmitted}
           />
         </div>
+      </div>
+    );
+  }
+
+  // Off day: match hero off-day row — DayOffTag + ghost submit, no pulse.
+  if (isOffDay) {
+    return (
+      <div className="flex items-center gap-3 rounded-lg border border-border card-gradient px-4 py-3">
+        <DayOffTag />
+        <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+          Shouldn&apos;t you be offline right now?
+        </p>
+        <SubmitReportSheet
+          alreadySubmitted={false}
+          triggerLabel="Submit anyway"
+          triggerVariant="ghost"
+          triggerSize="sm"
+          triggerClassName="shrink-0 text-muted-foreground"
+          onSubmitted={handleSubmitted}
+          template={template}
+        />
       </div>
     );
   }
