@@ -1,6 +1,9 @@
 import type { UserRole } from "@/types/profile";
 import type { DailyReport } from "@/types/report";
-import type { ReportStats } from "@/lib/helpers/report-stats";
+import type {
+  ReportStats,
+  TenureSubmissionRate,
+} from "@/lib/helpers/report-stats";
 
 // Archived: soft-removed from the active org (excluded from active
 // rosters), reports kept. Invited: account created with a temporary
@@ -45,4 +48,5 @@ export interface EmployeeDetail extends EmployeeListItem {
   report_count: number;
   recent_reports: DailyReport[];
   stats: ReportStats;
+  tenure_rate: TenureSubmissionRate;
 }

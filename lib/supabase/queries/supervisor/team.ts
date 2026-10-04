@@ -4,6 +4,7 @@ import { requireSupervisorUser } from "@/lib/supabase/require-admin";
 import { daysBetweenDateStrings, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { TeamRosterMember } from "@/lib/supabase/queries/manager/team";
+import type { AttendanceStatus } from "@/types/attendance";
 import type { DailyReport } from "@/types/report";
 import type { MissingReportRow } from "@/types/missing-report";
 import type { TeamMemberReport } from "@/types/team";
@@ -110,7 +111,7 @@ export const getSupervisedReportsForDate = cache(
 
     const [
       { data: reports, error: reportsError },
-      { data: leaveRows, error: leaveError },
+      { data: attendanceRows, error: attendanceError },
     ] = await Promise.all([
       supabase
         .from("daily_reports")
@@ -119,9 +120,9 @@ export const getSupervisedReportsForDate = cache(
         .eq("report_date", date),
       supabase
         .from("attendance_records")
-        .select("profile_id")
+        .select("profile_id, status")
         .eq("date", date)
-        .in("status", ["leave", "half_leave"])
+        .in("status", ["leave", "half_leave", "holiday", "weekly_off"])
         .in("profile_id", employeeIds),
     ]);
 
@@ -129,8 +130,8 @@ export const getSupervisedReportsForDate = cache(
       throw new Error("Failed to load reports for that date.");
     }
 
-    if (leaveError) {
-      throw new Error("Failed to load leave records for that date.");
+    if (attendanceError) {
+      throw new Error("Failed to load attendance records for that date.");
     }
 
     const reportsByAuthor = new Map(
@@ -139,20 +140,29 @@ export const getSupervisedReportsForDate = cache(
         report,
       ]),
     );
-    const onLeaveIds = new Set(
-      (leaveRows ?? []).map((row) => row.profile_id as string),
-    );
+    const attendanceByProfile = new Map<string, AttendanceStatus>();
+    for (const row of attendanceRows ?? []) {
+      attendanceByProfile.set(
+        row.profile_id as string,
+        row.status as AttendanceStatus,
+      );
+    }
 
-    return employees.map((employee) => ({
-      employeeId: employee.id,
-      fullName: employee.full_name,
-      designation: employee.designation,
-      avatarUrl: employee.avatar_url,
-      isRemote: employee.is_remote,
-      employment_type: employee.employment_type,
-      isOnLeave: onLeaveIds.has(employee.id),
-      report: reportsByAuthor.get(employee.id) ?? null,
-    }));
+    return employees.map((employee) => {
+      const attendanceStatus = attendanceByProfile.get(employee.id) ?? null;
+      return {
+        employeeId: employee.id,
+        fullName: employee.full_name,
+        designation: employee.designation,
+        avatarUrl: employee.avatar_url,
+        isRemote: employee.is_remote,
+        employment_type: employee.employment_type,
+        attendanceStatus,
+        isOnLeave:
+          attendanceStatus === "leave" || attendanceStatus === "half_leave",
+        report: reportsByAuthor.get(employee.id) ?? null,
+      };
+    });
   },
 );
 

@@ -1,3 +1,4 @@
+import type { TenureSubmissionRate } from "@/lib/helpers/report-stats";
 import type { UserRole } from "@/types/profile";
 import type { DailyReport } from "@/types/report";
 
@@ -22,4 +23,6 @@ export interface TeamMemberOverview {
   // reporting days" setting exists to define an all-time rate against.
   completion_percentage: number;
   average_submission_time: string | null;
+  tenure_rate: TenureSubmissionRate;
+  last_submitted_date: string | null;
 }

@@ -138,6 +138,7 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
       member.created_at,
       settings.workingDays,
       settings.timezone,
+      attendanceByAuthor.get(member.id),
     );
     return {
       employeeId: member.id,

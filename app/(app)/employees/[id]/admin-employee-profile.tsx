@@ -15,7 +15,6 @@ import {
   getTemplateResolutionInfo,
 } from "@/lib/supabase/queries/templates";
 import { formatDate, formatDaysAgoLong } from "@/lib/helpers/dates";
-import { computeTenureSubmissionRate } from "@/lib/helpers/report-stats";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { StatCard } from "@/components/analytics/stat-card";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
@@ -109,12 +108,7 @@ export async function AdminEmployeeProfile({
     employee.id,
     employee.department_ids,
   );
-  const tenureRate = computeTenureSubmissionRate(
-    employee.recent_reports,
-    employee.created_at,
-    settings.workingDays,
-    settings.timezone,
-  );
+  const tenureRate = employee.tenure_rate;
 
   return (
     <div className="flex flex-col gap-6">

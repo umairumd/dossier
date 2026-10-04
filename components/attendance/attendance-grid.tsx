@@ -253,7 +253,9 @@ export function AttendanceGrid({
               }
             >
               {isReadOnly ? (
-                <AttendanceCell status={record?.status ?? null} />
+                <AttendanceCell
+                  status={record?.status ?? (isOff ? "weekly_off" : null)}
+                />
               ) : (
                 <AttendanceCellPopover
                   profileId={emp.id}

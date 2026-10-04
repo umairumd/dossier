@@ -12,17 +12,39 @@ import { getOrgTemplatesWithFields } from "@/lib/supabase/queries/templates";
 import {
   formatDate,
   isValidDateString,
+  isWorkingDay,
   todayInTimezone,
 } from "@/lib/helpers/dates";
+import { isAttendanceExempt } from "@/lib/helpers/report-stats";
 import type { TeamMemberReport } from "@/types/team";
 import { DateNav } from "@/components/shared/date-nav";
 import { PageHeader } from "@/components/shared/page-header";
 import { TeamReportsView } from "@/components/manager/team-reports-view";
 import { Separator } from "@/components/ui/separator";
 
-function submittedAside(members: { report: unknown }[]) {
-  const submitted = members.filter((member) => member.report).length;
-  const total = members.length;
+function submittedAside(
+  members: TeamMemberReport[],
+  reportDate: string,
+  workingDays: number[],
+) {
+  const isOrgOffDay =
+    workingDays.length > 0 && !isWorkingDay(reportDate, workingDays);
+
+  let submitted: number;
+  let total: number;
+
+  if (isOrgOffDay) {
+    submitted = members.filter((member) => member.report != null).length;
+    total = submitted;
+  } else {
+    const countable = members.filter(
+      (member) =>
+        !(isAttendanceExempt(member.attendanceStatus) && !member.report),
+    );
+    submitted = countable.filter((member) => member.report != null).length;
+    total = countable.length;
+  }
+
   const pct = total === 0 ? 0 : Math.round((submitted / total) * 100);
   const color =
     pct >= 80
@@ -48,6 +70,9 @@ export default async function TeamReportsPage({
   const settings = await getOrganizationSettings();
   const today = todayInTimezone(settings.timezone);
   const date = isValidDateString(dateParam) ? dateParam : today;
+  const isOrgOffDay =
+    settings.workingDays.length > 0 &&
+    !isWorkingDay(date, settings.workingDays);
 
   const [deptMembers, supervised, templates] = await Promise.all([
     profile?.role === "manager"
@@ -92,6 +117,13 @@ export default async function TeamReportsPage({
         }
       />
 
+      {isOrgOffDay && (
+        <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          {formatDate(date)} is a non-working day. Only voluntary submissions
+          are shown.
+        </div>
+      )}
+
       <div>
         <h2 className="mb-3 hidden text-sm font-medium text-muted-foreground md:block">
           {section1Label}
@@ -109,7 +141,11 @@ export default async function TeamReportsPage({
           viewerRole={profile?.role}
           currentUserId={profile?.id}
           groupTitle={section1Label}
-          groupAside={submittedAside(section1Members)}
+          groupAside={submittedAside(
+            section1Members,
+            date,
+            settings.workingDays,
+          )}
         />
       </div>
 
@@ -129,7 +165,11 @@ export default async function TeamReportsPage({
               viewerRole={profile?.role}
               currentUserId={profile?.id}
               groupTitle="Also Reporting to You"
-              groupAside={submittedAside(exclusiveSupervisees)}
+              groupAside={submittedAside(
+                exclusiveSupervisees,
+                date,
+                settings.workingDays,
+              )}
             />
           </div>
         </>
