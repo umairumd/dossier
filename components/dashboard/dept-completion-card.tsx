@@ -178,7 +178,10 @@ export function DeptCompletionCard({
                   variant="ghost"
                   size="sm"
                   disabled={isPending}
-                  className="min-w-28"
+                  className={cn(
+                    "min-w-28",
+                    isOffDay && "hover:bg-transparent dark:hover:bg-transparent",
+                  )}
                 >
                   {isPending ? (
                     <Loader2
@@ -270,13 +273,12 @@ export function DeptCompletionCard({
                   key={dept.departmentId}
                   href={href}
                   className={cn(
+                    "rounded-md transition-colors hover:bg-foreground/5",
                     isOffDay
-                      ? "cursor-pointer border-l-2 border-border/30 px-3 py-3 hover:bg-muted/40"
+                      ? "cursor-pointer px-3 py-3"
                       : cn(
-                          "rounded-md px-2 py-2 transition-colors hover:bg-foreground/5",
-                          !isOffDay &&
-                            dept.completionPct === 100 &&
-                            "bg-primary/5",
+                          "px-2 py-2",
+                          dept.completionPct === 100 && "bg-primary/5",
                         ),
                   )}
                 >

@@ -154,6 +154,7 @@ export function OrgDailyReports({
   viewerRole,
   currentUserId,
   isOffDay = false,
+  focusDepartmentId,
 }: {
   members: OrgMemberReport[];
   departments: OrgDepartment[];
@@ -163,6 +164,7 @@ export function OrgDailyReports({
   viewerRole?: UserRole;
   currentUserId?: string;
   isOffDay?: boolean;
+  focusDepartmentId?: string;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -274,8 +276,22 @@ export function OrgDailyReports({
       });
     }
 
+    if (focusDepartmentId) {
+      return departmentSections.filter(
+        (section) => section.id === focusDepartmentId,
+      );
+    }
+
     return departmentSections;
-  }, [visibleMembers, departments, filtered, deadline, reportDate, isOffDay]);
+  }, [
+    visibleMembers,
+    departments,
+    filtered,
+    deadline,
+    reportDate,
+    isOffDay,
+    focusDepartmentId,
+  ]);
 
   const hasQuery = query.trim().length > 0;
 

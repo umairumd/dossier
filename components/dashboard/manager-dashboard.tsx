@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { getTodayReport } from "@/lib/supabase/queries/reports";
 import { resolveTemplate } from "@/lib/supabase/queries/templates";
@@ -6,23 +7,21 @@ import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
-import { formatLongDate, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
-import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
-import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { OffDayHeroContext } from "@/components/dashboard/off-day-hero-context";
+import { TeamTodayPanel } from "@/components/dashboard/team-today-panel";
 import {
   Card,
   CardAction,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { ActivityFeed } from "@/components/analytics/activity-feed";
 import { CompletionTrendCard } from "@/components/analytics/completion-trend-card";
 import { ReportBanner } from "@/components/shared/report-banner";
-import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { TeamHighlights } from "@/components/manager/team-highlights";
 
 export async function ManagerDashboard({
@@ -42,10 +41,8 @@ export async function ManagerDashboard({
   const missingToday = teamSize - submittedToday;
   const completionPercentage =
     teamSize === 0 ? 0 : Math.round((submittedToday / teamSize) * 100);
-  const today = formatLongDate(new Date());
   const todayDate = todayInTimezone(settings.timezone);
   const deadline = getDeadlineContext(settings);
-  const sortedMembers = sortTeamMembersBySubmission(members);
 
   // Off-day awareness: weekends/non-working days from org config, plus
   // holidays recorded in attendance_records.
@@ -53,18 +50,14 @@ export async function ManagerDashboard({
   const isHoliday = todayAttendanceStatus === "holiday";
   const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
 
-  // On off days: show only working members, skip missing counts.
-  const workingMembersToday = isOffDay
-    ? sortedMembers.filter((m) => m.report)
-    : sortedMembers;
-
-  let contextLine: string;
+  let contextLine: React.ReactNode;
   if (isOffDay) {
-    if (workingMembersToday.length > 0) {
-      contextLine = `${workingMembersToday.length} team member${workingMembersToday.length === 1 ? "" : "s"} submitted a report today`;
-    } else {
-      contextLine = "Your team has the day off — no reports expected";
-    }
+    contextLine = (
+      <OffDayHeroContext
+        todayReport={todayReport}
+        template={template ?? undefined}
+      />
+    );
   } else if (teamSize === 0) {
     contextLine = "No team members assigned yet";
   } else if (missingToday === 0) {
@@ -96,85 +89,51 @@ export async function ManagerDashboard({
         }
       />
 
-      <ReportBanner
-        todayReport={todayReport}
-        deadlineHint={formatDeadlineHint(
-          settings.reportDeadlineHourLocal,
-          settings.timezone,
-        )}
-        deadline={deadline}
-        template={template ?? undefined}
-        isOffDay={isOffDay}
-      />
+      {(!isOffDay || todayReport) && (
+        <ReportBanner
+          todayReport={todayReport}
+          deadlineHint={formatDeadlineHint(
+            settings.reportDeadlineHourLocal,
+            settings.timezone,
+          )}
+          deadline={deadline}
+          template={template ?? undefined}
+          isOffDay={isOffDay}
+        />
+      )}
 
       <Card
         className="card-gradient animate-in fade-in-0 duration-300 fill-mode-both"
         style={{ animationDelay: "0ms" }}
       >
-        <CardHeader>
-          <CardTitle className="text-base">Your Team Today</CardTitle>
-          <CardDescription>{today}</CardDescription>
-        </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-2">
-            {isOffDay && workingMembersToday.length === 0 ? (
-              <p className="py-2 text-sm text-muted-foreground">
-                Day off — no reports expected.
-              </p>
-            ) : sortedMembers.length === 0 ? (
-              <p className="py-2 text-sm text-muted-foreground">
-                No team activity today.
-              </p>
-            ) : (
-              (isOffDay ? workingMembersToday : sortedMembers).map((member) => (
-                <Link
-                  key={member.employeeId}
-                  href={`/employees/${member.employeeId}`}
-                  className="-mx-2 -my-1 flex items-center justify-between gap-2 rounded-md px-2 py-1 transition-colors hover:bg-foreground/5"
-                >
-                  <span className="min-w-0 truncate text-sm">
-                    {member.fullName}
-                  </span>
-                  <div className="shrink-0">
-                    <SubmissionStatusBadge
-                      status={getSubmissionStatus(
-                        member.report?.submitted_at ?? null,
-                        deadline.deadlineHourUtc,
-                        deadline,
-                        todayDate,
-                        member.isOnLeave,
-                        isOffDay,
-                      )}
-                    />
-                  </div>
-                </Link>
-              ))
-            )}
+          <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 md:min-h-[280px]">
+            <TeamTodayPanel
+              initialMembers={members}
+              initialDate={todayDate}
+              timezone={settings.timezone}
+              workingDays={settings.workingDays}
+              deadline={deadline}
+              initialIsOffDay={isOffDay}
+            />
+            <div className="min-h-0 md:h-full">
+              <CompletionTrendCard
+                embedded
+                dimmed={isOffDay}
+                title="Team Completion Trend"
+                description={`Last 7 days · ${Math.min(100, insights.weeklyCompletionPercentage)}% weekly completion`}
+                trend={insights.trend}
+                emptyMessage="No reports submitted in the last 7 days."
+                footnote="* includes voluntary submissions."
+              />
+            </div>
           </div>
-          <Link
-            href="/team-reports"
-            className="mt-4 block text-xs text-muted-foreground hover:text-foreground"
-          >
-            View full team reports →
-          </Link>
         </CardContent>
       </Card>
 
       <div
         className="animate-in fade-in-0 duration-300 fill-mode-both"
         style={{ animationDelay: "75ms" }}
-      >
-        <CompletionTrendCard
-          title="Team Completion Trend"
-          description={`Last 7 days · ${insights.weeklyCompletionPercentage}% weekly completion`}
-          trend={insights.trend}
-          emptyMessage="No reports submitted in the last 7 days."
-        />
-      </div>
-
-      <div
-        className="animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "150ms" }}
       >
         <TeamHighlights
           longestStreaks={insights.longestStreaks}
@@ -184,7 +143,7 @@ export async function ManagerDashboard({
 
       <Card
         className="card-gradient animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "225ms" }}
+        style={{ animationDelay: "150ms" }}
       >
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>

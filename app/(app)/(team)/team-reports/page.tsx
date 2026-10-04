@@ -70,9 +70,6 @@ export default async function TeamReportsPage({
   const settings = await getOrganizationSettings();
   const today = todayInTimezone(settings.timezone);
   const date = isValidDateString(dateParam) ? dateParam : today;
-  const isOrgOffDay =
-    settings.workingDays.length > 0 &&
-    !isWorkingDay(date, settings.workingDays);
 
   const [deptMembers, supervised, templates] = await Promise.all([
     profile?.role === "manager"
@@ -92,6 +89,9 @@ export default async function TeamReportsPage({
   // Off-day awareness: today's view shows "Day Off" not "Missed" for non-working days.
   const isOffDay =
     date === today && !isWorkingDay(today, settings.workingDays);
+  // Date nav / banner: any non-working calendar day for the selected date.
+  const isOrgOffDay =
+    settings.workingDays.length > 0 && !isWorkingDay(date, settings.workingDays);
 
   const isDeptManager =
     profile?.role === "manager" && deptMembers.length > 0;
@@ -119,6 +119,7 @@ export default async function TeamReportsPage({
             baseHref="/team-reports"
             label={formatDate(date)}
             timezone={settings.timezone}
+            isOffDay={isOrgOffDay}
           />
         }
       />
@@ -136,7 +137,7 @@ export default async function TeamReportsPage({
         </h2>
         <TeamReportsView
           members={section1Members}
-          deadline={getDeadlineContext(settings)}
+          deadline={deadline}
           emptyMessage={
             isDeptManager
               ? "No team members yet."
@@ -152,6 +153,7 @@ export default async function TeamReportsPage({
             date,
             settings.workingDays,
           )}
+          isOffDay={isOffDay}
         />
       </div>
 
@@ -176,6 +178,7 @@ export default async function TeamReportsPage({
                 date,
                 settings.workingDays,
               )}
+              isOffDay={isOffDay}
             />
           </div>
         </>

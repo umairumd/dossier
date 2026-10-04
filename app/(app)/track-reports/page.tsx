@@ -15,9 +15,9 @@ import { OrgDailyReports } from "@/components/admin/org-daily-reports";
 export default async function TrackReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; department?: string }>;
 }) {
-  const { date: dateParam } = await searchParams;
+  const { date: dateParam, department: departmentParam } = await searchParams;
   const settings = await getOrganizationSettings();
   const today = todayInTimezone(settings.timezone);
   const date = isValidDateString(dateParam) ? dateParam : today;
@@ -46,6 +46,7 @@ export default async function TrackReportsPage({
             baseHref="/track-reports"
             label={formatDate(date)}
             timezone={settings.timezone}
+            isOffDay={isOrgOffDay}
           />
         }
       />
@@ -66,6 +67,7 @@ export default async function TrackReportsPage({
         viewerRole={profile?.role}
         currentUserId={profile?.id}
         isOffDay={isOffDay}
+        focusDepartmentId={departmentParam}
       />
     </div>
   );

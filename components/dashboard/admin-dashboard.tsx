@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { getOrganizationSummary } from "@/lib/supabase/queries/admin/overview";
 import { getDeptCompletionToday } from "@/lib/supabase/queries/admin/dept-completion";
@@ -24,6 +25,7 @@ import { ActivityFeed } from "@/components/analytics/activity-feed";
 import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
 import { CreateDepartmentDialog } from "@/components/admin/create-department-dialog";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { OffDayHeroContext } from "@/components/dashboard/off-day-hero-context";
 import { DeptCompletionCard } from "@/components/dashboard/dept-completion-card";
 import { ReportBanner } from "@/components/shared/report-banner";
 import type { ReportTemplateWithFields } from "@/types/template";
@@ -56,13 +58,11 @@ export async function AdminDashboard() {
   const isHoliday = todayAttendanceStatus === "holiday";
   const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
 
-  let contextLine: string;
+  let contextLine: React.ReactNode;
   if (isOffDay) {
-    if (summary.submittedToday > 0) {
-      contextLine = `${summary.submittedToday} employee${summary.submittedToday === 1 ? "" : "s"} submitted a report today`;
-    } else {
-      contextLine = "It's a day off — no reports expected today";
-    }
+    contextLine = (
+      <OffDayHeroContext todayReport={todayReport} template={template} />
+    );
   } else if (summary.totalMembers === 0 && summary.pendingInvites > 0) {
     contextLine = `${summary.pendingInvites} invitation${summary.pendingInvites === 1 ? "" : "s"} pending — waiting for your first employee to sign in`;
   } else if (summary.totalMembers === 0) {
@@ -122,16 +122,18 @@ export async function AdminDashboard() {
         }
       />
 
-      <ReportBanner
-        todayReport={todayReport}
-        deadlineHint={formatDeadlineHint(
-          settings.reportDeadlineHourLocal,
-          settings.timezone,
-        )}
-        deadline={deadline}
-        template={template}
-        isOffDay={isOffDay}
-      />
+      {(!isOffDay || todayReport) && (
+        <ReportBanner
+          todayReport={todayReport}
+          deadlineHint={formatDeadlineHint(
+            settings.reportDeadlineHourLocal,
+            settings.timezone,
+          )}
+          deadline={deadline}
+          template={template}
+          isOffDay={isOffDay}
+        />
+      )}
 
       <div
         className="animate-in fade-in-0 duration-300 fill-mode-both"

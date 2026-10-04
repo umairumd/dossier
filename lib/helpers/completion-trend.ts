@@ -43,7 +43,7 @@ export function buildCompletionTrend(
       completionPercentage:
         denominator === 0
           ? 0
-          : Math.round((submitterCount / denominator) * 100),
+          : Math.min(100, Math.round((submitterCount / denominator) * 100)),
     });
   }
 

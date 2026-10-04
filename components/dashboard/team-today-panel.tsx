@@ -90,7 +90,10 @@ export function TeamTodayPanel({
                 variant="ghost"
                 size="sm"
                 disabled={isPending}
-                className="min-w-28"
+                className={cn(
+                  "min-w-28",
+                  isOffDay && "hover:bg-transparent dark:hover:bg-transparent",
+                )}
               >
                 {isPending ? (
                   <Loader2
