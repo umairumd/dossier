@@ -21,6 +21,7 @@ import {
 import { fetchDeptCompletion } from "@/lib/actions/admin/dept-completion";
 import { formatDate, isWorkingDay, shiftReportDate, todayInTimezone } from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
+import { DayOffTag } from "@/components/shared/day-off-tag";
 import type { DeptCompletionRow } from "@/lib/supabase/queries/admin/dept-completion";
 
 function barClass(completionPct: number): string {
@@ -34,44 +35,71 @@ function barClass(completionPct: number): string {
   return "bg-destructive/70";
 }
 
+function completionTextClass(completionPct: number): string {
+  if (completionPct >= 80) {
+    return "text-primary";
+  }
+  if (completionPct >= 50) {
+    return "text-yellow-500";
+  }
+  return "text-destructive";
+}
+
 function DeptRow({
   name,
   submitted,
   total,
   completionPct,
-  dimmed = false,
 }: {
   name: string;
   submitted: number;
   total: number;
   completionPct: number;
-  dimmed?: boolean;
 }) {
   const missing = total - submitted;
   const widthPct = Math.max(completionPct, completionPct > 0 ? 2 : 0);
 
   return (
-    <div className={cn("flex flex-col gap-1.5", dimmed && "opacity-50")}>
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-sm font-medium">{name}</span>
-        <span className="shrink-0 text-sm text-muted-foreground">
-          {submitted}/{total}
+        <span className="truncate text-sm font-semibold">{name}</span>
+        <span
+          className={cn(
+            "shrink-0 text-sm font-medium",
+            completionTextClass(completionPct),
+          )}
+        >
+          {submitted} / {total}
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-foreground/10">
+      <div className="h-[3px] overflow-hidden rounded-full bg-foreground/10">
         <div
-          className={cn(
-            "h-full rounded-full",
-            dimmed ? "bg-foreground/20" : barClass(completionPct),
-          )}
+          className={cn("h-full rounded-full", barClass(completionPct))}
           style={{ width: `${widthPct}%` }}
         />
       </div>
       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>{completionPct}% complete</span>
-        {/* Hide "missing" label on off days — those aren't actually missing */}
-        {missing > 0 && !dimmed && <span>{missing} missing</span>}
+        {missing > 0 && <span>{missing} missing</span>}
       </div>
+    </div>
+  );
+}
+
+// Off-day directory row: name + member count only, no progress.
+function DeptDirectoryRow({
+  name,
+  total,
+}: {
+  name: string;
+  total: number;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="truncate text-sm font-medium">{name}</span>
+      <span className="shrink-0 text-xs text-muted-foreground">
+        {total} {total === 1 ? "member" : "members"}
+      </span>
     </div>
   );
 }
@@ -150,13 +178,17 @@ export function DeptCompletionCard({
                   variant="ghost"
                   size="sm"
                   disabled={isPending}
-                  className="min-w-20"
+                  className="min-w-28"
                 >
                   {isPending ? (
                     <Loader2
                       className="mx-auto size-4 animate-spin text-muted-foreground"
                       aria-label="Loading"
                     />
+                  ) : isOffDay ? (
+                    <span className="flex items-center">
+                      <DayOffTag />
+                    </span>
                   ) : (
                     centerLabel
                   )}
@@ -192,11 +224,6 @@ export function DeptCompletionCard({
         </div>
       </CardHeader>
       <CardContent>
-        {isOffDay && (
-          <p className="mb-4 text-xs text-muted-foreground">
-            Day off — stats shown for context, no reports expected.
-          </p>
-        )}
         {departments.length === 0 ? (
           <EmptyState
             size="sm"
@@ -204,49 +231,67 @@ export function DeptCompletionCard({
             title="No departments with active members yet."
           />
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div
+            className={
+              isOffDay
+                ? "flex flex-col"
+                : "grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2"
+            }
+          >
             {departments.map((dept) => {
               const isUnassigned = dept.departmentId === "__unassigned__";
               const name = isUnassigned ? "No Department" : dept.departmentName;
 
-              if (isUnassigned) {
-                if (dept.submitted <= 0 && dept.total <= 0) {
-                  return null;
-                }
-                return (
-                  <div
-                    key={dept.departmentId}
-                    className="rounded-md px-2 py-2"
-                  >
-                    <DeptRow
-                      name={name}
-                      submitted={dept.submitted}
-                      total={dept.total}
-                      completionPct={dept.completionPct}
-                      dimmed={isOffDay}
-                    />
-                  </div>
-                );
+              if (isUnassigned && dept.submitted <= 0 && dept.total <= 0) {
+                return null;
               }
+
+              const row = isOffDay ? (
+                <DeptDirectoryRow name={name} total={dept.total} />
+              ) : (
+                <DeptRow
+                  name={name}
+                  submitted={dept.submitted}
+                  total={dept.total}
+                  completionPct={dept.completionPct}
+                />
+              );
+
+              const href = isOffDay
+                ? isUnassigned
+                  ? `/track-reports?date=${date}`
+                  : `/track-reports?date=${date}&department=${dept.departmentId}`
+                : isUnassigned
+                  ? `/track-reports?date=${date}`
+                  : `/departments/${dept.departmentId}`;
 
               return (
                 <Link
                   key={dept.departmentId}
-                  href={`/departments/${dept.departmentId}`}
-                  className="rounded-md px-2 py-2 transition-colors hover:bg-foreground/5"
+                  href={href}
+                  className={cn(
+                    isOffDay
+                      ? "cursor-pointer border-l-2 border-border/30 px-3 py-3 hover:bg-muted/40"
+                      : cn(
+                          "rounded-md px-2 py-2 transition-colors hover:bg-foreground/5",
+                          !isOffDay &&
+                            dept.completionPct === 100 &&
+                            "bg-primary/5",
+                        ),
+                  )}
                 >
-                  <DeptRow
-                    name={name}
-                    submitted={dept.submitted}
-                    total={dept.total}
-                    completionPct={dept.completionPct}
-                    dimmed={isOffDay}
-                  />
+                  {row}
                 </Link>
               );
             })}
           </div>
         )}
+        <Link
+          href="/track-reports"
+          className="mt-4 block text-xs text-muted-foreground hover:text-foreground"
+        >
+          View all →
+        </Link>
       </CardContent>
     </Card>
   );
