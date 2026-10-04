@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   buildAttendanceStatusMap,
   computeReportStats,
+  computeTenureSubmissionRate,
 } from "@/lib/helpers/report-stats";
 import { dateNDaysAgo } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
@@ -100,13 +101,21 @@ export const getTeamMemberOverview = cache(
       .eq("profile_id", employeeId)
       .gte("date", dateNDaysAgo(399));
 
+    const attendanceByDate = buildAttendanceStatusMap(
+      (attendanceRows as { date: string; status: AttendanceStatus }[]) ?? [],
+    );
     const stats = computeReportStats(allReports, settings.timezone, {
       workingDays: settings.workingDays,
-      attendanceByDate: buildAttendanceStatusMap(
-        (attendanceRows as { date: string; status: AttendanceStatus }[]) ?? [],
-      ),
+      attendanceByDate,
     });
     const profileRow = profile as unknown as ProfileRow;
+    const tenure_rate = computeTenureSubmissionRate(
+      allReports,
+      profileRow.created_at,
+      settings.workingDays,
+      settings.timezone,
+      attendanceByDate,
+    );
 
     return {
       id: profileRow.id,
@@ -127,6 +136,8 @@ export const getTeamMemberOverview = cache(
       current_streak: stats.currentStreak,
       completion_percentage: stats.completionPercentage,
       average_submission_time: stats.averageSubmissionTime,
+      tenure_rate,
+      last_submitted_date: stats.lastSubmittedDate,
     };
   },
 );

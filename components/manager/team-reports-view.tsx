@@ -25,6 +25,7 @@ import {
   type DeadlineContext,
   type SubmissionStatus,
 } from "@/lib/reports/submission-status";
+import { isWorkingDay } from "@/lib/helpers/dates";
 import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import {
@@ -63,7 +64,24 @@ function memberStatus(
     deadline,
     reportDate,
     member.isOnLeave,
+    member.attendanceStatus,
   );
+}
+
+function isVisibleOnReportDate(
+  member: TeamMemberReport,
+  reportDate: string | undefined,
+  workingDays: number[],
+): boolean {
+  const hasReport = member.report != null;
+  const isOrgOffDay =
+    Boolean(reportDate) &&
+    workingDays.length > 0 &&
+    !isWorkingDay(reportDate!, workingDays);
+  if (isOrgOffDay && !hasReport) {
+    return false;
+  }
+  return true;
 }
 
 function NameIndicators({
@@ -116,7 +134,9 @@ export function TeamReportsView({
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const filtered = useMemo(() => {
-    let result = members;
+    let result = members.filter((member) =>
+      isVisibleOnReportDate(member, reportDate, deadline.workingDays),
+    );
 
     if (showFilters) {
       const normalized = query.trim().toLowerCase();
@@ -198,6 +218,7 @@ export function TeamReportsView({
                 <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
                 <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
                 <SelectItem value="on_leave">{SUBMISSION_STATUS_LABELS.on_leave}</SelectItem>
+                <SelectItem value="holiday">{SUBMISSION_STATUS_LABELS.holiday}</SelectItem>
               </SelectContent>
             </Select>,
           ]}

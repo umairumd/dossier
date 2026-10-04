@@ -22,6 +22,8 @@ import {
   filterSelectTriggerClassName,
 } from "@/components/shared/filter-toolbar";
 import { cn } from "@/lib/utils";
+import { isWorkingDay } from "@/lib/helpers/dates";
+import { isAttendanceExempt } from "@/lib/helpers/report-stats";
 import {
   getSubmissionStatus,
   SUBMISSION_STATUS_LABELS,
@@ -34,6 +36,7 @@ import type {
 } from "@/lib/supabase/queries/admin/org-reports";
 import type { ReportTemplateWithFields } from "@/types/template";
 import type { UserRole } from "@/types/profile";
+import type { TeamMemberReport } from "@/types/team";
 
 type StatusFilter = "all" | SubmissionStatus;
 
@@ -45,7 +48,74 @@ const STATUS_RANK: Record<SubmissionStatus, number> = {
   pending: 2,
   missed: 3,
   on_leave: 4,
+  holiday: 5,
 };
+
+function memberStatus(
+  member: TeamMemberReport,
+  deadline: DeadlineContext,
+  reportDate?: string,
+): SubmissionStatus {
+  return getSubmissionStatus(
+    member.report?.submitted_at ?? null,
+    deadline.deadlineHourUtc,
+    deadline,
+    reportDate,
+    member.isOnLeave,
+    member.attendanceStatus,
+  );
+}
+
+function isVisibleOnReportDate(
+  member: TeamMemberReport,
+  reportDate: string | undefined,
+  workingDays: number[],
+): boolean {
+  const hasReport = member.report != null;
+  const isOrgOffDay =
+    Boolean(reportDate) &&
+    workingDays.length > 0 &&
+    !isWorkingDay(reportDate!, workingDays);
+  if (isOrgOffDay && !hasReport) {
+    return false;
+  }
+  return true;
+}
+
+function isCountableForSubmission(member: TeamMemberReport): boolean {
+  const hasReport = member.report != null;
+  return !(isAttendanceExempt(member.attendanceStatus) && !hasReport);
+}
+
+function submissionCounts(
+  members: TeamMemberReport[],
+  reportDate: string | undefined,
+  workingDays: number[],
+): { submitted: number; total: number; completionPct: number } {
+  const isOrgOffDay =
+    Boolean(reportDate) &&
+    workingDays.length > 0 &&
+    !isWorkingDay(reportDate!, workingDays);
+
+  if (isOrgOffDay) {
+    const submitters = members.filter((member) => member.report != null);
+    const total = submitters.length;
+    return {
+      submitted: total,
+      total,
+      completionPct: total === 0 ? 0 : 100,
+    };
+  }
+
+  const countable = members.filter(isCountableForSubmission);
+  const submitted = countable.filter((member) => member.report != null).length;
+  const total = countable.length;
+  return {
+    submitted,
+    total,
+    completionPct: total === 0 ? 0 : Math.round((submitted / total) * 100),
+  };
+}
 
 function sortByStatusThenName(
   members: OrgMemberReport[],
@@ -53,8 +123,8 @@ function sortByStatusThenName(
   reportDate?: string,
 ): OrgMemberReport[] {
   return [...members].sort((a, b) => {
-    const rankA = STATUS_RANK[getSubmissionStatus(a.report?.submitted_at ?? null, deadline.deadlineHourUtc, deadline, reportDate, a.isOnLeave)];
-    const rankB = STATUS_RANK[getSubmissionStatus(b.report?.submitted_at ?? null, deadline.deadlineHourUtc, deadline, reportDate, b.isOnLeave)];
+    const rankA = STATUS_RANK[memberStatus(a, deadline, reportDate)];
+    const rankB = STATUS_RANK[memberStatus(b, deadline, reportDate)];
     if (rankA !== rankB) {
       return rankA - rankB;
     }
@@ -93,9 +163,17 @@ export function OrgDailyReports({
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
+  const visibleMembers = useMemo(
+    () =>
+      members.filter((member) =>
+        isVisibleOnReportDate(member, reportDate, deadline.workingDays),
+      ),
+    [members, reportDate, deadline.workingDays],
+  );
+
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    let result = members;
+    let result = visibleMembers;
 
     if (normalized) {
       result = result.filter((member) =>
@@ -105,24 +183,17 @@ export function OrgDailyReports({
 
     if (statusFilter !== "all") {
       result = result.filter(
-        (member) =>
-          getSubmissionStatus(
-            member.report?.submitted_at ?? null,
-            deadline.deadlineHourUtc,
-            deadline,
-            reportDate,
-            member.isOnLeave,
-          ) === statusFilter,
+        (member) => memberStatus(member, deadline, reportDate) === statusFilter,
       );
     }
 
     return sortByStatusThenName(result, deadline, reportDate);
-  }, [members, query, statusFilter, deadline, reportDate]);
+  }, [visibleMembers, query, statusFilter, deadline, reportDate]);
 
   const sections = useMemo(() => {
     const byDepartment = new Map<string, OrgMemberReport[]>();
 
-    for (const member of members) {
+    for (const member of visibleMembers) {
       if (member.departmentIds.length === 0) {
         const group = byDepartment.get(UNASSIGNED_ID) ?? [];
         group.push(member);
@@ -140,10 +211,11 @@ export function OrgDailyReports({
     const departmentSections = departments
       .map((department) => {
         const all = byDepartment.get(department.id) ?? [];
-        const total = all.length;
-        const submitted = all.filter((member) => member.report).length;
-        const completionPct =
-          total === 0 ? 0 : Math.round((submitted / total) * 100);
+        const { submitted, total, completionPct } = submissionCounts(
+          all,
+          reportDate,
+          deadline.workingDays,
+        );
         const visibleIds = new Set(
           filtered
             .filter((member) => member.departmentIds.includes(department.id))
@@ -165,13 +237,16 @@ export function OrgDailyReports({
           visible,
         };
       })
-      .filter((section) => section.total > 0)
+      .filter((section) => section.total > 0 || section.visible.length > 0)
       .sort((a, b) => a.completionPct - b.completionPct);
 
     const unassignedAll = byDepartment.get(UNASSIGNED_ID) ?? [];
     if (unassignedAll.length > 0) {
-      const total = unassignedAll.length;
-      const submitted = unassignedAll.filter((member) => member.report).length;
+      const { submitted, total, completionPct } = submissionCounts(
+        unassignedAll,
+        reportDate,
+        deadline.workingDays,
+      );
       const visibleIds = new Set(
         filtered
           .filter((member) => member.departmentIds.length === 0)
@@ -183,7 +258,7 @@ export function OrgDailyReports({
         managerId: undefined,
         total,
         submitted,
-        completionPct: total === 0 ? 0 : Math.round((submitted / total) * 100),
+        completionPct,
         visible: sortByStatusThenName(
           unassignedAll.filter((member) => visibleIds.has(member.employeeId)),
           deadline,
@@ -193,7 +268,7 @@ export function OrgDailyReports({
     }
 
     return departmentSections;
-  }, [members, departments, filtered, deadline]);
+  }, [visibleMembers, departments, filtered, deadline, reportDate]);
 
   const hasQuery = query.trim().length > 0;
 
@@ -223,6 +298,7 @@ export function OrgDailyReports({
               <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
               <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
               <SelectItem value="on_leave">{SUBMISSION_STATUS_LABELS.on_leave}</SelectItem>
+              <SelectItem value="holiday">{SUBMISSION_STATUS_LABELS.holiday}</SelectItem>
             </SelectContent>
           </Select>,
         ]}

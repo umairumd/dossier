@@ -5,6 +5,7 @@ import { requireAdminUser } from "@/lib/supabase/require-admin";
 import {
   buildAttendanceStatusMap,
   computeReportStats,
+  computeTenureSubmissionRate,
 } from "@/lib/helpers/report-stats";
 import { dateNDaysAgo } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
@@ -332,17 +333,25 @@ export const getEmployeeDetail = cache(
       toEmployeeListItem(profile as unknown as ProfileRow, authUser),
     ]);
 
+    const attendanceByDate = buildAttendanceStatusMap(
+      (attendanceRows as { date: string; status: AttendanceStatus }[]) ?? [],
+    );
+
     return {
       ...item,
       report_count: allReports.length,
       recent_reports: allReports,
       stats: computeReportStats(allReports, settings.timezone, {
         workingDays: settings.workingDays,
-        attendanceByDate: buildAttendanceStatusMap(
-          (attendanceRows as { date: string; status: AttendanceStatus }[]) ??
-            [],
-        ),
+        attendanceByDate,
       }),
+      tenure_rate: computeTenureSubmissionRate(
+        allReports,
+        item.created_at,
+        settings.workingDays,
+        settings.timezone,
+        attendanceByDate,
+      ),
     };
   },
 );

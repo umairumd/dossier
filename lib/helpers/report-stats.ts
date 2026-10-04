@@ -21,12 +21,18 @@ const BREAK_ATTENDANCE: ReadonlySet<AttendanceStatus> = new Set([
   "late_major",
 ]);
 
+const EXEMPT_FROM_EXPECTED: ReadonlySet<AttendanceStatus> = new Set([
+  "leave",
+  "half_leave",
+  "holiday",
+]);
+
 export interface ReportStats {
   currentStreak: number;
   reportsThisMonth: number;
   lastSubmittedDate: string | null;
-  // Both scoped to a trailing 30-day window — no per-project "expected
-  // reporting days" setting exists to define an all-time rate against.
+  // Trailing 30 calendar days. Denominator = expected reporting days in
+  // the window when workingDays/attendance are provided, else 30.
   completionPercentage: number;
   averageSubmissionTime: string | null;
 }
@@ -54,6 +60,17 @@ export function buildAttendanceStatusMap(
   return map;
 }
 
+export function isAttendanceExempt(
+  status: AttendanceStatus | null | undefined,
+): boolean {
+  return (
+    status === "leave" ||
+    status === "half_leave" ||
+    status === "holiday" ||
+    status === "weekly_off"
+  );
+}
+
 /** Inclusive working-day count between two YYYY-MM-DD dates. */
 export function countWorkingDaysBetween(
   startDate: string,
@@ -79,18 +96,52 @@ export function countWorkingDaysBetween(
   return count;
 }
 
+function countExpectedReportingDays(
+  start: string,
+  end: string,
+  workingDays: number[],
+  attendanceByDate?: Map<string, AttendanceStatus>,
+): number {
+  if (workingDays.length === 0) {
+    return 0;
+  }
+
+  let expected = countWorkingDaysBetween(start, end, workingDays);
+
+  if (attendanceByDate && attendanceByDate.size > 0) {
+    let cursor = new Date(`${start}T00:00:00Z`);
+    const endDate = new Date(`${end}T00:00:00Z`);
+
+    while (cursor.getTime() <= endDate.getTime()) {
+      const dateStr = cursor.toISOString().slice(0, 10);
+      const status = attendanceByDate.get(dateStr);
+      if (
+        status &&
+        EXEMPT_FROM_EXPECTED.has(status) &&
+        isWorkingDay(dateStr, workingDays)
+      ) {
+        expected -= 1;
+      }
+      cursor = new Date(cursor.getTime() + 86_400_000);
+    }
+  }
+
+  return Math.max(0, expected);
+}
+
 /**
  * Submission rate from join date (or first report, if earlier) through
- * org-local today, counting only org working days in the denominator.
+ * org-local today, counting only expected reporting days in the denominator.
  */
 export function computeTenureSubmissionRate(
   reports: Pick<DailyReport, "report_date">[],
-  joinedOn: string,
+  joinedOn: string | null,
   workingDays: number[],
   timezone: string,
+  attendanceByDate?: Map<string, AttendanceStatus>,
 ): TenureSubmissionRate {
   const today = todayInTimezone(timezone);
-  const joinDate = joinedOn.slice(0, 10);
+  const joinDate = (joinedOn ?? today).slice(0, 10);
   let earliestReport: string | null = null;
   for (const report of reports) {
     if (!earliestReport || report.report_date < earliestReport) {
@@ -100,12 +151,19 @@ export function computeTenureSubmissionRate(
   const start =
     earliestReport && earliestReport < joinDate ? earliestReport : joinDate;
   const clampedStart = start > today ? today : start;
-  const expected = countWorkingDaysBetween(clampedStart, today, workingDays);
+  const expected = countExpectedReportingDays(
+    clampedStart,
+    today,
+    workingDays,
+    attendanceByDate,
+  );
   const submitted = new Set(
     reports
       .filter(
         (report) =>
-          report.report_date >= clampedStart && report.report_date <= today,
+          report.report_date >= clampedStart &&
+          report.report_date <= today &&
+          isWorkingDay(report.report_date, workingDays),
       )
       .map((report) => report.report_date),
   ).size;
@@ -187,23 +245,37 @@ export function computeReportStats(
     );
   }).length;
 
-  const windowStart = new Date(
-    Date.now() - (COMPLETION_WINDOW_DAYS - 1) * 86_400_000,
+  const windowStartDate = new Date(`${todayStr}T00:00:00Z`);
+  windowStartDate.setUTCDate(
+    windowStartDate.getUTCDate() - (COMPLETION_WINDOW_DAYS - 1),
   );
+  const windowStartStr = windowStartDate.toISOString().slice(0, 10);
+
   const reportsInWindow = reports.filter(
-    (report) => new Date(`${report.report_date}T00:00:00Z`) >= windowStart,
+    (report) => report.report_date >= windowStartStr,
   );
   const distinctDatesInWindow = new Set(
     reportsInWindow.map((report) => report.report_date),
   ).size;
 
+  const expected =
+    workingDays && workingDays.length > 0
+      ? countExpectedReportingDays(
+          windowStartStr,
+          todayStr,
+          workingDays,
+          attendanceByDate,
+        )
+      : COMPLETION_WINDOW_DAYS;
+
   return {
     currentStreak,
     reportsThisMonth,
     lastSubmittedDate: reports[0]?.report_date ?? null,
-    completionPercentage: Math.round(
-      (distinctDatesInWindow / COMPLETION_WINDOW_DAYS) * 100,
-    ),
+    completionPercentage:
+      expected === 0
+        ? 0
+        : Math.round((distinctDatesInWindow / expected) * 100),
     averageSubmissionTime: averageSubmissionTime(
       reportsInWindow.map((report) => report.submitted_at),
     ),

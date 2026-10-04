@@ -1,4 +1,4 @@
-import { Clock, FileText, Flame, Percent } from "lucide-react";
+import { Calendar, FileText, Flame, TrendingUp } from "lucide-react";
 import { StatCard } from "@/components/analytics/stat-card";
 import { LeaveBalanceCard } from "@/components/attendance/leave-balance-card";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
@@ -24,6 +24,11 @@ import {
   getOrgTemplatesWithFields,
   getTemplateResolutionInfo,
 } from "@/lib/supabase/queries/templates";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { formatDate, formatDaysAgoLong } from "@/lib/helpers/dates";
+import { ensureLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
+import type { LeaveBalance } from "@/types/attendance";
 import type { Profile } from "@/types/profile";
 import type { TeamMemberOverview } from "@/types/team-member-overview";
 import { AssignmentsCard } from "./assignments-card";
@@ -54,6 +59,31 @@ export async function TeamEmployeeProfile({
       inDepartment ? getCurrentShift(overview.id) : Promise.resolve(null),
       inDepartment ? getActiveLeaveBalance(overview.id) : Promise.resolve(null),
     ]);
+
+  let resolvedLeaveBalance = leaveBalance;
+  if (inDepartment && !resolvedLeaveBalance && overview.organization_id) {
+    const adminClient = createAdminClient();
+    await ensureLeaveBalanceRecord(
+      adminClient,
+      overview.id,
+      overview.organization_id,
+      overview.created_at.slice(0, 10),
+    );
+    const supabase = await createClient();
+    const { data: fresh } = await supabase
+      .from("leave_balances")
+      .select("*")
+      .eq("profile_id", overview.id)
+      .eq("status", "active")
+      .maybeSingle();
+    if (fresh) {
+      resolvedLeaveBalance = {
+        ...(fresh as LeaveBalance),
+        balance_remaining:
+          Number(fresh.total_accrued) - Number(fresh.total_used),
+      };
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -93,33 +123,47 @@ export async function TeamEmployeeProfile({
       </div>
 
       <div className="flex flex-col gap-6">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-          <StatCard
-            label="Completion"
-            value={`${overview.completion_percentage}%`}
-            icon={<Percent size={14} />}
-            className="card-gradient"
-            valueClassName="text-2xl sm:text-3xl"
-          />
+        <div className="flex flex-row gap-2 sm:grid sm:grid-cols-3 sm:gap-6">
           <StatCard
             label="Current Streak"
             value={overview.current_streak}
-            unit={overview.current_streak === 1 ? "day" : "days"}
-            icon={<Flame size={14} />}
-            className="card-gradient"
+            unit="days"
+            hint="Days in a row"
+            icon={<Flame className="size-4" />}
+            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
+            labelClassName="text-[10px] sm:text-sm"
             valueClassName="text-2xl sm:text-3xl"
           />
           <StatCard
-            label="Avg. Submission Time"
-            value={overview.average_submission_time ?? "—"}
-            icon={<Clock size={14} />}
-            className="card-gradient col-span-2 lg:col-span-1"
+            label="Submission Rate"
+            value={
+              overview.tenure_rate.expected === 0
+                ? "—"
+                : `${overview.tenure_rate.rate}%`
+            }
+            hint={`${overview.tenure_rate.submitted} of ${overview.tenure_rate.expected} working days`}
+            icon={<TrendingUp className="size-4" />}
+            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
+            labelClassName="text-[10px] sm:text-sm"
+            valueClassName="text-2xl sm:text-3xl"
+          />
+          <StatCard
+            label="Last Submitted"
+            value={formatDaysAgoLong(overview.last_submitted_date)}
+            hint={
+              overview.last_submitted_date
+                ? formatDate(overview.last_submitted_date)
+                : "No reports yet"
+            }
+            icon={<Calendar className="size-4" />}
+            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
+            labelClassName="text-[10px] sm:text-sm"
             valueClassName="text-2xl sm:text-3xl"
           />
         </div>
         {inDepartment && (
           <LeaveBalanceCard
-            balance={leaveBalance}
+            balance={resolvedLeaveBalance}
             profileId={overview.id}
             orgId={overview.organization_id ?? ""}
             joinDate={overview.created_at.slice(0, 10)}

@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
+import type { AttendanceStatus } from "@/types/attendance";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 
@@ -49,7 +50,7 @@ export const getOrgReportsForDate = cache(
       { data: employees, error: employeesError },
       { data: reports, error: reportsError },
       { data: departments, error: departmentsError },
-      { data: leaveRows, error: leaveError },
+      { data: attendanceRows, error: attendanceError },
     ] = await Promise.all([
       adminClient
         .from("profiles")
@@ -71,9 +72,9 @@ export const getOrgReportsForDate = cache(
         .order("name", { ascending: true }),
       adminClient
         .from("attendance_records")
-        .select("profile_id")
+        .select("profile_id, status")
         .eq("date", date)
-        .in("status", ["leave", "half_leave"]),
+        .in("status", ["leave", "half_leave", "holiday", "weekly_off"]),
     ]);
 
     if (employeesError) {
@@ -88,8 +89,8 @@ export const getOrgReportsForDate = cache(
       throw new Error("Failed to load departments.");
     }
 
-    if (leaveError) {
-      throw new Error("Failed to load leave records for that date.");
+    if (attendanceError) {
+      throw new Error("Failed to load attendance records for that date.");
     }
 
     const activeDepartments: OrgDepartment[] = (departments ?? []).map(
@@ -134,12 +135,17 @@ export const getOrgReportsForDate = cache(
         report,
       ]),
     );
-    const onLeaveIds = new Set(
-      (leaveRows ?? []).map((row) => row.profile_id as string),
-    );
+    const attendanceByProfile = new Map<string, AttendanceStatus>();
+    for (const row of attendanceRows ?? []) {
+      attendanceByProfile.set(
+        row.profile_id as string,
+        row.status as AttendanceStatus,
+      );
+    }
 
     const members: OrgMemberReport[] = (employees ?? []).map((employee) => {
       const departmentIds = departmentIdsByProfile.get(employee.id) ?? [];
+      const attendanceStatus = attendanceByProfile.get(employee.id) ?? null;
 
       return {
         employeeId: employee.id,
@@ -148,7 +154,9 @@ export const getOrgReportsForDate = cache(
         avatarUrl: employee.avatar_url,
         isRemote: employee.is_remote,
         employment_type: employee.employment_type,
-        isOnLeave: onLeaveIds.has(employee.id),
+        attendanceStatus,
+        isOnLeave:
+          attendanceStatus === "leave" || attendanceStatus === "half_leave",
         report: reportsByAuthor.get(employee.id) ?? null,
         departmentIds,
         departmentNames: departmentIds
