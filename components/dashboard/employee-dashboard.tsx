@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { getReportHistory, getReportStatsData, getTodayReport } from "@/lib/supabase/queries/reports";
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getMyActivityLog } from "@/lib/supabase/queries/admin/activity";
+import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
@@ -23,8 +23,7 @@ import {
 } from "@/components/ui/card";
 import { ActivityStrip } from "@/components/dashboard/activity-strip";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
-import { OffDayHeroContext } from "@/components/dashboard/off-day-hero-context";
-import { ReportBanner } from "@/components/shared/report-banner";
+import { HeroReportStatus } from "@/components/dashboard/hero-report-status";
 import { RecentReportsCard } from "@/components/reports/recent-reports-card";
 
 const RECENT_PREVIEW_SIZE = 5;
@@ -64,16 +63,25 @@ export async function EmployeeDashboard({
   const submittedToday = !!todayReport;
   const streak = stats.currentStreak;
   const todayDate = todayInTimezone(settings.timezone);
-  const isOffDay = !isWorkingDay(todayDate, settings.workingDays);
 
-  let contextLine: React.ReactNode;
+  // Same off-day rule as manager/admin: non-working day or holiday attendance.
+  const todayAttendanceStatus = await getMyTodayAttendanceStatus(todayDate);
+  const isHoliday = todayAttendanceStatus === "holiday";
+  const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
+
+  // Day-off messaging lives in HeroReportStatus; context line is streak-only
+  // on working days (and a soft streak/caught-up line on off days).
+  let contextLine: string;
   if (isOffDay) {
-    contextLine = (
-      <OffDayHeroContext
-        todayReport={todayReport}
-        template={template ?? undefined}
-      />
-    );
+    if (streak > 2) {
+      contextLine = `🔥 ${streak}-day streak and counting — great work`;
+    } else if (streak === 2) {
+      contextLine = "2 days in a row — you're building a streak";
+    } else if (streak > 0) {
+      contextLine = `🔥 ${streak}-day streak`;
+    } else {
+      contextLine = "You're all caught up for today";
+    }
   } else if (!submittedToday && streak > 0) {
     contextLine = `🔥 ${streak}-day streak — submit today's report to keep it going`;
   } else if (!submittedToday && streak === 0) {
@@ -99,17 +107,17 @@ export async function EmployeeDashboard({
           { label: "This Month", value: `${stats.reportsThisMonth} reports` },
           { label: "30-Day Rate", value: `${stats.completionPercentage}%` },
         ]}
-      />
-
-      <ReportBanner
-        todayReport={todayReport}
-        deadlineHint={formatDeadlineHint(
-          settings.reportDeadlineHourLocal,
-          settings.timezone,
-        )}
-        deadline={deadline}
-        template={template ?? undefined}
-        isOffDay={isOffDay}
+        reportStatus={
+          <HeroReportStatus
+            todayReport={todayReport}
+            isOffDay={isOffDay}
+            deadlineHint={formatDeadlineHint(
+              settings.reportDeadlineHourLocal,
+              settings.timezone,
+            )}
+            template={template ?? undefined}
+          />
+        }
       />
 
       <div
