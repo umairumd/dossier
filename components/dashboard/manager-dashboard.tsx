@@ -47,9 +47,6 @@ export async function ManagerDashboard({
   const todayAttendanceStatus = await getMyTodayAttendanceStatus(todayDate);
   const isHoliday = todayAttendanceStatus === "holiday";
   const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
-  // TODO: remove — temporary override so we can preview working-day hero
-  // report-status rows on a Sunday.
-  const debugIsOffDay = true;
 
   // Context line is team status only — report/off-day actions live in
   // HeroReportStatus below the divider.
@@ -86,7 +83,7 @@ export async function ManagerDashboard({
         reportStatus={
           <HeroReportStatus
             todayReport={todayReport}
-            isOffDay={debugIsOffDay}
+            isOffDay={isOffDay}
             deadlineHint={formatDeadlineHint(
               settings.reportDeadlineHourLocal,
               settings.timezone,
