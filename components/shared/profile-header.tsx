@@ -7,7 +7,6 @@ import {
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { RoleChip } from "@/components/shared/role-chip";
 import { cn } from "@/lib/utils";
-import type { BotExpression } from "@/components/shared/member-avatar";
 
 const filledPillClassName =
   "inline-flex max-w-full items-center rounded-full bg-foreground px-2.5 py-0.5 text-xs font-medium text-background";
@@ -23,7 +22,6 @@ export function ProfileHeader({
   avatarSize = "lg",
   roleLabel,
   joinedLabel,
-  expression,
   interactive,
 }: {
   userId?: string;
@@ -36,7 +34,6 @@ export function ProfileHeader({
   avatarSize?: "md" | "lg" | "xl" | "2xl";
   roleLabel?: string;
   joinedLabel?: string;
-  expression?: BotExpression;
   interactive?: boolean;
 }) {
   const showDetailPills = Boolean(roleLabel);
@@ -50,7 +47,6 @@ export function ProfileHeader({
           avatar={avatar}
           size={avatarSize}
           interactive={interactive}
-          expression={expression}
         />
       </div>
 
