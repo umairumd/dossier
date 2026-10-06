@@ -10,6 +10,7 @@ export interface TeamMemberOverview {
   is_remote: boolean;
   employment_type: "full_time" | "part_time";
   avatar_url: string | null;
+  avatar: unknown | null;
   last_seen_at: string | null;
   created_at: string;
   template_id: string | null;

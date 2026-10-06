@@ -153,7 +153,7 @@ export function TeamTodayPanel({
                   <MemberAvatar
                     userId={member.employeeId}
                     name={member.fullName}
-                    avatarUrl={member.avatarUrl ?? undefined}
+                    avatar={member.avatar}
                     size="sm"
                   />
                 </div>

@@ -1,6 +1,6 @@
 import { LogOut } from "lucide-react";
 import { logout } from "@/lib/actions/auth";
-import { BotAvatar } from "@/components/shared/bot-avatar";
+import { MemberAvatar } from "@/components/shared/member-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,11 +20,11 @@ export function UserMenu({ profile }: { profile: Profile }) {
           className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Account menu"
         >
-          <BotAvatar
+          <MemberAvatar
             userId={profile.id}
-            size={32}
-            interactive={false}
-            className="rounded-full"
+            name={profile.full_name}
+            avatar={profile.avatar}
+            size="md"
           />
         </button>
       </DropdownMenuTrigger>

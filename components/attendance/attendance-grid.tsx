@@ -35,6 +35,7 @@ interface GridEmployee {
   designation: string | null;
   department_name: string | null;
   avatar_url: string | null;
+  avatar: unknown | null;
   leave_balance: number;
   /** YYYY-MM-DD the profile was created; days before this are not expected. */
   joined_on: string | null;
@@ -211,7 +212,7 @@ export function AttendanceGrid({
         departmentName={emp.department_name}
         employmentType={emp.employment_type}
         isRemote={emp.is_remote}
-        avatarUrl={emp.avatar_url}
+        avatar={emp.avatar}
         profileBasePath={profileBasePath}
       />
     );
@@ -359,7 +360,7 @@ export function AttendanceGrid({
                   date={date}
                   employeeName={emp.full_name}
                   designation={emp.designation}
-                  avatarUrl={emp.avatar_url}
+                  avatar={emp.avatar}
                   isRemote={emp.is_remote}
                   employmentType={emp.employment_type}
                   existingRecord={record}
@@ -485,7 +486,7 @@ export function AttendanceGrid({
           <MemberAvatar
             userId={emp.id}
             name={emp.full_name}
-            avatarUrl={emp.avatar_url ?? undefined}
+            avatar={emp.avatar}
             size="md"
           />
           <div className="min-w-0 flex-1">
@@ -555,7 +556,7 @@ export function AttendanceGrid({
                     date={date}
                     employeeName={emp.full_name}
                     designation={emp.designation}
-                    avatarUrl={emp.avatar_url}
+                    avatar={emp.avatar}
                     isRemote={emp.is_remote}
                     employmentType={emp.employment_type}
                     existingRecord={record}

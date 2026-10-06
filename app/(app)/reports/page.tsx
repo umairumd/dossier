@@ -83,6 +83,7 @@ export default async function DailyReportPage({
           <ReportSearch
             deadline={deadline}
             userName={profile?.full_name ?? ""}
+            avatar={profile?.avatar}
             templates={templates}
             viewerRole={profile?.role}
             currentUserId={profile?.id}
@@ -109,6 +110,7 @@ export default async function DailyReportPage({
                 reports={[]}
                 deadline={deadline}
                 userName={profile?.full_name ?? ""}
+                avatar={profile?.avatar}
                 showProfileLink={false}
                 templates={templates}
                 isOwnReport
@@ -127,6 +129,7 @@ export default async function DailyReportPage({
                   reports={reportHistory}
                   deadline={deadline}
                   userName={profile?.full_name ?? ""}
+                avatar={profile?.avatar}
                   showProfileLink={false}
                   templates={templates}
                   isOwnReport

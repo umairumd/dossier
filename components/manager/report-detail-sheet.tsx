@@ -191,7 +191,7 @@ export function ReportDetailSheet({
                 <MemberAvatar
                   userId={current.employeeId}
                   name={current.fullName}
-                  avatarUrl={current.avatarUrl ?? undefined}
+                  avatar={current.avatar}
                   size="md"
                 />
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -342,14 +342,12 @@ export function ReportDetailSheet({
                         {comments.map((c) => {
                           const authorName =
                             c.profiles?.full_name ?? "Deleted user";
-                          const authorAvatar =
-                            c.profiles?.avatar_url ?? undefined;
                           return (
                           <div key={c.id} className="flex gap-2.5">
                             <MemberAvatar
                               userId={c.profiles?.id ?? ""}
                               name={authorName}
-                              avatarUrl={authorAvatar}
+                              avatar={c.profiles?.avatar}
                               size="sm"
                             />
                             <div className="min-w-0 flex-1">

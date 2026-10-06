@@ -118,7 +118,7 @@ export async function AdminEmployeeProfile({
         designation={employee.designation}
         isRemote={employee.is_remote}
         employmentType={employee.employment_type}
-        avatarUrl={employee.avatar_url}
+        avatar={employee.avatar}
         employee={employee}
         isSelf={isSelf}
         departments={departments}
@@ -213,6 +213,7 @@ export async function AdminEmployeeProfile({
             <ReportHistoryBrowser
               reports={employee.recent_reports}
               userName={employee.full_name}
+              avatar={employee.avatar}
               deadline={getDeadlineContext(settings)}
               adminView
               templates={templates}

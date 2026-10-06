@@ -68,6 +68,7 @@ export default async function DepartmentDetailPage({
     organization_id: detail.organization_id,
     manager_id: detail.manager_id,
     manager_name: detail.manager?.full_name ?? null,
+    manager_avatar: detail.manager?.avatar ?? null,
     employee_count: detail.members.length,
     archived_at: detail.archived_at,
     created_at: detail.created_at,
@@ -153,6 +154,7 @@ export default async function DepartmentDetailPage({
                 <MemberAvatar
                   userId={detail.manager.id}
                   name={detail.manager.full_name}
+                  avatar={detail.manager.avatar}
                   size="md"
                 />
                 <div>
@@ -264,6 +266,7 @@ export default async function DepartmentDetailPage({
                       <MemberAvatar
                         userId={member.id}
                         name={member.full_name}
+                        avatar={member.avatar}
                         size="sm"
                       />
                       <div className="flex flex-col gap-0.5">

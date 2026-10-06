@@ -17,7 +17,7 @@ export function EmployeeNameCell({
   departmentName,
   employmentType,
   isRemote,
-  avatarUrl,
+  avatar,
   profileBasePath,
 }: {
   id: string;
@@ -26,7 +26,7 @@ export function EmployeeNameCell({
   departmentName: string | null;
   employmentType: "full_time" | "part_time";
   isRemote: boolean;
-  avatarUrl: string | null;
+  avatar?: unknown;
   profileBasePath: string;
 }) {
   return (
@@ -40,7 +40,7 @@ export function EmployeeNameCell({
             <MemberAvatar
               name={fullName}
               userId={id}
-              avatarUrl={avatarUrl ?? undefined}
+              avatar={avatar}
               size="sm"
             />
             <p className="min-w-0 truncate text-xs font-medium text-foreground">
@@ -54,7 +54,7 @@ export function EmployeeNameCell({
               <MemberAvatar
                 name={fullName}
                 userId={id}
-                avatarUrl={avatarUrl ?? undefined}
+                avatar={avatar}
                 size="lg"
               />
               <div className="min-w-0">

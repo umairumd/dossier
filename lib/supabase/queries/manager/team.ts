@@ -13,6 +13,7 @@ export interface TeamRosterMember {
   is_remote: boolean;
   employment_type: "full_time" | "part_time";
   avatar_url: string | null;
+  avatar: unknown | null;
   template_id: string | null;
   leave_balance: number;
   created_at: string;
@@ -38,7 +39,7 @@ export const getTeamRoster = cache(
     const { data: employees, error } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, designation, is_remote, employment_type, avatar_url, template_id, leave_balance, created_at",
+        "id, full_name, designation, is_remote, employment_type, avatar_url, avatar, template_id, leave_balance, created_at",
       )
       .eq("is_active", true)
       .is("archived_at", null)
@@ -73,7 +74,7 @@ export const getTeamReportingRoster = cache(
     const { data: employees, error } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, designation, is_remote, employment_type, avatar_url, template_id, leave_balance, created_at",
+        "id, full_name, designation, is_remote, employment_type, avatar_url, avatar, template_id, leave_balance, created_at",
       )
       .eq("has_onboarded", true)
       .eq("is_reporting", true)
@@ -161,6 +162,7 @@ export const getTeamReportsForDate = cache(
         fullName: employee.full_name,
         designation: employee.designation,
         avatarUrl: employee.avatar_url,
+        avatar: employee.avatar,
         isRemote: employee.is_remote,
         employment_type: employee.employment_type,
         attendanceStatus,

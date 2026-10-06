@@ -239,7 +239,7 @@ export const getReportComments = cache(
     const { data, error } = await supabase
       .from("report_comments")
       .select(
-        "*, profiles!report_comments_author_id_fkey(id, full_name, avatar_url)",
+        "*, profiles!report_comments_author_id_fkey(id, full_name, avatar_url, avatar)",
       )
       .eq("report_id", reportId)
       .order("created_at", { ascending: true });
@@ -271,7 +271,7 @@ export const getReportComments = cache(
       const admin = createAdminClient();
       const { data: authors } = await admin
         .from("profiles")
-        .select("id, full_name, avatar_url")
+        .select("id, full_name, avatar_url, avatar")
         .in("id", missingAuthorIds);
 
       const byId = new Map(
