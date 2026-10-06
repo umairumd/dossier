@@ -28,7 +28,7 @@ const LEGACY_EXPR: Record<BotExpression, Expression> = {
   neutral: "neutral", wink: "wink", wide: "wide", notification: "surprised",
 };
 
-const SIZE_CLASS = {
+export const AVATAR_SIZE_CLASS = {
   xs: "h-5 w-5",
   sm: "h-7 w-7",
   md: "h-8 w-8",
@@ -40,7 +40,7 @@ const SIZE_CLASS = {
   hero: "size-24",
 } as const;
 
-const SIZE_PX = { xs: 20, sm: 28, md: 32, lg: 40, xl: 64, "2xl": 96, table: 32, card: 56, hero: 96 } as const;
+export const AVATAR_SIZE_PX = { xs: 20, sm: 28, md: 32, lg: 40, xl: 64, "2xl": 96, table: 32, card: 56, hero: 96 } as const;
 
 export function MemberAvatar({
   name, userId, avatar, size = "md", className, expression, interactive, live, state,
@@ -54,7 +54,7 @@ export function MemberAvatar({
   avatarUrl?: string | null;
   /** Raw profiles.avatar json (validated here). */
   avatar?: unknown;
-  size?: keyof typeof SIZE_PX;
+  size?: keyof typeof AVATAR_SIZE_PX;
   className?: string;
   expression?: BotExpression;
   interactive?: boolean;
@@ -64,8 +64,8 @@ export function MemberAvatar({
 }) {
   const seed = userId ?? name;
   const cfg = useMemo(() => sanitizeAvatar(avatar, seed), [avatar, seed]);
-  const px = SIZE_PX[size];
-  const box = cn("relative inline-block shrink-0", SIZE_CLASS[size], className);
+  const px = AVATAR_SIZE_PX[size];
+  const box = cn("relative inline-block shrink-0", AVATAR_SIZE_CLASS[size], className);
 
   if (interactive || live) {
     return (
