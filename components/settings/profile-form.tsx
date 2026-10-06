@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { mascotBus } from "@/components/mascot/mascot-bus";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +44,7 @@ export function ProfileForm({
       if (!result.success) {
         setFieldError(result.fieldErrors?.fullName ?? "");
         toast.error(result.error ?? "Couldn't update profile.");
+        mascotBus.emit("save.error");
         return;
       }
 

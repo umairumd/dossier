@@ -1,13 +1,20 @@
 import Link from "next/link";
-import { getTodayReport } from "@/lib/supabase/queries/reports";
+import { getTodayReport, getReportStatsData } from "@/lib/supabase/queries/reports";
 import { resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
 import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
+import { getMyNotifications } from "@/lib/supabase/queries/notifications";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
-import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { createClient } from "@/lib/supabase/server";
+import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
+import {
+  buildAttendanceStatusMap,
+  computeReportStats,
+} from "@/lib/helpers/report-stats";
+import type { AttendanceStatus } from "@/types/attendance";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { HeroReportStatus } from "@/components/dashboard/hero-report-status";
 import { TeamTodayPanel } from "@/components/dashboard/team-today-panel";
@@ -27,12 +34,20 @@ export async function ManagerDashboard({
 }: {
   profile: ProfileWithDepartment;
 }) {
-  const [todayReport, members, insights, settings, template] = await Promise.all([
+  const supabase = await createClient();
+  const [todayReport, members, insights, settings, template, statsRows, attendanceResult, notifications] = await Promise.all([
     getTodayReport(),
     getTeamReportsForDate(),
     getTeamInsights(),
     getOrganizationSettings(),
     resolveTemplate(profile.id, profile.department_ids),
+    getReportStatsData(),
+    supabase
+      .from("attendance_records")
+      .select("date, status")
+      .eq("profile_id", profile.id)
+      .gte("date", dateNDaysAgo(399)),
+    getMyNotifications(),
   ]);
   const teamSize = members.length;
   const submittedToday = members.filter((member) => member.report).length;
@@ -47,6 +62,17 @@ export async function ManagerDashboard({
   const todayAttendanceStatus = await getMyTodayAttendanceStatus(todayDate);
   const isHoliday = todayAttendanceStatus === "holiday";
   const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
+  const onFullDayLeave = todayAttendanceStatus === "leave";
+  const isBirthday = profile.date_of_birth?.slice(5, 10) === todayDate.slice(5, 10);
+  const currentStreak = computeReportStats(statsRows, settings.timezone, {
+    workingDays: settings.workingDays,
+    attendanceByDate: buildAttendanceStatusMap(
+      (attendanceResult.data as { date: string; status: AttendanceStatus }[]) ?? [],
+    ),
+  }).currentStreak;
+  const unread = notifications
+    .filter((note) => note.read_at == null)
+    .map((note) => ({ type: note.type, created_at: note.created_at }));
 
   // Context line is team status only — report/off-day actions live in
   // HeroReportStatus below the divider.
@@ -66,6 +92,15 @@ export async function ManagerDashboard({
         name={profile.full_name}
         designation={profile.designation}
         departmentNames={profile.department_names}
+        avatar={profile.avatar}
+        hasReport={!!todayReport}
+        isOffDay={isOffDay}
+        onFullDayLeave={onFullDayLeave}
+        isBirthday={isBirthday}
+        orgDate={todayDate}
+        currentStreak={currentStreak}
+        teamComplete={missingToday === 0 && teamSize > 0}
+        unread={unread}
         contextLine={contextLine}
         stats={
           isOffDay
@@ -82,6 +117,7 @@ export async function ManagerDashboard({
         }
         reportStatus={
           <HeroReportStatus
+            userId={profile.id}
             todayReport={todayReport}
             isOffDay={isOffDay}
             deadlineHint={formatDeadlineHint(

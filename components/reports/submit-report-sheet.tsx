@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FileText } from "lucide-react";
+import { mascotBus } from "@/components/mascot/mascot-bus";
+import { setHeroSheetOpen } from "@/components/dashboard/hero-controller";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +19,8 @@ import type { DailyReport } from "@/types/report";
 import type { ReportTemplateWithFields } from "@/types/template";
 
 export function SubmitReportSheet({
+  userId,
+  offDaySubmit = false,
   alreadySubmitted,
   triggerLabel,
   triggerVariant = "default",
@@ -26,6 +30,9 @@ export function SubmitReportSheet({
   template,
   initialReport,
 }: {
+  userId?: string;
+  /** “Submit anyway” on a day off. Plays day.offSubmit, then the sheet opens. */
+  offDaySubmit?: boolean;
   alreadySubmitted: boolean;
   triggerLabel?: string;
   triggerVariant?: "default" | "outline" | "ghost" | "link";
@@ -36,21 +43,36 @@ export function SubmitReportSheet({
   initialReport?: DailyReport;
 }) {
   const [open, setOpen] = useState(false);
+  const submittedRef = useRef(false);
   const isEditEntry = alreadySubmitted && Boolean(initialReport);
+  const target = userId ? { userId } : {};
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    setHeroSheetOpen(next);
+    if (!next && !submittedRef.current) {
+      mascotBus.emit("report.dropCancel", target);
+    }
+    if (!next) submittedRef.current = false;
+  }
 
   function handleSubmitted() {
-    setOpen(false);
+    submittedRef.current = true;
+    handleOpenChange(false);
     onSubmitted?.();
   }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <Button
           disabled={alreadySubmitted && !initialReport}
           variant={triggerVariant}
           size={triggerSize}
           className={triggerClassName}
+          onClick={() => {
+            if (offDaySubmit) mascotBus.emit("day.offSubmit", target);
+          }}
         >
           {triggerVariant !== "link" && <FileText />}
           {isEditEntry
@@ -75,6 +97,7 @@ export function SubmitReportSheet({
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
             {template ? (
               <DynamicReportForm
+                userId={userId}
                 template={template}
                 onSubmitted={handleSubmitted}
                 initialReport={initialReport}

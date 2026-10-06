@@ -7,13 +7,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/actions/notifications";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { logActivity } from "@/lib/helpers/activity-log";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getDeadlineContext, getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import {
   getTodayReport,
   searchReports,
 } from "@/lib/supabase/queries/reports";
 import type { DailyReport, ReportComment, SubmitReportResult } from "@/types/report";
 import { ALREADY_SUBMITTED_ERROR } from "@/lib/reports/constants";
+import { getSubmissionStatus } from "@/lib/reports/submission-status";
 
 type SubmitReportInput = {
   templateId: string;
@@ -142,7 +143,15 @@ export async function submitDailyReport(
 
   revalidatePath("/");
 
-  return { success: true };
+  const onTime =
+    getSubmissionStatus(
+      new Date().toISOString(),
+      settings.reportDeadlineHourUtc,
+      getDeadlineContext(settings),
+      reportDate,
+    ) === "on_time";
+
+  return { success: true, onTime, unlocked: [] };
 }
 
 export async function updateDailyReport(
