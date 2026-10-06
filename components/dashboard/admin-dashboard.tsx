@@ -4,14 +4,21 @@ import { getDeptCompletionToday } from "@/lib/supabase/queries/admin/dept-comple
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getActivityLog } from "@/lib/supabase/queries/admin/activity";
-import { getTodayReport } from "@/lib/supabase/queries/reports";
+import { getTodayReport, getReportStatsData } from "@/lib/supabase/queries/reports";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getMyNotifications } from "@/lib/supabase/queries/notifications";
 import { formatDeadlineHint } from "@/lib/helpers/time";
-import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
+import { createClient } from "@/lib/supabase/server";
+import {
+  buildAttendanceStatusMap,
+  computeReportStats,
+} from "@/lib/helpers/report-stats";
+import type { AttendanceStatus } from "@/types/attendance";
 import { Building2, UserPlus } from "lucide-react";
 import {
   Card,
@@ -34,7 +41,8 @@ const HOME_ACTIVITY_LIMIT = 20;
 // reachable directly in case it's bookmarked) — one component, not two
 // parallel implementations of the same org overview.
 export async function AdminDashboard() {
-  const [summary, deptCompletion, recentActivity, todayReport, settings, allDepartments, employees, profile, orgName] =
+  const supabase = await createClient();
+  const [summary, deptCompletion, recentActivity, todayReport, settings, allDepartments, employees, profile, orgName, notifications, statsRows, attendanceResult] =
     await Promise.all([
       getOrganizationSummary(),
       getDeptCompletionToday(),
@@ -45,6 +53,19 @@ export async function AdminDashboard() {
       getAllEmployees(),
       getCurrentProfile(),
       getOrganizationName(),
+      getMyNotifications(),
+      getReportStatsData(),
+      (async () => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return { data: [] };
+        return supabase
+          .from("attendance_records")
+          .select("date, status")
+          .eq("profile_id", user.id)
+          .gte("date", dateNDaysAgo(399));
+      })(),
     ]);
   const template: ReportTemplateWithFields | undefined = profile
     ? ((await resolveTemplate(profile.id, profile.department_ids)) ?? undefined)
@@ -54,6 +75,17 @@ export async function AdminDashboard() {
   const todayAttendanceStatus = await getMyTodayAttendanceStatus(todayDate);
   const isHoliday = todayAttendanceStatus === "holiday";
   const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
+  const onFullDayLeave = todayAttendanceStatus === "leave";
+  const isBirthday = profile?.date_of_birth?.slice(5, 10) === todayDate.slice(5, 10);
+  const currentStreak = computeReportStats(statsRows, settings.timezone, {
+    workingDays: settings.workingDays,
+    attendanceByDate: buildAttendanceStatusMap(
+      (attendanceResult.data as { date: string; status: AttendanceStatus }[]) ?? [],
+    ),
+  }).currentStreak;
+  const unread = notifications
+    .filter((note) => note.read_at == null)
+    .map((note) => ({ type: note.type, created_at: note.created_at }));
 
   // Context line is org status only — report/off-day actions live in
   // HeroReportStatus below the divider.
@@ -86,6 +118,17 @@ export async function AdminDashboard() {
         name={profile?.full_name ?? "Admin"}
         designation={profile?.designation}
         departmentNames={[]}
+        avatar={profile?.avatar}
+        hasReport={!!todayReport}
+        isOffDay={isOffDay}
+        onFullDayLeave={onFullDayLeave}
+        isBirthday={isBirthday}
+        orgDate={todayDate}
+        currentStreak={currentStreak}
+        teamComplete={
+          summary.completionPercentageToday === 100 && summary.totalMembers > 0
+        }
+        unread={unread}
         contextLine={contextLine}
         stats={
           isOffDay
@@ -117,6 +160,7 @@ export async function AdminDashboard() {
         }
         reportStatus={
           <HeroReportStatus
+            userId={profile?.id ?? ""}
             todayReport={todayReport}
             isOffDay={isOffDay}
             deadlineHint={formatDeadlineHint(

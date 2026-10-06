@@ -11,9 +11,15 @@ export interface DailyReport {
   field_responses: Record<string, unknown> | null;
 }
 
+import type { AccessoryId } from "@/lib/mascot";
+
 export interface SubmitReportResult {
   success: boolean;
   error?: string;
+  /** Set by submitDailyReport. True when the submit landed before the org deadline. */
+  onTime?: boolean;
+  /** Newly unlocked accessories. Empty until reward sync lands in phase 5. */
+  unlocked?: AccessoryId[];
 }
 
 export type ReportComment = {

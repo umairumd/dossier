@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { mascotBus } from "@/components/mascot/mascot-bus";
+import { lookAtHero, skipNextHeroResting } from "@/components/dashboard/hero-controller";
 import { Button } from "@/components/ui/button";
 import { DynamicFieldRenderer } from "@/components/reports/dynamic-field-renderer";
 import {
@@ -66,10 +68,12 @@ function fieldResponsesById(
 }
 
 export function DynamicReportForm({
+  userId,
   template,
   onSubmitted,
   initialReport,
 }: {
+  userId?: string;
   template: ReportTemplateWithFields;
   onSubmitted: () => void;
   initialReport?: DailyReport;
@@ -84,6 +88,13 @@ export function DynamicReportForm({
   const [editingReportDate, setEditingReportDate] = useState<string | null>(
     initialReport?.report_date ?? null,
   );
+  const ateRef = useRef(false);
+  const target = userId ? { userId } : {};
+
+  const fail = (message: string) => {
+    toast.error(message);
+    mascotBus.emit("save.error", target);
+  };
 
   const handleLoadForEdit = () => {
     startTransition(async () => {
@@ -135,9 +146,7 @@ export function DynamicReportForm({
         });
 
         if (!result.success) {
-          toast.error(
-            result.error ?? "Couldn't update your report. Please try again.",
-          );
+          fail(result.error ?? "Couldn't update your report. Please try again.");
           return;
         }
 
@@ -156,16 +165,22 @@ export function DynamicReportForm({
 
       if (!result.success) {
         if (result.error === ALREADY_SUBMITTED_ERROR) {
-          toast.error(result.error);
+          fail(result.error);
           setShowEditPrompt(true);
           return;
         }
-        toast.error(
-          result.error ?? "Couldn't submit your report. Please try again.",
-        );
+        fail(result.error ?? "Couldn't submit your report. Please try again.");
         return;
       }
 
+      ateRef.current = true;
+      skipNextHeroResting();
+      if (typeof result.onTime === "boolean") {
+        mascotBus.emit(
+          result.onTime ? "report.submitted" : "report.submittedLate",
+          target,
+        );
+      }
       toast.success("Report submitted for today.");
       onSubmitted();
     });
@@ -214,7 +229,25 @@ export function DynamicReportForm({
           )}
         </Button>
       ) : (
-        <Button type="submit" disabled={isPending} className="w-full">
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="w-full"
+          onPointerEnter={(event) => {
+            if (isEditMode) return;
+            lookAtHero(event.currentTarget);
+            mascotBus.emit("report.dropHover", target);
+          }}
+          onPointerDown={(event) => {
+            if (isEditMode) return;
+            lookAtHero(event.currentTarget);
+            mascotBus.emit("report.dropReady", target);
+          }}
+          onPointerLeave={() => {
+            if (isEditMode || ateRef.current) return;
+            mascotBus.emit("report.dropCancel", target);
+          }}
+        >
           {isPending ? (
             <>
               <Loader2 className="mr-2 size-4 animate-spin" />
