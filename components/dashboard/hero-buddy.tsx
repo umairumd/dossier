@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MascotStatic } from "@/components/mascot/mascot";
 import { mascotBus } from "@/components/mascot/mascot-bus";
+import { toastUnlocked } from "@/components/mascot/unlock-toast";
 import {
   registerHeroController,
   subscribeHeroSheet,
@@ -14,6 +16,7 @@ import {
   LAUNCH,
   SPILL_LIVE,
   sanitizeAvatar,
+  type AccessoryId,
   type AvatarConfig,
   type MascotController,
   type MomentId,
@@ -99,6 +102,7 @@ export function HeroBuddy({
   currentStreak = 0,
   teamComplete = false,
   unread,
+  freshUnlocks = [],
 }: {
   userId: string;
   avatar: unknown;
@@ -110,7 +114,9 @@ export function HeroBuddy({
   currentStreak?: number;
   teamComplete?: boolean;
   unread: HeroNotification[];
+  freshUnlocks?: AccessoryId[];
 }) {
+  const router = useRouter();
   const hostRef = useRef<HTMLDivElement>(null);
   const ctlRef = useRef<MascotController | null>(null);
   const [ready, setReady] = useState(false);
@@ -204,6 +210,14 @@ export function HeroBuddy({
     }, delay);
     return () => window.clearTimeout(timer);
   }, [ready, userId, isBirthday, orgDate, teamComplete, currentStreak, unread]);
+
+  const unlockKey = freshUnlocks.join(",");
+  useEffect(() => {
+    if (!ready || !unlockKey) return;
+    if (toastUnlocked(freshUnlocks, (href) => router.push(href)) && userId) {
+      mascotBus.emit("reward.unlocked", { userId });
+    }
+  }, [ready, unlockKey, freshUnlocks, router, userId]);
 
   return (
     <div ref={hostRef} className="relative size-24 shrink-0">

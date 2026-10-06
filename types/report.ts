@@ -18,7 +18,7 @@ export interface SubmitReportResult {
   error?: string;
   /** Set by submitDailyReport. True when the submit landed before the org deadline. */
   onTime?: boolean;
-  /** Newly unlocked accessories. Empty until reward sync lands in phase 5. */
+  /** Accessories newly written to avatar_unlocks by this submit, including starters. */
   unlocked?: AccessoryId[];
 }
 

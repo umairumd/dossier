@@ -10,6 +10,7 @@ import { resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { getMyNotifications } from "@/lib/supabase/queries/notifications";
+import { syncMyUnlocks } from "@/lib/actions/avatar";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
@@ -42,7 +43,7 @@ const HOME_ACTIVITY_LIMIT = 20;
 // parallel implementations of the same org overview.
 export async function AdminDashboard() {
   const supabase = await createClient();
-  const [summary, deptCompletion, recentActivity, todayReport, settings, allDepartments, employees, profile, orgName, notifications, statsRows, attendanceResult] =
+  const [summary, deptCompletion, recentActivity, todayReport, settings, allDepartments, employees, profile, orgName, notifications, statsRows, attendanceResult, freshUnlocks] =
     await Promise.all([
       getOrganizationSummary(),
       getDeptCompletionToday(),
@@ -66,6 +67,7 @@ export async function AdminDashboard() {
           .eq("profile_id", user.id)
           .gte("date", dateNDaysAgo(399));
       })(),
+      syncMyUnlocks(),
     ]);
   const template: ReportTemplateWithFields | undefined = profile
     ? ((await resolveTemplate(profile.id, profile.department_ids)) ?? undefined)
@@ -129,6 +131,7 @@ export async function AdminDashboard() {
           summary.completionPercentageToday === 100 && summary.totalMembers > 0
         }
         unread={unread}
+        freshUnlocks={freshUnlocks}
         contextLine={contextLine}
         stats={
           isOffDay

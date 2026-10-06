@@ -15,6 +15,7 @@ import {
 import type { DailyReport, ReportComment, SubmitReportResult } from "@/types/report";
 import { ALREADY_SUBMITTED_ERROR } from "@/lib/reports/constants";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
+import { syncMyUnlocks } from "@/lib/actions/avatar";
 
 type SubmitReportInput = {
   templateId: string;
@@ -151,7 +152,9 @@ export async function submitDailyReport(
       reportDate,
     ) === "on_time";
 
-  return { success: true, onTime, unlocked: [] };
+  const unlocked = await syncMyUnlocks();
+
+  return { success: true, onTime, unlocked };
 }
 
 export async function updateDailyReport(

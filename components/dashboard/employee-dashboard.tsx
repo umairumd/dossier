@@ -7,6 +7,7 @@ import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
 import { getMyNotifications } from "@/lib/supabase/queries/notifications";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { createClient } from "@/lib/supabase/server";
+import { syncMyUnlocks } from "@/lib/actions/avatar";
 import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import {
@@ -36,7 +37,7 @@ export async function EmployeeDashboard({
   profile: ProfileWithDepartment;
 }) {
   const supabase = await createClient();
-  const [todayReport, preview, statsRows, settings, template, templates, attendanceResult, myActivity, notifications] =
+  const [todayReport, preview, statsRows, settings, template, templates, attendanceResult, myActivity, notifications, freshUnlocks] =
     await Promise.all([
       getTodayReport(),
       getReportHistory(1, RECENT_PREVIEW_SIZE),
@@ -51,6 +52,7 @@ export async function EmployeeDashboard({
         .gte("date", dateNDaysAgo(399)),
       getMyActivityLog(MY_ACTIVITY_LIMIT),
       getMyNotifications(),
+      syncMyUnlocks(),
     ]);
 
   const attendanceByDate = buildAttendanceStatusMap(
@@ -116,6 +118,7 @@ export async function EmployeeDashboard({
         orgDate={todayDate}
         currentStreak={stats.currentStreak}
         unread={unread}
+        freshUnlocks={freshUnlocks}
         contextLine={contextLine}
         stats={[
           { label: "Current Streak", value: `${stats.currentStreak} days` },
