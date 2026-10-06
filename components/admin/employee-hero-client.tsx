@@ -1,9 +1,4 @@
-"use client";
-
-import { useState } from "react";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
-import type { BotExpression } from "@/components/shared/member-avatar";
-import { ExpressionPills } from "@/components/shared/expression-pills";
 import { ProfileHeader } from "@/components/shared/profile-header";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem } from "@/types/employee";
@@ -36,8 +31,6 @@ export function EmployeeHeroClient({
   currentTemplateSource: "individual" | "department" | "default" | "none";
   currentTemplateSourceName: string | null;
 }) {
-  const [expr, setExpr] = useState<BotExpression>("neutral");
-
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
       <div className="min-w-0 flex-1">
@@ -49,11 +42,10 @@ export function EmployeeHeroClient({
           employmentType={employmentType}
           avatar={avatar}
           avatarSize="2xl"
-          expression={expr}
         />
       </div>
 
-      <div className="ml-auto flex shrink-0 items-center gap-2 sm:order-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <EmployeeActionsMenu
           employee={employee}
           isSelf={isSelf}
@@ -66,11 +58,6 @@ export function EmployeeHeroClient({
           hideAssignments={true}
           separateEditButton
         />
-      </div>
-
-      <div className="flex basis-full items-center gap-3 sm:order-1 sm:basis-auto">
-        <span className="text-xs text-muted-foreground">Expressions</span>
-        <ExpressionPills onExpression={setExpr} />
       </div>
     </div>
   );

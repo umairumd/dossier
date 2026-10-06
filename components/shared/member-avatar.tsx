@@ -1,3 +1,3 @@
 "use client";
 
-export { MemberAvatar, type BotExpression } from "@/components/mascot/member-avatar";
+export { MemberAvatar } from "@/components/mascot/member-avatar";
