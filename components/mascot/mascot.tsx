@@ -124,12 +124,14 @@ export interface MascotStaticProps {
   mini?: boolean;
   bodyColor?: string;
   spill?: Spill;
+  /** Fill a parent box instead of locking the layout to `size` pixels. */
+  fitParent?: boolean;
   className?: string;
   alt?: string;
 }
 
 /** One frame, cached as an <img>. Renders a colour placeholder on the server. */
-export function MascotStatic({ avatar, size, state, expression, mini, bodyColor, spill = SPILL_STATIC, className, alt = "" }: MascotStaticProps) {
+export function MascotStatic({ avatar, size, state, expression, mini, bodyColor, spill = SPILL_STATIC, fitParent = false, className, alt = "" }: MascotStaticProps) {
   const [src, setSrc] = useState<string | null>(null);
   const key = useMemo(() => JSON.stringify([avatar, size, state, expression, mini, bodyColor, spill]), [avatar, size, state, expression, mini, bodyColor, spill]);
   useEffect(() => {
@@ -141,7 +143,14 @@ export function MascotStatic({ avatar, size, state, expression, mini, bodyColor,
   }, [key]);
   const pal = PALETTES[avatar.palette];
   return (
-    <span className={cn("relative inline-block shrink-0", className)} style={{ width: size, height: size }}>
+    <span
+      className={cn(
+        "relative shrink-0",
+        fitParent ? "absolute inset-0 size-full" : "inline-block",
+        className,
+      )}
+      style={fitParent ? undefined : { width: size, height: size }}
+    >
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -150,10 +159,10 @@ export function MascotStatic({ avatar, size, state, expression, mini, bodyColor,
           draggable={false}
           className="pointer-events-none absolute max-w-none"
           style={{
-            left: -spill.x * size,
-            top: -spill.top * size,
-            width: size * (1 + 2 * spill.x),
-            height: size * (1 + spill.top + spill.bottom),
+            left: `${-spill.x * 100}%`,
+            top: `${-spill.top * 100}%`,
+            width: `${(1 + 2 * spill.x) * 100}%`,
+            height: `${(1 + spill.top + spill.bottom) * 100}%`,
           }}
         />
       ) : (

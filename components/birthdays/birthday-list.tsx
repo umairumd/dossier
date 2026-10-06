@@ -92,6 +92,7 @@ function BirthdayCard({
         <MemberAvatar
           userId={person.id}
           name={person.full_name}
+          avatar={person.avatar}
           size="xl"
         />
         <div className="flex w-full flex-col items-center gap-0.5">

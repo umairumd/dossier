@@ -141,6 +141,7 @@ export async function EmployeeDashboard({
           viewAllHref="/reports"
           deadline={deadline}
           userName={profile.full_name}
+          avatar={profile.avatar}
           templates={templates}
           viewerRole={profile.role}
           currentUserId={profile.id}

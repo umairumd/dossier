@@ -41,7 +41,7 @@ export const getAllDepartments = cache(
     const { data: departments, error: departmentsError } = await supabase
       .from("departments")
       .select(
-        "id, name, organization_id, manager_id, archived_at, created_at, template_id, manager:profiles!departments_manager_id_fkey(full_name)",
+        "id, name, organization_id, manager_id, archived_at, created_at, template_id, manager:profiles!departments_manager_id_fkey(full_name, avatar)",
       )
       .order("name", { ascending: true });
 
@@ -81,7 +81,7 @@ export const getAllDepartments = cache(
       archived_at: string | null;
       created_at: string;
       template_id: string | null;
-      manager: { full_name: string } | null;
+      manager: { full_name: string; avatar: unknown | null } | null;
     }
 
     return (
@@ -92,6 +92,7 @@ export const getAllDepartments = cache(
       organization_id: department.organization_id,
       manager_id: department.manager_id,
       manager_name: department.manager?.full_name ?? null,
+      manager_avatar: department.manager?.avatar ?? null,
       employee_count: countByDepartment.get(department.id) ?? 0,
       archived_at: department.archived_at,
       created_at: department.created_at,
@@ -175,7 +176,7 @@ export const getDepartmentDetail = cache(
     const { data: department, error: departmentError } = await supabase
       .from("departments")
       .select(
-        "id, name, organization_id, manager_id, archived_at, created_at, template_id, manager:profiles!departments_manager_id_fkey(id, full_name, designation)",
+        "id, name, organization_id, manager_id, archived_at, created_at, template_id, manager:profiles!departments_manager_id_fkey(id, full_name, designation, avatar)",
       )
       .eq("id", departmentId)
       .maybeSingle();
@@ -191,7 +192,7 @@ export const getDepartmentDetail = cache(
     const { data: memberships, error: membersError } = await supabase
       .from("profile_departments")
       .select(
-        "profiles(id, full_name, designation, is_remote, employment_type, is_active, archived_at, has_onboarded, is_reporting)",
+        "profiles(id, full_name, designation, is_remote, employment_type, is_active, archived_at, has_onboarded, is_reporting, avatar)",
       )
       .eq("department_id", departmentId);
 
@@ -209,6 +210,7 @@ export const getDepartmentDetail = cache(
       archived_at: string | null;
       has_onboarded: boolean;
       is_reporting: boolean;
+      avatar: unknown | null;
     };
 
     const members: DepartmentMember[] = [];
@@ -224,6 +226,7 @@ export const getDepartmentDetail = cache(
       members.push({
         id: profile.id,
         full_name: profile.full_name,
+        avatar: profile.avatar,
         designation: profile.designation,
         is_remote: profile.is_remote,
         employment_type: profile.employment_type,

@@ -28,6 +28,7 @@ function EmployeeRow({
       <MemberAvatar
         userId={employee.id}
         name={employee.full_name}
+        avatar={employee.avatar}
         size="sm"
         className="shrink-0"
       />

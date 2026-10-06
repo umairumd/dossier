@@ -36,6 +36,7 @@ export interface EmployeeListItem {
   is_remote: boolean;
   employment_type: "full_time" | "part_time";
   avatar_url: string | null;
+  avatar: unknown | null;
   template_id: string | null;
   date_of_birth: string | null;
   exclude_from_attendance: boolean;

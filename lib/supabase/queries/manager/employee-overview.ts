@@ -19,6 +19,7 @@ interface ProfileRow {
   is_remote: boolean;
   employment_type: TeamMemberOverview["employment_type"];
   avatar_url: string | null;
+  avatar: unknown | null;
   last_seen_at: string | null;
   created_at: string;
   template_id: string | null;
@@ -47,7 +48,7 @@ export const getTeamMemberOverview = cache(
     const { data: profile, error } = await supabase
       .from("profiles")
       .select(
-        "id, full_name, role, designation, is_remote, employment_type, avatar_url, last_seen_at, created_at, template_id, organization_id",
+        "id, full_name, role, designation, is_remote, employment_type, avatar_url, avatar, last_seen_at, created_at, template_id, organization_id",
       )
       .eq("id", employeeId)
       .maybeSingle();
@@ -124,6 +125,7 @@ export const getTeamMemberOverview = cache(
       is_remote: profileRow.is_remote,
       employment_type: profileRow.employment_type,
       avatar_url: profileRow.avatar_url,
+      avatar: profileRow.avatar,
       last_seen_at: profileRow.last_seen_at,
       created_at: profileRow.created_at,
       template_id: profileRow.template_id,

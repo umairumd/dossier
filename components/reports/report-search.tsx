@@ -14,6 +14,7 @@ import type { UserRole } from "@/types/profile";
 export function ReportSearch({
   deadline,
   userName,
+  avatar,
   children,
   templates,
   viewerRole,
@@ -21,6 +22,7 @@ export function ReportSearch({
 }: {
   deadline: DeadlineContext;
   userName: string;
+  avatar?: unknown;
   children: ReactNode;
   templates?: ReportTemplateWithFields[];
   viewerRole?: UserRole;
@@ -106,6 +108,7 @@ export function ReportSearch({
               reports={matchedResults}
               deadline={deadline}
               userName={userName}
+              avatar={avatar}
               showProfileLink={false}
               templates={templates}
               isOwnReport

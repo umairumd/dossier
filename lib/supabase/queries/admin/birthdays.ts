@@ -9,6 +9,7 @@ export interface BirthdayPerson {
   date_of_birth: string | null;
   role: UserRole;
   designation: string | null;
+  avatar: unknown | null;
 }
 
 export interface BirthdayData {
@@ -36,7 +37,7 @@ export const getBirthdayData = cache(
 
     const { data: profiles, error } = await adminClient
       .from("profiles")
-      .select("id, full_name, date_of_birth, role, designation")
+      .select("id, full_name, date_of_birth, role, designation, avatar")
       .eq("organization_id", orgId)
       .eq("is_active", true)
       .is("archived_at", null);
@@ -51,6 +52,7 @@ export const getBirthdayData = cache(
       date_of_birth: row.date_of_birth,
       role: row.role as UserRole,
       designation: row.designation ?? null,
+      avatar: row.avatar,
     }));
 
     const withDOB = people

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
-import type { BotExpression } from "@/components/shared/bot-avatar";
+import type { BotExpression } from "@/components/shared/member-avatar";
 import { ExpressionPills } from "@/components/shared/expression-pills";
 import { ProfileHeader } from "@/components/shared/profile-header";
 import type { DepartmentOption } from "@/types/department";
@@ -14,7 +14,7 @@ export function EmployeeHeroClient({
   designation,
   isRemote,
   employmentType,
-  avatarUrl,
+  avatar,
   employee,
   isSelf,
   departments,
@@ -27,7 +27,7 @@ export function EmployeeHeroClient({
   designation?: string | null;
   isRemote?: boolean;
   employmentType?: "full_time" | "part_time";
-  avatarUrl?: string | null;
+  avatar?: unknown;
   employee: EmployeeListItem;
   isSelf: boolean;
   departments: DepartmentOption[];
@@ -47,9 +47,8 @@ export function EmployeeHeroClient({
           designation={designation}
           isRemote={isRemote}
           employmentType={employmentType}
-          avatarUrl={avatarUrl}
+          avatar={avatar}
           avatarSize="2xl"
-          interactive={true}
           expression={expr}
         />
       </div>

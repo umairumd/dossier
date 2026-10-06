@@ -100,9 +100,8 @@ export async function TeamEmployeeProfile({
           designation={overview.designation}
           isRemote={overview.is_remote}
           employmentType={overview.employment_type}
-          avatarUrl={overview.avatar_url}
+          avatar={overview.avatar}
           avatarSize="2xl"
-          interactive={false}
         />
         {overview.department_names.length > 0 && (
           <p className="text-sm text-muted-foreground">
@@ -196,6 +195,7 @@ export async function TeamEmployeeProfile({
             <ReportHistoryBrowser
               reports={overview.recent_reports}
               userName={overview.full_name}
+              avatar={overview.avatar}
               deadline={getDeadlineContext(settings)}
               templates={templates}
               viewerRole={viewer.role}

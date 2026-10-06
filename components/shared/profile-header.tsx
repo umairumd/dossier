@@ -7,7 +7,7 @@ import {
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { RoleChip } from "@/components/shared/role-chip";
 import { cn } from "@/lib/utils";
-import type { BotExpression } from "@/components/shared/bot-avatar";
+import type { BotExpression } from "@/components/shared/member-avatar";
 
 const filledPillClassName =
   "inline-flex max-w-full items-center rounded-full bg-foreground px-2.5 py-0.5 text-xs font-medium text-background";
@@ -19,7 +19,7 @@ export function ProfileHeader({
   departmentNames,
   isRemote,
   employmentType,
-  avatarUrl,
+  avatar,
   avatarSize = "lg",
   roleLabel,
   joinedLabel,
@@ -32,7 +32,7 @@ export function ProfileHeader({
   departmentNames?: string[];
   isRemote?: boolean;
   employmentType?: "full_time" | "part_time";
-  avatarUrl?: string | null;
+  avatar?: unknown;
   avatarSize?: "md" | "lg" | "xl" | "2xl";
   roleLabel?: string;
   joinedLabel?: string;
@@ -47,7 +47,7 @@ export function ProfileHeader({
         <MemberAvatar
           userId={userId}
           name={name}
-          avatarUrl={avatarUrl ?? undefined}
+          avatar={avatar}
           size={avatarSize}
           interactive={interactive}
           expression={expression}
