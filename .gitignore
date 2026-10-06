@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 # Supabase CLI
 supabase/.temp/
+
+# Local handoff packages and references (never mirrored)
+/_handoff/
+/reference/
+/_internal-reference/

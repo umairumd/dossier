@@ -15,6 +15,8 @@ export interface Profile {
   is_remote: boolean;
   employment_type: "full_time" | "part_time";
   avatar_url: string | null;
+  /** Buddy recipe (profiles.avatar). Null until sanitizeAvatar fills the default. */
+  avatar: unknown | null;
   template_id: string | null;
   date_of_birth?: string | null;
   last_seen_at?: string | null;
