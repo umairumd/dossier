@@ -27,6 +27,8 @@ export interface MomentDef {
   where: string;
   /** What triggers it. */
   trigger: string;
+  /** Moment-tier ids are rate-limited (MOMENT_COOLDOWN_MS). Pointer-driven ones opt out. */
+  cooldown?: false;
   play(e: MascotEngine, after: (ms: number, fn: () => void) => void): void;
 }
 
@@ -56,10 +58,20 @@ export const MOMENTS = {
   }),
 
   // ── Reports ──────────────────────────────────────────────────────────────
+  "report.calm": def({
+    id: "report.calm", title: "Calm (deadline not close yet)", tier: "state", status: "live",
+    where: "Hero", trigger: "Working day, no report yet, more than 1 hour before the deadline",
+    play: (e) => e.setState("idle"),
+  }),
   "report.due": def({
     id: "report.due", title: "Report due", tier: "state", status: "live",
-    where: "Hero", trigger: "Working day, no report yet",
+    where: "Hero", trigger: "Working day, no report yet, last hour before the deadline",
     play: (e) => e.setState("approval"),
+  }),
+  "report.overdue": def({
+    id: "report.overdue", title: "Past the deadline (tired)", tier: "state", status: "live",
+    where: "Hero", trigger: "Working day, deadline passed, still no report",
+    play: (e) => e.setState("ratelimit"),
   }),
   "report.writing": def({
     id: "report.writing", title: "Writing", tier: "state", status: "live",
@@ -67,25 +79,31 @@ export const MOMENTS = {
     play: (e) => e.setState("working"),
   }),
   "report.dropHover": def({
-    id: "report.dropHover", title: "Opens up (hover Submit)", tier: "moment", status: "live",
+    id: "report.dropHover", cooldown: false, title: "Opens up (hover Submit)", tier: "moment", status: "live",
     where: "Hero / submit sheet", trigger: "Pointer enters the Submit button",
     play: (e) => e.setDropMode(1),
   }),
   "report.dropReady": def({
-    id: "report.dropReady", title: "Mouth wide (pressing Submit)", tier: "moment", status: "live",
+    id: "report.dropReady", cooldown: false, title: "Mouth wide (pressing Submit)", tier: "moment", status: "live",
     where: "Hero / submit sheet", trigger: "pointerdown on Submit",
     play: (e) => e.setDropMode(2),
   }),
   "report.dropCancel": def({
-    id: "report.dropCancel", title: "Closes again", tier: "moment", status: "live",
+    id: "report.dropCancel", cooldown: false, title: "Closes again", tier: "moment", status: "live",
     where: "Hero / submit sheet", trigger: "Pointer leaves Submit without submitting",
     play: (e) => e.setDropMode(0),
   }),
   "report.submitted": def({
     id: "report.submitted", title: "Eats the report", tier: "moment", status: "live",
     where: "Hero", trigger: "submitReport() succeeded, on time",
-    // original upload sequence: swallow → chew (content eyes) → round again → small success hop
-    play: (e) => e.swallow(() => { e.setState("finished", false, true); e.hop(); }),
+    // original upload sequence: swallow → chew (content eyes) → round again → small success hop,
+    // then a short happy dance (~3 s)
+    play: (e, after) => e.swallow(() => {
+      e.setState("finished", false, true);
+      e.hop();
+      after(450, () => e.setDancing(true));
+      after(3500, () => e.setDancing(false));
+    }),
   }),
   "report.submittedLate": def({
     id: "report.submittedLate", title: "Eats it, a bit tired", tier: "moment", status: "live",

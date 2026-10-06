@@ -14,7 +14,7 @@ export const IDLE_ACTION_IDS = [
   "glance", "lookAround", "ponder", "peekDown",
   "slowBlink", "doubleBlink", "squint", "sleepyLids", "curious", "wink",
   "sway", "hop", "wiggle", "nod", "stretch",
-  "hum", "shyBlush", "yawn",
+  "hum", "shyBlush", "yawn", "nodOff",
 ] as const;
 export type IdleAction = (typeof IDLE_ACTION_IDS)[number];
 
@@ -22,7 +22,7 @@ export const IDLE_ACTION_GROUP: Record<IdleAction, "gaze" | "eyes" | "body" | "c
   glance: "gaze", lookAround: "gaze", ponder: "combo", peekDown: "gaze",
   slowBlink: "eyes", doubleBlink: "eyes", squint: "eyes", sleepyLids: "eyes", curious: "combo", wink: "eyes",
   sway: "body", hop: "body", wiggle: "body", nod: "body", stretch: "body",
-  hum: "combo", shyBlush: "combo", yawn: "combo",
+  hum: "combo", shyBlush: "combo", yawn: "combo", nodOff: "combo",
 };
 
 export interface Personality {
@@ -78,6 +78,25 @@ export const PERSONALITIES: Record<PersonalityId, Personality> = {
     wander: { x: 0.7, y: 0.2, bias: 0.15, hold: [1.6, 3.2] },
   },
 };
+
+/**
+ * Late night (10 pm – 5 am, org time): everyone turns sleepy for a while — heavy lids,
+ * yawns, nodding off. Overrides the person's own personality until morning.
+ */
+export const LATE_NIGHT: Personality = {
+  id: "sleepy", label: "Late night", blurb: "Yawning, heavy lids, nodding off.",
+  every: [3.5, 7],
+  weights: { yawn: 3, nodOff: 3, slowBlink: 2, sleepyLids: 1, peekDown: 1 },
+  wander: { x: 0.3, y: 0.25, bias: 0.3, hold: [3, 5.5] },
+};
+
+/** True between 22:00 and 05:00 in the given timezone. */
+export function isLateNight(date = new Date(), timeZone = "UTC"): boolean {
+  let tz = timeZone;
+  try { Intl.DateTimeFormat("en-US", { timeZone: tz }); } catch { tz = "UTC"; }
+  const h = Number(new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }).format(date));
+  return h >= 22 || h < 5;
+}
 
 /** Stable personality for a person (same id → same temperament everywhere). */
 export function personalityFor(seed: string): PersonalityId {

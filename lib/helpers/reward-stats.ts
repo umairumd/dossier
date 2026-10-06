@@ -47,6 +47,8 @@ export interface RewardStatsInput {
   deadline: DeadlineContext;
   /** Already passed through safeTimeZone. */
   timeZone: string;
+  /** Fixture clock (YYYY-MM-DD). Defaults to today in `timeZone`. */
+  today?: string;
   createdAt: string;
   dateOfBirth: string | null;
   /** Null for members, admins, and owners. */
@@ -244,7 +246,7 @@ function countTeamCompleteDays(
 
 export function computeRewardStats(input: RewardStatsInput): RewardStats {
   const { attendanceByDate, workingDays, deadline, timeZone } = input;
-  const today = todayInTimezone(timeZone);
+  const today = input.today ?? todayInTimezone(timeZone);
   const joinDate = orgDate(input.createdAt, timeZone, today);
   const reportDates = new Set(input.reports.map((report) => report.report_date));
   const onTime = new Set<string>();
@@ -271,6 +273,8 @@ export function computeRewardStats(input: RewardStatsInput): RewardStats {
   }
 
   let longestStreak = 0;
+  let onTimeStreak = 0;
+  let longestOnTimeStreak = 0;
   if (joinDate <= today || reportDates.size > 0) {
     const earliest = [...reportDates].reduce(
       (min, date) => (date < min ? date : min),
@@ -279,6 +283,7 @@ export function computeRewardStats(input: RewardStatsInput): RewardStats {
     const start = earliest < joinDate ? earliest : joinDate;
     if (start <= today) {
       let run = 0;
+      let onTimeRun = 0;
       for (
         let date = start, guard = 0;
         date <= today && guard < 20000;
@@ -294,11 +299,21 @@ export function computeRewardStats(input: RewardStatsInput): RewardStats {
         if (step === "hit") {
           run += 1;
           if (run > longestStreak) longestStreak = run;
+          // A late report on a counted day breaks the on-time run.
+          // Exempt days never reach here; streakStep skips them first.
+          if (onTime.has(date)) {
+            onTimeRun += 1;
+            if (onTimeRun > longestOnTimeStreak) longestOnTimeStreak = onTimeRun;
+          } else {
+            onTimeRun = 0;
+          }
         } else if (step === "break") {
           run = 0;
+          onTimeRun = 0;
         }
         date = shiftReportDate(date, 1);
       }
+      onTimeStreak = onTimeRun;
     }
   }
 
@@ -306,6 +321,7 @@ export function computeRewardStats(input: RewardStatsInput): RewardStats {
   const currentStreak = computeReportStats(input.reports, timeZone, {
     workingDays,
     attendanceByDate,
+    today,
   }).currentStreak;
 
   return {
@@ -313,6 +329,8 @@ export function computeRewardStats(input: RewardStatsInput): RewardStats {
     onTimeReports: onTime.size,
     currentStreak,
     longestStreak,
+    onTimeStreak,
+    longestOnTimeStreak,
     perfectWeeks: countPerfectWeeks(
       joinDate,
       today,

@@ -40,8 +40,12 @@ export interface MascotProps {
   seed?: string;
   /** Override the derived idle personality. */
   personality?: PersonalityId;
-  /** Which annoyance reaction taps trigger ("dizzy" original spin, or "burst"). Default "dizzy". */
+  /** Which annoyance reaction taps trigger. Default "alternate" (dizzy, then burst, then dizzy…). */
   annoyance?: AnnoyanceMode;
+  /** Soft ambient glow behind the buddy in its colour (state colour when a state has one). */
+  glow?: boolean;
+  /** Late-night mood (10 pm – 5 am org time): yawns, heavy lids, dozes after 1 min. */
+  lateNight?: boolean;
   spill?: Spill;
   /** Fired once mounted — escape hatch for one-off choreography (e.g. lookAt the Submit button). */
   onReady?: (ctl: MascotController) => void;
@@ -51,7 +55,7 @@ export interface MascotProps {
 
 export function Mascot({
   avatar, size, state = "idle", userId = "me", listen = false, follow = "region", followRadius,
-  interactive = false, sleepAfterMs = 0, spill = SPILL_LIVE, onReady, className, seed, personality, annoyance, ...rest
+  interactive = false, sleepAfterMs = 0, spill = SPILL_LIVE, onReady, className, seed, personality, annoyance, glow = false, lateNight = false, ...rest
 }: MascotProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctlRef = useRef<MascotController | null>(null);
@@ -64,7 +68,7 @@ export function Mascot({
     if (!canvas) return;
     const ctl = mount(canvas, {
       avatar, size, spill, follow, followRadius, interactive, sleepAfterMs,
-      seed: seed ?? (userId !== "me" ? userId : undefined), personality, annoyance,
+      seed: seed ?? (userId !== "me" ? userId : undefined), personality, annoyance, glow, lateNight,
       onSound: (n) => synth.play(n),
     });
     ctl.engine.setState(state, true);
@@ -77,6 +81,8 @@ export function Mascot({
 
   useEffect(() => { ctlRef.current?.engine.setAvatar(avatar); }, [avatar]);
   useEffect(() => { ctlRef.current?.engine.setState(state); }, [state]);
+  useEffect(() => { if (ctlRef.current) ctlRef.current.engine.glow = glow; }, [glow]);
+  useEffect(() => { if (ctlRef.current) ctlRef.current.engine.lateNight = lateNight; }, [lateNight]);
   useEffect(() => { ctlRef.current?.setSize(size); }, [size]);
   useEffect(() => { ctlRef.current?.setFollow(follow, followRadius); }, [follow, followRadius]);
 
@@ -90,7 +96,7 @@ export function Mascot({
       const def = MOMENTS[moment as MomentId];
       if (!def) return;
       const t = performance.now();
-      if (def.tier === "moment" && t - (lastPlayed.current.get(moment) ?? -1e9) < MOMENT_COOLDOWN_MS) return;
+      if (def.tier === "moment" && def.cooldown !== false && t - (lastPlayed.current.get(moment) ?? -1e9) < MOMENT_COOLDOWN_MS) return;
       lastPlayed.current.set(moment, t);
       def.play(ctl.engine, (ms, fn) => setTimeout(fn, ms));
     });

@@ -23,17 +23,17 @@ export interface AvatarConfig {
     style: EyeStyleId;
     /** 0.7 – 1 (1 = normal, the slider's maximum) */
     size: number;
-    /** 0.85 – 1.35 (1 = normal, at 30% of the slider) */
+    /** 0.85 – 1.1 (1 = normal, at 60% of the slider) */
     spacing: number;
   };
   cheeks: CheekStyle;
-  /** What taps do: the original dizzy spin, or the burst. Chosen in the builder. */
+  /** Legacy: taps now alternate dizzy → burst for everyone; kept so saved JSON stays valid. */
   reaction: Reaction;
   accessories: Partial<Record<AccessorySlot, AccessoryId>>;
 }
 
 export const EYE_SIZE_RANGE = [0.7, 1] as const;
-export const EYE_SPACING_RANGE = [0.85, 1.35] as const;
+export const EYE_SPACING_RANGE = [0.85, 1.1] as const;
 
 /**
  * Everyone gets a unique avatar on day one: a shape and colour picked from their id
@@ -64,7 +64,7 @@ export function randomAvatar(rng: () => number = Math.random): AvatarConfig {
     eyes: {
       style: pick(ACTIVE_EYE_STYLES, rng()),
       size: +(0.85 + rng() * 0.15).toFixed(2),
-      spacing: +(0.9 + rng() * 0.25).toFixed(2),
+      spacing: +(0.9 + rng() * 0.2).toFixed(2),
     },
     cheeks: pick(ACTIVE_CHEEKS, rng()),
     reaction: "dizzy",
@@ -93,6 +93,8 @@ export function sanitizeAvatar(input: unknown, seed: string, canWear?: (id: Acce
     if (canWear && !canWear(id)) continue;
     accessories[slot as AccessorySlot] = id;
   }
+  // A skin is the whole look: it never combines with gear.
+  if (accessories.body) for (const s of Object.keys(accessories) as AccessorySlot[]) if (s !== "body") delete accessories[s];
   return {
     v: 1,
     // set-aside ids are still accepted so older saved avatars keep rendering
@@ -107,6 +109,17 @@ export function sanitizeAvatar(input: unknown, seed: string, canWear?: (id: Acce
     reaction: isOneOf(REACTIONS, o.reaction) ? o.reaction : base.reaction,
     accessories,
   };
+}
+
+/**
+ * Put an item on (or take a slot off with `id = null`), keeping skins exclusive:
+ * a body skin removes all gear, and any gear removes the skin.
+ */
+export function equipAccessory(a: AvatarConfig, slot: AccessorySlot, id: AccessoryId | null): AvatarConfig {
+  const accessories: AvatarConfig["accessories"] = slot === "body" ? {} : { ...a.accessories };
+  if (slot !== "body") delete accessories.body;
+  if (id) accessories[slot] = id; else delete accessories[slot];
+  return { ...a, accessories };
 }
 
 /** Stable key for caching static renders. */

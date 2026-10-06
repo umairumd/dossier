@@ -42,6 +42,8 @@ export type ReportStatsInput = Pick<DailyReport, "report_date" | "submitted_at">
 export interface ReportStatsOptions {
   workingDays?: number[];
   attendanceByDate?: Map<string, AttendanceStatus>;
+  /** Fixture clock (YYYY-MM-DD). Defaults to org today. */
+  today?: string;
 }
 
 export interface TenureSubmissionRate {
@@ -181,7 +183,8 @@ export function computeReportStats(
   options?: ReportStatsOptions,
 ): ReportStats {
   const reportDates = new Set(reports.map((report) => report.report_date));
-  const todayStr = tz ? todayInTimezone(tz) : todayDateString();
+  const todayStr =
+    options?.today ?? (tz ? todayInTimezone(tz) : todayDateString());
   const workingDays = options?.workingDays;
   const attendanceByDate = options?.attendanceByDate;
 

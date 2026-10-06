@@ -100,6 +100,8 @@ export async function ManagerDashboard({
         onFullDayLeave={onFullDayLeave}
         isBirthday={isBirthday}
         orgDate={todayDate}
+        timeZone={settings.timezone}
+        deadlineHourLocal={settings.reportDeadlineHourLocal}
         currentStreak={currentStreak}
         teamComplete={missingToday === 0 && teamSize > 0}
         unread={unread}

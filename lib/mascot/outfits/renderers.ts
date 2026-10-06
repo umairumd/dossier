@@ -24,6 +24,8 @@ export interface Head {
   eyes?: EyeFrame[];
   /** Body centre in this head's coordinates (for items cut from the body silhouette). */
   body?: { x: number; y: number };
+  /** The head frame (where hats sit) in this slot's coordinates — for ears/bumps on any shape. */
+  crown?: { x: number; y: number; rx: number; ry: number };
   /** Copied from OutfitDef.viewMax by the engine. */
   viewMax?: number;
 }
@@ -43,7 +45,11 @@ export interface OutfitDef {
   /** Cap on how far the item tips back when looking up (radians; default 0.05). */
   viewMax?: number;
   back?(ctx: Ctx, H: Head): void;
+  /** Drawn on the body, under cheeks and eyes (skin patterns). Clip to `path` yourself. */
+  under?(ctx: Ctx, H: Head, path: Path2D): void;
   front?(ctx: Ctx, H: Head, path: Path2D): void;
+  /** Skins only: eye colour while worn (e.g. white eyes inside panda patches). */
+  eyeInk?: string;
   frontAfterEyes?: boolean;
   bodyColors?: [string, string];
 }
@@ -91,7 +97,7 @@ function mochiPath(rx: number, ry: number): Path2D {
     const a = i / n * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
     const x = rx * Math.sign(ca) * Math.pow(Math.abs(ca), e);
     const y = ry * Math.sign(sa) * Math.pow(Math.abs(sa), e);
-    i ? p.lineTo(x, y) : p.moveTo(x, y);
+    if (i) p.lineTo(x, y); else p.moveTo(x, y);
   }
   p.closePath(); return p;
 }
@@ -346,12 +352,12 @@ function partyGeom(H: Head) {
 }
 
 // --- Crown: golden band AROUND the head, spikes all around (back ones behind the head)
-function crownGeom(_H: Head) {
+function crownGeom() {
   const s = 1.05, yb = 0.6, yt = 0.76, n = 8;
   return { s, yb, yt, n, spikeH: 0.36 };
 }
 function crownPart(ctx: Ctx, H: Head, side: number): void { // side: -1 back half, +1 front half
-  const { s, yb, yt, n, spikeH } = crownGeom(H);
+  const { s, yb, yt, n, spikeH } = crownGeom();
   const N = 64; const seg = [];
   for (let i = 0; i <= N; i++) {
     const lon = -Math.PI + i / N * 2 * Math.PI;
@@ -397,7 +403,7 @@ function crownPart(ctx: Ctx, H: Head, side: number): void { // side: -1 back hal
 OUTFITS.crown = {
   slot: 'head',
   fit: 'crown',
-  brimY: (H) => ringLow(H, crownGeom(H).yb, crownGeom(H).s),
+  brimY: (H) => ringLow(H, crownGeom().yb, crownGeom().s),
   back(ctx: Ctx, H: Head) { crownPart(ctx, H, -1); },
   front(ctx: Ctx, H: Head) { crownPart(ctx, H, 1); }
 };
@@ -607,7 +613,7 @@ OUTFITS.scarf = {
 OUTFITS.pumpkin = {
   slot: 'body',
   bodyColors: ['#FFA94D', '#E8590C'],
-  front(ctx: Ctx, H: Head, path: Path2D) {
+  under(ctx: Ctx, H: Head, path: Path2D) {
     ctx.save(); ctx.clip(path);
     for (const lon of [-1.15, -0.55, 0.0, 0.55, 1.15]) {
       const pts: Q[] = [];
@@ -618,6 +624,8 @@ OUTFITS.pumpkin = {
       ctx.strokeStyle = `rgba(150,50,0,${0.22 * zz})`; ctx.lineWidth = H.R * 0.12; ctx.lineCap = 'round'; ctx.stroke();
     }
     ctx.restore();
+  },
+  front(ctx: Ctx, H: Head) {
     // Stem: same language as the character — fat, round-capped, one flat colour.
     const t = proj(H, [0, 0.97, 0]);
     const sway = H.phys.dx * H.R * 0.06;
@@ -637,10 +645,240 @@ OUTFITS.pumpkin = {
   }
 };
 
+// ═══════════════════════ SKINS (body slot) ═══════════════════════
+// A skin recolours the body (bodyColors[1]) and draws its pattern in the `under` pass — on the
+// body but beneath cheeks and eyes — so the face always stays readable. Ears and bumps go in
+// `back` (behind the body) and are placed on the head frame (`H.crown`) so they sit right on
+// every shape, from the wide Soft to the narrow-topped Onigiri.
+
+/** A point on the body surface, with how much it faces the viewer (0..1). */
+function onBody(H: Head, y: number, lon: number, s = 1.0): Q & { f: number } {
+  const q = proj(H, surf(y, lon, s));
+  return { ...q, f: Math.max(0, q.z) };
+}
+function nearEyes(H: Head, q: { x: number; y: number }, pad: number): boolean {
+  return (H.eyes ?? []).some((e) => e.visible && Math.hypot(q.x - e.x, (q.y - e.y) * 0.8) < pad);
+}
+/** Two ears/bumps on top of the head, turning with it. `inner` draws an inner colour. */
+function headBumps(ctx: Ctx, H: Head, o: { spread: number; lift: number; r: number; color: string; inner?: string; innerR?: number }) {
+  const c = H.crown ?? { x: 0, y: 0, rx: H.rx, ry: H.ry };
+  const k = Math.min(c.rx, c.ry);
+  for (const sd of [-1, 1]) {
+    const lon = sd * o.spread + H.yaw;
+    if (Math.cos(lon) < -0.2) continue;
+    const x = c.x + Math.sin(lon) * c.rx * 0.82;
+    const y = c.y - c.ry * o.lift + Math.abs(Math.sin(lon)) * c.ry * 0.1;
+    const r = k * o.r;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = o.color; ctx.fill();
+    if (o.inner) {
+      ctx.beginPath(); ctx.arc(x, y + r * 0.08, r * (o.innerR ?? 0.55), 0, Math.PI * 2); ctx.fillStyle = o.inner; ctx.fill();
+    }
+  }
+}
+/** Region of the body below a horizontal ring (for rinds, bellies…). */
+function belowRing(H: Head, y: number): Path2D {
+  const arc = frontArc(H, y, 1.15);
+  const p = new Path2D(), far = H.rx * 3;
+  p.moveTo(arc[0].x - far, arc[0].y); arc.forEach((q) => p.lineTo(q.x, q.y));
+  p.lineTo(arc[arc.length - 1].x + far, arc[arc.length - 1].y);
+  p.lineTo(far * 2, H.ry * 4); p.lineTo(-far * 2, H.ry * 4); p.closePath();
+  return p;
+}
+function seed(ctx: Ctx, q: Q & { f: number }, len: number, color: string, tilt = 0) {
+  if (q.f < 0.08) return;
+  ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(tilt); ctx.scale(Math.max(0.35, q.f), 1);
+  ctx.beginPath(); ctx.ellipse(0, 0, len * 0.42, len * 0.62, 0, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill(); ctx.restore();
+}
+
+// --- Strawberry: red body, little yellow seeds, a leafy crown on top
+OUTFITS.strawberry = {
+  slot: 'body',
+  bodyColors: ['#F04E6A', '#EE4D68'],
+  under(ctx: Ctx, H: Head, path: Path2D) {
+    ctx.save(); ctx.clip(path);
+    // seeds cover the whole berry, evenly; the eyes are drawn on top, so nothing is
+    // cut out around them (cut-outs made bald patches that followed the gaze)
+    // The face area is fixed on the berry (it turns with the head, like the eyes), so it
+    // gets only a few, smaller seeds; the rest of the berry stays fully seeded.
+    let row = 0;
+    for (let y = 0.84; y > -0.97; y -= 0.24, row++) {
+      let col = 0;
+      for (let lon = -2.7 + (row % 2) * 0.25; lon <= 2.7; lon += 0.5, col++) {
+        const face = Math.abs(lon) < 0.85 && y < 0.5 && y > -0.42;
+        if (face && (row + col) % 3 !== 0) continue;
+        seed(ctx, onBody(H, y, lon), H.R * (face ? 0.045 : 0.062), '#FFE58A', lon * 0.15);
+      }
+    }
+    ctx.restore();
+  },
+  front(ctx: Ctx, H: Head) {
+    const t = proj(H, [0, 0.97, 0]);
+    const sway = H.phys.dx * 0.15;
+    ctx.save(); ctx.translate(t.x, t.y + H.R * 0.04);
+    for (let i = 0; i < 6; i++) {
+      const a = -Math.PI / 2 + (i - 2.5) * 0.5 + sway;
+      ctx.save(); ctx.rotate(a + Math.PI / 2);
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(-H.R * 0.11, -H.R * 0.14, 0, -H.R * 0.3);
+      ctx.quadraticCurveTo(H.R * 0.11, -H.R * 0.14, 0, 0);
+      ctx.fillStyle = '#4FA845'; ctx.fill(); ctx.restore();
+    }
+    ctx.beginPath(); ctx.moveTo(0, -H.R * 0.02); ctx.quadraticCurveTo(H.R * 0.03, -H.R * 0.16, H.R * 0.09, -H.R * 0.22);
+    ctx.strokeStyle = '#3E8A37'; ctx.lineWidth = H.R * 0.07; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.restore();
+  },
+};
+
+// --- Watermelon: pink flesh, dark seeds, green rind along the bottom
+OUTFITS.watermelon = {
+  slot: 'body',
+  bodyColors: ['#FF6B7A', '#FF6B7A'],
+  under(ctx: Ctx, H: Head, path: Path2D) {
+    ctx.save(); ctx.clip(path);
+    ctx.fillStyle = '#D9F2C2'; ctx.fill(belowRing(H, -0.5));
+    ctx.fillStyle = '#3F9E4F'; ctx.fill(belowRing(H, -0.64));
+    const seeds: [number, number][] = [[0.6, -0.9], [0.55, 0.85], [0.25, -1.3], [0.2, 1.25], [-0.22, -1.0], [-0.25, 1.0], [0.82, 0.1], [-0.3, 0]];
+    for (const [y, lon] of seeds) {
+      seed(ctx, onBody(H, y, lon), H.R * 0.1, '#2A1F22', lon * 0.25);
+    }
+    ctx.restore();
+  },
+};
+
+// --- Panda: white body, black ears and eye patches (eyes turn white inside them)
+OUTFITS.panda = {
+  slot: 'body',
+  bodyColors: ['#F3F3EF', '#F3F3EF'],
+  eyeInk: '#FFFFFF',
+  back(ctx: Ctx, H: Head) {
+    headBumps(ctx, H, { spread: 0.72, lift: 0.98, r: 0.3, color: '#25272D' });
+  },
+  under(ctx: Ctx, H: Head, path: Path2D) {
+    ctx.save(); ctx.clip(path);
+    for (const e of H.eyes ?? []) {
+      if (!e.visible) continue;
+      const rx = Math.max(e.w * 1.9, H.R * 0.26) * e.fx;
+      const ry = Math.max(e.h * 0.95, H.R * 0.3) * e.fy;
+      ctx.beginPath(); ctx.ellipse(e.x + e.sd * H.R * 0.02, e.y + H.R * 0.05, rx, ry, e.sd * 0.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#25272D'; ctx.fill();
+    }
+    ctx.restore();
+  },
+};
+
+// --- Tiger: orange with dark stripes, cream muzzle, round ears
+OUTFITS.tiger = {
+  slot: 'body',
+  bodyColors: ['#F28A2E', '#F28A2E'],
+  back(ctx: Ctx, H: Head) {
+    headBumps(ctx, H, { spread: 0.8, lift: 0.8, r: 0.24, color: '#F28A2E', inner: '#3A2618', innerR: 0.5 });
+  },
+  under(ctx: Ctx, H: Head, path: Path2D) {
+    ctx.save(); ctx.clip(path);
+    const m = onBody(H, -0.42, 0);
+    if (m.f > 0.2) {
+      ctx.beginPath(); ctx.ellipse(m.x, m.y, H.R * 0.42 * Math.max(0.4, m.f), H.R * 0.26, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFF1DE'; ctx.fill();
+    }
+    ctx.lineCap = 'round'; ctx.strokeStyle = '#3A2618';
+    const stripe = (pts: [number, number][], w: number) => {
+      const q = pts.map(([y, lon]) => onBody(H, y, lon));
+      if (q.every((p) => p.f < 0.1) || q.some((p) => nearEyes(H, p, H.R * 0.3))) return;
+      ctx.beginPath(); q.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+      ctx.lineWidth = w; ctx.stroke();
+    };
+    for (const sd of [-1, 1]) {
+      stripe([[0.45, sd * 1.55], [0.3, sd * 1.15], [0.2, sd * 0.95]], H.R * 0.08);
+      stripe([[0.05, sd * 1.6], [-0.05, sd * 1.25], [-0.12, sd * 1.05]], H.R * 0.08);
+      stripe([[-0.35, sd * 1.6], [-0.42, sd * 1.3]], H.R * 0.07);
+    }
+    for (const lon of [-0.28, 0, 0.28]) stripe([[0.98, lon], [0.8, lon * 0.9]], H.R * 0.075);
+    ctx.restore();
+  },
+};
+
+// --- Cow: cream with dark patches and a pink snout
+OUTFITS.cow = {
+  slot: 'body',
+  bodyColors: ['#F6F3EC', '#F6F3EC'],
+  back(ctx: Ctx, H: Head) {
+    headBumps(ctx, H, { spread: 1.05, lift: 0.6, r: 0.2, color: '#F6F3EC', inner: '#F2A7B5', innerR: 0.55 });
+  },
+  under(ctx: Ctx, H: Head, path: Path2D) {
+    ctx.save(); ctx.clip(path);
+    const spots: [number, number, number][] = [[0.55, -1.0, 0.3], [0.15, 1.15, 0.32], [-0.6, -0.75, 0.24], [0.88, 0.55, 0.22], [-0.45, 1.5, 0.2]];
+    for (const [y, lon, r] of spots) {
+      const q = onBody(H, y, lon);
+      if (q.f < 0.06 || nearEyes(H, q, H.R * (0.3 + r))) continue;
+      ctx.save(); ctx.translate(q.x, q.y); ctx.scale(Math.max(0.4, q.f), 1); ctx.fillStyle = '#2E2A28';
+      const R0 = H.R * r;
+      ctx.beginPath(); ctx.arc(0, 0, R0, 0, Math.PI * 2); ctx.arc(R0 * 0.6, -R0 * 0.35, R0 * 0.62, 0, Math.PI * 2); ctx.arc(-R0 * 0.55, R0 * 0.4, R0 * 0.55, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    const s = onBody(H, -0.5, 0);
+    if (s.f > 0.2) {
+      const w = H.R * 0.4 * Math.max(0.45, s.f), h = H.R * 0.22;
+      ctx.beginPath(); ctx.ellipse(s.x, s.y, w, h, 0, 0, Math.PI * 2); ctx.fillStyle = '#F2A7B5'; ctx.fill();
+      ctx.fillStyle = '#C46F84';
+      for (const sd of [-1, 1]) { ctx.beginPath(); ctx.ellipse(s.x + sd * w * 0.38, s.y, w * 0.11, h * 0.26, 0, 0, Math.PI * 2); ctx.fill(); }
+    }
+    ctx.restore();
+  },
+};
+
+// --- Frog: green with eye bumps on top and a pale belly
+OUTFITS.frog = {
+  slot: 'body',
+  bodyColors: ['#74BF57', '#74BF57'],
+  back(ctx: Ctx, H: Head) {
+    headBumps(ctx, H, { spread: 0.5, lift: 0.98, r: 0.36, color: '#74BF57' });
+  },
+  under(ctx: Ctx, H: Head, path: Path2D) {
+    ctx.save(); ctx.clip(path);
+    const b = onBody(H, -0.62, 0);
+    if (b.f > 0.15) {
+      ctx.beginPath(); ctx.ellipse(b.x, b.y + H.R * 0.12, H.R * 0.72 * Math.max(0.5, b.f), H.R * 0.48, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#CDEBAE'; ctx.fill();
+    }
+    ctx.restore();
+  },
+};
+
+// --- Snowman (December): snow-white, carrot nose, coal buttons
+OUTFITS.snowman = {
+  slot: 'body',
+  bodyColors: ['#F4F7FB', '#F4F7FB'],
+  under(ctx: Ctx, H: Head, path: Path2D) {
+    ctx.save(); ctx.clip(path);
+    for (const y of [-0.3, -0.53, -0.76]) {
+      const q = onBody(H, y, 0);
+      if (q.f < 0.2) continue;
+      ctx.beginPath(); ctx.arc(q.x, q.y, H.R * 0.075, 0, Math.PI * 2); ctx.fillStyle = '#2F3237'; ctx.fill();
+    }
+    // a light dusting of snow-blue speckles on the sides
+    for (const [y, lon] of [[0.6, -1.1], [0.2, 1.3], [-0.2, -1.4], [0.75, 0.9], [-0.5, 1.2]] as [number, number][]) {
+      const q = onBody(H, y, lon);
+      if (q.f < 0.1) continue;
+      ctx.beginPath(); ctx.arc(q.x, q.y, H.R * 0.045, 0, Math.PI * 2); ctx.fillStyle = '#D6E3F2'; ctx.fill();
+    }
+    ctx.restore();
+  },
+  front(ctx: Ctx, H: Head) {
+    const eyes = (H.eyes ?? []).filter((e) => e.visible);
+    if (eyes.length < 2) return;
+    const x = (eyes[0].x + eyes[1].x) / 2, y = Math.max(eyes[0].y, eyes[1].y) + Math.max(eyes[0].h, eyes[1].h) * 0.35 + H.R * 0.06;
+    const dir = Math.sin(H.yaw) >= 0 ? 1 : -1;
+    const len = H.R * (0.26 + 0.16 * Math.abs(Math.sin(H.yaw)));
+    ctx.beginPath(); ctx.moveTo(x - dir * H.R * 0.02, y - H.R * 0.07); ctx.lineTo(x + dir * len, y + H.R * 0.02); ctx.lineTo(x - dir * H.R * 0.02, y + H.R * 0.07); ctx.closePath();
+    ctx.fillStyle = '#F28C38'; ctx.lineJoin = 'round'; ctx.fill();
+  },
+};
+
 // --- Bow (kept, now anchored in 3D so it turns with the head)
 OUTFITS.bow = {
   slot: 'head',
-  front(ctx: Ctx, H: Head, path: Path2D) {
+  front(ctx: Ctx, H: Head) {
     const a = proj(H, surf(0.86, 0.55, 1.02));
     if (a.z < -0.2) return;
     const s = H.R * 0.26, sq = Math.max(0.45, Math.cos(0.55 + H.yaw));

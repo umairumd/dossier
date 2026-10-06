@@ -1,5 +1,5 @@
 import { LogOut } from "lucide-react";
-import { logout } from "@/lib/actions/auth";
+import { SignOutForm } from "@/components/auth/sign-out-form";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import {
   DropdownMenu,
@@ -37,12 +37,12 @@ export function UserMenu({ profile }: { profile: Profile }) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild variant="destructive">
-          <form action={logout} className="w-full">
+          <SignOutForm className="w-full">
             <button type="submit" className="flex w-full items-center gap-1.5">
               <LogOut />
               Sign out
             </button>
-          </form>
+          </SignOutForm>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

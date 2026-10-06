@@ -17,6 +17,7 @@ import { computeRewardStats } from "@/lib/helpers/reward-stats";
 import { getDeadlineContext, getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { getTeamReportingRoster } from "@/lib/supabase/queries/manager/team";
 import {
+  SET_ASIDE,
   type AccessoryId, type AvatarConfig, type RewardStats, evaluateUnlocks, isWearable, sanitizeAvatar,
 } from "@/lib/mascot";
 import type { AttendanceStatus } from "@/types/attendance";
@@ -26,6 +27,8 @@ const EMPTY_REWARD_STATS: RewardStats = {
   onTimeReports: 0,
   currentStreak: 0,
   longestStreak: 0,
+  onTimeStreak: 0,
+  longestOnTimeStreak: 0,
   perfectWeeks: 0,
   perfectMonths: 0,
   tenureDays: 0,
@@ -81,7 +84,9 @@ export async function syncMyUnlocks(): Promise<AccessoryId[]> {
   if (!user) return [];
   const stats = await getRewardStats(user.id);
   const owned = await ownedItems(user.id);
-  const fresh = evaluateUnlocks(stats, owned);
+  const fresh = evaluateUnlocks(stats, owned).filter(
+    (id) => !SET_ASIDE.accessories.includes(id),
+  );
   if (!fresh.length) return [];
   // Unlocks are written with the service role (no client insert policy).
   const admin = createAdminClient();

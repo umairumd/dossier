@@ -11,7 +11,7 @@ export * from "./catalog";
 export { Ease, hashString, hexToRGB } from "./core";
 export { MascotEngine, STATES, STATE_IDS, STATE_GLOW, EMOTE_IDS, ANGER_THRESHOLDS, ANNOYANCE_MODES } from "./engine";
 export type { MascotState, Emote, SoundName, EngineOptions, AnnoyanceMode } from "./engine";
-export { PERSONALITIES, PERSONALITY_IDS, IDLE_ACTION_IDS, IDLE_ACTION_GROUP, personalityFor } from "./idle";
+export { PERSONALITIES, PERSONALITY_IDS, IDLE_ACTION_IDS, IDLE_ACTION_GROUP, LATE_NIGHT, isLateNight, personalityFor } from "./idle";
 export type { PersonalityId, Personality, IdleAction } from "./idle";
 export { EYE_STYLES, EYE_STYLE_IDS, EXPRESSION_IDS } from "./eyes";
 export type { EyeStyleId, Expression } from "./eyes";

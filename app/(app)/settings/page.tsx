@@ -1,4 +1,5 @@
 import { Calendar, Flame, LogOut, TrendingUp } from "lucide-react";
+import { SignOutForm } from "@/components/auth/sign-out-form";
 import {
   getCurrentProfileWithDepartment,
   getCurrentUserEmail,
@@ -6,7 +7,6 @@ import {
 import { getReportStatsData } from "@/lib/supabase/queries/reports";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { createClient } from "@/lib/supabase/server";
-import { logout } from "@/lib/actions/auth";
 import { getMyRewardStats, getMyUnlockIds } from "@/lib/actions/avatar";
 import { dateNDaysAgo, formatDate, safeTimeZone } from "@/lib/helpers/dates";
 import {
@@ -27,16 +27,15 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ProfileForm } from "@/components/settings/profile-form";
-import { YourBuddyCard } from "@/components/settings/your-buddy-card";
+import { SettingsProfileBuddy } from "@/components/settings/settings-profile-buddy";
 import { PageHeader } from "@/components/shared/page-header";
-import { ProfileHeader } from "@/components/shared/profile-header";
 
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ wear?: string }>;
+  searchParams: Promise<{ wear?: string; buddy?: string }>;
 }) {
-  const { wear } = await searchParams;
+  const { wear, buddy } = await searchParams;
   const supabase = await createClient();
   const [profile, email, statsRows, settings, attendanceResult, ownedIds, rewardStats] =
     await Promise.all([
@@ -83,7 +82,8 @@ export default async function SettingsPage({
           <CardTitle className="text-base">Profile</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
-          <ProfileHeader
+          <SettingsProfileBuddy
+            key={`${buddy ?? ""}:${wear ?? ""}`}
             userId={profile.id}
             name={profile.full_name}
             designation={profile.designation}
@@ -91,9 +91,14 @@ export default async function SettingsPage({
             isRemote={profile.is_remote}
             employmentType={profile.employment_type}
             avatar={profile.avatar}
-            avatarSize="xl"
             roleLabel={getRoleLabel(profile.role)}
             joinedLabel={`Joined ${formatDate(profile.created_at.slice(0, 10))}`}
+            ownedIds={ownedIds}
+            stats={rewardStats}
+            timeZone={safeTimeZone(settings.timezone)}
+            nowIso={new Date().toISOString()}
+            wear={wear}
+            fromQuery={buddy === "open" || Boolean(wear)}
           />
 
           <Separator />
@@ -109,16 +114,6 @@ export default async function SettingsPage({
           />
         </CardContent>
       </Card>
-
-      <YourBuddyCard
-        userId={profile.id}
-        avatar={profile.avatar}
-        ownedIds={ownedIds}
-        stats={rewardStats}
-        timeZone={safeTimeZone(settings.timezone)}
-        nowIso={new Date().toISOString()}
-        wear={wear}
-      />
 
       <Card className="card-gradient">
         <CardHeader className="pb-3">
@@ -168,12 +163,12 @@ export default async function SettingsPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={logout}>
+          <SignOutForm>
             <Button type="submit" variant="outline">
               <LogOut />
               Sign Out
             </Button>
-          </form>
+          </SignOutForm>
         </CardContent>
       </Card>
     </div>

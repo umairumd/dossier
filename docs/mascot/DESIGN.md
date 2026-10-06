@@ -9,7 +9,24 @@ no glossy highlights, no outlines. Effects animate by scale, not by fading.
 
 ---
 
-## 1. Identity (all free, never gated)
+## Round 2 updates (these supersede the sections below where they differ)
+
+| Area | Change |
+|---|---|
+| Poke reaction | No setting any more. Taps **alternate** for everyone: the first annoyance episode ends **dizzy** (3 quick taps), the next builds to the **burst** (10 taps), then dizzy again. `avatar.reaction` stays in saved JSON for compatibility and is ignored. |
+| Eye spacing | Range is now **0.85 – 1.10** (old midpoint is the new max). Saved values above 1.10 are clamped by `sanitizeAvatar`. |
+| Glow | Soft, wide ambient glow behind the live buddy in its body colour; shifts to the state colour (amber when due, red on error, green when done). Engine option `glow`; `<Mascot glow>`. Live buddies only (hero + builder preview). |
+| Late night | 10 pm – 5 am **org time**: heavy lids, yawns, nodding off; dozes after 1 min without input. `isLateNight(date, tz)` + `<Mascot lateNight>`. |
+| After submit | `report.submitted` now ends with a ~3 s happy dance (engine moment, no app work). |
+| "!" badge | Only in the **last hour** before the deadline. Before that the hero buddy is calm (`idle`); after the deadline without a report it looks tired (`ratelimit`), never alarmed. |
+| Wave | Plays on every new sign-in **and** on the first dashboard visit of each org day. |
+| Hover feed | Hovering the hero's own **Submit** button opens the buddy up (drop box), same as the sheet's button. |
+| Customise | Settings → Profile gets **Customise buddy**, which opens a **dialog** with the whole builder + wardrobe. Deep link `/settings?buddy=open` (also used by the dashboard nudge and by `?wear=<id>`). |
+| Halo | Unlocks after **30 consecutive on-time working days** (`onTimeStreak`), so the bar fills day by day. |
+| Skins | New: **Panda** and **Frog** (free starters), **Watermelon** (100 reports), **Snowman** (seasonal Dec 1 – Jan 31). Cow, Tiger and Strawberry are built but set aside. Pumpkin stripes now sit under the eyes. |
+| Deadline moments | New state moments `report.calm` (→ idle) and `report.overdue` (→ tired) sit beside `report.due` in `moments.ts`. |
+
+## 1. Look (all free, never gated)
 
 Stored in `profiles.avatar` (jsonb, ~200 bytes). `null` = default from the user id.
 
