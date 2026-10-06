@@ -7,7 +7,8 @@ import { getReportStatsData } from "@/lib/supabase/queries/reports";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/lib/actions/auth";
-import { dateNDaysAgo, formatDate } from "@/lib/helpers/dates";
+import { getMyRewardStats, getMyUnlockIds } from "@/lib/actions/avatar";
+import { dateNDaysAgo, formatDate, safeTimeZone } from "@/lib/helpers/dates";
 import {
   buildAttendanceStatusMap,
   computeReportStats,
@@ -26,12 +27,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ProfileForm } from "@/components/settings/profile-form";
+import { YourBuddyCard } from "@/components/settings/your-buddy-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { ProfileHeader } from "@/components/shared/profile-header";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
-  const [profile, email, statsRows, settings, attendanceResult] =
+  const [profile, email, statsRows, settings, attendanceResult, ownedIds, rewardStats] =
     await Promise.all([
       getCurrentProfileWithDepartment(),
       getCurrentUserEmail(),
@@ -48,6 +50,8 @@ export default async function SettingsPage() {
           .eq("profile_id", user.id)
           .gte("date", dateNDaysAgo(399));
       })(),
+      getMyUnlockIds(),
+      getMyRewardStats(),
     ]);
 
   if (!profile) {
@@ -100,6 +104,15 @@ export default async function SettingsPage() {
           />
         </CardContent>
       </Card>
+
+      <YourBuddyCard
+        userId={profile.id}
+        avatar={profile.avatar}
+        ownedIds={ownedIds}
+        stats={rewardStats}
+        timeZone={safeTimeZone(settings.timezone)}
+        nowIso={new Date().toISOString()}
+      />
 
       <Card className="card-gradient">
         <CardHeader className="pb-3">

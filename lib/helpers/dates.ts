@@ -104,6 +104,16 @@ export function todayInTimezone(tz: string): string {
   return dateInTimezone(new Date(), tz);
 }
 
+/** IANA zone, or UTC when the stored value would throw in Intl. */
+export function safeTimeZone(timeZone: string) {
+  try {
+    Intl.DateTimeFormat("en-US", { timeZone });
+    return timeZone;
+  } catch {
+    return "UTC";
+  }
+}
+
 /**
  * Format an instant as YYYY-MM-DD in the given IANA timezone — same
  * Intl.DateTimeFormat("en-CA") path as todayInTimezone / getSubmissionStatus.
