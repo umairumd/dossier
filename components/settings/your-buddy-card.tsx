@@ -5,6 +5,7 @@ import {
   useId,
   useMemo,
   useState,
+  useSyncExternalStore,
   useTransition,
   type ReactNode,
 } from "react";
@@ -154,6 +155,75 @@ function progressCopy(id: AccessoryId, stats: RewardStats) {
   };
 }
 
+const SEEN_KEY = "dossier-buddy-seen-unlocks";
+const SEEN_EVENT = "dossier-buddy-seen-unlocks";
+
+function readSeen() {
+  try {
+    return localStorage.getItem(SEEN_KEY) ?? "[]";
+  } catch {
+    return "[]";
+  }
+}
+
+function subscribeSeen(onChange: () => void) {
+  window.addEventListener(SEEN_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(SEEN_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+function parseSeen(raw: string) {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return new Set<string>();
+    return new Set(
+      parsed.filter((item): item is string => typeof item === "string"),
+    );
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function markUnlockSeen(id: string) {
+  try {
+    const ids = [...parseSeen(readSeen())];
+    if (ids.includes(id)) return;
+    localStorage.setItem(SEEN_KEY, JSON.stringify([...ids, id]));
+    window.dispatchEvent(new Event(SEEN_EVENT));
+  } catch {
+    // Storage blocked: the dot stays for this visit.
+  }
+}
+
+function equippableWear(
+  wear: string | undefined,
+  ownedIds: readonly string[],
+  now: Date,
+  timeZone: string,
+): AccessoryId | null {
+  if (!wear || !(ACCESSORY_IDS as readonly string[]).includes(wear)) return null;
+  const id = wear as AccessoryId;
+  if (!isWearable(id, new Set(ownedIds), now, timeZone)) return null;
+  return id;
+}
+
+function isStarter(id: AccessoryId) {
+  return ACCESSORIES[id].unlock.some((rule) => rule.kind === "starter");
+}
+
+function withWornItem(base: AvatarConfig, id: AccessoryId | null): AvatarConfig {
+  if (!id) return base;
+  const slot = ACCESSORIES[id].slot;
+  if (base.accessories[slot] === id) return base;
+  return {
+    ...base,
+    accessories: { ...base.accessories, [slot]: id },
+  };
+}
+
 export function YourBuddyCard({
   userId,
   avatar,
@@ -161,6 +231,7 @@ export function YourBuddyCard({
   stats,
   timeZone,
   nowIso,
+  wear,
 }: {
   userId: string;
   avatar: unknown;
@@ -169,20 +240,42 @@ export function YourBuddyCard({
   timeZone: string;
   /** Server instant, so seasonal windows match between render and hydration. */
   nowIso: string;
+  /** `?wear=` equips this item in the draft. Save stays manual. */
+  wear?: string;
 }) {
+  const now = useMemo(() => new Date(nowIso), [nowIso]);
   const initial = useMemo(
     () => sanitizeAvatar(avatar, userId),
     [avatar, userId],
   );
+  const equippedWear = useMemo(
+    () => equippableWear(wear, ownedIds, now, timeZone),
+    [wear, ownedIds, now, timeZone],
+  );
+  const worn = useMemo(
+    () => withWornItem(initial, equippedWear),
+    [initial, equippedWear],
+  );
   const [saved, setSaved] = useState(initial);
-  const [draft, setDraft] = useState(initial);
+  const [draft, setDraft] = useState(worn);
+  const seenRaw = useSyncExternalStore(subscribeSeen, readSeen, () => "[]");
+  const seen = useMemo(() => {
+    const ids = parseSeen(seenRaw);
+    if (equippedWear) ids.add(equippedWear);
+    return ids;
+  }, [seenRaw, equippedWear]);
   const [liveReady, setLiveReady] = useState(false);
   const [isPending, startTransition] = useTransition();
   const owned = useMemo(() => new Set(ownedIds), [ownedIds]);
-  const now = useMemo(() => new Date(nowIso), [nowIso]);
   const dirty = recipeKey(draft) !== recipeKey(saved);
   const eyeSizeLabel = useId();
   const eyeSpacingLabel = useId();
+
+  useEffect(() => {
+    if (!equippedWear) return;
+    markUnlockSeen(equippedWear);
+    document.getElementById("your-buddy")?.scrollIntoView({ block: "start" });
+  }, [equippedWear]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -455,6 +548,8 @@ export function YourBuddyCard({
                           stats={stats}
                           now={now}
                           timeZone={timeZone}
+                          isNew={owned.has(id) && !isStarter(id) && !seen.has(id)}
+                          onSeen={() => markUnlockSeen(id)}
                           onToggle={() => toggleItem(id)}
                         />
                       ))}
@@ -541,6 +636,8 @@ function WardrobeTile({
   stats,
   now,
   timeZone,
+  isNew,
+  onSeen,
   onToggle,
 }: {
   id: AccessoryId;
@@ -549,6 +646,8 @@ function WardrobeTile({
   stats: RewardStats;
   now: Date;
   timeZone: string;
+  isNew: boolean;
+  onSeen: () => void;
   onToggle: () => void;
 }) {
   const def = ACCESSORIES[id];
@@ -569,11 +668,12 @@ function WardrobeTile({
       aria-pressed={on}
       aria-disabled={locked}
       onClick={() => {
+        if (owned.has(id)) onSeen();
         if (locked) return;
         onToggle();
       }}
       className={cn(
-        "flex h-full flex-col items-center gap-1.5 rounded-xl px-2.5 pt-6 pb-3 text-center ring-1 transition-[background-color,box-shadow,transform] duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        "relative flex h-full flex-col items-center gap-1.5 rounded-xl px-2.5 pt-6 pb-3 text-center ring-1 transition-[background-color,box-shadow,transform] duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         on
           ? "bg-primary/10 ring-primary"
           : "ring-foreground/10 hover:bg-foreground/5",
@@ -581,6 +681,12 @@ function WardrobeTile({
         !locked && "active:scale-[0.98]",
       )}
     >
+      {isNew && (
+        <span
+          aria-hidden
+          className="absolute top-2 right-2 size-2 rounded-full bg-primary ring-2 ring-card"
+        />
+      )}
       <span className="relative">
         <span className={cn("block transition-opacity", locked && "opacity-40 grayscale")}>
           <BuddyStill avatar={preview} px={48} />
@@ -592,7 +698,10 @@ function WardrobeTile({
           />
         )}
       </span>
-      <span className="text-xs leading-tight font-medium">{def.label}</span>
+      <span className="text-xs leading-tight font-medium">
+        {isNew && <span className="sr-only">New. </span>}
+        {def.label}
+      </span>
       <span className="flex flex-wrap items-center justify-center gap-1">
         <Badge
           variant="outline"

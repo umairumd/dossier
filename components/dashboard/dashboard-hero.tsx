@@ -4,6 +4,7 @@ import {
   HeroIntro,
   type HeroNotification,
 } from "@/components/dashboard/hero-buddy";
+import type { AccessoryId } from "@/lib/mascot";
 import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
 
 export interface HeroStat {
@@ -27,6 +28,8 @@ interface DashboardHeroProps {
   currentStreak?: number;
   teamComplete?: boolean;
   unread: HeroNotification[];
+  /** Ids syncMyUnlocks just inserted, including starters. */
+  freshUnlocks?: AccessoryId[];
   /** Adaptive report-action row (submit / submitted) below the hero body. */
   reportStatus?: ReactNode;
 }
@@ -47,6 +50,7 @@ export function DashboardHero({
   currentStreak,
   teamComplete,
   unread,
+  freshUnlocks,
   reportStatus,
 }: DashboardHeroProps) {
   const meta = [designation, departmentNames?.join(", ")]
@@ -71,6 +75,7 @@ export function DashboardHero({
             currentStreak={currentStreak}
             teamComplete={teamComplete}
             unread={unread}
+            freshUnlocks={freshUnlocks}
           />
           <div className="flex min-w-0 flex-col gap-0.5">
             <DashboardGreeting name={name} />

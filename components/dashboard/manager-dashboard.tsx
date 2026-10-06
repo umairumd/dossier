@@ -8,6 +8,7 @@ import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
 import { getMyNotifications } from "@/lib/supabase/queries/notifications";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { createClient } from "@/lib/supabase/server";
+import { syncMyUnlocks } from "@/lib/actions/avatar";
 import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import {
@@ -35,7 +36,7 @@ export async function ManagerDashboard({
   profile: ProfileWithDepartment;
 }) {
   const supabase = await createClient();
-  const [todayReport, members, insights, settings, template, statsRows, attendanceResult, notifications] = await Promise.all([
+  const [todayReport, members, insights, settings, template, statsRows, attendanceResult, notifications, freshUnlocks] = await Promise.all([
     getTodayReport(),
     getTeamReportsForDate(),
     getTeamInsights(),
@@ -48,6 +49,7 @@ export async function ManagerDashboard({
       .eq("profile_id", profile.id)
       .gte("date", dateNDaysAgo(399)),
     getMyNotifications(),
+    syncMyUnlocks(),
   ]);
   const teamSize = members.length;
   const submittedToday = members.filter((member) => member.report).length;
@@ -101,6 +103,7 @@ export async function ManagerDashboard({
         currentStreak={currentStreak}
         teamComplete={missingToday === 0 && teamSize > 0}
         unread={unread}
+        freshUnlocks={freshUnlocks}
         contextLine={contextLine}
         stats={
           isOffDay

@@ -31,7 +31,12 @@ import { YourBuddyCard } from "@/components/settings/your-buddy-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { ProfileHeader } from "@/components/shared/profile-header";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ wear?: string }>;
+}) {
+  const { wear } = await searchParams;
   const supabase = await createClient();
   const [profile, email, statsRows, settings, attendanceResult, ownedIds, rewardStats] =
     await Promise.all([
@@ -112,6 +117,7 @@ export default async function SettingsPage() {
         stats={rewardStats}
         timeZone={safeTimeZone(settings.timezone)}
         nowIso={new Date().toISOString()}
+        wear={wear}
       />
 
       <Card className="card-gradient">

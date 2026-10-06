@@ -1,9 +1,11 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { mascotBus } from "@/components/mascot/mascot-bus";
+import { toastUnlocked } from "@/components/mascot/unlock-toast";
 import { lookAtHero, skipNextHeroResting } from "@/components/dashboard/hero-controller";
 import { Button } from "@/components/ui/button";
 import { DynamicFieldRenderer } from "@/components/reports/dynamic-field-renderer";
@@ -89,6 +91,7 @@ export function DynamicReportForm({
     initialReport?.report_date ?? null,
   );
   const ateRef = useRef(false);
+  const router = useRouter();
   const target = userId ? { userId } : {};
 
   const fail = (message: string) => {
@@ -180,6 +183,9 @@ export function DynamicReportForm({
           result.onTime ? "report.submitted" : "report.submittedLate",
           target,
         );
+      }
+      if (toastUnlocked(result.unlocked ?? [], (href) => router.push(href))) {
+        mascotBus.emit("reward.unlocked", target);
       }
       toast.success("Report submitted for today.");
       onSubmitted();
