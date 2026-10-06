@@ -25,6 +25,8 @@ interface DashboardHeroProps {
   onFullDayLeave: boolean;
   isBirthday: boolean;
   orgDate: string;
+  timeZone: string;
+  deadlineHourLocal: number;
   currentStreak?: number;
   teamComplete?: boolean;
   unread: HeroNotification[];
@@ -47,6 +49,8 @@ export function DashboardHero({
   onFullDayLeave,
   isBirthday,
   orgDate,
+  timeZone,
+  deadlineHourLocal,
   currentStreak,
   teamComplete,
   unread,
@@ -72,6 +76,8 @@ export function DashboardHero({
             onFullDayLeave={onFullDayLeave}
             isBirthday={isBirthday}
             orgDate={orgDate}
+            timeZone={timeZone}
+            deadlineHourLocal={deadlineHourLocal}
             currentStreak={currentStreak}
             teamComplete={teamComplete}
             unread={unread}

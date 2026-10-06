@@ -11,7 +11,8 @@ export const SET_ASIDE = {
   eyeStyles: ["classic", "sparkle", "dot"] as EyeStyleId[],
   cheeks: ["soft"] as CheekStyle[],
   shapes: [] as ShapeId[],
-  accessories: [] as string[],
+  /** Cow, Tiger and Strawberry skins: built, not offered at launch. */
+  accessories: ["cow", "tiger", "strawberry"] as string[],
   /** Moments designed and playable in the Lab but not wired at launch (status "reserved"). */
   moments: ["island.expand", "mood.week", "music.dance", "team.wave", "explode.manual", "roll.flip"],
   /** Engine features kept for later; nothing at launch calls them. */

@@ -4,9 +4,11 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { SIGN_IN_WAVE_KEY } from "@/components/auth/sign-out-form";
 import { MascotStatic } from "@/components/mascot/mascot";
 import { mascotBus } from "@/components/mascot/mascot-bus";
 import { toastUnlocked } from "@/components/mascot/unlock-toast";
+import { useOrgNow } from "@/components/mascot/use-org-now";
 import {
   registerHeroController,
   subscribeHeroSheet,
@@ -15,6 +17,7 @@ import {
 import {
   LAUNCH,
   SPILL_LIVE,
+  isLateNight,
   sanitizeAvatar,
   type AccessoryId,
   type AvatarConfig,
@@ -29,9 +32,32 @@ const LiveMascot = dynamic(
 );
 
 const HERO_PX = 96;
-const WAVE_KEY = "dossier-buddy-waved";
 const INTRO_KEY = "dossier-buddy-introduced";
 const NOTIF_DELAY_MS = 2500;
+
+function reportWindowMoment(
+  now: Date,
+  timeZone: string,
+  deadlineHourLocal: number,
+): MomentId {
+  let tz = timeZone;
+  try {
+    Intl.DateTimeFormat("en-US", { timeZone: tz });
+  } catch {
+    tz = "UTC";
+  }
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hour: "numeric",
+      hourCycle: "h23",
+    }).format(now),
+  );
+  const lastHour = (deadlineHourLocal + 23) % 24;
+  if (hour === lastHour) return "report.due";
+  if (hour >= deadlineHourLocal) return "report.overdue";
+  return "report.calm";
+}
 
 export type HeroNotification = {
   type: string;
@@ -42,10 +68,13 @@ function restingMoment(
   hasReport: boolean,
   isOffDay: boolean,
   onFullDayLeave: boolean,
+  now: Date,
+  timeZone: string,
+  deadlineHourLocal: number,
 ): MomentId {
   if (hasReport) return "report.done";
   if (isOffDay || onFullDayLeave) return "day.off";
-  return "report.due";
+  return reportWindowMoment(now, timeZone, deadlineHourLocal);
 }
 
 function notificationMoment(type: string): MomentId {
@@ -99,6 +128,8 @@ export function HeroBuddy({
   onFullDayLeave,
   isBirthday,
   orgDate,
+  timeZone,
+  deadlineHourLocal,
   currentStreak = 0,
   teamComplete = false,
   unread,
@@ -111,12 +142,16 @@ export function HeroBuddy({
   onFullDayLeave: boolean;
   isBirthday: boolean;
   orgDate: string;
+  timeZone: string;
+  /** First hour that counts as late, in org time. */
+  deadlineHourLocal: number;
   currentStreak?: number;
   teamComplete?: boolean;
   unread: HeroNotification[];
   freshUnlocks?: AccessoryId[];
 }) {
   const router = useRouter();
+  const now = useOrgNow();
   const hostRef = useRef<HTMLDivElement>(null);
   const ctlRef = useRef<MascotController | null>(null);
   const [ready, setReady] = useState(false);
@@ -129,7 +164,14 @@ export function HeroBuddy({
       accessories: { ...cfg.accessories, head: "partyHat" as const },
     } satisfies AvatarConfig;
   }, [avatar, userId, isBirthday]);
-  const resting = restingMoment(hasReport, isOffDay, onFullDayLeave);
+  const resting = restingMoment(
+    hasReport,
+    isOffDay,
+    onFullDayLeave,
+    now,
+    timeZone,
+    deadlineHourLocal,
+  );
 
   useEffect(() => subscribeHeroSheet(setSheetOpen), []);
 
@@ -154,20 +196,26 @@ export function HeroBuddy({
 
   useEffect(() => {
     if (!ready) return;
+    // Successful submit skips one snap so the eat moment can finish.
+    // Any other close, including a minute later, re-applies the resting state now.
     if (!sheetOpen && takeSkipHeroResting()) return;
     mascotBus.emit(sheetOpen ? "report.writing" : resting, { userId });
   }, [ready, sheetOpen, resting, userId]);
 
   useEffect(() => {
     if (!ready) return;
-    let playedLogin = false;
+    let playWave = false;
     try {
-      playedLogin = sessionStorage.getItem(WAVE_KEY) === "1";
-      if (!playedLogin) sessionStorage.setItem(WAVE_KEY, "1");
+      const signedIn = sessionStorage.getItem(SIGN_IN_WAVE_KEY) !== "1";
+      const dayKey = `dossier-buddy-day-wave:${userId}:${orgDate}`;
+      const newDay = localStorage.getItem(dayKey) !== "1";
+      playWave = signedIn || newDay;
+      if (signedIn) sessionStorage.setItem(SIGN_IN_WAVE_KEY, "1");
+      if (newDay) localStorage.setItem(dayKey, "1");
     } catch {
-      playedLogin = true;
+      playWave = false;
     }
-    if (!playedLogin) mascotBus.emit("auth.login", { userId });
+    if (playWave) mascotBus.emit("auth.login", { userId });
 
     try {
       if (isBirthday) {
@@ -199,7 +247,7 @@ export function HeroBuddy({
 
     const chosen = pickNotification(unread, userId);
     if (!chosen) return;
-    const delay = playedLogin ? 0 : NOTIF_DELAY_MS;
+    const delay = playWave ? NOTIF_DELAY_MS : 0;
     const timer = window.setTimeout(() => {
       try {
         localStorage.setItem(`dossier-buddy-notif-at:${userId}`, chosen.createdAt);
@@ -239,6 +287,8 @@ export function HeroBuddy({
         interactive
         follow="region"
         listen
+        glow
+        lateNight={isLateNight(now, timeZone)}
         sleepAfterMs={LAUNCH.sleepAfterMs}
         onReady={(ctl) => {
           ctlRef.current = ctl;
@@ -283,7 +333,7 @@ export function HeroIntro() {
     <div className="flex items-center gap-3 rounded-lg bg-foreground/5 px-3 py-2 text-sm">
       <p className="min-w-0 flex-1">Meet your buddy. Make it yours.</p>
       <Link
-        href="/settings#your-buddy"
+        href="/settings?buddy=open"
         className="shrink-0 font-medium text-primary hover:underline"
       >
         Customise

@@ -116,6 +116,8 @@ export async function EmployeeDashboard({
         onFullDayLeave={onFullDayLeave}
         isBirthday={isBirthday}
         orgDate={todayDate}
+        timeZone={settings.timezone}
+        deadlineHourLocal={settings.reportDeadlineHourLocal}
         currentStreak={stats.currentStreak}
         unread={unread}
         freshUnlocks={freshUnlocks}

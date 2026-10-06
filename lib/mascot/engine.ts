@@ -19,7 +19,7 @@ import { type AvatarConfig, avatarKey, defaultAvatar } from "./avatar";
 import { ACCESSORIES, type AccessoryId } from "./catalog";
 import { drawEye, EYE_STYLES, type Expression } from "./eyes";
 import { drawParticles, emitBurst, emitFloat, emitPop, stepParticles, type Particle } from "./effects";
-import { PERSONALITIES, personalityFor, pickIdleAction, type IdleAction, type PersonalityId } from "./idle";
+import { LATE_NIGHT, PERSONALITIES, personalityFor, pickIdleAction, type IdleAction, type PersonalityId } from "./idle";
 import { ACCESSORY_RENDERERS, type EyeFrame, type Head } from "./outfits/renderers";
 import { PALETTES } from "./palettes";
 import { SHAPES, type AccessorySlot, type Frame } from "./shapes";
@@ -102,10 +102,12 @@ const RED_HZ = [0, 0, 1.3, 3.2];
  * Two annoyance reactions:
  *   "dizzy" — the original: each tap squashes it with line eyes; 3 quick taps → it spins twice
  *             with spiral eyes and wobbles, then recovers.
+ *   "alternate" (default) — the two take turns: the first annoyance episode ends dizzy, the next
+ *             one builds up to the burst, then dizzy again, and so on.
  *   "burst" — the ladder: line eyes, flashing red that speeds up (no smoke), then it inflates,
  *             pops into goo + its own eyes, and drops back in.
  */
-export const ANNOYANCE_MODES = ["dizzy", "burst"] as const;
+export const ANNOYANCE_MODES = ["alternate", "dizzy", "burst"] as const;
 export type AnnoyanceMode = (typeof ANNOYANCE_MODES)[number];
 const SLAP_WINDOW = 1.7;
 const DIZZY_SECONDS = 3.3;
@@ -133,7 +135,11 @@ export interface EngineOptions {
   onAnger?: (level: number) => void;
   /** Idle temperament; defaults to one derived from `seed` (or the avatar). */
   personality?: PersonalityId;
-  /** Which annoyance reaction taps trigger (default: the avatar's `reaction`, else "dizzy"). */
+  /** Soft glow behind the buddy in its own colour (state colour when a state has one). */
+  glow?: boolean;
+  /** Late-night mood: sleepy idle, heavy lids, yawns. */
+  lateNight?: boolean;
+  /** Which annoyance reaction taps trigger (default "alternate": dizzy, then burst, then dizzy…). */
   annoyance?: AnnoyanceMode;
 }
 
@@ -204,9 +210,19 @@ export class MascotEngine {
   private boomCooldownUntil = 0;
   private phase: null | "inflate" | "gone" | "respawn" = null;
   private hidden = false;
-  annoyance: AnnoyanceMode = "dizzy";
+  annoyance: AnnoyanceMode = "alternate";
+  /** In "alternate" mode: which reaction the next annoyance episode plays. */
+  nextReaction: "dizzy" | "burst" = "dizzy";
   private slaps: number[] = [];
   private dizzyUntil = 0;
+
+  // glow behind the body (palette colour, shifting to the state colour)
+  glow = false;
+  private glowCol: RGB = [1, 1, 1];
+  private glowA = 0;
+
+  // late night (10 pm – 5 am): heavier lids, yawns, nodding off
+  lateNight = false;
 
   // idle life
   personality: PersonalityId = "calm";
@@ -233,7 +249,9 @@ export class MascotEngine {
     this.onSound = opts.onSound;
     this.onStateChange = opts.onStateChange;
     this.onAnger = opts.onAnger;
-    this.annoyance = opts.annoyance ?? this.avatar.reaction ?? "dizzy";
+    this.annoyance = opts.annoyance ?? "alternate";
+    this.glow = !!opts.glow;
+    this.lateNight = !!opts.lateNight;
     this.personality = opts.personality ?? personalityFor(opts.seed ?? avatarKey(this.avatar));
     this.idleNext = now() + 1.5 + Math.random() * 3;
     this.applyAccessories(false);
@@ -245,7 +263,6 @@ export class MascotEngine {
 
   setAvatar(avatar: AvatarConfig, animated = true) {
     this.avatar = avatar;
-    if (avatar.reaction && avatar.reaction !== this.annoyance) { this.calm(); this.annoyance = avatar.reaction; }
     this.applyAccessories(animated);
   }
 
@@ -534,7 +551,7 @@ export class MascotEngine {
     if (this.phase) return;
     this.interruptGreet();
     if (this.dozing) { this.wake(); return; }
-    if (this.annoyance === "dizzy") { this.slap(); return; }
+    if (this.currentReaction() === "dizzy") { this.slap(); return; }
     this.annoy += 1;
     this.lastPoke = now();
     this.sound("slap");
@@ -547,6 +564,11 @@ export class MascotEngine {
     }
     if (level > this.angerLevel) this.setAngerLevel(level);
     else if (level === this.angerLevel && level >= 2) this.anim("ox", [[0.05, 40, Ease.out], [-0.05, 60, Ease.inOut], [0, 60, Ease.out]]);
+  }
+
+  /** The reaction taps lead to right now. */
+  currentReaction(): "dizzy" | "burst" {
+    return this.annoyance === "alternate" ? this.nextReaction : this.annoyance;
   }
 
   /** Original Coucou slap: squash + knock, line eyes; 3 taps within 1.7 s → dizzy spin. */
@@ -579,6 +601,7 @@ export class MascotEngine {
     this.doRoll(1300, 2);
     this.later(DIZZY_SECONDS * 1000, () => {
       this.annoy = 0;
+      if (this.annoyance === "alternate") this.nextReaction = "burst";
       this.onAnger?.(0);
       this.blink();
       this.anim("ox", [[0.04, 70, Ease.out], [-0.04, 90, Ease.inOut], [0, 90, Ease.out]]); // shake it off
@@ -642,6 +665,7 @@ export class MascotEngine {
         this.later(1700, () => {
           this.triggerEmote("shy", 1.6);
           this.phase = null;
+          if (this.annoyance === "alternate") this.nextReaction = "dizzy";
         });
       });
       this.boomCooldownUntil = now() + 20;
@@ -655,7 +679,7 @@ export class MascotEngine {
 
   private idleTick(n: number) {
     if (n < this.idleNext) return;
-    const p = PERSONALITIES[this.personality];
+    const p = this.lateNight ? LATE_NIGHT : PERSONALITIES[this.personality];
     this.idleNext = n + p.every[0] + Math.random() * (p.every[1] - p.every[0]);
     const busy = this.phase || this.dozing || this.angerLevel || n < this.dizzyUntil || this.p.morph > 0.05
       || this.exprOverride || this.dancing || this.reducedMotion || this.isMini || this.dropMode
@@ -745,6 +769,12 @@ export class MascotEngine {
         if (this.wander) look([side * 0.55, 0.6, 1.2], [side * 0.2, 0.1, 0.5]);
         else this.showExpression("happy", 1.1);
         break;
+      case "nodOff":
+        // eyes drift shut, head dips… then a little start awake
+        if (!this.locks.has("open")) this.anim("open", [[0.35, 500, Ease.inOut], [0.05, 900, Ease.inOut], [0.05, 900, Ease.lin], [1, 160, Ease.out]]);
+        this.anim("oy", [[0.05, 1400, Ease.inOut], [0.05, 900, Ease.lin], [-0.06, 140, Ease.out], [0, 260, Ease.back]]);
+        this.later(2300, () => this.showExpression("wide", 0.35));
+        break;
       case "yawn":
         this.anim("sy", [[1.1, 500, Ease.inOut], [1, 500, Ease.inOut]]);
         this.anim("sx", [[0.95, 500, Ease.inOut], [1, 500, Ease.inOut]]);
@@ -825,6 +855,7 @@ export class MascotEngine {
     if (this.phase === "inflate" || this.angerLevel >= 1) return "line";
     if (this.exprOverride) return this.exprOverride;
     if (this.dancing && this.danceLevel > 0.15 && !this.isMini && (this.state === "idle" || this.state === "finished")) return "happy";
+    if (this.lateNight && this.cfg.expr === "neutral" && this.state !== "sleeping") return "tired";
     return this.cfg.expr;
   }
 
@@ -855,7 +886,7 @@ export class MascotEngine {
     let tp = -this.lookY * 0.5;
     if (this.wander || this.isMini) {
       // each personality wanders differently (wide & quick, slow & small, mostly downward…)
-      const w = PERSONALITIES[this.personality].wander;
+      const w = (this.lateNight ? LATE_NIGHT : PERSONALITIES[this.personality]).wander;
       if (n > this.wanderNext) {
         this.wanderTarget = { x: (Math.random() * 2 - 1) * w.x, y: (Math.random() * 2 - 1) * w.y + w.bias };
         this.wanderNext = n + w.hold[0] + Math.random() * (w.hold[1] - w.hold[0]);
@@ -900,6 +931,15 @@ export class MascotEngine {
     if (!this.locks.has("sx")) this.p.sx += (this.tg.sx - this.p.sx) * kGen;
     if (!this.locks.has("es")) this.p.es += (this.tg.es - this.p.es) * kGen;
     this.col = mix3(this.col, this.colT, 1 - Math.pow(0.002, dt));
+    if (this.glow) {
+      const sg = STATE_GLOW[this.state];
+      const stateLit = this.state !== "idle" && this.state !== "sleeping" && sg.opacity >= 0.3;
+      const target: RGB = this.angerTint > 0.2 ? [0.94, 0.27, 0.27] : stateLit ? hexToRGB(sg.color) : hexToRGB(this.bodyGlowHex());
+      const aT = this.hidden ? 0 : this.state === "sleeping" ? 0.08 : stateLit ? 0.22 : 0.16;
+      const k = 1 - Math.pow(0.02, dt);
+      this.glowCol = mix3(this.glowCol, target, k);
+      this.glowA += (aT - this.glowA) * k;
+    }
 
     // blinking
     if (n > this.nextBlink) {
@@ -1020,6 +1060,8 @@ export class MascotEngine {
     const bx = cx + (this.p.ox + shake) * R;
     const by = cy + this.p.oy * R;
 
+    if (this.glow && this.glowA > 0.01) this.drawGlow(x, bx, by, R, t);
+
     x.save();
     this.applyDance(x, R, bx, by + ry);
 
@@ -1038,9 +1080,10 @@ export class MascotEngine {
       const showAcc = this.p.morph < 0.3 && R > 7;
 
       if (showAcc) for (const slot of SLOTS) this.drawSlot(x, slot, "back", R, rx, ry, body, eyes);
-      this.drawBody(x, body, R, rx, ry);
+      this.drawBody(x, body);
+      if (showAcc) for (const slot of SLOTS) this.drawSlot(x, slot, "under", R, rx, ry, body, eyes);
       this.drawCheeks(x, body, R, rx, ry);
-      this.drawEyes(x, body, eyes, R);
+      this.drawEyes(x, body, eyes);
       if (this.p.morph > 0.05) this.drawMouth(x, body, R);
       if (showAcc) for (const slot of SLOTS) this.drawSlot(x, slot, "front", R, rx, ry, body, eyes);
       x.restore();
@@ -1059,6 +1102,34 @@ export class MascotEngine {
       x.beginPath(); x.arc(bx, by, R * 1.5, 0, Math.PI * 2); x.fill();
     }
     drawParticles(x, this.particles, R, bx, by);
+  }
+
+  private bodyGlowHex(): string {
+    const skin = this.slots.body.id ? ACCESSORY_RENDERERS[this.slots.body.id]?.bodyColors : undefined;
+    return skin && this.p["presence.body"] > 0.5 ? skin[1] : PALETTES[this.avatar.palette].mid;
+  }
+
+  /**
+   * Ambient light behind the body: wide and soft (not a halo ring), fading to nothing well
+   * before the canvas edge so it never shows a hard cut. Breathes very slowly.
+   */
+  private drawGlow(x: CanvasRenderingContext2D, bx: number, by: number, R: number, t: number) {
+    const m = x.getTransform();
+    const W = x.canvas.width / (m.a || 1), Hc = x.canvas.height / (m.d || 1);
+    const room = Math.min(bx, W - bx, by, Hc - by);
+    const breathe = this.reducedMotion ? 1 : 1 + 0.04 * Math.sin(t * 1.1);
+    const r = Math.max(R * 1.2, Math.min(R * 2.8, room) * breathe);
+    const [cr, cg, cb] = this.glowCol.map((v) => Math.round(v * 255));
+    const a = this.glowA;
+    const g = x.createRadialGradient(bx, by, 0, bx, by, r);
+    // gaussian-ish falloff
+    for (const [s, k] of [[0, 1], [0.25, 0.85], [0.45, 0.55], [0.65, 0.26], [0.82, 0.08], [1, 0]] as [number, number][]) {
+      g.addColorStop(s, `rgba(${cr},${cg},${cb},${a * k})`);
+    }
+    x.save();
+    x.fillStyle = g;
+    x.beginPath(); x.arc(bx, by, r, 0, Math.PI * 2); x.fill();
+    x.restore();
   }
 
   private applyDance(x: CanvasRenderingContext2D, R: number, px: number, py: number) {
@@ -1104,7 +1175,7 @@ export class MascotEngine {
     return pal.mid;
   }
 
-  private drawBody(x: CanvasRenderingContext2D, body: Path2D, _R: number, _rx: number, _ry: number) {
+  private drawBody(x: CanvasRenderingContext2D, body: Path2D) {
     x.fillStyle = this.bodyFill();
     x.fill(body);
     // States show through the badge, eyes, motion and the glow behind the avatar — no body tint.
@@ -1187,10 +1258,12 @@ export class MascotEngine {
     return out;
   }
 
-  private drawEyes(x: CanvasRenderingContext2D, body: Path2D, eyes: EyeFrame[], _R: number) {
+  private drawEyes(x: CanvasRenderingContext2D, body: Path2D, eyes: EyeFrame[]) {
     const st = EYE_STYLES[this.avatar.eyes.style];
     const expr = this.currentExpression();
-    const ink = this.isMini ? "rgba(10,12,18,0.9)" : "rgba(8,10,14,0.86)";
+    const skinInk = this.slots.body.id && this.p["presence.body"] > 0.5 ? ACCESSORY_RENDERERS[this.slots.body.id]?.eyeInk : undefined;
+    // opaque ink, so skin patterns (seeds, spots) never show through the eyes
+    const ink = skinInk ?? (this.isMini ? "rgb(13,15,20)" : "rgb(16,18,23)");
     const t = now();
     x.save();
     x.clip(body);
@@ -1231,6 +1304,10 @@ export class MascotEngine {
       phys: { dx: this.phys.dx, dy: this.phys.dy },
       eyes: eyes?.map((e) => ({ ...e, x: e.x - tx, y: e.y - ty, w: e.w, h: e.h })),
       body: { x: -tx, y: -ty },
+      crown: {
+        x: sh.frames.head.cx * rx - tx, y: sh.frames.head.cy * ry - ty,
+        rx: Math.min(sh.frames.head.rx * rx, sh.frames.head.ry * ry * 1.02), ry: sh.frames.head.ry * ry,
+      },
       viewMax: def?.viewMax,
     };
     return { head, tx, ty };
@@ -1264,7 +1341,7 @@ export class MascotEngine {
   }
 
   private drawSlot(
-    x: CanvasRenderingContext2D, slot: AccessorySlot, pass: "back" | "front",
+    x: CanvasRenderingContext2D, slot: AccessorySlot, pass: "back" | "under" | "front",
     R: number, rx: number, ry: number, body: Path2D, eyes: EyeFrame[],
   ) {
     const id = this.slots[slot].id;
@@ -1272,7 +1349,7 @@ export class MascotEngine {
     const def = ACCESSORY_RENDERERS[id];
     const pres = this.p[`presence.${slot}`];
     if (!def || pres <= 0.01) return;
-    const fn = pass === "back" ? def.back : def.front;
+    const fn = pass === "back" ? def.back : pass === "under" ? def.under : def.front;
     if (!fn) return;
     // hats tip with the head; neck/body items barely move with the gaze
     const { head, tx, ty } = this.slotHead(slot, R, rx, ry, slot === "head" ? this.p.pitch : this.p.pitch * 0.5, eyes);

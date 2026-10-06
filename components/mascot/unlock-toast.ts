@@ -39,7 +39,7 @@ export function toastUnlocked(
   toast.success(message, {
     action: {
       label: "Wear it",
-      onClick: () => navigate(`/settings?wear=${wearId}#your-buddy`),
+      onClick: () => navigate(`/settings?buddy=open&wear=${wearId}`),
     },
   });
   return true;

@@ -218,7 +218,9 @@ class Controller implements MascotController {
 
   frame(dt: number, ts: number) {
     if (this.paused || !this.visible) return;
-    if (this.sleepAfter && !this.dozed && ts - lastActivity > this.sleepAfter) { this.dozed = true; this.engine.doze(); }
+    // late night: nods off after a minute without input instead of the usual delay
+    const sleepAfter = this.sleepAfter && this.engine.lateNight ? Math.min(this.sleepAfter, 60_000) : this.sleepAfter;
+    if (sleepAfter && !this.dozed && ts - lastActivity > sleepAfter) { this.dozed = true; this.engine.doze(); }
     this.gaze(ts);
     this.engine.update(dt);
     const x = this.canvas.getContext("2d");

@@ -126,6 +126,8 @@ export async function AdminDashboard() {
         onFullDayLeave={onFullDayLeave}
         isBirthday={isBirthday}
         orgDate={todayDate}
+        timeZone={settings.timezone}
+        deadlineHourLocal={settings.reportDeadlineHourLocal}
         currentStreak={currentStreak}
         teamComplete={
           summary.completionPercentageToday === 100 && summary.totalMembers > 0

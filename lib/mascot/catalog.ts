@@ -8,6 +8,7 @@ export const ACCESSORY_IDS = [
   "roundGlasses", "sunglasses", "bow", "flower", "scarf", "bowtie",
   "sprout", "beanie", "headphones", "partyHat", "crown", "gradCap", "halo",
   "santaHat", "witchHat", "pumpkin",
+  "panda", "frog", "strawberry", "cow", "watermelon", "tiger", "snowman",
 ] as const;
 export type AccessoryId = (typeof ACCESSORY_IDS)[number];
 
@@ -17,6 +18,8 @@ export type UnlockRule =
   | { kind: "starter" }
   | { kind: "firstReport" }
   | { kind: "streak"; days: number }
+  /** Consecutive working days with an on-time report (days off/holidays/leave skipped). */
+  | { kind: "onTimeStreak"; days: number }
   | { kind: "onTimeReports"; count: number }
   | { kind: "totalReports"; count: number }
   | { kind: "perfectWeeks"; count: number }
@@ -52,10 +55,17 @@ export const ACCESSORIES: Record<AccessoryId, AccessoryDef> = {
   partyHat: { id: "partyHat", label: "Party hat", slot: "head", rarity: "special", unlock: [{ kind: "birthday" }], hint: "Worn automatically on your birthday — keep it after." },
   crown: { id: "crown", label: "Crown", slot: "head", rarity: "epic", unlock: [{ kind: "streak", days: 30 }, { kind: "teamCompleteDays", days: 10 }], hint: "30-day streak — or lead your team to 100% on 10 days." },
   gradCap: { id: "gradCap", label: "Graduation cap", slot: "head", rarity: "epic", unlock: [{ kind: "tenureDays", days: 365 }], hint: "One year at the company." },
-  halo: { id: "halo", label: "Halo", slot: "head", rarity: "legendary", unlock: [{ kind: "perfectMonths", count: 1 }], hint: "A perfect month: every working day on time." },
+  halo: { id: "halo", label: "Halo", slot: "head", rarity: "legendary", unlock: [{ kind: "onTimeStreak", days: 30 }], hint: "30 working days in a row, every report on time." },
   santaHat: { id: "santaHat", label: "Santa hat", slot: "head", rarity: "seasonal", unlock: [{ kind: "season", from: "12-01", to: "12-31" }], hint: "Available in December." },
   witchHat: { id: "witchHat", label: "Witch hat", slot: "head", rarity: "seasonal", unlock: [{ kind: "season", from: "10-20", to: "11-02" }], hint: "Available around Halloween." },
-  pumpkin: { id: "pumpkin", label: "Pumpkin skin", slot: "body", rarity: "seasonal", unlock: [{ kind: "season", from: "10-20", to: "11-02" }], hint: "Available around Halloween." },
+  pumpkin: { id: "pumpkin", label: "Pumpkin", slot: "body", rarity: "seasonal", unlock: [{ kind: "season", from: "10-20", to: "11-02" }], hint: "Available around Halloween." },
+  panda: { id: "panda", label: "Panda", slot: "body", rarity: "starter", unlock: [{ kind: "starter" }], hint: "Yours from day one." },
+  frog: { id: "frog", label: "Frog", slot: "body", rarity: "starter", unlock: [{ kind: "starter" }], hint: "Yours from day one." },
+  strawberry: { id: "strawberry", label: "Strawberry", slot: "body", rarity: "common", unlock: [{ kind: "onTimeReports", count: 10 }], hint: "10 reports on time." },
+  cow: { id: "cow", label: "Cow", slot: "body", rarity: "rare", unlock: [{ kind: "perfectWeeks", count: 4 }], hint: "4 perfect weeks: every working day on time." },
+  watermelon: { id: "watermelon", label: "Watermelon", slot: "body", rarity: "rare", unlock: [{ kind: "totalReports", count: 100 }], hint: "100 reports submitted." },
+  tiger: { id: "tiger", label: "Tiger", slot: "body", rarity: "epic", unlock: [{ kind: "streak", days: 60 }], hint: "Reach a 60-day streak." },
+  snowman: { id: "snowman", label: "Snowman", slot: "body", rarity: "seasonal", unlock: [{ kind: "season", from: "12-01", to: "01-31" }], hint: "Available Dec 1 – Jan 31." },
 };
 
 export const RARITY_STYLE: Record<Rarity, { label: string; color: string }> = {
@@ -74,6 +84,9 @@ export interface RewardStats {
   onTimeReports: number;
   currentStreak: number;
   longestStreak: number;
+  /** Consecutive on-time working days (current run). */
+  onTimeStreak: number;
+  longestOnTimeStreak: number;
   perfectWeeks: number;
   perfectMonths: number;
   tenureDays: number;
@@ -99,6 +112,7 @@ function ruleMet(rule: UnlockRule, s: RewardStats): boolean {
     case "starter": return true;
     case "firstReport": return s.totalReports >= 1;
     case "streak": return Math.max(s.currentStreak, s.longestStreak) >= rule.days;
+    case "onTimeStreak": return Math.max(s.onTimeStreak ?? 0, s.longestOnTimeStreak ?? 0) >= rule.days;
     case "onTimeReports": return s.onTimeReports >= rule.count;
     case "totalReports": return s.totalReports >= rule.count;
     case "perfectWeeks": return s.perfectWeeks >= rule.count;
@@ -131,7 +145,9 @@ export function unlockProgress(id: AccessoryId, s: RewardStats): { current: numb
     let p: { current: number; target: number } | null = null;
     switch (r.kind) {
       case "firstReport": p = { current: Math.min(s.totalReports, 1), target: 1 }; break;
-      case "streak": p = { current: Math.max(s.currentStreak, s.longestStreak), target: r.days }; break;
+      // Streak bars show the run you're on now (they reset when it breaks); unlocking still counts your best run.
+      case "streak": p = { current: s.currentStreak, target: r.days }; break;
+      case "onTimeStreak": p = { current: s.onTimeStreak ?? 0, target: r.days }; break;
       case "onTimeReports": p = { current: s.onTimeReports, target: r.count }; break;
       case "totalReports": p = { current: s.totalReports, target: r.count }; break;
       case "perfectWeeks": p = { current: s.perfectWeeks, target: r.count }; break;

@@ -4,25 +4,37 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   useTransition,
   type ReactNode,
 } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
 import { toast } from "sonner";
 import { mascotBus } from "@/components/mascot/mascot-bus";
 import { MascotStatic } from "@/components/mascot/mascot";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
@@ -34,6 +46,10 @@ import {
 } from "@/components/ui/tooltip";
 import { saveMyAvatar } from "@/lib/actions/avatar";
 import {
+  seasonWindowLabel,
+  unlockProgressLabel,
+} from "@/lib/helpers/unlock-progress-label";
+import {
   ACCESSORIES,
   ACCESSORY_IDS,
   ACTIVE_CHEEKS,
@@ -42,24 +58,23 @@ import {
   EYE_SIZE_RANGE,
   EYE_SPACING_RANGE,
   EYE_STYLES,
-  LAUNCH,
   PALETTES,
   PALETTE_IDS,
   RARITY_STYLE,
-  REACTIONS,
   SET_ASIDE,
   SHAPES,
   SPILL_LIVE,
   avatarKey,
   defaultAvatar,
+  equipAccessory,
   isWearable,
   randomAvatar,
   sanitizeAvatar,
-  unlockProgress,
   type AccessoryId,
   type AccessorySlot,
   type AvatarConfig,
   type CheekStyle,
+  type Rarity,
   type RewardStats,
 } from "@/lib/mascot";
 import { cn } from "@/lib/utils";
@@ -84,75 +99,33 @@ const CHEEK_LABEL: Record<CheekStyle, string> = {
   rosy: "Rosy",
   freckles: "Freckles",
 };
-const REACTION_LABEL = { dizzy: "Gets dizzy", burst: "Bursts" } as const;
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 const OFFERED_ACCESSORIES = ACCESSORY_IDS.filter(
   (id) => !SET_ASIDE.accessories.includes(id),
 );
+
+const RARITY_RANK: Record<Rarity, number> = {
+  starter: 0,
+  common: 1,
+  rare: 2,
+  epic: 3,
+  legendary: 4,
+  special: 5,
+  seasonal: 6,
+};
+
+function byWardrobeOrder(a: AccessoryId, b: AccessoryId) {
+  const rank = RARITY_RANK[ACCESSORIES[a].rarity] - RARITY_RANK[ACCESSORIES[b].rarity];
+  if (rank !== 0) return rank;
+  return ACCESSORY_IDS.indexOf(a) - ACCESSORY_IDS.indexOf(b);
+}
 
 function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
-/** avatarKey caches stills and omits reaction; Save also tracks the poke choice. */
+/** avatarKey omits reaction. Poke choice is no longer part of the draft. */
 function recipeKey(avatar: AvatarConfig) {
-  return `${avatarKey(avatar)}|${avatar.reaction}`;
-}
-
-function seasonWindow(id: AccessoryId) {
-  const rule = ACCESSORIES[id].unlock.find((entry) => entry.kind === "season");
-  if (!rule || rule.kind !== "season") return null;
-  const [fromMonth, fromDay] = rule.from.split("-").map(Number);
-  const [toMonth, toDay] = rule.to.split("-").map(Number);
-  if (fromMonth === toMonth) {
-    return `${MONTHS[fromMonth - 1]} ${fromDay} – ${toDay}`;
-  }
-  return `${MONTHS[fromMonth - 1]} ${fromDay} – ${MONTHS[toMonth - 1]} ${toDay}`;
-}
-
-function progressCopy(id: AccessoryId, stats: RewardStats) {
-  const prog = unlockProgress(id, stats);
-  if (!prog || prog.target <= 0) return null;
-  const current = Math.min(Math.round(prog.current), prog.target);
-  const rule = ACCESSORIES[id].unlock.find((entry) => {
-    switch (entry.kind) {
-      case "streak":
-      case "tenureDays":
-      case "teamCompleteDays":
-        return entry.days === prog.target;
-      case "onTimeReports":
-      case "totalReports":
-      case "perfectWeeks":
-      case "perfectMonths":
-        return entry.count === prog.target;
-      case "firstReport":
-        return prog.target === 1;
-      default:
-        return false;
-    }
-  });
-  const word =
-    rule?.kind === "streak" ||
-    rule?.kind === "tenureDays" ||
-    rule?.kind === "teamCompleteDays"
-      ? "day"
-      : rule?.kind === "perfectWeeks"
-        ? "week"
-        : rule?.kind === "perfectMonths"
-          ? "month"
-          : rule?.kind === "firstReport" ||
-              rule?.kind === "onTimeReports" ||
-              rule?.kind === "totalReports"
-            ? "report"
-            : "";
-  const unit = word ? (prog.target === 1 ? word : `${word}s`) : "";
-  return {
-    value: (current / prog.target) * 100,
-    label: unit
-      ? `${current} / ${prog.target} ${unit}`
-      : `${current} / ${prog.target}`,
-  };
+  return avatarKey(avatar);
 }
 
 const SEEN_KEY = "dossier-buddy-seen-unlocks";
@@ -216,15 +189,21 @@ function isStarter(id: AccessoryId) {
 
 function withWornItem(base: AvatarConfig, id: AccessoryId | null): AvatarConfig {
   if (!id) return base;
-  const slot = ACCESSORIES[id].slot;
-  if (base.accessories[slot] === id) return base;
-  return {
-    ...base,
-    accessories: { ...base.accessories, [slot]: id },
-  };
+  return equipAccessory(base, ACCESSORIES[id].slot, id);
 }
 
-export function YourBuddyCard({
+/** One item on the person's shape and colour, with no other gear or skin. */
+function itemPreview(draft: AvatarConfig, id: AccessoryId): AvatarConfig {
+  return equipAccessory(
+    { ...draft, accessories: {} },
+    ACCESSORIES[id].slot,
+    id,
+  );
+}
+
+export function CustomiseBuddyDialog({
+  open,
+  onOpenChange,
   userId,
   avatar,
   ownedIds,
@@ -232,7 +211,10 @@ export function YourBuddyCard({
   timeZone,
   nowIso,
   wear,
+  fromQuery = false,
 }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   userId: string;
   avatar: unknown;
   ownedIds: string[];
@@ -242,7 +224,11 @@ export function YourBuddyCard({
   nowIso: string;
   /** `?wear=` equips this item in the draft. Save stays manual. */
   wear?: string;
+  /** `?buddy=open` or `?wear=` arrived on this page. */
+  fromQuery?: boolean;
 }) {
+  const router = useRouter();
+  const ignoreDiscard = useRef(false);
   const now = useMemo(() => new Date(nowIso), [nowIso]);
   const initial = useMemo(
     () => sanitizeAvatar(avatar, userId),
@@ -258,6 +244,7 @@ export function YourBuddyCard({
   );
   const [saved, setSaved] = useState(initial);
   const [draft, setDraft] = useState(worn);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const seenRaw = useSyncExternalStore(subscribeSeen, readSeen, () => "[]");
   const seen = useMemo(() => {
     const ids = parseSeen(seenRaw);
@@ -274,21 +261,45 @@ export function YourBuddyCard({
   useEffect(() => {
     if (!equippedWear) return;
     markUnlockSeen(equippedWear);
-    document.getElementById("your-buddy")?.scrollIntoView({ block: "start" });
   }, [equippedWear]);
 
   useEffect(() => {
-    if (!dirty) return;
+    if (!open || !dirty) return;
     const warn = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  }, [open, dirty]);
+
+  const finishClose = () => {
+    setConfirmDiscard(false);
+    onOpenChange(false);
+    if (fromQuery) router.replace("/settings");
+  };
+
+  const requestClose = () => {
+    if (ignoreDiscard.current || !dirty) {
+      ignoreDiscard.current = false;
+      finishClose();
+      return;
+    }
+    setConfirmDiscard(true);
+  };
+
+  const discardAndClose = () => {
+    setDraft(saved);
+    finishClose();
+  };
 
   const set = (patch: Partial<AvatarConfig>) =>
     setDraft((current) => ({ ...current, ...patch }));
+  const setPalette = (palette: AvatarConfig["palette"]) =>
+    setDraft((current) => {
+      const next = { ...current, palette };
+      return current.accessories.body ? equipAccessory(next, "body", null) : next;
+    });
   const setEyes = (patch: Partial<AvatarConfig["eyes"]>) =>
     setDraft((current) => ({
       ...current,
@@ -308,10 +319,8 @@ export function YourBuddyCard({
   const toggleItem = (id: AccessoryId) => {
     setDraft((current) => {
       const slot = ACCESSORIES[id].slot;
-      const accessories = { ...current.accessories };
-      if (accessories[slot] === id) delete accessories[slot];
-      else accessories[slot] = id;
-      return { ...current, accessories };
+      const equipped = current.accessories[slot] === id;
+      return equipAccessory(current, slot, equipped ? null : id);
     });
   };
 
@@ -325,21 +334,39 @@ export function YourBuddyCard({
       }
       setSaved(result.avatar);
       setDraft(result.avatar);
+      setConfirmDiscard(false);
+      ignoreDiscard.current = true;
+      onOpenChange(false);
+      queueMicrotask(() => {
+        ignoreDiscard.current = false;
+      });
       toast.success("Buddy saved.");
+      router.replace("/settings");
+      router.refresh();
     });
   };
 
   return (
-    <Card id="your-buddy" className="card-gradient scroll-mt-20 overflow-visible">
-      <CardHeader className="pb-3">
-        <CardTitle>Your buddy</CardTitle>
-        <CardDescription>
-          {"A small character that's yours. It shows up around Dossier."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (next) onOpenChange(true);
+          else requestClose();
+        }}
+      >
+        <DialogContent
+          className="top-0 left-0 flex h-dvh max-h-dvh w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none p-0 lg:top-1/2 lg:left-1/2 lg:h-auto lg:max-h-[min(90dvh,860px)] lg:w-[calc(100%-2rem)] lg:max-w-4xl lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-xl"
+        >
+          <DialogHeader className="shrink-0 pr-12">
+            <DialogTitle>Your buddy</DialogTitle>
+            <DialogDescription>
+              {"A small character that's yours. It shows up around Dossier."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-4">
         <div className="grid items-start gap-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-8">
-          <div className="flex flex-col items-center gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 lg:sticky lg:top-20 lg:self-start">
+          <div className="flex flex-col items-center gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 lg:sticky lg:top-0 lg:self-start">
             <div className="pt-6">
               <div className="relative size-40">
                 <MascotStatic
@@ -357,10 +384,12 @@ export function YourBuddyCard({
                   size={PREVIEW_PX}
                   seed={userId}
                   userId="me"
-                  interactive
+                  interactive={false}
                   follow="region"
-                  listen
-                  sleepAfterMs={LAUNCH.sleepAfterMs}
+                  listen={false}
+                  glow
+                  lateNight={false}
+                  sleepAfterMs={0}
                   onReady={() => setLiveReady(true)}
                   aria-label="Your buddy preview"
                   className={cn(
@@ -424,7 +453,7 @@ export function YourBuddyCard({
                           type="button"
                           aria-label={palette.label}
                           aria-pressed={pressed}
-                          onClick={() => set({ palette: id })}
+                          onClick={() => setPalette(id)}
                           className={cn(
                             "size-9 rounded-full ring-offset-2 ring-offset-card transition-transform duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                             pressed
@@ -497,43 +526,18 @@ export function YourBuddyCard({
                 ))}
               </OptionGroup>
 
-              <OptionGroup label="When poked">
-                {REACTIONS.map((id) => {
-                  const pressed = draft.reaction === id;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      aria-pressed={pressed}
-                      onClick={() => set({ reaction: id })}
-                      className={cn(
-                        "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm ring-1 transition-colors outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                        pressed
-                          ? "bg-primary/10 text-foreground ring-primary"
-                          : "text-muted-foreground ring-foreground/10 hover:bg-foreground/5",
-                      )}
-                    >
-                      <span
-                        aria-hidden
-                        className={cn(
-                          "size-3.5 rounded-full border",
-                          pressed
-                            ? "border-primary bg-primary shadow-[inset_0_0_0_2px_var(--card)]"
-                            : "border-muted-foreground/40",
-                        )}
-                      />
-                      {REACTION_LABEL[id]}
-                    </button>
-                  );
-                })}
-              </OptionGroup>
             </TabsContent>
 
             <TabsContent value="wardrobe" className="flex flex-col gap-6">
+              {draft.accessories.body && (
+                <p className="text-sm text-muted-foreground">
+                  Skins replace your accessories.
+                </p>
+              )}
               {SLOT_ORDER.map((slot) => {
                 const items = OFFERED_ACCESSORIES.filter(
                   (id) => ACCESSORIES[id].slot === slot,
-                );
+                ).sort(byWardrobeOrder);
                 if (!items.length) return null;
                 return (
                   <section key={slot} className="flex flex-col gap-2">
@@ -560,20 +564,37 @@ export function YourBuddyCard({
             </TabsContent>
           </Tabs>
         </div>
-
-        <div className="sticky bottom-0 z-10 -mx-(--card-spacing) -mb-(--card-spacing) rounded-b-xl border-t bg-card px-(--card-spacing) pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              onClick={save}
-              disabled={!dirty || isPending}
-            >
-              {isPending ? "Saving…" : "Save"}
-            </Button>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="shrink-0 border-t bg-popover px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={save}
+                disabled={!dirty || isPending}
+              >
+                {isPending ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your buddy edits will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogAction onClick={discardAndClose}>
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -655,12 +676,9 @@ function WardrobeTile({
   const on = draft.accessories[def.slot] === id;
   const locked = !wearable && !on;
   const rarity = RARITY_STYLE[def.rarity];
-  const season = seasonWindow(id);
-  const prog = !wearable ? progressCopy(id, stats) : null;
-  const preview: AvatarConfig = {
-    ...draft,
-    accessories: { ...draft.accessories, [def.slot]: id },
-  };
+  const season = seasonWindowLabel(id);
+  const prog = !wearable ? unlockProgressLabel(id, stats) : null;
+  const preview = itemPreview(draft, id);
 
   return (
     <button
@@ -687,16 +705,14 @@ function WardrobeTile({
           className="absolute top-2 right-2 size-2 rounded-full bg-primary ring-2 ring-card"
         />
       )}
-      <span className="relative">
-        <span className={cn("block transition-opacity", locked && "opacity-40 grayscale")}>
-          <BuddyStill avatar={preview} px={48} />
-        </span>
-        {locked && (
-          <Lock
-            aria-hidden
-            className="absolute -top-1 -right-2 size-3.5 text-muted-foreground"
-          />
-        )}
+      {locked && (
+        <Lock
+          aria-hidden
+          className="absolute top-3 right-3 size-3.5 text-muted-foreground"
+        />
+      )}
+      <span className={cn("block transition-opacity", locked && "opacity-40 grayscale")}>
+        <BuddyStill avatar={preview} px={48} />
       </span>
       <span className="text-xs leading-tight font-medium">
         {isNew && <span className="sr-only">New. </span>}

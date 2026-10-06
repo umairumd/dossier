@@ -96,6 +96,7 @@ export function HeroReportStatus({
       </div>
       <SubmitReportSheet
         userId={userId}
+        hoverFeed
         alreadySubmitted={false}
         triggerLabel="Submit →"
         triggerSize="sm"
