@@ -29,6 +29,7 @@ export function TeamMemberCard({
         <MemberAvatar
           userId={member.id}
           name={member.full_name}
+          avatar={member.avatar}
           size="xl"
           className="size-10 sm:size-16"
         />

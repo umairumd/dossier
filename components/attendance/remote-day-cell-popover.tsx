@@ -155,7 +155,7 @@ export function RemoteDayCellPopover({
   date,
   employeeName,
   designation,
-  avatarUrl,
+  avatar,
   isRemote,
   employmentType,
   existingRecord,
@@ -173,7 +173,7 @@ export function RemoteDayCellPopover({
   date: string;
   employeeName: string;
   designation: string | null;
-  avatarUrl: string | null;
+  avatar?: unknown;
   isRemote: boolean;
   employmentType: "full_time" | "part_time";
   existingRecord: AttendanceRecord | null;
@@ -272,7 +272,7 @@ export function RemoteDayCellPopover({
         employeeId: profileId,
         fullName: employeeName,
         designation,
-        avatarUrl,
+        avatar,
         isRemote,
         employment_type: employmentType,
         report: result.report,

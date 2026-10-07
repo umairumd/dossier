@@ -4,6 +4,7 @@ export interface DepartmentListItem {
   organization_id: string | null;
   manager_id: string | null;
   manager_name: string | null;
+  manager_avatar: unknown | null;
   employee_count: number;
   archived_at: string | null;
   created_at: string;
@@ -26,6 +27,7 @@ export interface DepartmentOption {
 export interface DepartmentMember {
   id: string;
   full_name: string;
+  avatar: unknown | null;
   designation: string | null;
   is_remote: boolean;
   employment_type: "full_time" | "part_time";
@@ -37,4 +39,5 @@ export interface DepartmentManager {
   id: string;
   full_name: string;
   designation: string | null;
+  avatar: unknown | null;
 }

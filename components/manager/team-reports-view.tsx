@@ -249,7 +249,7 @@ export function TeamReportsView({
                           <MemberAvatar
                             userId={member.employeeId}
                             name={member.fullName}
-                            avatarUrl={member.avatarUrl ?? undefined}
+                            avatar={member.avatar}
                             size="md"
                           />
                           <div className="flex min-w-0 flex-col gap-0.5">
@@ -323,7 +323,7 @@ export function TeamReportsView({
                     <MemberAvatar
                       userId={member.employeeId}
                       name={member.fullName}
-                      avatarUrl={member.avatarUrl ?? undefined}
+                      avatar={member.avatar}
                       size="sm"
                     />
                   }

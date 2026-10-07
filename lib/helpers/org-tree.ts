@@ -6,6 +6,7 @@ export interface OrgNode {
   role: string;
   designation: string | null;
   avatar_url: string | null;
+  avatar: unknown | null;
   department_names: string[];
   supervisor_ids: string[];
   reports: OrgNode[];
@@ -93,6 +94,7 @@ export function buildOrgTree(
       role: emp.role,
       designation: emp.designation,
       avatar_url: emp.avatar_url,
+      avatar: emp.avatar,
       department_names: emp.department_names,
       supervisor_ids: emp.supervisor_ids,
       reports: reportIds.map((id) => toNode(empMap.get(id)!, nextPath)),

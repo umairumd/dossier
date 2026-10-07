@@ -4,8 +4,10 @@ import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queri
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getMyActivityLog } from "@/lib/supabase/queries/admin/activity";
 import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
+import { getMyNotifications } from "@/lib/supabase/queries/notifications";
 import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { createClient } from "@/lib/supabase/server";
+import { syncMyUnlocks } from "@/lib/actions/avatar";
 import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { formatDeadlineHint } from "@/lib/helpers/time";
 import {
@@ -35,7 +37,7 @@ export async function EmployeeDashboard({
   profile: ProfileWithDepartment;
 }) {
   const supabase = await createClient();
-  const [todayReport, preview, statsRows, settings, template, templates, attendanceResult, myActivity] =
+  const [todayReport, preview, statsRows, settings, template, templates, attendanceResult, myActivity, notifications, freshUnlocks] =
     await Promise.all([
       getTodayReport(),
       getReportHistory(1, RECENT_PREVIEW_SIZE),
@@ -49,6 +51,8 @@ export async function EmployeeDashboard({
         .eq("profile_id", profile.id)
         .gte("date", dateNDaysAgo(399)),
       getMyActivityLog(MY_ACTIVITY_LIMIT),
+      getMyNotifications(),
+      syncMyUnlocks(),
     ]);
 
   const attendanceByDate = buildAttendanceStatusMap(
@@ -68,6 +72,11 @@ export async function EmployeeDashboard({
   const todayAttendanceStatus = await getMyTodayAttendanceStatus(todayDate);
   const isHoliday = todayAttendanceStatus === "holiday";
   const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
+  const onFullDayLeave = todayAttendanceStatus === "leave";
+  const isBirthday = profile.date_of_birth?.slice(5, 10) === todayDate.slice(5, 10);
+  const unread = notifications
+    .filter((note) => note.read_at == null)
+    .map((note) => ({ type: note.type, created_at: note.created_at }));
 
   // Day-off messaging lives in HeroReportStatus; context line is streak-only
   // on working days (and a soft streak/caught-up line on off days).
@@ -101,6 +110,17 @@ export async function EmployeeDashboard({
         name={profile.full_name}
         designation={profile.designation}
         departmentNames={profile.department_names}
+        avatar={profile.avatar}
+        hasReport={submittedToday}
+        isOffDay={isOffDay}
+        onFullDayLeave={onFullDayLeave}
+        isBirthday={isBirthday}
+        orgDate={todayDate}
+        timeZone={settings.timezone}
+        deadlineHourLocal={settings.reportDeadlineHourLocal}
+        currentStreak={stats.currentStreak}
+        unread={unread}
+        freshUnlocks={freshUnlocks}
         contextLine={contextLine}
         stats={[
           { label: "Current Streak", value: `${stats.currentStreak} days` },
@@ -109,6 +129,7 @@ export async function EmployeeDashboard({
         ]}
         reportStatus={
           <HeroReportStatus
+            userId={profile.id}
             todayReport={todayReport}
             isOffDay={isOffDay}
             deadlineHint={formatDeadlineHint(
@@ -141,6 +162,7 @@ export async function EmployeeDashboard({
           viewAllHref="/reports"
           deadline={deadline}
           userName={profile.full_name}
+          avatar={profile.avatar}
           templates={templates}
           viewerRole={profile.role}
           currentUserId={profile.id}

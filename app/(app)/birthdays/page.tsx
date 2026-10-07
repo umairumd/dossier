@@ -1,6 +1,8 @@
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getBirthdayData } from "@/lib/supabase/queries/admin/birthdays";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { safeTimeZone, todayInTimezone } from "@/lib/helpers/dates";
 import { BirthdayList } from "@/components/birthdays/birthday-list";
 import { PageHeader } from "@/components/shared/page-header";
 
@@ -14,9 +16,11 @@ export default async function BirthdaysPage() {
 
   // Birthday notifications are sent by the hourly cron
   // (app/api/cron/birthdays) — never on page load or DOB save.
-  const { withDOB, missingDOB } = await getBirthdayData(
-    profile.organization_id,
-  );
+  const [settings, { withDOB, missingDOB }] = await Promise.all([
+    getOrganizationSettings(),
+    getBirthdayData(profile.organization_id),
+  ]);
+  const orgToday = todayInTimezone(safeTimeZone(settings.timezone));
 
   return (
     <div className="flex flex-col gap-6">
@@ -24,7 +28,11 @@ export default async function BirthdaysPage() {
         title="Birthdays"
         description="Team birthdays and upcoming celebrations."
       />
-      <BirthdayList withDOB={withDOB} missingDOB={missingDOB} />
+      <BirthdayList
+        withDOB={withDOB}
+        missingDOB={missingDOB}
+        orgToday={orgToday}
+      />
     </div>
   );
 }

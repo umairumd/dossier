@@ -1,5 +1,5 @@
 import { LogOut } from "lucide-react";
-import { logout } from "@/lib/actions/auth";
+import { SignOutForm } from "@/components/auth/sign-out-form";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,12 +21,12 @@ export default function DeactivatedPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={logout}>
+        <SignOutForm>
           <Button type="submit" variant="outline">
             <LogOut />
             Sign out
           </Button>
-        </form>
+        </SignOutForm>
       </CardContent>
     </Card>
   );

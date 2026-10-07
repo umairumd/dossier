@@ -16,6 +16,7 @@ type SubmittedMember = TeamMemberReport & { report: DailyReport };
 export function ReportHistoryBrowser({
   reports,
   userName,
+  avatar,
   deadline,
   adminView = false,
   showProfileLink = true,
@@ -28,6 +29,7 @@ export function ReportHistoryBrowser({
 }: {
   reports: DailyReport[];
   userName: string;
+  avatar?: unknown;
   deadline: DeadlineContext;
   adminView?: boolean;
   showProfileLink?: boolean;
@@ -53,7 +55,7 @@ export function ReportHistoryBrowser({
     employeeId: report.author_id,
     fullName: userName,
     designation: null,
-    avatarUrl: null,
+    avatar,
     report,
   }));
 
