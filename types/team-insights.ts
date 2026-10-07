@@ -5,6 +5,8 @@ export interface CompletionTrendPoint {
   completionPercentage: number;
   /** Roster members who did not submit on this date (when known). */
   missingNames?: string[];
+  submitted?: number;
+  expected?: number;
 }
 
 export interface TeamMemberStanding {
@@ -21,6 +23,8 @@ export interface TeamMemberStanding {
 
 export interface TeamInsights {
   trend: CompletionTrendPoint[];
+  /** Average of the 30 working-day window before `trend`. Null when that window was not loaded. */
+  previousAverage: number | null;
   weeklyCompletionPercentage: number;
   longestStreaks: TeamMemberStanding[];
   frequentlyMissing: TeamMemberStanding[];

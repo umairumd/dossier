@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, type ComponentType } from "react";
+import { useState, useTransition, type ComponentType } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -32,10 +32,11 @@ import {
   deleteNotification,
   markAllNotificationsRead,
 } from "@/lib/actions/notifications";
+import { resolveNotificationUrl } from "@/lib/notifications/link";
 import type { Notification, NotificationType } from "@/types/notification";
 import { cn } from "@/lib/utils";
 
-const TYPE_ICONS: Record<
+export const TYPE_ICONS: Record<
   NotificationType,
   { Icon: ComponentType<{ className?: string }>; className: string }
 > = {
@@ -55,44 +56,6 @@ const TYPE_ICONS: Record<
   report_commented: { Icon: MessageSquare, className: "text-blue-500" },
 };
 
-function resolveNotificationUrl(
-  type: string,
-  entityType: string | null,
-  entityId: string | null,
-): string | null {
-  // entity-based links take priority
-  if (entityType === "employee" && entityId) return `/employees/${entityId}`;
-  if (entityType === "leave_request" && entityId) return `/attendance`;
-  if (entityType === "report" && entityId) return `/reports?view=${entityId}`;
-
-  // type-based fallbacks
-  switch (type) {
-    case "leave_approved":
-    case "leave_rejected":
-    case "leave_request_submitted":
-      return "/attendance";
-    case "report_commented":
-      return entityId ? `/reports?view=${entityId}` : "/reports";
-    case "report_deadline":
-      return "/reports";
-    case "employee_invited":
-    case "employee_onboarded":
-    case "employee_deactivated":
-    case "employee_archived":
-      return entityId ? `/employees/${entityId}` : "/employees";
-    case "attendance_fine":
-      return "/attendance";
-    case "shift_assigned":
-    case "template_assigned":
-    case "supervisor_assigned":
-      return "/attendance";
-    case "birthday":
-      return "/birthdays";
-    default:
-      return null;
-  }
-}
-
 export function NotificationBell({
   initialCount,
   initialNotifications,
@@ -104,12 +67,18 @@ export function NotificationBell({
   const [hasOpened, setHasOpened] = useState(false);
   const [items, setItems] = useState(initialNotifications);
   const [unreadCount, setUnreadCount] = useState(initialCount);
+  const [syncedNotifications, setSyncedNotifications] = useState(initialNotifications);
+  const [syncedCount, setSyncedCount] = useState(initialCount);
   const [, startTransition] = useTransition();
 
-  useEffect(() => {
+  if (syncedNotifications !== initialNotifications) {
+    setSyncedNotifications(initialNotifications);
     setItems(initialNotifications);
+  }
+  if (syncedCount !== initialCount) {
+    setSyncedCount(initialCount);
     setUnreadCount(initialCount);
-  }, [initialNotifications, initialCount]);
+  }
 
   const handleOpen = (isOpen: boolean) => {
     setOpen(isOpen);

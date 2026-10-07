@@ -26,6 +26,7 @@ export function buildCompletionTrend(
   denominator: number,
   workingDays?: number[],
   tz?: string,
+  holidayDates?: Set<string>,
 ): CompletionTrendPoint[] {
   const points: CompletionTrendPoint[] = [];
   const today = tz ? todayInTimezone(tz) : dateNDaysAgo(0);
@@ -37,9 +38,13 @@ export function buildCompletionTrend(
       continue;
     }
 
+    if (holidayDates?.has(date)) continue;
+
     const submitterCount = submittersByDate.get(date)?.size ?? 0;
     points.push({
       date,
+      submitted: submitterCount,
+      expected: denominator,
       completionPercentage:
         denominator === 0
           ? 0

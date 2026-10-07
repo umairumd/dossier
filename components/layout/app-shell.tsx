@@ -1,4 +1,5 @@
 import { navSections } from "@/components/layout/nav-config";
+import { SignedInBuddyProvider } from "@/components/layout/signed-in-buddy";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopNav } from "@/components/layout/top-nav";
 import {
@@ -67,7 +68,11 @@ export async function AppShell({
           notifications={notifications}
         />
         <main className="flex-1 p-4 md:p-6">
-          <div className="mx-auto max-w-5xl">{children}</div>
+          <div className="mx-auto max-w-5xl">
+            <SignedInBuddyProvider userId={profile.id} avatar={profile.avatar}>
+              {children}
+            </SignedInBuddyProvider>
+          </div>
         </main>
       </div>
     </div>

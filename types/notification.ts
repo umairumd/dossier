@@ -24,5 +24,7 @@ export interface Notification {
   entity_type: string | null;
   entity_id: string | null;
   read_at: string | null;
+  /** Set when the person follows or dismisses the For you row. Null means it still shows. */
+  cleared_at: string | null;
   created_at: string;
 }

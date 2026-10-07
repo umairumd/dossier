@@ -1,11 +1,49 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { formatDistanceToNow } from "date-fns";
+import { Bell } from "lucide-react";
 import {
   HeroBuddy,
   HeroIntro,
   type HeroNotification,
 } from "@/components/dashboard/hero-buddy";
-import type { AccessoryId } from "@/lib/mascot";
+import { HeroForYou, type ForYouItem } from "@/components/dashboard/hero-for-you";
+import { HeroProgressTile } from "@/components/dashboard/hero-progress-tile";
+import { HeroReportPanel } from "@/components/reports/today-report";
+import { HeroDeck } from "@/components/dashboard/hero-deck";
+import { HeroTeamTile, HeroTeamView } from "@/components/dashboard/hero-team-tile";
+import { TYPE_ICONS } from "@/components/layout/notification-bell";
+import { MemberAvatar } from "@/components/mascot/member-avatar";
+import { useHeroPanel } from "@/components/dashboard/use-hero-panel";
+import type { HeroPanelId } from "@/components/dashboard/hero-controller";
 import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
+import type { UnlockRow } from "@/lib/actions/avatar";
+import type { AccessoryId, RewardStats } from "@/lib/mascot";
+import { clearNotification } from "@/lib/actions/notifications";
+import type { DeadlineContext } from "@/lib/reports/submission-status";
+import {
+  notificationActionLabel,
+  resolveNotificationUrl,
+} from "@/lib/notifications/link";
+import type { Notification } from "@/types/notification";
+import type { UserRole } from "@/types/profile";
+import type { DailyReport } from "@/types/report";
+import type { ReportTemplateWithFields } from "@/types/template";
+import type { TeamMemberReport } from "@/types/team";
+import { cn } from "@/lib/utils";
+
+export interface HeroTeam {
+  label: "Team today" | "Company today";
+  members: TeamMemberReport[];
+  commentCounts: Record<string, number>;
+  teamPageHref: string;
+  orgOffDay: boolean;
+  templates: ReportTemplateWithFields[];
+  deadline: DeadlineContext;
+  viewerRole: UserRole;
+  currentUserId: string;
+}
 
 export interface HeroStat {
   label: string;
@@ -24,16 +62,24 @@ interface DashboardHeroProps {
   isOffDay: boolean;
   onFullDayLeave: boolean;
   isBirthday: boolean;
+  isReporting: boolean;
   orgDate: string;
   timeZone: string;
   deadlineHourLocal: number;
+  shiftFulltimeStart: string;
   currentStreak?: number;
   teamComplete?: boolean;
   unread: HeroNotification[];
-  /** Ids syncMyUnlocks just inserted, including starters. */
+  notifications: Notification[];
+  actorAvatars?: Record<string, unknown>;
+  rewardStats: RewardStats;
+  unlocks: UnlockRow[];
+  asOf: string;
   freshUnlocks?: AccessoryId[];
-  /** Adaptive report-action row (submit / submitted) below the hero body. */
-  reportStatus?: ReactNode;
+  initialPanel: HeroPanelId | null;
+  todayReport: DailyReport | null;
+  template?: ReportTemplateWithFields;
+  team?: HeroTeam | null;
 }
 
 export function DashboardHero({
@@ -48,33 +94,72 @@ export function DashboardHero({
   isOffDay,
   onFullDayLeave,
   isBirthday,
+  isReporting,
   orgDate,
   timeZone,
   deadlineHourLocal,
-  currentStreak,
+  shiftFulltimeStart,
+  currentStreak = 0,
   teamComplete,
   unread,
+  notifications,
+  actorAvatars = {},
+  rewardStats,
+  unlocks,
+  asOf,
   freshUnlocks,
-  reportStatus,
+  initialPanel,
+  todayReport,
+  template,
+  team = null,
 }: DashboardHeroProps) {
-  const meta = [designation, departmentNames?.join(", ")]
-    .filter(Boolean)
-    .join(" · ");
+  const showReport = isReporting;
+  const allowReport = showReport && !(onFullDayLeave && !todayReport);
+  const allowTeam = team != null;
+  const areaRef = useRef<HTMLDivElement>(null);
+  const { open, openPanel, close, panelRef, setTrigger } = useHeroPanel({
+    initial: initialPanel,
+    allowReport,
+    allowTeam,
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    areaRef.current?.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+  }, [open]);
+  const [dismissed, setDismissed] = useState<string[]>([]);
+  const [, startTransition] = useTransition();
+
+  function forgetNotification(id: string) {
+    setDismissed((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    startTransition(() => clearNotification(id));
+  }
+
+  const forYou: ForYouItem[] = notifications
+    .filter((note) => note.cleared_at == null && !dismissed.includes(note.id))
+    .map((note) =>
+      notificationForYouItem(note, () => forgetNotification(note.id), actorAvatars),
+    );
+  const meta = [designation, departmentNames?.join(", ")].filter(Boolean).join(" · ");
+  const statColumns = !stats || stats.length <= 2 ? 2 : stats.length === 3 ? 3 : 4;
 
   return (
     <div
       data-hero-card
-      className="card-gradient flex flex-col gap-6 overflow-visible rounded-xl p-6 ring-1 ring-foreground/10"
+      className="card-gradient flex scroll-mt-16 flex-col gap-6 overflow-visible rounded-xl p-6 ring-1 ring-foreground/10"
     >
-      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between md:gap-8">
-        <div className="flex items-center gap-5">
+      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 flex-1 items-center gap-5">
           <HeroBuddy
             userId={userId}
             avatar={avatar}
-            hasReport={hasReport}
+            hasReport={hasReport || Boolean(todayReport)}
             isOffDay={isOffDay}
             onFullDayLeave={onFullDayLeave}
             isBirthday={isBirthday}
+            isReporting={isReporting}
             orgDate={orgDate}
             timeZone={timeZone}
             deadlineHourLocal={deadlineHourLocal}
@@ -99,7 +184,10 @@ export function DashboardHero({
         </div>
 
         {stats && stats.length > 0 && (
-          <div className="grid shrink-0 grid-cols-2 gap-x-8 gap-y-4">
+          <div
+            className="grid w-full shrink-0 gap-x-6 gap-y-4 md:w-auto"
+            style={{ gridTemplateColumns: `repeat(${statColumns}, minmax(0, 1fr))` }}
+          >
             {stats.map((stat) => (
               <div key={stat.label} className="flex flex-col gap-0.5">
                 <span className="label-eyebrow">{stat.label}</span>
@@ -114,7 +202,128 @@ export function DashboardHero({
 
       <HeroIntro />
 
-      {reportStatus}
+      <div ref={areaRef} className="scroll-mt-16">
+        <HeroDeck
+          panel={open}
+          tiles={
+            <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
+              {showReport && (
+                <div className="md:col-span-2">
+                  <HeroReportPanel
+                    open={false}
+                    onOpen={() => openPanel("report")}
+                    onClose={close}
+                    triggerRef={setTrigger("report")}
+                    panelRef={panelRef}
+                    userId={userId}
+                    todayReport={todayReport}
+                    template={template}
+                    isOffDay={isOffDay}
+                    onFullDayLeave={onFullDayLeave}
+                    orgDate={orgDate}
+                    timeZone={timeZone}
+                    deadlineHourLocal={deadlineHourLocal}
+                    shiftFulltimeStart={shiftFulltimeStart}
+                  />
+                </div>
+              )}
+              <div className={cn("order-2 h-full md:order-1", !team && "md:col-span-2")}>
+                <HeroProgressTile
+                  userId={userId}
+                  avatar={avatar}
+                  stats={rewardStats}
+                  unlocks={unlocks}
+                  asOf={asOf}
+                />
+              </div>
+              {team && (
+                <div className="order-1 h-full md:order-2">
+                  <HeroTeamTile
+                    label={team.label}
+                    members={team.members}
+                    orgOffDay={team.orgOffDay}
+                    templates={team.templates}
+                    deadline={team.deadline}
+                    shiftFulltimeStart={shiftFulltimeStart}
+                    viewerRole={team.viewerRole}
+                    currentUserId={team.currentUserId}
+                    onView={() => openPanel("team")}
+                    triggerRef={setTrigger("team")}
+                  />
+                </div>
+              )}
+            </div>
+          }
+          renderView={(id) =>
+            id === "team" && team ? (
+              <HeroTeamView
+                label={team.label}
+                members={team.members}
+                commentCounts={team.commentCounts}
+                orgOffDay={team.orgOffDay}
+                templates={team.templates}
+                deadline={team.deadline}
+                shiftFulltimeStart={shiftFulltimeStart}
+                viewerRole={team.viewerRole}
+                currentUserId={team.currentUserId}
+                onClose={close}
+                panelRef={panelRef}
+              />
+            ) : (
+              <HeroReportPanel
+                open
+                onOpen={() => openPanel("report")}
+                onClose={close}
+                triggerRef={setTrigger("report")}
+                panelRef={panelRef}
+                userId={userId}
+                todayReport={todayReport}
+                template={template}
+                isOffDay={isOffDay}
+                onFullDayLeave={onFullDayLeave}
+                orgDate={orgDate}
+                timeZone={timeZone}
+                deadlineHourLocal={deadlineHourLocal}
+                shiftFulltimeStart={shiftFulltimeStart}
+              />
+            )
+          }
+        />
+      </div>
+
+      <HeroForYou items={forYou} />
     </div>
   );
+}
+
+function notificationForYouItem(
+  note: Notification,
+  forget: () => void,
+  actorAvatars: Record<string, unknown>,
+): ForYouItem {
+  const icon = TYPE_ICONS[note.type];
+  const Icon = icon?.Icon ?? Bell;
+  const actorId = note.entity_type === "employee" ? note.entity_id : null;
+  const href = resolveNotificationUrl(note.type, note.entity_type, note.entity_id);
+  return {
+    id: note.id,
+    source: "notification",
+    icon: actorId ? (
+      <MemberAvatar
+        name={note.title}
+        userId={actorId}
+        avatar={actorAvatars[actorId]}
+        size="sm"
+      />
+    ) : (
+      <Icon className={`size-4 ${icon?.className ?? "text-muted-foreground"}`} />
+    ),
+    title: note.title,
+    body: note.body ?? undefined,
+    time: formatDistanceToNow(new Date(note.created_at), { addSuffix: true }),
+    actions: href
+      ? [{ label: notificationActionLabel(note.type), href, onClick: forget }]
+      : [],
+    onDismiss: forget,
+  };
 }
