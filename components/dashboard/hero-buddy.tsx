@@ -11,8 +11,9 @@ import { toastUnlocked } from "@/components/mascot/unlock-toast";
 import { useOrgNow } from "@/components/mascot/use-org-now";
 import {
   registerHeroController,
-  subscribeHeroSheet,
+  subscribeHeroPanel,
   takeSkipHeroResting,
+  type HeroPanelId,
 } from "@/components/dashboard/hero-controller";
 import {
   LAUNCH,
@@ -68,13 +69,20 @@ function restingMoment(
   hasReport: boolean,
   isOffDay: boolean,
   onFullDayLeave: boolean,
+  isReporting: boolean,
   now: Date,
   timeZone: string,
   deadlineHourLocal: number,
 ): MomentId {
   if (hasReport) return "report.done";
   if (isOffDay || onFullDayLeave) return "day.off";
+  if (!isReporting) return "report.calm";
   return reportWindowMoment(now, timeZone, deadlineHourLocal);
+}
+
+function panelMoment(panel: HeroPanelId | null, resting: MomentId): MomentId {
+  if (panel === "report") return "report.writing";
+  return resting;
 }
 
 function notificationMoment(type: string): MomentId {
@@ -127,6 +135,7 @@ export function HeroBuddy({
   isOffDay,
   onFullDayLeave,
   isBirthday,
+  isReporting,
   orgDate,
   timeZone,
   deadlineHourLocal,
@@ -141,6 +150,7 @@ export function HeroBuddy({
   isOffDay: boolean;
   onFullDayLeave: boolean;
   isBirthday: boolean;
+  isReporting: boolean;
   orgDate: string;
   timeZone: string;
   /** First hour that counts as late, in org time. */
@@ -155,7 +165,7 @@ export function HeroBuddy({
   const hostRef = useRef<HTMLDivElement>(null);
   const ctlRef = useRef<MascotController | null>(null);
   const [ready, setReady] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [panel, setPanel] = useState<HeroPanelId | null>(null);
   const shown = useMemo(() => {
     const cfg = sanitizeAvatar(avatar, userId);
     if (!isBirthday) return cfg;
@@ -168,12 +178,13 @@ export function HeroBuddy({
     hasReport,
     isOffDay,
     onFullDayLeave,
+    isReporting,
     now,
     timeZone,
     deadlineHourLocal,
   );
 
-  useEffect(() => subscribeHeroSheet(setSheetOpen), []);
+  useEffect(() => subscribeHeroPanel(setPanel), []);
 
   useEffect(() => {
     return () => registerHeroController(null);
@@ -198,9 +209,9 @@ export function HeroBuddy({
     if (!ready) return;
     // Successful submit skips one snap so the eat moment can finish.
     // Any other close, including a minute later, re-applies the resting state now.
-    if (!sheetOpen && takeSkipHeroResting()) return;
-    mascotBus.emit(sheetOpen ? "report.writing" : resting, { userId });
-  }, [ready, sheetOpen, resting, userId]);
+    if (!panel && takeSkipHeroResting()) return;
+    mascotBus.emit(panelMoment(panel, resting), { userId });
+  }, [ready, panel, resting, userId]);
 
   useEffect(() => {
     if (!ready) return;

@@ -19,6 +19,16 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-foreground/8",
         link: "text-primary underline-offset-4 hover:underline",
+        // Tinted status pills. Text is a solid shade (not the fill) so it
+        // stays above 4.5:1 on the 12% wash in both themes. Neutral uses
+        // neutral-700 in light because muted-foreground drops under 4.5:1
+        // once the foreground/8 fill darkens the background.
+        success:
+          "border-transparent bg-green-800/12 text-green-800 ring-1 ring-inset ring-green-800/30 dark:bg-green-300/12 dark:text-green-300 dark:ring-green-300/30",
+        warning:
+          "border-transparent bg-amber-800/12 text-amber-800 ring-1 ring-inset ring-amber-800/30 dark:bg-amber-300/12 dark:text-amber-300 dark:ring-amber-300/30",
+        neutral:
+          "border-transparent bg-foreground/8 text-neutral-700 ring-1 ring-inset ring-foreground/20 dark:text-neutral-300 dark:ring-foreground/25",
       },
     },
     defaultVariants: {

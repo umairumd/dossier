@@ -2,8 +2,15 @@ import { getCurrentProfileWithDepartment } from "@/lib/supabase/queries/profile"
 import { AdminDashboard } from "@/components/dashboard/admin-dashboard";
 import { EmployeeDashboard } from "@/components/dashboard/employee-dashboard";
 import { ManagerDashboard } from "@/components/dashboard/manager-dashboard";
+import { parseHeroPanel } from "@/components/dashboard/hero-controller";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ hero?: string }>;
+}) {
+  const { hero } = await searchParams;
+  const initialPanel = parseHeroPanel(hero);
   const profile = await getCurrentProfileWithDepartment();
 
   if (!profile) {
@@ -13,12 +20,12 @@ export default async function DashboardPage() {
   }
 
   if (profile.role === "manager") {
-    return <ManagerDashboard profile={profile} />;
+    return <ManagerDashboard profile={profile} initialPanel={initialPanel} />;
   }
 
   if (profile.role === "owner" || profile.role === "admin") {
-    return <AdminDashboard />;
+    return <AdminDashboard initialPanel={initialPanel} />;
   }
 
-  return <EmployeeDashboard profile={profile} />;
+  return <EmployeeDashboard profile={profile} initialPanel={initialPanel} />;
 }

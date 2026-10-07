@@ -3,13 +3,12 @@ import { getReportHistory, getReportStatsData, getTodayReport } from "@/lib/supa
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getMyActivityLog } from "@/lib/supabase/queries/admin/activity";
-import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
-import { getMyNotifications } from "@/lib/supabase/queries/notifications";
-import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
+import { getAttendanceSettings, getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
+import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queries/notifications";
+import { getAvatarsByProfileIds, type ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { createClient } from "@/lib/supabase/server";
-import { syncMyUnlocks } from "@/lib/actions/avatar";
+import { getMyRewardStats, getMyUnlocks, syncMyUnlocks } from "@/lib/actions/avatar";
 import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
-import { formatDeadlineHint } from "@/lib/helpers/time";
 import {
   buildAttendanceStatusMap,
   computeReportStats,
@@ -25,7 +24,7 @@ import {
 } from "@/components/ui/card";
 import { ActivityStrip } from "@/components/dashboard/activity-strip";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
-import { HeroReportStatus } from "@/components/dashboard/hero-report-status";
+import type { HeroPanelId } from "@/components/dashboard/hero-controller";
 import { RecentReportsCard } from "@/components/reports/recent-reports-card";
 
 const RECENT_PREVIEW_SIZE = 5;
@@ -33,11 +32,13 @@ const MY_ACTIVITY_LIMIT = 20;
 
 export async function EmployeeDashboard({
   profile,
+  initialPanel,
 }: {
   profile: ProfileWithDepartment;
+  initialPanel: HeroPanelId | null;
 }) {
   const supabase = await createClient();
-  const [todayReport, preview, statsRows, settings, template, templates, attendanceResult, myActivity, notifications, freshUnlocks] =
+  const [todayReport, preview, statsRows, settings, template, templates, attendanceResult, myActivity, notifications, forYou, rewardStats, unlocks, freshUnlocks, attendanceSettings] =
     await Promise.all([
       getTodayReport(),
       getReportHistory(1, RECENT_PREVIEW_SIZE),
@@ -52,7 +53,11 @@ export async function EmployeeDashboard({
         .gte("date", dateNDaysAgo(399)),
       getMyActivityLog(MY_ACTIVITY_LIMIT),
       getMyNotifications(),
+      getForYouNotifications(),
+      getMyRewardStats(),
+      getMyUnlocks(),
       syncMyUnlocks(),
+      getAttendanceSettings(),
     ]);
 
   const attendanceByDate = buildAttendanceStatusMap(
@@ -74,6 +79,11 @@ export async function EmployeeDashboard({
   const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
   const onFullDayLeave = todayAttendanceStatus === "leave";
   const isBirthday = profile.date_of_birth?.slice(5, 10) === todayDate.slice(5, 10);
+  const actorAvatars = await getAvatarsByProfileIds(
+    forYou.flatMap((note) =>
+      note.entity_type === "employee" && note.entity_id ? [note.entity_id] : [],
+    ),
+  );
   const unread = notifications
     .filter((note) => note.read_at == null)
     .map((note) => ({ type: note.type, created_at: note.created_at }));
@@ -120,25 +130,23 @@ export async function EmployeeDashboard({
         deadlineHourLocal={settings.reportDeadlineHourLocal}
         currentStreak={stats.currentStreak}
         unread={unread}
+        notifications={forYou}
+        actorAvatars={actorAvatars}
+        rewardStats={rewardStats}
+        unlocks={unlocks}
+        asOf={new Date().toISOString()}
         freshUnlocks={freshUnlocks}
         contextLine={contextLine}
+        isReporting={profile.is_reporting}
+        initialPanel={initialPanel}
+        todayReport={todayReport}
+        template={template ?? undefined}
+        shiftFulltimeStart={attendanceSettings.shiftFulltimeStart}
         stats={[
           { label: "Current Streak", value: `${stats.currentStreak} days` },
           { label: "This Month", value: `${stats.reportsThisMonth} reports` },
           { label: "30-Day Rate", value: `${stats.completionPercentage}%` },
         ]}
-        reportStatus={
-          <HeroReportStatus
-            userId={profile.id}
-            todayReport={todayReport}
-            isOffDay={isOffDay}
-            deadlineHint={formatDeadlineHint(
-              settings.reportDeadlineHourLocal,
-              settings.timezone,
-            )}
-            template={template ?? undefined}
-          />
-        }
       />
 
       <div

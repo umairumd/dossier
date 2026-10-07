@@ -1,24 +1,23 @@
 import Link from "next/link";
 import { getTodayReport, getReportStatsData } from "@/lib/supabase/queries/reports";
-import { resolveTemplate } from "@/lib/supabase/queries/templates";
+import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
 import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
-import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
-import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
-import { getMyNotifications } from "@/lib/supabase/queries/notifications";
-import type { ProfileWithDepartment } from "@/lib/supabase/queries/profile";
+import { getDeadlineContext, getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getReportCommentCounts } from "@/lib/supabase/queries/report-comments";
+import { getAttendanceSettings, getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
+import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queries/notifications";
+import { getAvatarsByProfileIds, type ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { createClient } from "@/lib/supabase/server";
-import { syncMyUnlocks } from "@/lib/actions/avatar";
+import { getMyRewardStats, getMyUnlocks, syncMyUnlocks } from "@/lib/actions/avatar";
 import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
-import { formatDeadlineHint } from "@/lib/helpers/time";
 import {
   buildAttendanceStatusMap,
   computeReportStats,
 } from "@/lib/helpers/report-stats";
 import type { AttendanceStatus } from "@/types/attendance";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
-import { HeroReportStatus } from "@/components/dashboard/hero-report-status";
-import { TeamTodayPanel } from "@/components/dashboard/team-today-panel";
+import type { HeroPanelId } from "@/components/dashboard/hero-controller";
 import {
   Card,
   CardAction,
@@ -27,21 +26,25 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ActivityFeed } from "@/components/analytics/activity-feed";
-import { CompletionTrendCard } from "@/components/analytics/completion-trend-card";
+import { CompletionLineChart } from "@/components/analytics/completion-line-chart";
+import { getLeaveUntilByProfile } from "@/lib/supabase/queries/leave-until";
 import { TeamHighlights } from "@/components/manager/team-highlights";
 
 export async function ManagerDashboard({
   profile,
+  initialPanel,
 }: {
   profile: ProfileWithDepartment;
+  initialPanel: HeroPanelId | null;
 }) {
   const supabase = await createClient();
-  const [todayReport, members, insights, settings, template, statsRows, attendanceResult, notifications, freshUnlocks] = await Promise.all([
+  const [todayReport, members, insights, settings, template, orgTemplates, statsRows, attendanceResult, notifications, forYou, rewardStats, unlocks, freshUnlocks, attendanceSettings] = await Promise.all([
     getTodayReport(),
     getTeamReportsForDate(),
     getTeamInsights(),
     getOrganizationSettings(),
     resolveTemplate(profile.id, profile.department_ids),
+    getOrgTemplatesWithFields(),
     getReportStatsData(),
     supabase
       .from("attendance_records")
@@ -49,7 +52,11 @@ export async function ManagerDashboard({
       .eq("profile_id", profile.id)
       .gte("date", dateNDaysAgo(399)),
     getMyNotifications(),
+    getForYouNotifications(),
+    getMyRewardStats(),
+    getMyUnlocks(),
     syncMyUnlocks(),
+    getAttendanceSettings(),
   ]);
   const teamSize = members.length;
   const submittedToday = members.filter((member) => member.report).length;
@@ -57,7 +64,9 @@ export async function ManagerDashboard({
   const completionPercentage =
     teamSize === 0 ? 0 : Math.round((submittedToday / teamSize) * 100);
   const todayDate = todayInTimezone(settings.timezone);
-  const deadline = getDeadlineContext(settings);
+  const commentCounts = await getReportCommentCounts(
+    members.flatMap((member) => (member.report ? [member.report.id] : [])),
+  );
 
   // Off-day awareness: weekends/non-working days from org config, plus
   // holidays recorded in attendance_records.
@@ -72,6 +81,15 @@ export async function ManagerDashboard({
       (attendanceResult.data as { date: string; status: AttendanceStatus }[]) ?? [],
     ),
   }).currentStreak;
+  const actorAvatars = await getAvatarsByProfileIds(
+    forYou.flatMap((note) =>
+      note.entity_type === "employee" && note.entity_id ? [note.entity_id] : [],
+    ),
+  );
+  const leaveUntil = await getLeaveUntilByProfile(
+    members.filter((member) => member.attendanceStatus === "leave").map((member) => member.employeeId),
+    todayDate,
+  );
   const unread = notifications
     .filter((note) => note.read_at == null)
     .map((note) => ({ type: note.type, created_at: note.created_at }));
@@ -105,8 +123,32 @@ export async function ManagerDashboard({
         currentStreak={currentStreak}
         teamComplete={missingToday === 0 && teamSize > 0}
         unread={unread}
+        notifications={forYou}
+        actorAvatars={actorAvatars}
+        rewardStats={rewardStats}
+        unlocks={unlocks}
+        asOf={new Date().toISOString()}
         freshUnlocks={freshUnlocks}
         contextLine={contextLine}
+        isReporting={profile.is_reporting}
+        initialPanel={initialPanel}
+        todayReport={todayReport}
+        template={template ?? undefined}
+        shiftFulltimeStart={attendanceSettings.shiftFulltimeStart}
+        team={{
+          label: "Team today",
+          members: members.map((member) => ({
+            ...member,
+            leaveUntil: leaveUntil[member.employeeId] ?? null,
+          })),
+          commentCounts,
+          teamPageHref: "/team-reports",
+          orgOffDay: isOffDay,
+          templates: orgTemplates,
+          deadline: getDeadlineContext(settings),
+          viewerRole: profile.role,
+          currentUserId: profile.id,
+        }}
         stats={
           isOffDay
             ? [
@@ -120,50 +162,15 @@ export async function ManagerDashboard({
                 { label: "Completion", value: `${completionPercentage}%` },
               ]
         }
-        reportStatus={
-          <HeroReportStatus
-            userId={profile.id}
-            todayReport={todayReport}
-            isOffDay={isOffDay}
-            deadlineHint={formatDeadlineHint(
-              settings.reportDeadlineHourLocal,
-              settings.timezone,
-            )}
-            template={template ?? undefined}
-          />
-        }
       />
 
-      <Card
-        className="card-gradient animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "0ms" }}
-      >
-        <CardContent>
-          <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 md:min-h-[280px]">
-            <TeamTodayPanel
-              initialMembers={members}
-              initialDate={todayDate}
-              timezone={settings.timezone}
-              workingDays={settings.workingDays}
-              deadline={deadline}
-              initialIsOffDay={isOffDay}
-            />
-            {/* Explicit min-height on small screens — embedded chart uses
-                h-full, which collapses when the grid row has no md:min-h. */}
-            <div className="min-h-[200px] md:h-full md:min-h-0">
-              <CompletionTrendCard
-                embedded
-                dimmed={isOffDay}
-                title="Team Completion Trend"
-                description={`Last 7 days · ${Math.min(100, insights.weeklyCompletionPercentage)}% weekly completion`}
-                trend={insights.trend}
-                emptyMessage="No reports submitted in the last 7 days."
-                footnote="* includes voluntary submissions."
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="animate-in fade-in-0 duration-300 fill-mode-both" style={{ animationDelay: "0ms" }}>
+        <CompletionLineChart
+          title="Team completion"
+          trend={insights.trend}
+          previousAverage={insights.previousAverage}
+        />
+      </div>
 
       <div
         className="animate-in fade-in-0 duration-300 fill-mode-both"

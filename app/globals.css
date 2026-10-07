@@ -258,6 +258,19 @@
   }
 }
 
+@keyframes completion-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+::view-transition-old(hero-report),
+::view-transition-new(hero-report),
+::view-transition-old(hero-team),
+::view-transition-new(hero-team) {
+  animation-duration: 250ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
 @layer utilities {
   .label-eyebrow {
     @apply text-[10px] font-medium uppercase tracking-wide text-muted-foreground;

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import {
   CalendarDays,
@@ -31,7 +30,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { ConfirmActionDialog } from "@/components/admin/confirm-action-dialog";
-import { SubmitReportSheet } from "@/components/reports/submit-report-sheet";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { DynamicFieldRenderer } from "@/components/reports/dynamic-field-renderer";
 import {
@@ -89,7 +87,6 @@ export function ReportDetailSheet({
   viewerRole?: UserRole;
   currentUserId?: string;
 }) {
-  const router = useRouter();
   const current = index !== null ? members[index] : null;
   const templateForReport = current?.report.template_id
     ? templates?.find((template) => template.id === current.report.template_id)
@@ -452,16 +449,9 @@ export function ReportDetailSheet({
             <DialogFooter className="!flex-row flex-row items-center justify-between gap-2 sm:justify-between">
               <div className="flex items-center gap-2">
                 {canEditOwnToday && current && templateForReport ? (
-                  <SubmitReportSheet
-                    alreadySubmitted
-                    initialReport={current.report}
-                    triggerLabel="Edit Report"
-                    triggerVariant="outline"
-                    template={templateForReport}
-                    onSubmitted={() => {
-                      router.refresh();
-                    }}
-                  />
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/reports?report=open">Edit Report</Link>
+                  </Button>
                 ) : null}
                 <Button
                   type="button"
