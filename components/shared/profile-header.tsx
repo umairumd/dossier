@@ -1,13 +1,14 @@
 "use client";
 
+import { Pencil } from "lucide-react";
 import {
   PartTimeIndicator,
   RemoteIndicator,
 } from "@/components/shared/employee-indicators";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { RoleChip } from "@/components/shared/role-chip";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { BotExpression } from "@/components/shared/bot-avatar";
 
 const filledPillClassName =
   "inline-flex max-w-full items-center rounded-full bg-foreground px-2.5 py-0.5 text-xs font-medium text-background";
@@ -19,12 +20,12 @@ export function ProfileHeader({
   departmentNames,
   isRemote,
   employmentType,
-  avatarUrl,
+  avatar,
   avatarSize = "lg",
   roleLabel,
   joinedLabel,
-  expression,
   interactive,
+  onCustomise,
 }: {
   userId?: string;
   name: string;
@@ -32,27 +33,56 @@ export function ProfileHeader({
   departmentNames?: string[];
   isRemote?: boolean;
   employmentType?: "full_time" | "part_time";
-  avatarUrl?: string | null;
+  avatar?: unknown;
   avatarSize?: "md" | "lg" | "xl" | "2xl";
   roleLabel?: string;
   joinedLabel?: string;
-  expression?: BotExpression;
   interactive?: boolean;
+  /** Settings only: the avatar opens Customise buddy. */
+  onCustomise?: () => void;
 }) {
   const showDetailPills = Boolean(roleLabel);
+  const avatarNode = (
+    <MemberAvatar
+      userId={userId}
+      name={name}
+      avatar={avatar}
+      size={avatarSize}
+      interactive={interactive}
+    />
+  );
 
   return (
     <div className="flex w-full items-center gap-4 py-2">
-      <div className="relative shrink-0">
-        <MemberAvatar
-          userId={userId}
-          name={name}
-          avatarUrl={avatarUrl ?? undefined}
-          size={avatarSize}
-          interactive={interactive}
-          expression={expression}
-        />
-      </div>
+      {onCustomise ? (
+        <div className="flex shrink-0 flex-col items-center gap-1">
+          <button
+            type="button"
+            onClick={onCustomise}
+            aria-label="Customise buddy"
+            className="relative cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {avatarNode}
+            <span
+              aria-hidden
+              className="absolute right-0 bottom-0 flex size-5 items-center justify-center rounded-full bg-card text-foreground ring-1 ring-foreground/15"
+            >
+              <Pencil className="size-2.5" />
+            </span>
+          </button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2"
+            onClick={onCustomise}
+          >
+            Customise
+          </Button>
+        </div>
+      ) : (
+        <div className="relative shrink-0">{avatarNode}</div>
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 items-center gap-1.5">

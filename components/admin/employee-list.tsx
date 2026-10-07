@@ -214,7 +214,7 @@ export function EmployeeList({
                   <MemberAvatar
                     userId={employee.id}
                     name={employee.full_name}
-                    avatarUrl={employee.avatar_url ?? undefined}
+                    avatar={employee.avatar}
                     size="md"
                   />
                 }
@@ -285,7 +285,7 @@ export function EmployeeList({
                     <MemberAvatar
                       userId={employee.id}
                       name={employee.full_name}
-                      avatarUrl={employee.avatar_url ?? undefined}
+                      avatar={employee.avatar}
                       size="md"
                     />
                     <div className="flex flex-col gap-0.5">

@@ -7,13 +7,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/actions/notifications";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { logActivity } from "@/lib/helpers/activity-log";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getDeadlineContext, getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import {
   getTodayReport,
   searchReports,
 } from "@/lib/supabase/queries/reports";
 import type { DailyReport, ReportComment, SubmitReportResult } from "@/types/report";
 import { ALREADY_SUBMITTED_ERROR } from "@/lib/reports/constants";
+import { getSubmissionStatus } from "@/lib/reports/submission-status";
+import { syncMyUnlocks } from "@/lib/actions/avatar";
 
 type SubmitReportInput = {
   templateId: string;
@@ -142,7 +144,17 @@ export async function submitDailyReport(
 
   revalidatePath("/");
 
-  return { success: true };
+  const onTime =
+    getSubmissionStatus(
+      new Date().toISOString(),
+      settings.reportDeadlineHourUtc,
+      getDeadlineContext(settings),
+      reportDate,
+    ) === "on_time";
+
+  const unlocked = await syncMyUnlocks();
+
+  return { success: true, onTime, unlocked };
 }
 
 export async function updateDailyReport(
@@ -239,7 +251,7 @@ export const getReportComments = cache(
     const { data, error } = await supabase
       .from("report_comments")
       .select(
-        "*, profiles!report_comments_author_id_fkey(id, full_name, avatar_url)",
+        "*, profiles!report_comments_author_id_fkey(id, full_name, avatar_url, avatar)",
       )
       .eq("report_id", reportId)
       .order("created_at", { ascending: true });
@@ -271,7 +283,7 @@ export const getReportComments = cache(
       const admin = createAdminClient();
       const { data: authors } = await admin
         .from("profiles")
-        .select("id, full_name, avatar_url")
+        .select("id, full_name, avatar_url, avatar")
         .in("id", missingAuthorIds);
 
       const byId = new Map(

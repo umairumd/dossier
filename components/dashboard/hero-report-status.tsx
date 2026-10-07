@@ -13,11 +13,13 @@ import type { ReportTemplateWithFields } from "@/types/template";
  * share the same bottom row + divider treatment.
  */
 export function HeroReportStatus({
+  userId,
   todayReport,
   isOffDay,
   deadlineHint,
   template,
 }: {
+  userId: string;
   todayReport: DailyReport | null;
   isOffDay: boolean;
   deadlineHint?: string;
@@ -40,6 +42,7 @@ export function HeroReportStatus({
           </span>
         </div>
         <SubmitReportSheet
+          userId={userId}
           alreadySubmitted
           initialReport={todayReport}
           triggerLabel="Edit Report"
@@ -60,6 +63,8 @@ export function HeroReportStatus({
           Shouldn&apos;t you be offline right now?
         </p>
         <SubmitReportSheet
+          userId={userId}
+          offDaySubmit
           alreadySubmitted={false}
           triggerLabel="Submit anyway"
           triggerVariant="link"
@@ -90,6 +95,8 @@ export function HeroReportStatus({
         </div>
       </div>
       <SubmitReportSheet
+        userId={userId}
+        hoverFeed
         alreadySubmitted={false}
         triggerLabel="Submit →"
         triggerSize="sm"

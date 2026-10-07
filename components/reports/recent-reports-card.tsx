@@ -20,6 +20,7 @@ export function RecentReportsCard({
   viewAllHref,
   deadline,
   userName,
+  avatar,
   templates,
   viewerRole,
   currentUserId,
@@ -28,6 +29,7 @@ export function RecentReportsCard({
   viewAllHref?: string;
   deadline: DeadlineContext;
   userName: string;
+  avatar?: unknown;
   templates?: ReportTemplateWithFields[];
   viewerRole?: UserRole;
   currentUserId?: string;
@@ -60,6 +62,7 @@ export function RecentReportsCard({
           <ReportHistoryBrowser
             reports={reports}
             userName={userName}
+            avatar={avatar}
             deadline={deadline}
             showProfileLink={false}
             templates={templates}

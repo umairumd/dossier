@@ -6,6 +6,10 @@ export interface TeamMemberReport {
   fullName: string;
   designation: string | null;
   avatarUrl?: string | null;
+  /** Raw profiles.avatar. Null renders defaultAvatar(employeeId). */
+  avatar?: unknown;
+  /** profiles.date_of_birth. Used to wear the party hat on the org-timezone birthday. */
+  dateOfBirth?: string | null;
   isRemote?: boolean;
   employment_type?: "full_time" | "part_time";
   /** True when attendance has an approved leave/half_leave for the report date. */

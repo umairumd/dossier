@@ -134,6 +134,7 @@ export default async function AttendancePage({
       designation: member.designation,
       department_name: null,
       avatar_url: member.avatar_url,
+      avatar: member.avatar,
       leave_balance: member.leave_balance,
       joined_on: member.created_at ? member.created_at.slice(0, 10) : null,
     }));
@@ -224,6 +225,7 @@ export default async function AttendancePage({
           ? emp.department_names.join(", ")
           : null,
       avatar_url: emp.avatar_url,
+      avatar: emp.avatar,
       leave_balance: emp.leave_balance,
       joined_on: emp.created_at ? emp.created_at.slice(0, 10) : null,
     }));

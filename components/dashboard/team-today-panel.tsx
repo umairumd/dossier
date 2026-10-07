@@ -10,8 +10,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  AmbientBudget,
+  AmbientBuddy,
+  isOrgBirthday,
+} from "@/components/mascot/ambient-buddy";
 import { DayOffTag } from "@/components/shared/day-off-tag";
-import { MemberAvatar } from "@/components/shared/member-avatar";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { fetchTeamReportsForDate } from "@/lib/actions/manager/team-reports";
 import {
@@ -142,48 +146,52 @@ export function TeamTodayPanel({
             No team activity today.
           </p>
         ) : (
-          sortedMembers.map((member) => (
-            <Link
-              key={member.employeeId}
-              href={`/employees/${member.employeeId}`}
-              className="-mx-2 flex items-center justify-between gap-2 rounded-md px-2 py-1 transition-colors hover:bg-foreground/5"
-            >
-              <div className="flex min-w-0 items-center gap-2">
-                <div className={cn(isOffDay && "grayscale opacity-60")}>
-                  <MemberAvatar
-                    userId={member.employeeId}
-                    name={member.fullName}
-                    avatarUrl={member.avatarUrl ?? undefined}
-                    size="sm"
-                  />
-                </div>
-                <span
-                  className={cn(
-                    "min-w-0 truncate text-sm",
-                    isOffDay && "text-muted-foreground",
-                  )}
-                >
-                  {member.fullName}
-                </span>
-              </div>
-              {/* Off days: no status column. A voluntary submission is the
-                  one exception worth surfacing. */}
-              {(!isOffDay || member.report) && (
-                <div className="shrink-0">
-                  <SubmissionStatusBadge
-                    status={getSubmissionStatus(
-                      member.report?.submitted_at ?? null,
-                      deadline.deadlineHourUtc,
-                      deadline,
-                      date,
-                      member.isOnLeave,
-                      isOffDay,
+          <AmbientBudget>
+            {sortedMembers.map((member, index) => (
+              <Link
+                key={member.employeeId}
+                href={`/employees/${member.employeeId}`}
+                className="-mx-2 flex items-center justify-between gap-2 rounded-md px-2 py-1 transition-colors hover:bg-foreground/5"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className={cn(isOffDay && "grayscale opacity-60")}>
+                    <AmbientBuddy
+                      userId={member.employeeId}
+                      name={member.fullName}
+                      avatar={member.avatar}
+                      order={index}
+                      size="sm"
+                      birthday={isOrgBirthday(member.dateOfBirth, today)}
+                    />
+                  </div>
+                  <span
+                    className={cn(
+                      "min-w-0 truncate text-sm",
+                      isOffDay && "text-muted-foreground",
                     )}
-                  />
+                  >
+                    {member.fullName}
+                  </span>
                 </div>
-              )}
-            </Link>
-          ))
+                {/* Off days: no status column. A voluntary submission is the
+                    one exception worth surfacing. */}
+                {(!isOffDay || member.report) && (
+                  <div className="shrink-0">
+                    <SubmissionStatusBadge
+                      status={getSubmissionStatus(
+                        member.report?.submitted_at ?? null,
+                        deadline.deadlineHourUtc,
+                        deadline,
+                        date,
+                        member.isOnLeave,
+                        isOffDay,
+                      )}
+                    />
+                  </div>
+                )}
+              </Link>
+            ))}
+          </AmbientBudget>
         )}
       </div>
 

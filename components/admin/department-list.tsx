@@ -178,6 +178,7 @@ export function DepartmentList({
                       <MemberAvatar
                         userId={department.manager_id ?? undefined}
                         name={department.manager_name}
+                        avatar={department.manager_avatar}
                         size="md"
                       />
                       <span>{department.manager_name}</span>
