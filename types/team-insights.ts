@@ -12,6 +12,9 @@ export interface CompletionTrendPoint {
 export interface TeamMemberStanding {
   employeeId: string;
   fullName: string;
+  designation?: string | null;
+  /** Raw profiles.avatar json, for the buddy face. */
+  avatar?: unknown;
   streak: number;
   completionPercentage: number;
   reportsThisMonth: number;

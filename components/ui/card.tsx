@@ -1,4 +1,6 @@
 import * as React from "react"
+import Link from "next/link"
+import { ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -92,8 +94,69 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+// Home-card header, same pattern as the hero tiles: a small caps label on the
+// left and a quiet note or control on the right.
+function CardLabelHeader({
+  label,
+  aside,
+  className,
+}: {
+  label: React.ReactNode
+  aside?: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      data-slot="card-label-header"
+      className={cn(
+        "-mb-1.5 flex min-h-7 items-center justify-between gap-3 px-(--card-spacing)",
+        className
+      )}
+    >
+      <h2 className="label-eyebrow">{label}</h2>
+      {aside != null && aside !== false && (
+        <div className="flex shrink-0 items-center text-xs text-muted-foreground">
+          {aside}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// The card's main link as a full-width row along the bottom (matches
+// TileFooterAction in the hero).
+function CardFooterLink({
+  href,
+  children,
+  className,
+}: {
+  href: string
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      data-slot="card-footer"
+      className={cn("mt-auto border-t border-foreground/10", className)}
+    >
+      <Link
+        href={href}
+        className="group/footer flex h-12 w-full items-center justify-between px-(--card-spacing) text-sm font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.03] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset"
+      >
+        {children}
+        <ChevronRight
+          aria-hidden
+          className="size-4 transition-transform group-hover/footer:translate-x-0.5"
+        />
+      </Link>
+    </div>
+  )
+}
+
 export {
   Card,
+  CardLabelHeader,
+  CardFooterLink,
   CardHeader,
   CardFooter,
   CardTitle,

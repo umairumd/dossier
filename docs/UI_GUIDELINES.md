@@ -626,3 +626,12 @@ Type "DELETE" to confirm:
 
 - `tabular-nums` in lists and on axes.
 - Proportional figures for big numbers.
+
+## Home cards
+
+Cards on the home page follow the hero tiles:
+
+- Header: `CardLabelHeader` (small caps label left, quiet note or control right). Not `CardTitle` + `CardDescription`.
+- Main link: `CardFooterLink` (full-width row with a chevron along the bottom), not a "View all" text link in the header or body.
+- People rows: buddy face (`MemberAvatar size="sm"`), name, designation in muted text, value right-aligned and `tabular-nums`.
+- Status colour only when it means something: neutral before the deadline, amber once it has passed or a value is below its threshold, green when complete.

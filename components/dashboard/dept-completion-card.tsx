@@ -7,10 +7,10 @@ import { EmptyState } from "@/components/shared/empty-state";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  CardFooterLink,
+  CardLabelHeader,
 } from "@/components/ui/card";
+import { Meter } from "@/components/ui/meter";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -24,64 +24,42 @@ import { cn } from "@/lib/utils";
 import { DayOffTag } from "@/components/shared/day-off-tag";
 import type { DeptCompletionRow } from "@/lib/supabase/queries/admin/dept-completion";
 
-function barClass(completionPct: number): string {
-  if (completionPct >= 80) {
-    return "bg-primary";
-  }
-  if (completionPct >= 50) {
-    // One-off: shadcn has no semantic warning token; yellow is not a theme variable.
-    return "bg-yellow-500/70";
-  }
-  return "bg-destructive/70";
-}
-
-function completionTextClass(completionPct: number): string {
-  if (completionPct >= 80) {
-    return "text-primary";
-  }
-  if (completionPct >= 50) {
-    return "text-yellow-500";
-  }
-  return "text-destructive";
-}
-
+// Neutral until the deadline has passed: "0 of 3 in" at 9 AM is normal, not
+// an alarm. After the deadline, departments still missing reports turn amber.
 function DeptRow({
   name,
   submitted,
   total,
-  completionPct,
+  deadlinePassed,
 }: {
   name: string;
   submitted: number;
   total: number;
-  completionPct: number;
+  deadlinePassed: boolean;
 }) {
-  const missing = total - submitted;
-  const widthPct = Math.max(completionPct, completionPct > 0 ? 2 : 0);
+  const allIn = total > 0 && submitted >= total;
+  const behind = deadlinePassed && !allIn;
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-sm font-semibold">{name}</span>
+      <div className="flex items-center justify-between gap-3">
+        <span className="truncate text-sm font-medium">{name}</span>
         <span
           className={cn(
-            "shrink-0 text-sm font-medium",
-            completionTextClass(completionPct),
+            "shrink-0 text-sm tabular-nums text-foreground/80",
+            behind && "text-amber-700 dark:text-amber-300",
+            allIn && "text-green-700 dark:text-green-300",
           )}
         >
-          {submitted} / {total}
+          {allIn ? "All in" : `${submitted} of ${total} in`}
         </span>
       </div>
-      <div className="h-[3px] overflow-hidden rounded-full bg-foreground/10">
-        <div
-          className={cn("h-full rounded-full", barClass(completionPct))}
-          style={{ width: `${widthPct}%` }}
-        />
-      </div>
-      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-        <span>{completionPct}% complete</span>
-        {missing > 0 && <span>{missing} missing</span>}
-      </div>
+      <Meter
+        value={submitted}
+        max={total}
+        tone={allIn ? "success" : behind ? "warning" : "neutral"}
+        label={`${name}: ${submitted} of ${total} reports in`}
+      />
     </div>
   );
 }
@@ -110,12 +88,15 @@ export function DeptCompletionCard({
   initialDate,
   workingDays = [],
   initialIsOffDay = false,
+  deadlinePassedToday = false,
 }: {
   initialDepartments: DeptCompletionRow[];
   timezone: string;
   initialDate: string;
   workingDays?: number[];
   initialIsOffDay?: boolean;
+  /** Computed on the server so the first render matches. */
+  deadlinePassedToday?: boolean;
 }) {
   const today = todayInTimezone(timezone);
   const [date, setDate] = useState(initialDate);
@@ -147,85 +128,79 @@ export function DeptCompletionCard({
     });
   };
 
-  const description =
-    date === today
-      ? "Report completion for today"
-      : `Report completion for ${formatDate(date)}`;
+  const deadlinePassed = date < today || deadlinePassedToday;
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <CardTitle>Department Overview</CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </div>
-          <div className="flex items-center gap-1" aria-busy={isPending}>
+      <CardLabelHeader
+        label={date === today ? "Departments today" : `Departments · ${formatDate(date)}`}
+        aside={
+      <div className="flex items-center gap-1" aria-busy={isPending}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => goToDate(previousDate)}
+          disabled={isPending}
+          aria-label="Previous day"
+        >
+          <ChevronLeft className="size-4" />
+        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
             <Button
               type="button"
               variant="ghost"
-              size="icon-sm"
-              onClick={() => goToDate(previousDate)}
+              size="sm"
               disabled={isPending}
-              aria-label="Previous day"
+              className={cn(
+                "min-w-28",
+                isOffDay && "hover:bg-transparent dark:hover:bg-transparent",
+              )}
             >
-              <ChevronLeft className="size-4" />
-            </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={isPending}
-                  className={cn(
-                    "min-w-28",
-                    isOffDay && "hover:bg-transparent dark:hover:bg-transparent",
-                  )}
-                >
-                  {isPending ? (
-                    <Loader2
-                      className="mx-auto size-4 animate-spin text-muted-foreground"
-                      aria-label="Loading"
-                    />
-                  ) : isOffDay ? (
-                    <span className="flex items-center">
-                      <DayOffTag />
-                    </span>
-                  ) : (
-                    centerLabel
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="center">
-                <Calendar
-                  mode="single"
-                  selected={new Date(`${date}T00:00:00`)}
-                  onSelect={(selected) => {
-                    if (!selected) return;
-                    const y = selected.getFullYear();
-                    const m = String(selected.getMonth() + 1).padStart(2, "0");
-                    const d = String(selected.getDate()).padStart(2, "0");
-                    goToDate(`${y}-${m}-${d}`);
-                  }}
-                  disabled={(day) => day > new Date() || isPending}
-                  autoFocus
+              {isPending ? (
+                <Loader2
+                  className="mx-auto size-4 animate-spin text-muted-foreground"
+                  aria-label="Loading"
                 />
-              </PopoverContent>
-            </Popover>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => goToDate(nextDate)}
-              disabled={isPending || isToday}
-              aria-label="Next day"
-            >
-              <ChevronRight className="size-4" />
+              ) : isOffDay ? (
+                <span className="flex items-center">
+                  <DayOffTag />
+                </span>
+              ) : (
+                centerLabel
+              )}
             </Button>
-          </div>
-        </div>
-      </CardHeader>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="center">
+            <Calendar
+              mode="single"
+              selected={new Date(`${date}T00:00:00`)}
+              onSelect={(selected) => {
+                if (!selected) return;
+                const y = selected.getFullYear();
+                const m = String(selected.getMonth() + 1).padStart(2, "0");
+                const d = String(selected.getDate()).padStart(2, "0");
+                goToDate(`${y}-${m}-${d}`);
+              }}
+              disabled={(day) => day > new Date() || isPending}
+              autoFocus
+            />
+          </PopoverContent>
+        </Popover>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => goToDate(nextDate)}
+          disabled={isPending || isToday}
+          aria-label="Next day"
+        >
+          <ChevronRight className="size-4" />
+        </Button>
+      </div>
+        }
+      />
       <CardContent>
         {departments.length === 0 ? (
           <EmptyState
@@ -238,7 +213,7 @@ export function DeptCompletionCard({
             className={
               isOffDay
                 ? "flex flex-col"
-                : "grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2"
+                : "-mx-2 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2"
             }
           >
             {departments.map((dept) => {
@@ -256,7 +231,7 @@ export function DeptCompletionCard({
                   name={name}
                   submitted={dept.submitted}
                   total={dept.total}
-                  completionPct={dept.completionPct}
+                  deadlinePassed={deadlinePassed}
                 />
               );
 
@@ -273,13 +248,8 @@ export function DeptCompletionCard({
                   key={dept.departmentId}
                   href={href}
                   className={cn(
-                    "rounded-md transition-colors hover:bg-foreground/5",
-                    isOffDay
-                      ? "cursor-pointer px-3 py-3"
-                      : cn(
-                          "px-2 py-2",
-                          dept.completionPct === 100 && "bg-primary/5",
-                        ),
+                    "rounded-lg transition-colors hover:bg-foreground/5",
+                    isOffDay ? "cursor-pointer px-3 py-3" : "px-2 py-2.5",
                   )}
                 >
                   {row}
@@ -288,13 +258,8 @@ export function DeptCompletionCard({
             })}
           </div>
         )}
-        <Link
-          href="/track-reports"
-          className="mt-4 block text-xs text-muted-foreground hover:text-foreground"
-        >
-          View all →
-        </Link>
       </CardContent>
+      <CardFooterLink href="/track-reports">Track reports</CardFooterLink>
     </Card>
   );
 }

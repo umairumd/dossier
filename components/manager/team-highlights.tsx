@@ -1,23 +1,24 @@
 import { Users } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { MemberAvatar } from "@/components/shared/member-avatar";
+import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
+import { cn } from "@/lib/utils";
 import type { TeamMemberStanding } from "@/types/team-insights";
+
+// Completion below this reads as "needs a nudge" (amber).
+const NUDGE_BELOW = 70;
 
 function StandingList({
   items,
   emptyMessage,
   metric,
+  isWarning,
 }: {
   items: TeamMemberStanding[];
   emptyMessage: string;
   metric: (item: TeamMemberStanding) => string;
+  isWarning?: (item: TeamMemberStanding) => boolean;
 }) {
   if (items.length === 0) {
     return (
@@ -30,17 +31,38 @@ function StandingList({
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col divide-y divide-foreground/[0.06]">
       {items.map((item) => (
         <li
           key={item.employeeId}
-          className="flex items-center justify-between text-sm"
+          className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
         >
-          <EmployeeNameLink
-            employeeId={item.employeeId}
-            fullName={item.fullName}
+          <MemberAvatar
+            name={item.fullName}
+            userId={item.employeeId}
+            avatar={item.avatar}
+            size="sm"
           />
-          <span className="text-muted-foreground">{metric(item)}</span>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <EmployeeNameLink
+              employeeId={item.employeeId}
+              fullName={item.fullName}
+              className="truncate text-sm hover:underline"
+            />
+            {item.designation && (
+              <span className="truncate text-xs text-muted-foreground">
+                {item.designation}
+              </span>
+            )}
+          </div>
+          <span
+            className={cn(
+              "shrink-0 text-sm tabular-nums text-foreground/80",
+              isWarning?.(item) && "text-amber-700 dark:text-amber-300",
+            )}
+          >
+            {metric(item)}
+          </span>
         </li>
       ))}
     </ul>
@@ -57,10 +79,7 @@ export function TeamHighlights({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Card>
-        <CardHeader>
-          <CardTitle>Longest Streaks</CardTitle>
-          <CardDescription>Most consecutive days reporting.</CardDescription>
-        </CardHeader>
+        <CardLabelHeader label="Longest streaks" aside="Consecutive days" />
         <CardContent>
           <StandingList
             items={longestStreaks}
@@ -71,15 +90,13 @@ export function TeamHighlights({
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Frequently Missing</CardTitle>
-          <CardDescription>Lowest completion in the last 30 days.</CardDescription>
-        </CardHeader>
+        <CardLabelHeader label="Needs a nudge" aside="Last 30 days" />
         <CardContent>
           <StandingList
             items={frequentlyMissing}
             emptyMessage="Nobody is missing reports."
             metric={(item) => `${item.completionPercentage}%`}
+            isWarning={(item) => item.completionPercentage < NUDGE_BELOW}
           />
         </CardContent>
       </Card>

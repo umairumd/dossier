@@ -21,7 +21,7 @@ import {
   computeReportStats,
 } from "@/lib/helpers/report-stats";
 import type { AttendanceStatus } from "@/types/attendance";
-import { Building2, UserPlus } from "lucide-react";
+import { Building2, ChevronRight, UserPlus } from "lucide-react";
 import {
   Card,
   CardAction,
@@ -238,49 +238,35 @@ export async function AdminDashboard({
           initialDate={todayDate}
           workingDays={settings.workingDays}
           initialIsOffDay={isOffDay}
+          deadlinePassedToday={hourInTimeZone(settings.timezone) >= settings.reportDeadlineHourLocal}
         />
       </div>
 
       <div
-        className="flex flex-col gap-3 animate-in fade-in-0 duration-300 fill-mode-both"
+        className="grid gap-4 sm:grid-cols-2 animate-in fade-in-0 duration-300 fill-mode-both"
         style={{ animationDelay: "75ms" }}
       >
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-2 gap-4">
-          <InviteEmployeeDialog
-            departments={departmentOptions}
-            candidates={employees}
-            orgName={orgName}
-            trigger={
-              <button type="button" className="w-full text-left">
-                <Card className="surface-card-interactive cursor-pointer">
-                  <CardContent className="flex flex-col items-center justify-center gap-2 py-6">
-                    <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
-                      <UserPlus className="size-5 text-primary" />
-                    </div>
-                    <span className="text-sm font-medium">Invite Employee</span>
-                  </CardContent>
-                </Card>
-              </button>
-            }
-          />
-          <CreateDepartmentDialog
-            trigger={
-              <button type="button" className="w-full text-left">
-                <Card className="surface-card-interactive cursor-pointer">
-                  <CardContent className="flex flex-col items-center justify-center gap-2 py-6">
-                    <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
-                      <Building2 className="size-5 text-primary" />
-                    </div>
-                    <span className="text-sm font-medium">New Department</span>
-                  </CardContent>
-                </Card>
-              </button>
-            }
-          />
-        </div>
+        <InviteEmployeeDialog
+          departments={departmentOptions}
+          candidates={employees}
+          orgName={orgName}
+          trigger={
+            <ShortcutCard
+              icon={<UserPlus className="size-4" />}
+              title="Invite employee"
+              hint="Send an invite by email"
+            />
+          }
+        />
+        <CreateDepartmentDialog
+          trigger={
+            <ShortcutCard
+              icon={<Building2 className="size-4" />}
+              title="New department"
+              hint="Group people and assign a template"
+            />
+          }
+        />
       </div>
 
       <Card
@@ -303,5 +289,48 @@ export async function AdminDashboard({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function hourInTimeZone(timeZone: string): number {
+  return Number(
+    new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hourCycle: "h23",
+      timeZone,
+    }).format(new Date()),
+  );
+}
+
+// Compact shortcut: icon, title, one-line hint. Rendered as the dialog
+// trigger, so it is a button (asChild-safe: forwards props and ref).
+function ShortcutCard({
+  icon,
+  title,
+  hint,
+  ...props
+}: React.ComponentProps<"button"> & {
+  icon: React.ReactNode;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <button
+      type="button"
+      className="surface-card surface-card-interactive group flex w-full items-center gap-3.5 rounded-xl bg-card px-4 py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      {...props}
+    >
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-foreground/[0.06] ring-1 ring-foreground/10 ring-inset">
+        {icon}
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-sm font-medium">{title}</span>
+        <span className="truncate text-xs text-muted-foreground">{hint}</span>
+      </span>
+      <ChevronRight
+        aria-hidden
+        className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+      />
+    </button>
   );
 }
