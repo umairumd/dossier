@@ -3,7 +3,6 @@
 import { useRef, type ReactNode } from "react";
 import { ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 export function HeroViewHeader({
   title,
@@ -38,7 +37,7 @@ export function HeroViewHeader({
       <Button
         type="button"
         variant="outline"
-        className={cn("h-10 shrink-0 max-md:h-11")}
+        className="h-9 shrink-0 max-md:h-11"
         onPointerDown={() => {
           fromPointer.current = true;
         }}

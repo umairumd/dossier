@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { MascotStatic } from "@/components/mascot/mascot";
+import { useBuddyDialog } from "@/components/layout/buddy-dialog";
 import { Button } from "@/components/ui/button";
+import { Meter } from "@/components/ui/meter";
+import { Tile, TileBody, TileFooterAction, TileHeader } from "@/components/ui/tile";
 import { markUnlockSeen, saveMyAvatar, type UnlockRow } from "@/lib/actions/avatar";
 import { unlockProgressLabel } from "@/lib/helpers/unlock-progress-label";
 import {
@@ -20,10 +22,6 @@ import {
   type AccessoryId,
   type RewardStats,
 } from "@/lib/mascot";
-import { cn } from "@/lib/utils";
-
-const eyebrow =
-  "text-[11px] font-medium uppercase tracking-wide text-muted-foreground";
 const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
 
 function isAccessoryId(id: string): id is AccessoryId {
@@ -103,6 +101,7 @@ export function HeroProgressTile({
   asOf: string;
 }) {
   const router = useRouter();
+  const { open: openBuddy, prefetch } = useBuddyDialog();
   const [, startTransition] = useTransition();
   const [dismissed, setDismissed] = useState<string | null>(null);
   const owned = new Set(unlocks.map((row) => row.itemId));
@@ -122,10 +121,11 @@ export function HeroProgressTile({
       }
       await markUnlockSeen(id);
       setDismissed(id);
+      prefetch();
       toast.success(`Now wearing ${ACCESSORIES[id].label}`, {
         action: {
           label: "Customise",
-          onClick: () => router.push("/settings?buddy=open"),
+          onClick: () => openBuddy(),
         },
       });
       router.refresh();
@@ -138,19 +138,14 @@ export function HeroProgressTile({
   }
 
   return (
-    <section className="flex h-full flex-col rounded-xl bg-foreground/[0.03] p-[18px] ring-1 ring-foreground/10">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className={eyebrow}>Your progress</h2>
-        {streak > 0 && (
-          <p className="text-xs text-muted-foreground">{streak}-day streak</p>
-        )}
-      </div>
-      <div className="mt-3 flex flex-1 flex-col gap-3">
+    <Tile className="h-full">
+      <TileHeader eyebrow="Your progress" aside={streak > 0 ? `${streak}-day streak` : undefined} />
+      <TileBody className="mt-3 gap-3">
         {showingFresh && isAccessoryId(showingFresh.itemId) && (
           <div className="flex items-center gap-3 rounded-lg bg-foreground/[0.04] p-2">
             <MascotStatic
               avatar={equipAccessory(base, ACCESSORIES[showingFresh.itemId].slot, showingFresh.itemId)}
-              size={46}
+              size={48}
               alt=""
             />
             <div className="min-w-0 flex-1">
@@ -160,7 +155,13 @@ export function HeroProgressTile({
                 {rewardReason(showingFresh.itemId)} · {formatDistanceToNow(new Date(showingFresh.unlockedAt), { addSuffix: true })}
               </p>
             </div>
-            <Button type="button" size="sm" className="max-md:min-h-11" onClick={() => wear(showingFresh.itemId as AccessoryId)}>
+            <Button
+              type="button"
+              className="max-md:h-11"
+              onClick={() => wear(showingFresh.itemId as AccessoryId)}
+              onPointerEnter={prefetch}
+              onFocus={prefetch}
+            >
               Wear it
             </Button>
             <Button
@@ -182,7 +183,7 @@ export function HeroProgressTile({
           return (
             <div key={id} className="flex items-center gap-3">
               <span className="opacity-45">
-                <MascotStatic avatar={equipAccessory(base, ACCESSORIES[id].slot, id)} size={46} alt="" />
+                <MascotStatic avatar={equipAccessory(base, ACCESSORIES[id].slot, id)} size={48} alt="" />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
@@ -190,29 +191,21 @@ export function HeroProgressTile({
                     {showingFresh ? "Next: " : ""}
                     <span className="font-semibold">{ACCESSORIES[id].label}</span>
                   </p>
-                  <p className="shrink-0 text-xs text-muted-foreground">{label.label}</p>
+                  <p className="shrink-0 text-xs text-muted-foreground tabular-nums">{label.label}</p>
                 </div>
-                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-foreground/10" aria-hidden>
-                  <div
-                    className="h-full bg-foreground/70"
-                    style={{ width: `${Math.round((prog.current / prog.target) * 1000) / 10}%` }}
-                  />
-                </div>
+                <Meter className="mt-1.5" value={prog.current} max={prog.target} label={label.label} />
               </div>
             </div>
           );
         })}
-      </div>
-      {!showingFresh && (
-        <Link
-          href="/settings?buddy=open"
-          className={cn(
-            "mt-3 self-start text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline max-md:min-h-11 max-md:inline-flex max-md:items-center",
-          )}
-        >
-          Wardrobe →
-        </Link>
-      )}
-    </section>
+      </TileBody>
+      <TileFooterAction
+        onClick={() => openBuddy()}
+        onPointerEnter={prefetch}
+        onFocus={prefetch}
+      >
+        Wardrobe
+      </TileFooterAction>
+    </Tile>
   );
 }

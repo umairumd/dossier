@@ -224,6 +224,7 @@ export async function AdminDashboard({
           title="Company completion"
           trend={companyCompletion.trend}
           previousAverage={companyCompletion.previousAverage}
+          today={todayDate}
         />
       </div>
 

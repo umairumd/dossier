@@ -13,6 +13,8 @@ import { DynamicReportForm } from "@/components/reports/dynamic-report-form";
 import type { ReportSubmitInfo } from "@/components/reports/dynamic-report-form";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
+import { Meter } from "@/components/ui/meter";
+import { Tile, TileActions, TileHeader } from "@/components/ui/tile";
 import {
   deadlineWindow,
   formatDeadlineClock,
@@ -24,10 +26,6 @@ import { cn } from "@/lib/utils";
 import type { DailyReport } from "@/types/report";
 import type { ReportTemplateWithFields } from "@/types/template";
 
-const tile =
-  "rounded-xl bg-foreground/[0.03] p-[18px] ring-1 ring-foreground/10";
-const eyebrow =
-  "text-[11px] font-medium uppercase tracking-wide text-muted-foreground";
 
 function emptySubscribe() {
   return () => {};
@@ -147,7 +145,7 @@ export function HeroReportPanel({
   );
 
   return (
-    <div data-today-report className={cn(tile, "scroll-mt-16")} style={{ viewTransitionName: "hero-report" }}>
+    <Tile data-today-report className="scroll-mt-16" style={{ viewTransitionName: "hero-report" }}>
       {open ? (
         <HeroViewHeader
           title="Today's report"
@@ -178,18 +176,21 @@ export function HeroReportPanel({
           <p className="min-w-0 text-sm text-muted-foreground">
             Shouldn&apos;t you be offline right now?
           </p>
-          <Button
-            ref={triggerRef}
-            type="button"
-            variant="outline"
-            className="max-md:min-h-11 focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => {
-              mascotBus.emit("day.offSubmit", { userId });
-              onOpen();
-            }}
-          >
-            Submit anyway
-          </Button>
+          <TileActions align="end" className="mt-0 pt-0">
+            <Button
+              ref={triggerRef}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={() => {
+                mascotBus.emit("day.offSubmit", { userId });
+                onOpen();
+              }}
+            >
+              Submit anyway
+            </Button>
+          </TileActions>
         </div>
       ) : (
         <WorkingRest
@@ -205,12 +206,16 @@ export function HeroReportPanel({
         />
       )}
       {open && (
-        <div className="mt-3">
-          <DeadlineBar fill={progress.fill} amber={progress.amber} />
-        </div>
+        <Meter
+          className="mt-3"
+          value={progress.fill}
+          max={1}
+          tone={progress.amber ? "warning" : "neutral"}
+          label="Time until the report deadline"
+        />
       )}
       {form}
-    </div>
+    </Tile>
   );
 }
 
@@ -242,10 +247,7 @@ function WorkingRest({
       <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-x-2">
-            <span className={eyebrow}>Today&apos;s report</span>
-            <span className="text-xs text-muted-foreground">Due {dueClock}</span>
-          </div>
+          <TileHeader eyebrow="Today's report" aside={`Due ${dueClock}`} />
           <p className={cn("mt-2 leading-none", timeTone)}>
             <span className="text-[28px] font-semibold tracking-tight md:text-[34px]">
               {remaining}
@@ -253,21 +255,21 @@ function WorkingRest({
             {!pastDue && <span className="ml-1.5 text-sm text-muted-foreground">left</span>}
           </p>
         </div>
-        <div className="flex flex-col items-stretch gap-1.5 md:items-end">
+        <TileActions align="end" className="mt-0 w-full pt-0 md:w-auto">
           {draftTime && (
             <p className="text-xs text-muted-foreground">Draft saved {draftTime}</p>
           )}
           <Button
             ref={triggerRef}
             type="button"
-            className="w-full max-md:min-h-11 focus-visible:ring-2 focus-visible:ring-ring md:w-auto"
+            className="w-full focus-visible:ring-2 focus-visible:ring-ring md:w-auto"
             onClick={onOpen}
           >
             {draftTime ? "Continue report" : "Write report"}
           </Button>
-        </div>
+        </TileActions>
       </div>
-      <DeadlineBar fill={fill} amber={amber} />
+      <Meter value={fill} max={1} tone={amber ? "warning" : "neutral"} label="Time until the report deadline" />
     </div>
   );
 }
@@ -301,26 +303,18 @@ function SubmittedRest({
         <span className="text-sm text-muted-foreground">{time}</span>
         <Badge variant={late ? "warning" : "success"}>{late ? "Late" : "On time"}</Badge>
       </div>
-        <Button
-          ref={triggerRef}
-          type="button"
-          variant="outline"
-          className="max-md:min-h-11 focus-visible:ring-2 focus-visible:ring-ring"
-          onClick={onEdit}
-        >
-          Edit report
-        </Button>
-    </div>
-  );
-}
-
-function DeadlineBar({ fill, amber }: { fill: number; amber: boolean }) {
-  return (
-    <div className="h-1 overflow-hidden rounded-full bg-foreground/10" aria-hidden>
-      <div
-        className={cn("h-full", amber ? "bg-amber-500" : "bg-foreground/35")}
-        style={{ width: `${Math.round(fill * 1000) / 10}%` }}
-      />
+        <TileActions align="end" className="mt-0 pt-0">
+          <Button
+            ref={triggerRef}
+            type="button"
+            variant="outline"
+            size="sm"
+            className="focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={onEdit}
+          >
+            Edit report
+          </Button>
+        </TileActions>
     </div>
   );
 }

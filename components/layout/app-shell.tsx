@@ -1,4 +1,5 @@
 import { navSections } from "@/components/layout/nav-config";
+import { BuddyDialogProvider } from "@/components/layout/buddy-dialog";
 import { SignedInBuddyProvider } from "@/components/layout/signed-in-buddy";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopNav } from "@/components/layout/top-nav";
@@ -70,7 +71,7 @@ export async function AppShell({
         <main className="flex-1 p-4 md:p-6">
           <div className="mx-auto max-w-5xl">
             <SignedInBuddyProvider userId={profile.id} avatar={profile.avatar}>
-              {children}
+              <BuddyDialogProvider>{children}</BuddyDialogProvider>
             </SignedInBuddyProvider>
           </div>
         </main>

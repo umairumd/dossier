@@ -313,7 +313,7 @@ function notificationForYouItem(
         name={note.title}
         userId={actorId}
         avatar={actorAvatars[actorId]}
-        size="sm"
+        size="xs"
       />
     ) : (
       <Icon className={`size-4 ${icon?.className ?? "text-muted-foreground"}`} />

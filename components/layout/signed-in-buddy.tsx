@@ -26,6 +26,11 @@ export function SignedInBuddyProvider({
   );
 }
 
+/** The signed-in profile's id and saved avatar, when this tree has one. */
+export function useSignedInBuddyIdentity(): SignedInBuddy | null {
+  return useContext(SignedInBuddyContext);
+}
+
 /** Their saved buddy, or a stable default when this tree has no profile. */
 export function useSignedInBuddy(): AvatarConfig {
   const ctx = useContext(SignedInBuddyContext);

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { mascotBus } from "@/components/mascot/mascot-bus";
 import { toastUnlocked } from "@/components/mascot/unlock-toast";
 import { lookAtHero, skipNextHeroResting } from "@/components/dashboard/hero-controller";
+import { openBuddyFromHref, useBuddyDialog } from "@/components/layout/buddy-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DynamicFieldRenderer,
@@ -174,7 +174,7 @@ export function DynamicReportForm({
   const ateRef = useRef(false);
   const cancelFromPointer = useRef(false);
   const editRef = useRef(isEditMode);
-  const router = useRouter();
+  const { open: openBuddy, prefetch } = useBuddyDialog();
   const target = userId ? { userId } : {};
 
   if (
@@ -335,8 +335,9 @@ export function DynamicReportForm({
           target,
         );
       }
-      if (toastUnlocked(result.unlocked ?? [], (href) => router.push(href))) {
+      if (toastUnlocked(result.unlocked ?? [], (href) => openBuddyFromHref(openBuddy, href))) {
         mascotBus.emit("reward.unlocked", target);
+        prefetch();
       }
       toast.success("Report submitted for today.");
     });

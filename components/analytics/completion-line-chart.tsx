@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { Tile, TileHeader } from "@/components/ui/tile";
 import { cn } from "@/lib/utils";
 import type { CompletionTrendPoint } from "@/types/team-insights";
 
@@ -28,21 +29,23 @@ export function CompletionLineChart({
   title,
   trend,
   previousAverage,
+  today,
 }: {
   title: string;
   trend: CompletionTrendPoint[];
   previousAverage: number | null;
+  today: string;
 }) {
   const avg = average(trend);
   return (
-    <section className="rounded-xl bg-foreground/[0.03] p-[18px] ring-1 ring-foreground/10">
+    <Tile>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{title}</h2>
+          <TileHeader eyebrow={title} />
           <p className="text-xs text-muted-foreground">Last 30 days · working days</p>
         </div>
         <div className="text-right">
-          <p className="text-[30px] font-semibold leading-none tracking-tight tabular-nums">{avg}%</p>
+          <p className="text-[30px] font-semibold leading-none tracking-tight">{avg}%</p>
           {previousAverage != null && (
             <p className="mt-1 text-xs text-muted-foreground">
               30-day average · {deltaCopy(avg, previousAverage)}
@@ -50,15 +53,15 @@ export function CompletionLineChart({
           )}
         </div>
       </div>
-      <Plot points={trend} />
+      <Plot points={trend} today={today} />
       <p className="mt-2 text-[11px] text-muted-foreground">
         Weekends and holidays are skipped. Includes voluntary submissions.
       </p>
-    </section>
+    </Tile>
   );
 }
 
-function Plot({ points }: { points: CompletionTrendPoint[] }) {
+function Plot({ points, today }: { points: CompletionTrendPoint[]; today: string }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState<number | null>(null);
@@ -191,17 +194,20 @@ function Plot({ points }: { points: CompletionTrendPoint[] }) {
           />
           {points.map((point, index) => {
             const x = xAt(index);
-            const isToday = index === last;
+            const isEnd = index === last;
             const nearToday = todayX - x < 40;
-            const show = isToday || (index % 5 === 0 && !nearToday);
+            const show = isEnd || (index % 5 === 0 && !nearToday);
             if (!show) return null;
-            const label = isToday ? "Today" : MONTH.format(new Date(`${point.date}T00:00:00Z`));
+            const label =
+              isEnd && point.date === today
+                ? "Today"
+                : MONTH.format(new Date(`${point.date}T00:00:00Z`));
             return (
               <text
                 key={point.date}
                 x={x}
                 y={height - 8}
-                textAnchor={isToday ? "end" : "middle"}
+                textAnchor={isEnd ? "end" : "middle"}
                 fill="var(--muted-foreground)"
                 fontSize={11}
               >
