@@ -37,6 +37,8 @@ export default async function ActivityPage() {
         initialItems={activity}
         initialHasMore={activity.length === 30}
         canDelete={profile?.role === "owner"}
+        currentUserId={profile?.id}
+        foldReports={isOwnerOrAdmin || isManager}
       />
     </div>
   );

@@ -7,13 +7,7 @@ import {
   FilterToolbar,
   filterSelectTriggerClassName,
 } from "@/components/shared/filter-toolbar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -48,10 +42,15 @@ export function ActivityPageClient({
   initialItems,
   initialHasMore,
   canDelete,
+  currentUserId,
+  foldReports = false,
 }: {
   initialItems: ActivityLogEntry[];
   initialHasMore: boolean;
   canDelete: boolean;
+  currentUserId?: string;
+  /** Team and company views fold each day's submissions into one row. */
+  foldReports?: boolean;
 }) {
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [query, setQuery] = useState("");
@@ -72,13 +71,15 @@ export function ActivityPageClient({
   const skipQueryEffect = useRef(true);
   const loadingMoreRef = useRef(false);
 
+  // Latest values for the async loaders, synced after each render.
   const filtersRef = useRef({ category, range, query });
-  filtersRef.current = { category, range, query };
-
   const cursorRef = useRef(cursor);
-  cursorRef.current = cursor;
   const hasMoreRef = useRef(hasMore);
-  hasMoreRef.current = hasMore;
+  useEffect(() => {
+    filtersRef.current = { category, range, query };
+    cursorRef.current = cursor;
+    hasMoreRef.current = hasMore;
+  });
 
   const refreshFromTop = useCallback(async () => {
     const { category: nextCategory, range: nextRange, query: nextQuery } =
@@ -222,13 +223,11 @@ export function ActivityPageClient({
       />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>
-            Invitations, archives, departments, reports, attendance, and
-            settings changes across the organization.
-          </CardDescription>
-        </CardHeader>
+        <CardLabelHeader
+          label={
+            category === "all" ? "All activity" : ACTIVITY_CATEGORY_LABELS[category]
+          }
+        />
         <CardContent>
           {isRefreshing && items.length === 0 ? (
             <p className="py-6 text-center text-xs text-muted-foreground">
@@ -236,9 +235,10 @@ export function ActivityPageClient({
             </p>
           ) : (
             <ActivityFeed
-              variant="page"
               items={items}
               canDelete={canDelete}
+              currentUserId={currentUserId}
+              foldReports={foldReports && query.trim() === ""}
               emptyMessage={
                 isFiltering
                   ? "No activity matches your filters."

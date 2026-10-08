@@ -1,30 +1,27 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-  useTransition,
-} from "react";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import {
   Activity,
-  Archive,
-  Building2,
   CalendarCheck,
+  ChevronDown,
   FileText,
-  MessageSquare,
-  Settings,
+  Files,
   Trash2,
-  UserCheck,
-  UserPlus,
-  Users,
 } from "lucide-react";
+import {
+  ActivityRowShell,
+  EVENT_ICON,
+  LabelText,
+  activityDetailLine,
+  eventCategory,
+  firstName,
+  listNames,
+  personaliseLabel,
+} from "@/components/analytics/activity-row";
 import { EmptyState } from "@/components/shared/empty-state";
-import { LocalDateTime } from "@/components/shared/local-datetime";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,10 +33,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { deleteActivityEntry } from "@/lib/actions/admin/activity";
-import {
-  CATEGORY_ICON_COLOR,
-  EVENT_CATEGORY,
-} from "@/lib/helpers/activity-categories";
 import { formatLocalTime } from "@/lib/helpers/time";
 import { cn } from "@/lib/utils";
 import type { ActivityEventType, ActivityLogEntry } from "@/types/activity";
@@ -47,9 +40,6 @@ import {
   ATTENDANCE_STATUS_LABELS,
   LEAVE_REQUEST_TYPE_LABELS,
 } from "@/types/attendance";
-
-const DASHBOARD_MAX_ROWS = 8;
-const RELATIVE_TICK_MS = 30_000;
 
 // --- Formatting helpers ---
 
@@ -96,27 +86,6 @@ export function formatMetaDate(iso: string | null | undefined): string {
     options.year = "numeric";
   }
   return new Intl.DateTimeFormat("en-GB", options).format(date);
-}
-
-function formatRelativeTime(iso: string, now: number = Date.now()): string {
-  const then = new Date(iso);
-  const diffSeconds = Math.max(0, Math.floor((now - then.getTime()) / 1000));
-  if (diffSeconds < 60) return "Just now";
-  const minutes = Math.floor(diffSeconds / 60);
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return days === 1 ? "1 day ago" : `${days} days ago`;
-
-  const options: Intl.DateTimeFormatOptions = {
-    day: "numeric",
-    month: "short",
-  };
-  if (then.getFullYear() !== new Date(now).getFullYear()) {
-    options.year = "numeric";
-  }
-  return new Intl.DateTimeFormat("en-GB", options).format(then);
 }
 
 // --- Labels ---
@@ -330,33 +299,6 @@ const EVENT_LABELS: Record<
   },
 };
 
-const EVENT_ICONS: Record<ActivityEventType, typeof UserPlus> = {
-  employee_invited: UserPlus,
-  employee_onboarded: UserCheck,
-  employee_edited: Users,
-  employee_deactivated: Archive,
-  employee_reactivated: UserCheck,
-  employee_archived: Archive,
-  employee_restored: UserCheck,
-  department_assigned: Building2,
-  supervisor_assigned: Users,
-  template_assigned: FileText,
-  shift_assigned: CalendarCheck,
-  report_submitted: FileText,
-  report_commented: MessageSquare,
-  department_created: Building2,
-  department_edited: Building2,
-  department_archived: Archive,
-  attendance_recorded: CalendarCheck,
-  leave_approved: CalendarCheck,
-  leave_rejected: CalendarCheck,
-  accrual_run: CalendarCheck,
-  org_settings_changed: Settings,
-  template_created: FileText,
-  template_edited: FileText,
-  template_archived: Archive,
-};
-
 export function getHref(entry: ActivityLogEntry): string | undefined {
   if (entry.target_id) {
     return `/employees/${entry.target_id}`;
@@ -510,146 +452,189 @@ export function collapseAttendance(
   return result;
 }
 
-function groupByDay(
-  items: DisplayItem[],
-): { key: string; label: string; items: DisplayItem[] }[] {
-  const now = new Date();
-  const groups: { key: string; label: string; items: DisplayItem[] }[] = [];
+// --- Folding report submissions (team / company views) ---
+
+type FeedRow =
+  | { kind: "item"; item: DisplayItem; dayKey: string }
+  | {
+      kind: "digest";
+      dayKey: string;
+      at: string;
+      entries: ActivityLogEntry[];
+    };
+
+/** Each day's report submissions become one expandable row. */
+function toFeedRows(items: DisplayItem[], fold: boolean): FeedRow[] {
+  const rows: FeedRow[] = [];
+  const digests = new Map<string, Extract<FeedRow, { kind: "digest" }>>();
   for (const item of items) {
-    const date = new Date(item.created_at);
-    const key = localDayKey(date);
+    const dayKey = localDayKey(new Date(item.created_at));
+    if (fold && !isCollapsed(item) && item.event_type === "report_submitted") {
+      const existing = digests.get(dayKey);
+      if (existing) {
+        existing.entries.push(item);
+        continue;
+      }
+      const digest = {
+        kind: "digest" as const,
+        dayKey,
+        at: item.created_at,
+        entries: [item],
+      };
+      digests.set(dayKey, digest);
+      rows.push(digest);
+      continue;
+    }
+    rows.push({ kind: "item", item, dayKey });
+  }
+  // A single submission reads better as a normal row.
+  return rows.map((row) =>
+    row.kind === "digest" && row.entries.length === 1
+      ? { kind: "item", item: row.entries[0], dayKey: row.dayKey }
+      : row,
+  );
+}
+
+function groupRowsByDay(
+  rows: FeedRow[],
+): { key: string; label: string; rows: FeedRow[] }[] {
+  const now = new Date();
+  const groups: { key: string; label: string; rows: FeedRow[] }[] = [];
+  for (const row of rows) {
     const last = groups[groups.length - 1];
-    if (last && last.key === key) {
-      last.items.push(item);
+    if (last && last.key === row.dayKey) {
+      last.rows.push(row);
     } else {
-      groups.push({ key, label: formatDayLabel(date, now), items: [item] });
+      const at = row.kind === "digest" ? row.at : row.item.created_at;
+      groups.push({
+        key: row.dayKey,
+        label: formatDayLabel(new Date(at), now),
+        rows: [row],
+      });
     }
   }
   return groups;
 }
 
-// --- Row ---
+// --- Rows ---
 
-function ActivityRow({
-  item,
-  variant,
-  showTimeOnly,
-  now,
+interface RowControls {
+  currentUserId?: string;
+  canDelete: boolean;
+  deleteDisabled: boolean;
+  onDelete: (id: string) => void;
+}
+
+function DeleteSlot({
+  id,
   canDelete,
   deleteDisabled,
   onDelete,
 }: {
-  item: DisplayItem;
-  variant: "page" | "dashboard";
-  /** Page variant: day label is shown above, so the row only needs the time. */
-  showTimeOnly: boolean;
-  /** Dashboard variant: current time for relative labels; null before mount. */
-  now: number | null;
-  canDelete: boolean;
-  deleteDisabled: boolean;
-  onDelete: (id: string) => void;
-}) {
-  const isPage = variant === "page";
-  const collapsed = isCollapsed(item);
-
-  const Icon = collapsed
-    ? CalendarCheck
-    : (EVENT_ICONS[item.event_type] ?? FileText);
-  const category = collapsed
-    ? "attendance"
-    : (EVENT_CATEGORY[item.event_type] ?? "settings");
-
-  let label: EventLabel;
-  if (collapsed) {
-    label = {
-      lead: item.actor_name ?? "Admin",
-      rest: ` marked ${item.count} employees' attendance`,
-    };
-  } else {
-    const labelFn = EVENT_LABELS[item.event_type];
-    label = labelFn ? labelFn(item) : { lead: "", rest: item.event_type };
-  }
-
-  const href = collapsed ? undefined : getHref(item);
-  const rowCanDelete = canDelete && !collapsed;
-
-  // Collapsed rows use the same time formats as normal rows: clock time on
-  // the page (latest entry in the group), relative time on the dashboard.
-  let timestamp: ReactNode;
-  if (isPage) {
-    timestamp =
-      collapsed || showTimeOnly
-        ? formatLocalTime(item.created_at)
-        : <LocalDateTime isoString={item.created_at} />;
-  } else if (now !== null) {
-    timestamp = formatRelativeTime(item.created_at, now);
-  } else {
-    timestamp = null;
-  }
-
-  // [Icon 14px] [Text] [Time]: one line per row, identical height. Hover lives
-  // on the row container (not the Link) so every row highlights. Linked text
-  // uses display:contents so icon/text/time stay direct flex siblings.
-  const text = (
-    <p className="min-w-0 flex-1 truncate text-sm leading-snug">
-      {label.lead ? (
-        <span className="font-medium">{label.lead}</span>
-      ) : null}
-      {label.rest}
-    </p>
-  );
-
+  id: string | null;
+} & Omit<RowControls, "currentUserId">) {
+  if (!canDelete) return null;
   return (
-    <li className="group relative">
-      <div
-        className={cn(
-          "-mx-2 flex min-h-0 items-center gap-2 rounded-md px-2 py-2.5 transition-colors hover:bg-foreground/5",
-          href ? "cursor-pointer" : "cursor-default",
-        )}
-      >
-        {href ? (
-          <Link href={href} className="contents">
-            <Icon
-              className={cn(
-                "mt-px h-3.5 w-3.5 shrink-0",
-                CATEGORY_ICON_COLOR[category],
-              )}
-            />
-            {text}
-          </Link>
-        ) : (
+    <span className="flex size-7 shrink-0 items-center justify-center">
+      {id ? (
+        <button
+          type="button"
+          onClick={() => onDelete(id)}
+          disabled={deleteDisabled}
+          className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100"
+          aria-label="Delete entry"
+        >
+          <Trash2 className="size-3.5" />
+        </button>
+      ) : null}
+    </span>
+  );
+}
+
+function EntryRow({ item, ...controls }: { item: DisplayItem } & RowControls) {
+  const time = formatLocalTime(item.created_at);
+  if (isCollapsed(item)) {
+    const lead =
+      controls.currentUserId && item.actor_id === controls.currentUserId
+        ? "You"
+        : (item.actor_name ?? "Admin");
+    return (
+      <ActivityRowShell
+        icon={CalendarCheck}
+        category="attendance"
+        time={time}
+        text={
+          <LabelText
+            label={{ lead, rest: ` marked attendance for ${item.count} people` }}
+          />
+        }
+        trailing={<DeleteSlot id={null} {...controls} />}
+      />
+    );
+  }
+  const label = personaliseLabel(item, getEventLabel(item), controls.currentUserId);
+  return (
+    <ActivityRowShell
+      icon={EVENT_ICON[item.event_type] ?? FileText}
+      category={eventCategory(item.event_type)}
+      href={getHref(item)}
+      time={time}
+      text={<LabelText label={label} />}
+      detail={activityDetailLine(item)}
+      trailing={<DeleteSlot id={item.id} {...controls} />}
+    />
+  );
+}
+
+function DigestRow({
+  row,
+  ...controls
+}: { row: Extract<FeedRow, { kind: "digest" }> } & RowControls) {
+  const [open, setOpen] = useState(false);
+  const count = row.entries.length;
+  const names: string[] = [];
+  for (const entry of row.entries) {
+    const name = firstName(entry.actor_name);
+    if (name && !names.includes(name)) names.push(name);
+  }
+  return (
+    <>
+      <ActivityRowShell
+        icon={Files}
+        category="reports"
+        time={formatLocalTime(row.at)}
+        onClick={() => setOpen((value) => !value)}
+        expanded={open}
+        text={
           <>
-            <Icon
+            <span className="font-medium text-foreground">
+              {count} reports submitted
+            </span>
+            {` · ${listNames(names, count)}`}
+            <ChevronDown
+              aria-hidden
               className={cn(
-                "mt-px h-3.5 w-3.5 shrink-0",
-                CATEGORY_ICON_COLOR[category],
+                "ml-1.5 inline size-3.5 align-[-2px] text-muted-foreground transition-transform group-hover/row:text-foreground",
+                open && "rotate-180",
               )}
             />
-            {text}
+            <span className="sr-only">
+              {open ? "Hide these reports" : "Show these reports"}
+            </span>
           </>
-        )}
-        <span className="ml-auto w-20 shrink-0 self-center whitespace-nowrap text-right text-xs tabular-nums text-muted-foreground">
-          {timestamp}
-        </span>
-        {/* Spacer matching delete button width — keeps the time column
-            aligned when canDelete is on, including collapsed rows. */}
-        {canDelete ? (
-          <span className="flex size-7 shrink-0 items-center justify-center">
-            {rowCanDelete ? (
-              <button
-                type="button"
-                onClick={() => onDelete(item.id)}
-                disabled={deleteDisabled}
-                className="flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                aria-label="Delete entry"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
-            ) : null}
-          </span>
-        ) : null}
-      </div>
-    </li>
+        }
+        trailing={<DeleteSlot id={null} {...controls} />}
+      />
+      {open ? (
+        <ul className="ml-11 flex flex-col divide-y divide-foreground/[0.06] border-l border-foreground/10 pl-3">
+          {row.entries.map((entry) => (
+            <li key={entry.id}>
+              <EntryRow item={entry} {...controls} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </>
   );
 }
 
@@ -657,46 +642,29 @@ export function ActivityFeed({
   items,
   emptyMessage = "No recent activity.",
   canDelete = false,
-  variant = "dashboard",
+  currentUserId,
+  foldReports = false,
   footer,
 }: {
   items: ActivityLogEntry[];
   emptyMessage?: string;
   canDelete?: boolean;
-  variant?: "page" | "dashboard";
+  /** Shows "You" for the viewer's own actions. */
+  currentUserId?: string;
+  /** Fold each day's report submissions into one expandable row. */
+  foldReports?: boolean;
   footer?: ReactNode;
 }) {
   const [isPending, startTransition] = useTransition();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [now, setNow] = useState<number | null>(null);
   const mounted = useIsMounted();
-  const isPage = variant === "page";
 
-  // Relative timestamps (dashboard only): tick every 30s.
-  useEffect(() => {
-    if (variant !== "dashboard") return;
-    // setState only inside timer callbacks (not synchronously in the effect
-    // body): the first tick fires immediately after mount.
-    const first = setTimeout(() => setNow(Date.now()), 0);
-    const id = setInterval(() => setNow(Date.now()), RELATIVE_TICK_MS);
-    return () => {
-      clearTimeout(first);
-      clearInterval(id);
-    };
-  }, [variant]);
-
-  // Collapsing and day grouping depend on the viewer's local timezone, so
-  // they only run after mount; the server render and first client render use
-  // the raw items.
-  const displayItems = useMemo<DisplayItem[]>(() => {
-    const base: DisplayItem[] = mounted ? collapseAttendance(items) : items;
-    return isPage ? base : base.slice(0, DASHBOARD_MAX_ROWS);
-  }, [items, mounted, isPage]);
-
-  const groups = useMemo(
-    () => (isPage && mounted ? groupByDay(displayItems) : null),
-    [isPage, mounted, displayItems],
-  );
+  // Day keys and clock times depend on the viewer's time zone, so grouping
+  // runs after mount; the server render reserves the space.
+  const groups = useMemo(() => {
+    if (!mounted) return null;
+    return groupRowsByDay(toFeedRows(collapseAttendance(items), foldReports));
+  }, [items, mounted, foldReports]);
 
   const handleDelete = (id: string) => {
     startTransition(async () => {
@@ -718,47 +686,49 @@ export function ActivityFeed({
     );
   }
 
-  const rowProps = {
-    variant,
-    now,
+  const controls: RowControls = {
+    currentUserId,
     canDelete,
     deleteDisabled: isPending,
     onDelete: setPendingDeleteId,
-  } as const;
+  };
 
   return (
     <>
       {groups ? (
         <div className="flex flex-col">
-          {groups.map((group) => (
-            <section key={group.key} className="flex flex-col">
-              <h3 className="sticky top-0 z-10 -mx-2 bg-card px-2 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {groups.map((group, index) => (
+            <section key={group.key} aria-label={group.label}>
+              <h3
+                className={cn(
+                  "pb-1 text-xs text-muted-foreground",
+                  index > 0 && "pt-4",
+                )}
+              >
                 {group.label}
               </h3>
-              <ul className="flex flex-col pb-4">
-                {group.items.map((item) => (
-                  <ActivityRow
-                    key={displayKey(item)}
-                    item={item}
-                    showTimeOnly
-                    {...rowProps}
-                  />
+              <ul className="flex flex-col divide-y divide-foreground/[0.06]">
+                {group.rows.map((row) => (
+                  <li
+                    key={
+                      row.kind === "digest"
+                        ? `digest-${row.dayKey}`
+                        : displayKey(row.item)
+                    }
+                  >
+                    {row.kind === "digest" ? (
+                      <DigestRow row={row} {...controls} />
+                    ) : (
+                      <EntryRow item={row.item} {...controls} />
+                    )}
+                  </li>
                 ))}
               </ul>
             </section>
           ))}
         </div>
       ) : (
-        <ul className="flex flex-col">
-          {displayItems.map((item) => (
-            <ActivityRow
-              key={displayKey(item)}
-              item={item}
-              showTimeOnly={false}
-              {...rowProps}
-            />
-          ))}
-        </ul>
+        <div className="min-h-40" aria-busy />
       )}
 
       {footer}

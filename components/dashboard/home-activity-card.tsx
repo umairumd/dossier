@@ -1,40 +1,24 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, type ReactNode } from "react";
-import {
-  Activity,
-  Archive,
-  ArchiveRestore,
-  Building2,
-  CalendarCheck,
-  CalendarCheck2,
-  CalendarPlus,
-  CalendarX2,
-  Clock,
-  FileCheck,
-  Files,
-  LayoutTemplate,
-  MessageSquare,
-  Send,
-  Settings2,
-  ShieldCheck,
-  UserCheck,
-  UserPen,
-  UserX,
-  type LucideIcon,
-} from "lucide-react";
+import { useMemo } from "react";
+import { Activity, CalendarCheck, Files } from "lucide-react";
 import {
   collapseAttendance,
-  formatMetaDate,
   getEventLabel,
   getHref,
   isCollapsed,
-  leaveTypeLabel,
-  metaString,
   type DisplayItem,
-  type EventLabel,
 } from "@/components/analytics/activity-feed";
+import {
+  ActivityRowShell,
+  EVENT_ICON,
+  LabelText,
+  activityDetailLine,
+  eventCategory,
+  firstName,
+  listNames,
+  personaliseLabel,
+} from "@/components/analytics/activity-row";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
   Card,
@@ -43,7 +27,7 @@ import {
   CardLabelHeader,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { ActivityEventType, ActivityLogEntry } from "@/types/activity";
+import type { ActivityLogEntry } from "@/types/activity";
 
 // Home activity card. Same activity log and permissions as the Activity
 // page; only the selection and grouping differ:
@@ -54,33 +38,6 @@ import type { ActivityEventType, ActivityLogEntry } from "@/types/activity";
 //   and client render the same thing.
 
 const MAX_ROWS = 6;
-
-const EVENT_ICON: Record<ActivityEventType, LucideIcon> = {
-  report_submitted: FileCheck,
-  report_commented: MessageSquare,
-  attendance_recorded: CalendarCheck,
-  leave_approved: CalendarCheck2,
-  leave_rejected: CalendarX2,
-  accrual_run: CalendarPlus,
-  shift_assigned: Clock,
-  employee_invited: Send,
-  employee_onboarded: UserCheck,
-  employee_edited: UserPen,
-  employee_deactivated: UserX,
-  employee_reactivated: UserCheck,
-  employee_archived: Archive,
-  employee_restored: ArchiveRestore,
-  department_assigned: Building2,
-  supervisor_assigned: ShieldCheck,
-  template_assigned: LayoutTemplate,
-  template_created: LayoutTemplate,
-  template_edited: LayoutTemplate,
-  template_archived: Archive,
-  department_created: Building2,
-  department_edited: Building2,
-  department_archived: Archive,
-  org_settings_changed: Settings2,
-};
 
 export interface ActivityDayTotals {
   /** Organisation date, YYYY-MM-DD. */
@@ -108,62 +65,6 @@ type Row =
       count: number;
       firstNames: string[];
     };
-
-function firstName(name: string | null): string | null {
-  const first = name?.trim().split(/\s+/)[0];
-  return first ? first : null;
-}
-
-function listNames(names: string[], total: number): string {
-  if (names.length === 0) return "";
-  const shown = names.slice(0, 3);
-  const more = total - shown.length;
-  if (more > 0) return `${shown.join(", ")} and ${more} more`;
-  if (shown.length === 1) return shown[0];
-  return `${shown.slice(0, -1).join(", ")} and ${shown[shown.length - 1]}`;
-}
-
-function personalise(
-  entry: ActivityLogEntry,
-  label: EventLabel,
-  currentUserId?: string,
-): EventLabel {
-  if (!currentUserId) return label;
-  let { lead, rest } = label;
-  if (entry.actor_id === currentUserId) {
-    lead = "You";
-    rest = rest.replace(" their report", " your report");
-  }
-  if (entry.target_id === currentUserId && entry.target_name) {
-    const name = entry.target_name;
-    if (lead === name) {
-      lead = "You";
-    } else {
-      rest = rest
-        .replace(`${name}'s`, "your")
-        .replace(`for ${name}`, "for you")
-        .replace(name, "you");
-    }
-  }
-  return { lead, rest };
-}
-
-function detailLine(entry: ActivityLogEntry): string | null {
-  switch (entry.event_type) {
-    case "report_commented": {
-      const preview = metaString(entry.metadata, "preview");
-      return preview ? `“${preview}”` : null;
-    }
-    case "leave_approved":
-    case "leave_rejected": {
-      const type = leaveTypeLabel(metaString(entry.metadata, "type"));
-      const date = formatMetaDate(metaString(entry.metadata, "date"));
-      return [type, date].filter(Boolean).join(", ") || null;
-    }
-    default:
-      return null;
-  }
-}
 
 export function HomeActivityCard({
   mode,
@@ -326,8 +227,9 @@ export function HomeActivityCard({
                       const { headline, names, detail } = digestText(row);
                       return (
                         <li key={`digest-${row.dayKey}`}>
-                          <RowShell
+                          <ActivityRowShell
                             icon={Files}
+                            category="reports"
                             time={formatters.time.format(new Date(row.at))}
                             text={
                               <>
@@ -350,8 +252,9 @@ export function HomeActivityCard({
                           : (item.actor_name ?? "Admin");
                       return (
                         <li key={`attendance-${item.actor_id}-${item.dayKey}`}>
-                          <RowShell
+                          <ActivityRowShell
                             icon={CalendarCheck}
+                            category="attendance"
                             time={formatters.time.format(new Date(item.created_at))}
                             text={
                               <>
@@ -363,24 +266,16 @@ export function HomeActivityCard({
                         </li>
                       );
                     }
-                    const label = personalise(item, getEventLabel(item), currentUserId);
+                    const label = personaliseLabel(item, getEventLabel(item), currentUserId);
                     return (
                       <li key={item.id}>
-                        <RowShell
+                        <ActivityRowShell
                           icon={EVENT_ICON[item.event_type] ?? Activity}
+                          category={eventCategory(item.event_type)}
                           href={getHref(item)}
                           time={formatters.time.format(new Date(item.created_at))}
-                          text={
-                            <>
-                              {label.lead ? (
-                                <span className="font-medium text-foreground">
-                                  {label.lead}
-                                </span>
-                              ) : null}
-                              {label.rest}
-                            </>
-                          }
-                          detail={detailLine(item)}
+                          text={<LabelText label={label} />}
+                          detail={activityDetailLine(item)}
                         />
                       </li>
                     );
@@ -396,50 +291,3 @@ export function HomeActivityCard({
   );
 }
 
-function RowShell({
-  icon: Icon,
-  text,
-  detail,
-  time,
-  href,
-}: {
-  icon: LucideIcon;
-  text: ReactNode;
-  detail?: string | null;
-  time: string;
-  href?: string;
-}) {
-  const body = (
-    <>
-      <span
-        aria-hidden
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.05] text-foreground/70 ring-1 ring-inset ring-foreground/10"
-      >
-        <Icon className="size-4" />
-      </span>
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm text-muted-foreground">{text}</span>
-        {detail ? (
-          <span className="truncate text-xs text-muted-foreground/80">{detail}</span>
-        ) : null}
-      </span>
-      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-        {time}
-      </span>
-    </>
-  );
-  const rowClass = "-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5";
-  return href ? (
-    <Link
-      href={href}
-      className={cn(
-        rowClass,
-        "transition-colors outline-none hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring/50",
-      )}
-    >
-      {body}
-    </Link>
-  ) : (
-    <div className={rowClass}>{body}</div>
-  );
-}
