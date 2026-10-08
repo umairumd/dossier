@@ -41,7 +41,7 @@ export default async function OrganizationSettingsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Organization" />
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Identity</CardTitle>
           <CardDescription>
@@ -53,7 +53,7 @@ export default async function OrganizationSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Schedule</CardTitle>
           <CardDescription>
@@ -69,7 +69,7 @@ export default async function OrganizationSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Attendance</CardTitle>
           <CardDescription>
@@ -93,7 +93,7 @@ export default async function OrganizationSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>

@@ -193,7 +193,7 @@ export async function AdminEmployeeProfile({
         )}
       </div>
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Report History</CardTitle>

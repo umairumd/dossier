@@ -96,7 +96,7 @@ export function LeaveBalanceCard({
 
   if (!balance) {
     return (
-      <Card className="card-gradient-subtle">
+      <Card>
         <CardHeader className="pb-3">
           <CardDescription>Leave Balance</CardDescription>
           <CardTitle className="text-base font-medium text-muted-foreground">
@@ -125,7 +125,7 @@ export function LeaveBalanceCard({
   const remaining = balance.balance_remaining ?? accrued - used;
 
   return (
-    <Card className="card-gradient-subtle">
+    <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <CardDescription>Leave Balance</CardDescription>

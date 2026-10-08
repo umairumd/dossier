@@ -153,7 +153,7 @@ export function DeptCompletionCard({
       : `Report completion for ${formatDate(date)}`;
 
   return (
-    <Card className="card-gradient">
+    <Card>
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-col gap-1">

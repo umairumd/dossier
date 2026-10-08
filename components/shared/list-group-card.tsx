@@ -15,7 +15,7 @@ export function ListGroupCard({
   return (
     <div
       className={cn(
-        "card-gradient overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10",
+        "surface-card overflow-hidden rounded-xl",
         className,
       )}
     >

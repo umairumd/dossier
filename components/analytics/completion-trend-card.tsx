@@ -134,7 +134,7 @@ export function CompletionTrendCard({
   }
 
   return (
-    <Card className="card-gradient">
+    <Card>
       <div className={cn(dimmed && "opacity-50")}>{header}</div>
       {content}
     </Card>

@@ -148,7 +148,7 @@ export function DashboardHero({
   return (
     <div
       data-hero-card
-      className="card-gradient flex scroll-mt-16 flex-col gap-6 overflow-visible rounded-xl p-6 ring-1 ring-foreground/10"
+      className="surface-card flex scroll-mt-16 flex-col gap-6 overflow-visible rounded-xl p-6"
     >
       <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 flex-1 items-center gap-5">

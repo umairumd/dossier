@@ -181,7 +181,7 @@ export function TemplateEditor({
         ← Report Templates
       </Link>
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">
             {template ? "Edit Template" : "New Template"}
@@ -240,7 +240,7 @@ export function TemplateEditor({
         </CardContent>
       </Card>
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div>

@@ -356,7 +356,7 @@ export function OrgDailyReports({
         return (
           <Card
             key={section.id}
-            className="card-gradient max-md:gap-0 max-md:bg-transparent max-md:bg-none max-md:py-0 max-md:ring-0 max-md:shadow-none"
+            className="max-md:gap-0 max-md:bg-transparent max-md:bg-none max-md:py-0 max-md:border-0 max-md:shadow-none"
           >
             <CardHeader className="hidden pb-3 md:block">
               <div className="flex items-center justify-between gap-2">

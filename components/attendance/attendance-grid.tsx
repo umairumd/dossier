@@ -480,7 +480,7 @@ export function AttendanceGrid({
     return (
       <div
         key={emp.id}
-        className="flex flex-col rounded-xl bg-card p-4 ring-1 ring-foreground/10"
+        className="surface-card flex flex-col rounded-xl p-4"
       >
         <div className="flex items-center gap-3">
           <MemberAvatar

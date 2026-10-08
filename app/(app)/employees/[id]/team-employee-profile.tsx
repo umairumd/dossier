@@ -134,7 +134,7 @@ export async function TeamEmployeeProfile({
             unit={overview.current_streak === 1 ? "day" : "days"}
             hint="Days in a row"
             icon={<Flame size={14} />}
-            className="min-w-0 flex-1 card-gradient max-sm:[--card-spacing:--spacing(3)]"
+            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
             labelClassName="text-[10px] sm:text-sm"
             valueClassName="text-2xl sm:text-3xl"
           />
@@ -147,7 +147,7 @@ export async function TeamEmployeeProfile({
             }
             hint={`${overview.tenure_rate.submitted} of ${overview.tenure_rate.expected} working days`}
             icon={<TrendingUp size={14} />}
-            className="min-w-0 flex-1 card-gradient max-sm:[--card-spacing:--spacing(3)]"
+            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
             labelClassName="text-[10px] sm:text-sm"
             valueClassName="text-2xl sm:text-3xl"
           />
@@ -160,7 +160,7 @@ export async function TeamEmployeeProfile({
                 : "No reports yet"
             }
             icon={<Calendar size={14} />}
-            className="min-w-0 flex-1 card-gradient max-sm:[--card-spacing:--spacing(3)]"
+            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
             labelClassName="text-[10px] sm:text-sm"
             valueClassName="text-2xl sm:text-3xl"
           />
@@ -176,7 +176,7 @@ export async function TeamEmployeeProfile({
         )}
       </div>
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Last 10 Reports</CardTitle>
           <CardDescription>
