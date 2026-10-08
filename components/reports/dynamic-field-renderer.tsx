@@ -200,7 +200,7 @@ function InlineInput({
               aria-invalid={invalid || undefined}
               className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
-            <InputGroupAddon align="inline-end" className="border-l border-input">
+            <InputGroupAddon align="inline-end">
               <InputGroupText>{field.unit}</InputGroupText>
             </InputGroupAddon>
           </InputGroup>

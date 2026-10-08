@@ -4,11 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
-import { dateNDaysAgo, shiftReportDate, todayInTimezone } from "@/lib/helpers/dates";
+import { dateNDaysAgo, todayInTimezone } from "@/lib/helpers/dates";
 import {
   buildCompletionTrend,
   buildSubmittersByDate,
+  completionWindows,
 } from "@/lib/helpers/completion-trend";
+import { deadlineWindow } from "@/lib/helpers/deadline-window";
 import type { AttendanceStatus } from "@/types/attendance";
 import type { CompletionTrendPoint, OrganizationTrends } from "@/types/team-insights";
 
@@ -128,14 +130,12 @@ export const getCompanyCompletion = cache(async (): Promise<CompanyCompletion> =
       .sort((a, b) => a.localeCompare(b));
     return { ...point, missingNames };
   });
-  const cutoff = shiftReportDate(todayInTimezone(settings.timezone), -29);
-  const trend = series.filter((point) => point.date >= cutoff);
-  const previous = series.filter((point) => point.date < cutoff);
-  return {
-    trend,
-    previousAverage:
-      previous.length === 0
-        ? null
-        : Math.round(previous.reduce((sum, point) => sum + point.completionPercentage, 0) / previous.length),
-  };
+  const today = todayInTimezone(settings.timezone);
+  const includeToday = deadlineWindow(
+    new Date(),
+    settings.timezone,
+    "00:00",
+    settings.reportDeadlineHourLocal,
+  ).pastDue;
+  return completionWindows(series, today, includeToday);
 });

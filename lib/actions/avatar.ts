@@ -152,6 +152,36 @@ export async function getMyUnlockIds(): Promise<string[]> {
   return [...await ownedItems(user.id)];
 }
 
+export type BuddyDialogData = {
+  userId: string;
+  avatar: unknown;
+  ownedIds: string[];
+  stats: RewardStats;
+  timeZone: string;
+  nowIso: string;
+};
+
+/** Avatar, wardrobe, and reward stats for the customise dialog. */
+export async function getBuddyDialogData(): Promise<BuddyDialogData | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const [{ data: profile }, settings, stats, owned] = await Promise.all([
+    supabase.from("profiles").select("avatar").eq("id", user.id).maybeSingle(),
+    getOrganizationSettings(),
+    getRewardStats(user.id),
+    ownedItems(user.id),
+  ]);
+  return {
+    userId: user.id,
+    avatar: profile?.avatar ?? null,
+    ownedIds: [...owned],
+    stats,
+    timeZone: safeTimeZone(settings.timezone),
+    nowIso: new Date().toISOString(),
+  };
+}
+
 /** Reward stats for the signed-in person. */
 export async function getMyRewardStats(): Promise<RewardStats> {
   const supabase = await createClient();

@@ -54,3 +54,24 @@ export function buildCompletionTrend(
 
   return points;
 }
+
+/** Current window, with today omitted until the deadline has passed. Comparison only when half the previous working days have a report. */
+export function completionWindows(
+  series: CompletionTrendPoint[],
+  today: string,
+  includeToday: boolean,
+): { trend: CompletionTrendPoint[]; previousAverage: number | null } {
+  const cutoff = shiftReportDate(today, -29);
+  const trend = series.filter(
+    (point) => point.date >= cutoff && (includeToday || point.date !== today),
+  );
+  const previous = series.filter((point) => point.date < cutoff);
+  const withReports = previous.filter((point) => (point.submitted ?? 0) > 0).length;
+  const previousAverage =
+    previous.length > 0 && withReports * 2 >= previous.length
+      ? Math.round(
+          previous.reduce((sum, point) => sum + point.completionPercentage, 0) / previous.length,
+        )
+      : null;
+  return { trend, previousAverage };
+}

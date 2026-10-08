@@ -169,6 +169,7 @@ export async function ManagerDashboard({
           title="Team completion"
           trend={insights.trend}
           previousAverage={insights.previousAverage}
+          today={todayDate}
         />
       </div>
 

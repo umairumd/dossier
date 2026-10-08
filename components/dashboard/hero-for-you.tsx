@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tile, TileActions } from "@/components/ui/tile";
 import { cn } from "@/lib/utils";
 
 export type ForYouAction = {
@@ -89,7 +90,7 @@ function ForYouRow({ item }: { item: ForYouItem }) {
       )}
     >
       <div className={cn("min-h-0", collapse && "overflow-hidden")}>
-        <div className="flex items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/[0.03] p-3">
+        <Tile className="flex-row items-center gap-3 p-4 md:p-4">
           <span className="shrink-0">{item.icon}</span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{item.title}</p>
@@ -97,7 +98,7 @@ function ForYouRow({ item }: { item: ForYouItem }) {
               {item.body ? `${item.body} · ${item.time}` : item.time}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <TileActions align="end" className="mt-0 shrink-0 pt-0">
             {item.actions.map((action) =>
               action.href ? (
                 <Button
@@ -134,8 +135,8 @@ function ForYouRow({ item }: { item: ForYouItem }) {
             >
               <X className="size-4" />
             </Button>
-          </div>
-        </div>
+          </TileActions>
+        </Tile>
       </div>
     </li>
   );

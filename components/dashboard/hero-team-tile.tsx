@@ -5,7 +5,7 @@ import { MemberAvatar } from "@/components/mascot/member-avatar";
 import { HeroViewHeader } from "@/components/dashboard/hero-view-header";
 import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
 import { useOrgNow } from "@/components/mascot/use-org-now";
-import { Button } from "@/components/ui/button";
+import { Tile, TileBody, TileFooterAction, TileHeader } from "@/components/ui/tile";
 import { deadlineWindow } from "@/lib/helpers/deadline-window";
 import { formatLocalTime } from "@/lib/helpers/time";
 import { getSubmissionStatus, type DeadlineContext } from "@/lib/reports/submission-status";
@@ -108,78 +108,136 @@ export function HeroTeamTile({
   const now = useOrgNow();
   const progress = deadlineWindow(now, deadline.timezone, shiftFulltimeStart, deadline.deadlineHourLocal);
   const [index, setIndex] = useState<number | null>(null);
-  const { missing, submitted, expected } = splitTeam(members, orgOffDay);
-  const latest = submitted[0];
-  const faces = missing.slice(0, 3);
-  const named = faces.map((member) => firstName(member.fullName)).join(", ");
-  const extra = missing.length - faces.length;
+  const { missing, submitted, away, expected } = splitTeam(members, orgOffDay);
+  const shownMissing = missing.slice(0, 4);
+  const more = missing.length - shownMissing.length;
+  const latest = submitted.slice(0, 3);
   const everyoneIn = members.length > 0 && missing.length === 0 && expected > 0;
+  const summaryBits = [
+    missing.length > 0 ? `${missing.length} missing` : null,
+    away.length > 0 ? `${away.length} away` : null,
+  ].filter((part): part is string => Boolean(part));
 
   return (
-    <section
-      className="flex h-full flex-col rounded-xl bg-foreground/[0.03] p-[18px] ring-1 ring-foreground/10"
-      style={{ viewTransitionName: "hero-team" }}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <h2 className={eyebrow}>{label}</h2>
-        {!orgOffDay && (
-          <p className={cn("text-xs", progress.amber ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground")}>
-            {deadlineCopy(progress.minutesLeft, progress.pastDue)}
-          </p>
-        )}
-      </div>
-      {members.length === 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">No team members assigned yet</p>
-      ) : (
-        <>
-          <div className="mt-3 flex items-center gap-3">
-            <CompletionRing done={submitted.length} total={expected} full={everyoneIn} />
-            <div className="min-w-0">
-              <p className="text-sm font-medium">
-                {everyoneIn ? "Everyone's in" : `${missing.length} not in yet`}
+    <>
+      <Tile className="h-full" style={{ viewTransitionName: "hero-team" }}>
+        <TileHeader
+          eyebrow={label}
+          aside={
+            !orgOffDay ? (
+              <span className={progress.amber ? "text-amber-700 dark:text-amber-400" : undefined}>
+                {deadlineCopy(progress.minutesLeft, progress.pastDue)}
+              </span>
+            ) : undefined
+          }
+        />
+        <TileBody className="mt-3 min-h-0">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-2 md:gap-0">
+            <div className="flex flex-col items-center justify-center gap-1 text-center md:pr-4">
+              <CompletionRing
+                done={submitted.length}
+                total={expected}
+                full={everyoneIn}
+                size={104}
+              />
+              <p className="mt-2 text-[15px] font-medium tabular-nums">
+                {submitted.length} of {expected} in
               </p>
-              {!everyoneIn && faces.length > 0 && (
-                <div className="mt-1 flex items-center gap-2">
-                  <FaceStack members={faces} />
-                  <p className="truncate text-xs text-muted-foreground">
-                    {named}
-                    {extra > 0 ? ` +${extra}` : ""}
-                  </p>
-                </div>
+              {summaryBits.length > 0 && (
+                <p className="text-xs text-muted-foreground">{summaryBits.join(" · ")}</p>
               )}
             </div>
+            <div className="flex min-w-0 flex-col justify-center md:border-l md:border-foreground/8 md:pl-5">
+              {members.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No team members assigned yet</p>
+              ) : everyoneIn ? (
+                <div>
+                  <p className="text-sm font-medium">Latest reports</p>
+                  {latest.length === 0 ? (
+                    <p className="mt-2 text-sm text-muted-foreground">No reports yet today</p>
+                  ) : (
+                    <ul className="mt-2 flex flex-col gap-2">
+                      {latest.map((member, itemIndex) => (
+                        <li key={member.report.id}>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-lg py-1 text-left outline-none hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-ring"
+                            onClick={() => setIndex(itemIndex)}
+                          >
+                            <MemberAvatar
+                              name={member.fullName}
+                              userId={member.employeeId}
+                              avatar={member.avatar}
+                              size="md"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-baseline justify-between gap-2">
+                                <p className="truncate text-sm font-medium">{firstName(member.fullName)}</p>
+                                <p className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                                  {formatLocalTime(member.report.submitted_at)}
+                                </p>
+                              </div>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {excerpt(member, templates) || "Submitted"}
+                              </p>
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : missing.length > 0 ? (
+                <div>
+                  <p
+                    className={cn(
+                      "text-sm font-medium",
+                      progress.pastDue && "text-amber-700 dark:text-amber-400",
+                    )}
+                  >
+                    {progress.pastDue ? "Missing" : "Not in yet"}
+                  </p>
+                  <ul className="mt-2 flex flex-col gap-2">
+                    {shownMissing.map((member) => {
+                      const detail =
+                        member.attendanceStatus === "half_leave"
+                          ? [member.designation, "half day"].filter(Boolean).join(" · ")
+                          : member.designation;
+                      return (
+                        <li key={member.employeeId} className="flex items-center gap-2">
+                          <MemberAvatar
+                            name={member.fullName}
+                            userId={member.employeeId}
+                            avatar={member.avatar}
+                            size="md"
+                          />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{member.fullName}</p>
+                            {detail && <p className="truncate text-xs text-muted-foreground">{detail}</p>}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {more > 0 && (
+                    <button
+                      type="button"
+                      className="mt-2 text-sm text-muted-foreground max-md:min-h-11"
+                      onClick={onView}
+                    >
+                      +{more} more
+                    </button>
+                  )}
+                </div>
+              ) : null}
+              <div className="flex-1" />
+            </div>
           </div>
-          <div className="mt-3">
-            {latest ? (
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-lg py-1 text-left outline-none hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-ring max-md:min-h-11"
-                onClick={() => setIndex(0)}
-              >
-                <span className="shrink-0 text-xs text-muted-foreground">Latest</span>
-                <MemberAvatar name={latest.fullName} userId={latest.employeeId} avatar={latest.avatar} size="sm" />
-                <span className="min-w-0 truncate text-sm">
-                  <span className="font-medium">{firstName(latest.fullName)}</span>
-                  <span className="text-muted-foreground"> · {excerpt(latest, templates) || "Submitted"}</span>
-                </span>
-              </button>
-            ) : (
-              <p className="text-sm text-muted-foreground">No reports yet today</p>
-            )}
-          </div>
-        </>
-      )}
-      <div className="mt-auto pt-3">
-        <Button
-          ref={triggerRef}
-          type="button"
-          variant="outline"
-          className="max-md:min-h-11"
-          onClick={onView}
-        >
+        </TileBody>
+        <TileFooterAction ref={triggerRef} onClick={onView}>
           View progress
-        </Button>
-      </div>
+        </TileFooterAction>
+      </Tile>
       <ReportDetailSheet
         members={submitted}
         index={index}
@@ -191,7 +249,7 @@ export function HeroTeamTile({
         showProfileLink
         adminView={viewerRole === "admin" || viewerRole === "owner"}
       />
-    </section>
+    </>
   );
 }
 
@@ -230,10 +288,7 @@ export function HeroTeamView({
   const deadlineText = orgOffDay ? null : deadlineCopy(progress.minutesLeft, progress.pastDue);
 
   return (
-    <section
-      className="rounded-xl bg-foreground/[0.03] p-[18px] ring-1 ring-foreground/10"
-      style={{ viewTransitionName: "hero-team" }}
-    >
+    <Tile style={{ viewTransitionName: "hero-team" }}>
       <HeroViewHeader
         title={label}
         panelRef={panelRef}
@@ -285,7 +340,7 @@ export function HeroTeamView({
               const sheetIndex = submitted.findIndex((item) => item.report.id === member.report.id);
               return (
                 <div key={member.report.id} className="flex items-center gap-2 py-1.5">
-                  <MemberAvatar name={member.fullName} userId={member.employeeId} avatar={member.avatar} size="sm" />
+                  <MemberAvatar name={member.fullName} userId={member.employeeId} avatar={member.avatar} size="md" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{member.fullName}</p>
                     <p className="text-xs text-muted-foreground">
@@ -332,7 +387,7 @@ export function HeroTeamView({
         showProfileLink
         adminView={viewerRole === "admin" || viewerRole === "owner"}
       />
-    </section>
+    </Tile>
   );
 }
 
@@ -368,23 +423,11 @@ function Person({
 }) {
   return (
     <div className={cn("flex items-center gap-2 py-1.5", dimmed && "opacity-60")}>
-      <MemberAvatar name={member.fullName} userId={member.employeeId} avatar={member.avatar} size="sm" />
+      <MemberAvatar name={member.fullName} userId={member.employeeId} avatar={member.avatar} size="md" />
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">{member.fullName}</p>
         {detail && <p className="truncate text-xs text-muted-foreground">{detail}</p>}
       </div>
-    </div>
-  );
-}
-
-function FaceStack({ members }: { members: TeamMemberReport[] }) {
-  return (
-    <div className="flex items-center">
-      {members.map((member, index) => (
-        <span key={member.employeeId} className={cn("relative", index > 0 && "-ml-2")} style={{ zIndex: members.length - index }}>
-          <MemberAvatar name={member.fullName} userId={member.employeeId} avatar={member.avatar} size="sm" />
-        </span>
-      ))}
     </div>
   );
 }
@@ -400,7 +443,8 @@ function CompletionRing({
   full: boolean;
   size?: number;
 }) {
-  const stroke = size < 40 ? 3 : 5;
+  const stroke = size < 40 ? 3 : size >= 80 ? 7 : 5;
+  const pct = total === 0 ? 0 : Math.round((Math.min(done, total) / total) * 100);
   const radius = (size - stroke) / 2;
   const circ = 2 * Math.PI * radius;
   const ratio = full || total === 0 ? (full ? 1 : 0) : Math.min(1, done / total);
@@ -421,8 +465,13 @@ function CompletionRing({
         />
       </svg>
       {size >= 40 && (
-        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-medium">
-          {done}/{total}
+        <span
+          className={cn(
+            "absolute inset-0 flex items-center justify-center font-medium tabular-nums",
+            size >= 80 ? "text-xl font-semibold" : "text-[11px]",
+          )}
+        >
+          {size >= 80 ? `${full ? 100 : pct}%` : `${done}/${total}`}
         </span>
       )}
     </div>
