@@ -46,3 +46,7 @@ supabase/.temp/
 /_handoff/
 /reference/
 /_internal-reference/
+
+# Local editor and agent settings (never committed)
+/.cursor/
+/.claude/
