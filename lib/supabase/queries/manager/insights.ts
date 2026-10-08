@@ -196,6 +196,8 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
     return {
       employeeId: member.id,
       fullName: member.full_name,
+      designation: member.designation,
+      avatar: member.avatar,
       streak: stats.currentStreak,
       completionPercentage: stats.completionPercentage,
       reportsThisMonth: stats.reportsThisMonth,

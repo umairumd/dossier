@@ -19,7 +19,7 @@ Branch `refactor/design-system`. Mockups: Claude Design canvas "Dossier Design",
 ## Steps
 
 1. Foundations: tokens and utilities in `globals.css`, `Card`, `Skeleton`, dialog/alert/sheet backdrop and surface, button transitions, bespoke cards moved to `surface-card`. Done; surface and skeleton revised after review.
-2. Home page layout: the cards below the hero (chart, highlights, activity, recent reports) brought onto the scale; parallel follow-up queries.
+2. Home page below the hero (canvas page "Home · below the hero"): `CardLabelHeader` / `CardFooterLink`; streaks and "Needs a nudge" with faces; departments neutral until the deadline; compact admin shortcuts; neutral 30-day strip; recent reports header/footer. Built, awaiting review. **Activity cards are excluded and need their own discussion.** Recent report rows change with the reports area (they are shared with My Reports and profiles).
 3. Sidebar and top bar (Inset).
 4. Report reader (adaptive fields, comments).
 5. Remaining pages, one area at a time; then the default button height (36px) and removal of 10px text.
