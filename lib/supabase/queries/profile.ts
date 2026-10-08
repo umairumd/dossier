@@ -127,3 +127,16 @@ export const getCurrentUserEmail = cache(async (): Promise<string | null> => {
 
   return user?.email ?? null;
 });
+
+/** Buddy recipes for notification actors. Missing ids are simply absent. */
+export async function getAvatarsByProfileIds(
+  ids: string[],
+): Promise<Record<string, unknown>> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (unique.length === 0) return {};
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("id, avatar").in("id", unique);
+  const faces: Record<string, unknown> = {};
+  for (const row of data ?? []) faces[row.id] = row.avatar;
+  return faces;
+}

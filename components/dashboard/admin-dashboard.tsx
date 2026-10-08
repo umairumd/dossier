@@ -5,15 +5,16 @@ import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getActivityLog } from "@/lib/supabase/queries/admin/activity";
 import { getTodayReport, getReportStatsData } from "@/lib/supabase/queries/reports";
-import { getCurrentProfile } from "@/lib/supabase/queries/profile";
-import { resolveTemplate } from "@/lib/supabase/queries/templates";
+import { getAvatarsByProfileIds, getCurrentProfile } from "@/lib/supabase/queries/profile";
+import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
-import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
-import { getMyNotifications } from "@/lib/supabase/queries/notifications";
-import { syncMyUnlocks } from "@/lib/actions/avatar";
-import { formatDeadlineHint } from "@/lib/helpers/time";
+import { getDeadlineContext, getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queries/notifications";
+import { getMyRewardStats, getMyUnlocks, syncMyUnlocks } from "@/lib/actions/avatar";
 import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
-import { getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
+import { getAttendanceSettings, getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
+import { getOrgReportsForDate } from "@/lib/supabase/queries/admin/org-reports";
+import { getReportCommentCounts } from "@/lib/supabase/queries/report-comments";
 import { createClient } from "@/lib/supabase/server";
 import {
   buildAttendanceStatusMap,
@@ -32,7 +33,10 @@ import { ActivityFeed } from "@/components/analytics/activity-feed";
 import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
 import { CreateDepartmentDialog } from "@/components/admin/create-department-dialog";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
-import { HeroReportStatus } from "@/components/dashboard/hero-report-status";
+import type { HeroPanelId } from "@/components/dashboard/hero-controller";
+import { CompletionLineChart } from "@/components/analytics/completion-line-chart";
+import { getCompanyCompletion } from "@/lib/supabase/queries/admin/analytics";
+import { getLeaveUntilByProfile } from "@/lib/supabase/queries/leave-until";
 import { DeptCompletionCard } from "@/components/dashboard/dept-completion-card";
 import type { ReportTemplateWithFields } from "@/types/template";
 
@@ -41,20 +45,28 @@ const HOME_ACTIVITY_LIMIT = 20;
 // Rendered at both "/" (Home, for the admin role) and "/admin" (kept
 // reachable directly in case it's bookmarked) — one component, not two
 // parallel implementations of the same org overview.
-export async function AdminDashboard() {
+export async function AdminDashboard({
+  initialPanel,
+}: {
+  initialPanel: HeroPanelId | null;
+}) {
   const supabase = await createClient();
-  const [summary, deptCompletion, recentActivity, todayReport, settings, allDepartments, employees, profile, orgName, notifications, statsRows, attendanceResult, freshUnlocks] =
+  const [summary, deptCompletion, recentActivity, todayReport, settings, orgTemplates, allDepartments, employees, profile, orgName, notifications, forYou, rewardStats, unlocks, statsRows, attendanceResult, freshUnlocks, attendanceSettings] =
     await Promise.all([
       getOrganizationSummary(),
       getDeptCompletionToday(),
       getActivityLog(HOME_ACTIVITY_LIMIT),
       getTodayReport(),
       getOrganizationSettings(),
+      getOrgTemplatesWithFields(),
       getAllDepartments(),
       getAllEmployees(),
       getCurrentProfile(),
       getOrganizationName(),
       getMyNotifications(),
+      getForYouNotifications(),
+      getMyRewardStats(),
+      getMyUnlocks(),
       getReportStatsData(),
       (async () => {
         const {
@@ -68,12 +80,22 @@ export async function AdminDashboard() {
           .gte("date", dateNDaysAgo(399));
       })(),
       syncMyUnlocks(),
+      getAttendanceSettings(),
     ]);
   const template: ReportTemplateWithFields | undefined = profile
     ? ((await resolveTemplate(profile.id, profile.department_ids)) ?? undefined)
     : undefined;
 
   const todayDate = todayInTimezone(settings.timezone);
+  const { members: company } = await getOrgReportsForDate(todayDate);
+  const leaveUntil = await getLeaveUntilByProfile(
+    company.filter((member) => member.attendanceStatus === "leave").map((member) => member.employeeId),
+    todayDate,
+  );
+  const companyCompletion = await getCompanyCompletion();
+  const commentCounts = await getReportCommentCounts(
+    company.flatMap((member) => (member.report ? [member.report.id] : [])),
+  );
   const todayAttendanceStatus = await getMyTodayAttendanceStatus(todayDate);
   const isHoliday = todayAttendanceStatus === "holiday";
   const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
@@ -85,6 +107,11 @@ export async function AdminDashboard() {
       (attendanceResult.data as { date: string; status: AttendanceStatus }[]) ?? [],
     ),
   }).currentStreak;
+  const actorAvatars = await getAvatarsByProfileIds(
+    forYou.flatMap((note) =>
+      note.entity_type === "employee" && note.entity_id ? [note.entity_id] : [],
+    ),
+  );
   const unread = notifications
     .filter((note) => note.read_at == null)
     .map((note) => ({ type: note.type, created_at: note.created_at }));
@@ -133,8 +160,32 @@ export async function AdminDashboard() {
           summary.completionPercentageToday === 100 && summary.totalMembers > 0
         }
         unread={unread}
+        notifications={forYou}
+        actorAvatars={actorAvatars}
+        rewardStats={rewardStats}
+        unlocks={unlocks}
+        asOf={new Date().toISOString()}
         freshUnlocks={freshUnlocks}
         contextLine={contextLine}
+        isReporting={profile?.is_reporting ?? true}
+        initialPanel={initialPanel}
+        todayReport={todayReport}
+        template={template}
+        shiftFulltimeStart={attendanceSettings.shiftFulltimeStart}
+        team={{
+          label: "Company today",
+          members: company.map((member) => ({
+            ...member,
+            leaveUntil: leaveUntil[member.employeeId] ?? null,
+          })),
+          commentCounts,
+          teamPageHref: "/track-reports",
+          orgOffDay: isOffDay,
+          templates: orgTemplates,
+          deadline: getDeadlineContext(settings),
+          viewerRole: profile?.role ?? "admin",
+          currentUserId: profile?.id ?? "",
+        }}
         stats={
           isOffDay
             ? [
@@ -163,23 +214,23 @@ export async function AdminDashboard() {
                 },
               ]
         }
-        reportStatus={
-          <HeroReportStatus
-            userId={profile?.id ?? ""}
-            todayReport={todayReport}
-            isOffDay={isOffDay}
-            deadlineHint={formatDeadlineHint(
-              settings.reportDeadlineHourLocal,
-              settings.timezone,
-            )}
-            template={template}
-          />
-        }
       />
 
       <div
         className="animate-in fade-in-0 duration-300 fill-mode-both"
         style={{ animationDelay: "0ms" }}
+      >
+        <CompletionLineChart
+          title="Company completion"
+          trend={companyCompletion.trend}
+          previousAverage={companyCompletion.previousAverage}
+          today={todayDate}
+        />
+      </div>
+
+      <div
+        className="animate-in fade-in-0 duration-300 fill-mode-both"
+        style={{ animationDelay: "75ms" }}
       >
         <DeptCompletionCard
           initialDepartments={deptCompletion}

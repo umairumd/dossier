@@ -14,8 +14,8 @@ import {
   getDeadlineContext,
 } from "@/lib/supabase/queries/organization-settings";
 import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
-import { formatDeadlineHint } from "@/lib/helpers/time";
-import { ReportBanner } from "@/components/shared/report-banner";
+import { getAttendanceSettings, getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
+import { ReportsToday } from "@/components/reports/today-report";
 import { PageHeader } from "@/components/shared/page-header";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
 import { ReportHistoryPagination } from "@/components/reports/report-history-pagination";
@@ -34,12 +34,12 @@ const PAGE_SIZE = 10;
 export default async function DailyReportPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; view?: string }>;
+  searchParams: Promise<{ page?: string; view?: string; report?: string }>;
 }) {
-  const { page: pageParam, view } = await searchParams;
+  const { page: pageParam, view, report } = await searchParams;
   const page = Math.max(1, Number(pageParam ?? "1") || 1);
 
-  const [todayReport, history, settings, profile, templates, viewReport] =
+  const [todayReport, history, settings, profile, templates, viewReport, attendanceSettings] =
     await Promise.all([
       getTodayReport(),
       getReportHistory(page, PAGE_SIZE),
@@ -47,6 +47,7 @@ export default async function DailyReportPage({
       getCurrentProfile(),
       getOrgTemplatesWithFields(),
       view ? getMyReportById(view) : Promise.resolve(null),
+      getAttendanceSettings(),
     ]);
 
   const template = profile
@@ -56,24 +57,29 @@ export default async function DailyReportPage({
   const { reports: reportHistory, total } = history;
   const deadline = getDeadlineContext(settings);
   const today = todayInTimezone(settings.timezone);
-  const isOffDay = !isWorkingDay(today, settings.workingDays);
+  const todayAttendanceStatus = await getMyTodayAttendanceStatus(today);
+  const isOffDay = !isWorkingDay(today, settings.workingDays) || todayAttendanceStatus === "holiday";
+  const onFullDayLeave = todayAttendanceStatus === "leave";
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="My Reports" />
 
-      <ReportBanner
-        todayReport={todayReport}
-        deadlineHint={formatDeadlineHint(
-          settings.reportDeadlineHourLocal,
-          settings.timezone,
-        )}
-        deadline={deadline}
-        hideHistoryLink={true}
-        template={template}
-        isOffDay={isOffDay}
-      />
+      {profile && (
+        <ReportsToday
+          initialOpen={report === "open"}
+          userId={profile.id}
+          todayReport={todayReport}
+          template={template}
+          isOffDay={isOffDay}
+          onFullDayLeave={onFullDayLeave}
+          orgDate={today}
+          timeZone={settings.timezone}
+          deadlineHourLocal={settings.reportDeadlineHourLocal}
+          shiftFulltimeStart={attendanceSettings.shiftFulltimeStart}
+        />
+      )}
 
       <Card className="card-gradient">
         <CardHeader>

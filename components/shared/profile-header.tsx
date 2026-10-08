@@ -26,6 +26,7 @@ export function ProfileHeader({
   joinedLabel,
   interactive,
   onCustomise,
+  onCustomisePrefetch,
 }: {
   userId?: string;
   name: string;
@@ -40,6 +41,8 @@ export function ProfileHeader({
   interactive?: boolean;
   /** Settings only: the avatar opens Customise buddy. */
   onCustomise?: () => void;
+  /** Warm the customise dialog before the pencil or Customise is clicked. */
+  onCustomisePrefetch?: () => void;
 }) {
   const showDetailPills = Boolean(roleLabel);
   const avatarNode = (
@@ -59,6 +62,8 @@ export function ProfileHeader({
           <button
             type="button"
             onClick={onCustomise}
+            onPointerEnter={onCustomisePrefetch}
+            onFocus={onCustomisePrefetch}
             aria-label="Customise buddy"
             className="relative cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
@@ -76,6 +81,8 @@ export function ProfileHeader({
             size="sm"
             className="h-7 px-2"
             onClick={onCustomise}
+            onPointerEnter={onCustomisePrefetch}
+            onFocus={onCustomisePrefetch}
           >
             Customise
           </Button>
