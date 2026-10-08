@@ -84,18 +84,14 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   /* Design language: surfaces, skeletons (docs/design/PLAN.md) */
-  --surface-card: oklch(1 0 0);
-  --surface-card-top: oklch(1 0 0);
   --surface-border: oklch(0 0 0 / 0.08);
   --surface-border-hover: oklch(0 0 0 / 0.16);
   --surface-highlight: transparent;
-  --surface-shadow: 0 1px 2px oklch(0 0 0 / 0.04), 0 12px 32px -20px oklch(0 0 0 / 0.2);
   --overlay-surface: oklch(1 0 0);
   --overlay-surface-top: oklch(1 0 0);
   --overlay-border: oklch(0 0 0 / 0.1);
   --overlay-shadow: 0 24px 64px -16px oklch(0 0 0 / 0.25);
   --skeleton: oklch(0 0 0 / 0.06);
-  --skeleton-shine: oklch(1 0 0 / 0.7);
 }
 
 .dark {
@@ -130,18 +126,14 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
-  --surface-card: hsl(225 9% 7%);
-  --surface-card-top: hsl(228 9% 10%);
   --surface-border: oklch(1 0 0 / 0.09);
   --surface-border-hover: oklch(1 0 0 / 0.16);
   --surface-highlight: oklch(1 0 0 / 0.04);
-  --surface-shadow: 0 1px 2px oklch(0 0 0 / 0.4), 0 24px 48px -24px oklch(0 0 0 / 0.9);
   --overlay-surface: hsl(225 8% 8%);
   --overlay-surface-top: hsl(228 8% 11%);
   --overlay-border: oklch(1 0 0 / 0.1);
   --overlay-shadow: 0 32px 80px -16px oklch(0 0 0 / 0.8);
-  --skeleton: oklch(1 0 0 / 0.06);
-  --skeleton-shine: oklch(1 0 0 / 0.085);
+  --skeleton: oklch(1 0 0 / 0.05);
 }
 
 /*
@@ -296,13 +288,12 @@
   animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* One card surface for the whole app ("Lifted"). Use on any element that is
- * a card; never combine with ring-1 or bg-card. */
+/* The card treatment (unchanged from before the design work): a soft diagonal
+ * tint and a 10% edge. It has no fill of its own: Card adds bg-card, the
+ * dashboard hero sits directly on the page background. */
 @utility surface-card {
-  background-color: var(--surface-card);
-  background-image: linear-gradient(180deg, var(--surface-card-top), var(--surface-card) 60%);
-  border: 1px solid var(--surface-border);
-  box-shadow: inset 0 1px 0 var(--surface-highlight), var(--surface-shadow);
+  background-image: linear-gradient(to bottom right in oklab, color-mix(in oklab, var(--primary) 5%, transparent), transparent);
+  border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
 }
 
 /* Clickable cards: the border brightens on hover instead of a fill. */
@@ -321,17 +312,13 @@
   box-shadow: inset 0 1px 0 var(--surface-highlight), var(--overlay-shadow);
 }
 
-/* Skeleton block: one band of light sweeps across every block at once
- * (fixed attachment shares the gradient across the viewport). */
+/* Skeleton block: a flat, dim fill that breathes slowly. Shapes are finalised
+ * per page once layouts are settled (docs/design/PLAN.md, last step). */
 @utility skeleton {
   background-color: var(--skeleton);
-  background-image: linear-gradient(100deg, transparent 40%, var(--skeleton-shine) 50%, transparent 60%);
-  background-size: 300% 100%;
-  background-attachment: fixed;
-  animation: skeleton-sweep 1.5s linear infinite;
+  animation: skeleton-breathe 1.6s ease-in-out infinite;
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    background-image: none;
   }
 }
 
@@ -344,9 +331,9 @@
   }
 }
 
-@keyframes skeleton-sweep {
-  from { background-position: 100% 0; }
-  to { background-position: 0 0; }
+@keyframes skeleton-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 
 @keyframes rise-in {

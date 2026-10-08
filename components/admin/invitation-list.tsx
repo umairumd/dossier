@@ -69,7 +69,7 @@ export function InvitationList({
           {filtered.map((invitation) => (
             <div
               key={invitation.id}
-              className="surface-card flex flex-col gap-2 rounded-xl p-4"
+              className="surface-card flex flex-col gap-2 rounded-xl bg-card p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-col gap-0.5">
