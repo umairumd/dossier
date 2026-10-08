@@ -224,3 +224,23 @@ export function lastDayOfMonth(yearMonth: string): string {
   const [year, month] = yearMonth.split("-").map(Number);
   return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
 }
+
+/** Current hour (0-23) in the given time zone. */
+export function hourInTimeZone(timeZone: string, now: Date = new Date()): number {
+  return Number(
+    new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hourCycle: "h23",
+      timeZone: safeTimeZone(timeZone),
+    }).format(now),
+  );
+}
+
+/** "6:00 PM" for an hour of the day (0-23). */
+export function formatHourLabel(hour: number): string {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+  }).format(Date.UTC(2000, 0, 1, hour));
+}

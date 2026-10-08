@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getTodayReport, getReportStatsData } from "@/lib/supabase/queries/reports";
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
@@ -10,7 +9,7 @@ import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queri
 import { getAvatarsByProfileIds, type ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { getMyRewardStats, getMyUnlocks, syncMyUnlocks } from "@/lib/actions/avatar";
-import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { dateNDaysAgo, formatHourLabel, hourInTimeZone, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import {
   buildAttendanceStatusMap,
   computeReportStats,
@@ -18,14 +17,7 @@ import {
 import type { AttendanceStatus } from "@/types/attendance";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import type { HeroPanelId } from "@/components/dashboard/hero-controller";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { ActivityFeed } from "@/components/analytics/activity-feed";
+import { HomeActivityCard } from "@/components/dashboard/home-activity-card";
 import { CompletionLineChart } from "@/components/analytics/completion-line-chart";
 import { getLeaveUntilByProfile } from "@/lib/supabase/queries/leave-until";
 import { TeamHighlights } from "@/components/manager/team-highlights";
@@ -183,28 +175,22 @@ export async function ManagerDashboard({
         />
       </div>
 
-      <Card
+      <HomeActivityCard
+        mode="team"
         className="animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "150ms" }}
-      >
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardAction>
-            <Link
-              href="/activity"
-              className="text-sm text-muted-foreground hover:text-foreground hover:underline"
-            >
-              View all
-            </Link>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <ActivityFeed
-            items={insights.recentActivity}
-            emptyMessage="No recent activity."
-          />
-        </CardContent>
-      </Card>
+        items={insights.recentActivity}
+        timeZone={settings.timezone}
+        today={{
+          date: todayDate,
+          submitted: submittedToday,
+          expected: isOffDay ? 0 : teamSize,
+          deadlineLabel: formatHourLabel(settings.reportDeadlineHourLocal),
+          deadlinePassed:
+            hourInTimeZone(settings.timezone) >= settings.reportDeadlineHourLocal,
+        }}
+        days={insights.trend}
+        currentUserId={profile.id}
+      />
     </div>
   );
 }

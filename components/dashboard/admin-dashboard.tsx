@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getOrganizationSummary } from "@/lib/supabase/queries/admin/overview";
 import { getDeptCompletionToday } from "@/lib/supabase/queries/admin/dept-completion";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
@@ -11,7 +10,7 @@ import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getDeadlineContext, getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queries/notifications";
 import { getMyRewardStats, getMyUnlocks, syncMyUnlocks } from "@/lib/actions/avatar";
-import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { dateNDaysAgo, formatHourLabel, hourInTimeZone, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { getAttendanceSettings, getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
 import { getOrgReportsForDate } from "@/lib/supabase/queries/admin/org-reports";
 import { getReportCommentCounts } from "@/lib/supabase/queries/report-comments";
@@ -22,14 +21,7 @@ import {
 } from "@/lib/helpers/report-stats";
 import type { AttendanceStatus } from "@/types/attendance";
 import { Building2, ChevronRight, UserPlus } from "lucide-react";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { ActivityFeed } from "@/components/analytics/activity-feed";
+import { HomeActivityCard } from "@/components/dashboard/home-activity-card";
 import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
 import { CreateDepartmentDialog } from "@/components/admin/create-department-dialog";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
@@ -40,7 +32,7 @@ import { getLeaveUntilByProfile } from "@/lib/supabase/queries/leave-until";
 import { DeptCompletionCard } from "@/components/dashboard/dept-completion-card";
 import type { ReportTemplateWithFields } from "@/types/template";
 
-const HOME_ACTIVITY_LIMIT = 20;
+const HOME_ACTIVITY_LIMIT = 40;
 
 // Rendered at both "/" (Home, for the admin role) and "/admin" (kept
 // reachable directly in case it's bookmarked) — one component, not two
@@ -269,38 +261,26 @@ export async function AdminDashboard({
         />
       </div>
 
-      <Card
+      <HomeActivityCard
+        mode="company"
         className="animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "150ms" }}
-      >
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardAction>
-            <Link
-              href="/activity"
-              className="text-sm text-muted-foreground hover:text-foreground hover:underline"
-            >
-              View all
-            </Link>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <ActivityFeed items={recentActivity} />
-        </CardContent>
-      </Card>
+        items={recentActivity}
+        timeZone={settings.timezone}
+        today={{
+          date: todayDate,
+          submitted: summary.submittedToday,
+          expected: isOffDay ? 0 : summary.totalMembers,
+          deadlineLabel: formatHourLabel(settings.reportDeadlineHourLocal),
+          deadlinePassed:
+            hourInTimeZone(settings.timezone) >= settings.reportDeadlineHourLocal,
+        }}
+        days={companyCompletion.trend}
+        currentUserId={profile?.id}
+      />
     </div>
   );
 }
 
-function hourInTimeZone(timeZone: string): number {
-  return Number(
-    new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      hourCycle: "h23",
-      timeZone,
-    }).format(new Date()),
-  );
-}
 
 // Compact shortcut: icon, title, one-line hint. Rendered as the dialog
 // trigger, so it is a button (asChild-safe: forwards props and ref).
