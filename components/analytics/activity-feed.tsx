@@ -73,7 +73,7 @@ function isNoneName(val: string | null | undefined): boolean {
   return !val || val.trim() === "" || val.trim().toLowerCase() === "none";
 }
 
-function metaString(
+export function metaString(
   metadata: Record<string, unknown> | null,
   key: string,
 ): string | null {
@@ -82,7 +82,7 @@ function metaString(
 }
 
 /** "2 Sep" (or "2 Sep 2025" when not the current year) for YYYY-MM-DD. */
-function formatMetaDate(iso: string | null | undefined): string {
+export function formatMetaDate(iso: string | null | undefined): string {
   if (!iso) return "";
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!match) return iso;
@@ -125,7 +125,7 @@ function formatRelativeTime(iso: string, now: number = Date.now()): string {
  * A label is split so the leading name can be rendered in font-medium:
  * `lead` is the actor (or subject) and `rest` is the remainder of the sentence.
  */
-interface EventLabel {
+export interface EventLabel {
   lead: string;
   rest: string;
 }
@@ -136,7 +136,7 @@ function attendanceStatusLabel(status: string | null): string {
   return known ?? capitalizeRaw(status);
 }
 
-function leaveTypeLabel(type: string | null): string {
+export function leaveTypeLabel(type: string | null): string {
   if (!type) return "";
   const known = (LEAVE_REQUEST_TYPE_LABELS as Record<string, string>)[type];
   return known ?? capitalizeRaw(type);
@@ -357,7 +357,7 @@ const EVENT_ICONS: Record<ActivityEventType, typeof UserPlus> = {
   template_archived: Archive,
 };
 
-function getHref(entry: ActivityLogEntry): string | undefined {
+export function getHref(entry: ActivityLogEntry): string | undefined {
   if (entry.target_id) {
     return `/employees/${entry.target_id}`;
   }
@@ -368,6 +368,12 @@ function getHref(entry: ActivityLogEntry): string | undefined {
     return `/organization/templates/${entry.entity_id}`;
   }
   return undefined;
+}
+
+/** Sentence for one activity entry, split so the lead name can be bold. */
+export function getEventLabel(entry: ActivityLogEntry): EventLabel {
+  const labelFn = EVENT_LABELS[entry.event_type];
+  return labelFn ? labelFn(entry) : { lead: "", rest: entry.event_type };
 }
 
 // --- Day keys and grouping (local time) ---
@@ -384,7 +390,7 @@ function useIsMounted() {
   );
 }
 
-function localDayKey(date: Date): string {
+export function localDayKey(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
@@ -414,7 +420,7 @@ function formatDayLabel(date: Date, now: Date): string {
 
 // --- Attendance collapsing ---
 
-interface CollapsedAttendance {
+export interface CollapsedAttendance {
   type: "collapsed_attendance";
   actor_id: string;
   actor_name: string | null;
@@ -423,9 +429,9 @@ interface CollapsedAttendance {
   created_at: string;
 }
 
-type DisplayItem = ActivityLogEntry | CollapsedAttendance;
+export type DisplayItem = ActivityLogEntry | CollapsedAttendance;
 
-function isCollapsed(item: DisplayItem): item is CollapsedAttendance {
+export function isCollapsed(item: DisplayItem): item is CollapsedAttendance {
   return "type" in item && item.type === "collapsed_attendance";
 }
 
@@ -441,7 +447,10 @@ function displayKey(item: DisplayItem): string {
  * The collapsed row sits where the group's latest entry was; order of all
  * other items is preserved.
  */
-function collapseAttendance(items: ActivityLogEntry[]): DisplayItem[] {
+export function collapseAttendance(
+  items: ActivityLogEntry[],
+  dayKeyOf: (date: Date) => string = localDayKey,
+): DisplayItem[] {
   const groups = new Map<
     string,
     { dayKey: string; entries: ActivityLogEntry[] }
@@ -449,7 +458,7 @@ function collapseAttendance(items: ActivityLogEntry[]): DisplayItem[] {
 
   for (const item of items) {
     if (item.event_type !== "attendance_recorded" || !item.actor_id) continue;
-    const dayKey = localDayKey(new Date(item.created_at));
+    const dayKey = dayKeyOf(new Date(item.created_at));
     const key = `${item.actor_id}|${dayKey}`;
     const group = groups.get(key);
     if (group) {

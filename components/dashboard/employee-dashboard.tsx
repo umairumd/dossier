@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getReportHistory, getReportStatsData, getTodayReport } from "@/lib/supabase/queries/reports";
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
@@ -14,14 +13,7 @@ import {
   computeReportStats,
 } from "@/lib/helpers/report-stats";
 import type { AttendanceStatus } from "@/types/attendance";
-import { ActivityFeed } from "@/components/analytics/activity-feed";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { HomeActivityCard } from "@/components/dashboard/home-activity-card";
 import { ActivityStrip } from "@/components/dashboard/activity-strip";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import type { HeroPanelId } from "@/components/dashboard/hero-controller";
@@ -177,29 +169,20 @@ export async function EmployeeDashboard({
         />
       </div>
 
-      <Card
+      <HomeActivityCard
+        mode="personal"
         className="animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "150ms" }}
-      >
-        <CardHeader>
-          <CardTitle>Your Activity</CardTitle>
-          <CardAction>
-            <Link
-              href="/activity"
-              className="text-sm text-muted-foreground hover:text-foreground hover:underline"
-            >
-              View all
-            </Link>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <ActivityFeed
-            variant="dashboard"
-            items={myActivity}
-            emptyMessage="No activity yet."
-          />
-        </CardContent>
-      </Card>
+        items={myActivity}
+        timeZone={settings.timezone}
+        today={{
+          date: todayDate,
+          submitted: 0,
+          expected: 0,
+          deadlineLabel: "",
+          deadlinePassed: false,
+        }}
+        currentUserId={profile.id}
+      />
     </div>
   );
 }

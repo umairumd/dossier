@@ -635,3 +635,4 @@ Cards on the home page follow the hero tiles:
 - Main link: `CardFooterLink` (full-width row with a chevron along the bottom), not a "View all" text link in the header or body.
 - People rows: buddy face (`MemberAvatar size="sm"`), name, designation in muted text, value right-aligned and `tabular-nums`.
 - Status colour only when it means something: neutral before the deadline, amber once it has passed or a value is below its threshold, green when complete.
+- Activity rows: a neutral icon chip for the event's scenario (`EVENT_ICON` in `home-activity-card.tsx`), the sentence with the actor in medium weight ("You" for the viewer), an optional muted detail line (comment preview, leave type and date), and the clock time. No colour-coded icons.
