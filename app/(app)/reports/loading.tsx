@@ -10,7 +10,7 @@ export default function ReportsLoading() {
       {/* Today's report */}
       <Skeleton className="h-28 w-full rounded-xl" />
       {/* Report history card */}
-      <div className="surface-card rounded-xl p-5 flex flex-col gap-4">
+      <div className="surface-card rounded-xl bg-card p-5 flex flex-col gap-4">
         <Skeleton className="h-5 w-32" />
         <Skeleton className="h-9 w-full" />
         {Array.from({ length: 5 }).map((_, i) => (

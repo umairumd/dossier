@@ -6,7 +6,7 @@ export default function DashboardLoading() {
   return (
     <div className="flex flex-col gap-6">
       {/* DashboardHero */}
-      <div className="flex flex-col gap-6 surface-card rounded-xl p-6 md:flex-row md:items-center md:justify-between md:gap-8">
+      <div className="flex flex-col gap-6 surface-card rounded-xl bg-card p-6 md:flex-row md:items-center md:justify-between md:gap-8">
         <div className="flex items-center gap-5">
           <Skeleton className="size-24 shrink-0 rounded-full" />
           <div className="flex flex-col gap-2">
