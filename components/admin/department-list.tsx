@@ -112,7 +112,7 @@ export function DepartmentList({
           {filtered.map((department) => (
             <div
               key={department.id}
-              className="flex h-full flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10"
+              className="surface-card flex h-full flex-col gap-3 rounded-xl p-4"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">

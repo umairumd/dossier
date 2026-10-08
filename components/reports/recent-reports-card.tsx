@@ -35,7 +35,7 @@ export function RecentReportsCard({
   currentUserId?: string;
 }) {
   return (
-    <Card className="card-gradient">
+    <Card>
       <CardHeader>
         <CardTitle>Recent Reports</CardTitle>
         <CardDescription>Your last few daily reports.</CardDescription>

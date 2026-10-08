@@ -21,7 +21,7 @@ export function TemplateListItem({
   const count = fieldCount ?? template.fieldCount ?? 0;
 
   return (
-    <Card className="card-gradient">
+    <Card>
       <CardContent className="flex items-center justify-between gap-4 py-4">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex items-center gap-2">

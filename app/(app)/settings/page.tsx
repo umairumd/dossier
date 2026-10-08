@@ -69,7 +69,7 @@ export default async function SettingsPage() {
         description="Your personal information and account security."
       />
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Profile</CardTitle>
         </CardHeader>
@@ -100,7 +100,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Performance</CardTitle>
           <CardDescription>Last 30 days</CardDescription>
@@ -128,7 +128,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Security</CardTitle>
           <CardDescription>
@@ -140,7 +140,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Session</CardTitle>
           <CardDescription>

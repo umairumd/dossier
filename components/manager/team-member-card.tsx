@@ -23,7 +23,7 @@ export function TeamMemberCard({
   return (
     <Link
       href={`/employees/${member.id}`}
-      className="card-gradient flex flex-col gap-3 rounded-xl p-3 ring-1 ring-foreground/10 transition-colors hover:bg-foreground/5 sm:items-center sm:p-5"
+      className="surface-card surface-card-interactive flex flex-col gap-3 rounded-xl p-3 sm:items-center sm:p-5"
     >
       <div className="flex items-center gap-2 sm:flex-col sm:gap-3">
         <MemberAvatar

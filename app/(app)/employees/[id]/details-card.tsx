@@ -23,7 +23,7 @@ export function DetailsCard({
   showAdminFields?: boolean;
 }) {
   return (
-    <Card className="card-gradient h-full">
+    <Card className="h-full">
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Details</CardTitle>
       </CardHeader>

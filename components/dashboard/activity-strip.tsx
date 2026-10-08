@@ -85,7 +85,7 @@ export function ActivityStrip({
   );
 
   return (
-    <Card className="card-gradient">
+    <Card>
       <CardHeader>
         <CardTitle>Last 30 Days</CardTitle>
       </CardHeader>

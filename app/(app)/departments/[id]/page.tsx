@@ -114,7 +114,7 @@ export default async function DepartmentDetailPage({
   return (
     <div className="flex flex-col gap-6">
       <BreadcrumbLabel label={detail.name} />
-      <Card className="card-gradient">
+      <Card>
         <CardContent className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
@@ -138,7 +138,7 @@ export default async function DepartmentDetailPage({
       </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="card-gradient">
+        <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Manager</CardTitle>
@@ -176,7 +176,7 @@ export default async function DepartmentDetailPage({
           </CardContent>
         </Card>
 
-        <Card className="card-gradient">
+        <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Report Template</CardTitle>
@@ -237,7 +237,7 @@ export default async function DepartmentDetailPage({
         trend={detail.trend}
       />
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Members</CardTitle>

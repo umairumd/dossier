@@ -83,6 +83,19 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Design language: surfaces, skeletons (docs/design/PLAN.md) */
+  --surface-card: oklch(1 0 0);
+  --surface-card-top: oklch(1 0 0);
+  --surface-border: oklch(0 0 0 / 0.08);
+  --surface-border-hover: oklch(0 0 0 / 0.16);
+  --surface-highlight: transparent;
+  --surface-shadow: 0 1px 2px oklch(0 0 0 / 0.04), 0 12px 32px -20px oklch(0 0 0 / 0.2);
+  --overlay-surface: oklch(1 0 0);
+  --overlay-surface-top: oklch(1 0 0);
+  --overlay-border: oklch(0 0 0 / 0.1);
+  --overlay-shadow: 0 24px 64px -16px oklch(0 0 0 / 0.25);
+  --skeleton: oklch(0 0 0 / 0.06);
+  --skeleton-shine: oklch(1 0 0 / 0.7);
 }
 
 .dark {
@@ -117,6 +130,18 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --surface-card: hsl(225 9% 7%);
+  --surface-card-top: hsl(228 9% 10%);
+  --surface-border: oklch(1 0 0 / 0.09);
+  --surface-border-hover: oklch(1 0 0 / 0.16);
+  --surface-highlight: oklch(1 0 0 / 0.04);
+  --surface-shadow: 0 1px 2px oklch(0 0 0 / 0.4), 0 24px 48px -24px oklch(0 0 0 / 0.9);
+  --overlay-surface: hsl(225 8% 8%);
+  --overlay-surface-top: hsl(228 8% 11%);
+  --overlay-border: oklch(1 0 0 / 0.1);
+  --overlay-shadow: 0 32px 80px -16px oklch(0 0 0 / 0.8);
+  --skeleton: oklch(1 0 0 / 0.06);
+  --skeleton-shine: oklch(1 0 0 / 0.085);
 }
 
 /*
@@ -271,22 +296,67 @@
   animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
+/* One card surface for the whole app ("Lifted"). Use on any element that is
+ * a card; never combine with ring-1 or bg-card. */
+@utility surface-card {
+  background-color: var(--surface-card);
+  background-image: linear-gradient(180deg, var(--surface-card-top), var(--surface-card) 60%);
+  border: 1px solid var(--surface-border);
+  box-shadow: inset 0 1px 0 var(--surface-highlight), var(--surface-shadow);
+}
+
+/* Clickable cards: the border brightens on hover instead of a fill. */
+@utility surface-card-interactive {
+  transition: border-color 150ms ease, transform 150ms ease;
+  &:hover {
+    border-color: var(--surface-border-hover);
+  }
+}
+
+/* Dialogs and alert dialogs. */
+@utility surface-overlay {
+  background-color: var(--overlay-surface);
+  background-image: linear-gradient(180deg, var(--overlay-surface-top), var(--overlay-surface) 50%);
+  border: 1px solid var(--overlay-border);
+  box-shadow: inset 0 1px 0 var(--surface-highlight), var(--overlay-shadow);
+}
+
+/* Skeleton block: one band of light sweeps across every block at once
+ * (fixed attachment shares the gradient across the viewport). */
+@utility skeleton {
+  background-color: var(--skeleton);
+  background-image: linear-gradient(100deg, transparent 40%, var(--skeleton-shine) 50%, transparent 60%);
+  background-size: 300% 100%;
+  background-attachment: fixed;
+  animation: skeleton-sweep 1.5s linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    background-image: none;
+  }
+}
+
+/* Content entrance after loading: rises in, staggered with --rise-delay. */
+@utility rise-in {
+  animation: rise-in 420ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: var(--rise-delay, 0ms);
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes skeleton-sweep {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
 @layer utilities {
   .label-eyebrow {
-    @apply text-[10px] font-medium uppercase tracking-wide text-muted-foreground;
-  }
-
-  .card-gradient {
-    @apply bg-gradient-to-br from-primary/5 to-transparent;
-  }
-  .card-gradient-strong {
-    @apply bg-gradient-to-br from-primary/10 to-transparent;
-  }
-  .card-gradient-subtle {
-    @apply bg-gradient-to-b from-card to-card/60;
-  }
-  .card-base {
-    @apply bg-gradient-to-b from-foreground/[0.03] to-transparent;
+    @apply text-[11px] font-medium uppercase tracking-wide text-muted-foreground;
   }
 
   .animate-in-fast {

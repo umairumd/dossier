@@ -81,7 +81,7 @@ export default async function DailyReportPage({
         />
       )}
 
-      <Card className="card-gradient">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Report History</CardTitle>
         </CardHeader>

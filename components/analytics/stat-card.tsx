@@ -32,7 +32,7 @@ export function StatCard({
   return (
     <Card
       className={cn(
-        "card-gradient-subtle transition-shadow duration-200 hover:shadow-md hover:shadow-primary/5",
+        "",
         className,
       )}
     >
