@@ -5,18 +5,20 @@ import {
   computeTenureSubmissionRate,
   type ReportStatsInput,
 } from "@/lib/helpers/report-stats";
-import { dateNDaysAgo } from "@/lib/helpers/dates";
+import { dateNDaysAgo, todayInTimezone } from "@/lib/helpers/dates";
 import {
   buildCompletionTrend,
   buildSubmittersByDate,
+  completionWindows,
 } from "@/lib/helpers/completion-trend";
+import { deadlineWindow } from "@/lib/helpers/deadline-window";
 import { getTeamReportingRoster } from "@/lib/supabase/queries/manager/team";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { getTeamActivityLog } from "@/lib/supabase/queries/admin/activity";
 import type { AttendanceStatus } from "@/types/attendance";
 import type { TeamInsights, TeamMemberStanding } from "@/types/team-insights";
 
-const TREND_DAYS = 7;
+const TREND_DAYS = 60;
 const LEADERBOARD_SIZE = 3;
 const RECENT_ACTIVITY_SIZE = 20;
 // Streak/completion here are bounded to this window deliberately — an
@@ -38,6 +40,7 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
   if (roster.length === 0) {
     return {
       trend: [],
+      previousAverage: null,
       weeklyCompletionPercentage: 0,
       longestStreaks: [],
       frequentlyMissing: [],
@@ -117,12 +120,28 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
     attendanceByAuthor.set(row.profile_id, map);
   }
 
-  const trend = buildCompletionTrend(
+  const rosterIdList = roster.map((member) => member.id);
+  const holidayDates = new Set<string>();
+  const holidayCounts = new Map<string, number>();
+  for (const id of rosterIdList) {
+    const days = attendanceByAuthor.get(id);
+    if (!days) continue;
+    for (const [date, status] of days) {
+      if (status !== "holiday") continue;
+      holidayCounts.set(date, (holidayCounts.get(date) ?? 0) + 1);
+    }
+  }
+  for (const [date, count] of holidayCounts) {
+    if (count === rosterIdList.length) holidayDates.add(date);
+  }
+
+  const series = buildCompletionTrend(
     TREND_DAYS,
     submittersByDate,
     roster.length,
     settings.workingDays,
     settings.timezone,
+    holidayDates,
   ).map((point) => {
     const submitters = submittersByDate.get(point.date) ?? new Set();
     const missingNames = roster
@@ -131,15 +150,31 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
       .sort((a, b) => a.localeCompare(b));
     return { ...point, missingNames };
   });
+  const today = todayInTimezone(settings.timezone);
+  const includeToday = deadlineWindow(
+    new Date(),
+    settings.timezone,
+    "00:00",
+    settings.reportDeadlineHourLocal,
+  ).pastDue;
+  const { trend, previousAverage } = completionWindows(series, today, includeToday);
 
+  const weekly = buildCompletionTrend(
+    7,
+    submittersByDate,
+    roster.length,
+    settings.workingDays,
+    settings.timezone,
+    holidayDates,
+  );
   const weeklyCompletionPercentage =
-    trend.length === 0
+    weekly.length === 0
       ? 0
       : Math.min(
           100,
           Math.round(
-            trend.reduce((sum, point) => sum + point.completionPercentage, 0) /
-              trend.length,
+            weekly.reduce((sum, point) => sum + point.completionPercentage, 0) /
+              weekly.length,
           ),
         );
 
@@ -181,6 +216,7 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
 
   return {
     trend,
+    previousAverage,
     weeklyCompletionPercentage,
     longestStreaks,
     frequentlyMissing,

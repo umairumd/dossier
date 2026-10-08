@@ -17,4 +17,6 @@ export interface TeamMemberReport {
   /** Attendance status for the report date when leave/holiday/weekly_off. */
   attendanceStatus?: AttendanceStatus | null;
   report: DailyReport | null;
+  /** Last consecutive full-day leave date starting today, when they are on leave today. */
+  leaveUntil?: string | null;
 }

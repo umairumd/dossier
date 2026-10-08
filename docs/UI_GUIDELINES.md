@@ -568,3 +568,61 @@ Type "DELETE" to confirm:
 - Use Lucide icons consistently
 - Size: `size-4` for inline, `size-5` for standalone
 - Match icon to action (Trash for delete, Edit for edit, etc.)
+
+---
+
+## Tiles and in-place views
+
+### Tile anatomy
+
+- Eyebrow label: 11px, uppercase, tracking, muted.
+- Optional aside on the eyebrow line: muted, or amber for a deadline warning.
+- Body, then an optional actions row at the bottom.
+- Padding 18px on desktop, 16px on a phone.
+- `rounded-xl`, `border-foreground/10`, and the subtle `bg-foreground/[0.03]` surface.
+- Use `Tile`, `TileHeader`, `TileBody`, and `TileActions` from `components/ui/tile.tsx`.
+
+### Actions inside a tile
+
+- At most one primary (filled) button, and only for the tile's main task: Write report, Continue report, Wear it, Submit report.
+- Everything else is an outline button, size sm: 36px tall, 44px on a phone. `TileActions` applies that height.
+- Actions sit in one row, left-aligned at the bottom, or right-aligned when they share a line with content.
+- A tile's secondary, navigational action ("View progress", "Wardrobe") is a `TileFooterAction`: a full-width footer row with a top divider, the label on the left and a chevron-right on the right, flush with the tile's bottom edge. Neighbouring tiles' footers line up. One footer action per tile.
+- No free-floating text links with arrows inside tiles; use `TileFooterAction` instead.
+- Icons only for expand or collapse (chevrons), the footer action's chevron-right, and close (X).
+- Segmented tabs (`components/ui/tabs.tsx`): a visible track (foreground/5 with a 1px inner ring) and a raised active segment; never an unstyled row of buttons.
+
+### In-place views
+
+- One shared header, `HeroViewHeader`, with the outline Collapse button on the right.
+- Escape closes.
+- Focus moves into the view on open and back to the opener on close.
+
+### Progress
+
+- One `Meter` (`components/ui/meter.tsx`): 4px tall, rounded, track at foreground 8%, fill at foreground 70%.
+- Amber in warning states. Green only for success.
+
+### Colour
+
+- Amber means a deadline or something that needs attention.
+- Green means success or done.
+- Red means an error.
+- Never decorative.
+- Status pills use the tinted `Badge` variants.
+
+### Buddy faces
+
+- 20px inline, 32px in a list row, 48px in a feature row, 112px in the hero.
+- `MascotStatic` outside the hero. The hero is the live buddy.
+
+### Inputs with an addon
+
+- The addon uses the same horizontal padding as the field (`px-3`), and is vertically centered.
+- The group's divider separates the addon from the field, with space on both sides.
+- The text field keeps a minimum width of 6rem (`min-w-24`).
+
+### Numbers
+
+- `tabular-nums` in lists and on axes.
+- Proportional figures for big numbers.

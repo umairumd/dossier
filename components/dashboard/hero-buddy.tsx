@@ -2,17 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { SIGN_IN_WAVE_KEY } from "@/components/auth/sign-out-form";
 import { MascotStatic } from "@/components/mascot/mascot";
 import { mascotBus } from "@/components/mascot/mascot-bus";
 import { toastUnlocked } from "@/components/mascot/unlock-toast";
+import { openBuddyFromHref, useBuddyDialog } from "@/components/layout/buddy-dialog";
 import { useOrgNow } from "@/components/mascot/use-org-now";
 import {
   registerHeroController,
-  subscribeHeroSheet,
+  subscribeHeroPanel,
   takeSkipHeroResting,
+  type HeroPanelId,
 } from "@/components/dashboard/hero-controller";
 import {
   LAUNCH,
@@ -31,7 +31,7 @@ const LiveMascot = dynamic(
   { ssr: false },
 );
 
-const HERO_PX = 96;
+const HERO_PX = 112;
 const INTRO_KEY = "dossier-buddy-introduced";
 const NOTIF_DELAY_MS = 2500;
 
@@ -68,13 +68,20 @@ function restingMoment(
   hasReport: boolean,
   isOffDay: boolean,
   onFullDayLeave: boolean,
+  isReporting: boolean,
   now: Date,
   timeZone: string,
   deadlineHourLocal: number,
 ): MomentId {
   if (hasReport) return "report.done";
   if (isOffDay || onFullDayLeave) return "day.off";
+  if (!isReporting) return "report.calm";
   return reportWindowMoment(now, timeZone, deadlineHourLocal);
+}
+
+function panelMoment(panel: HeroPanelId | null, resting: MomentId): MomentId {
+  if (panel === "report") return "report.writing";
+  return resting;
 }
 
 function notificationMoment(type: string): MomentId {
@@ -127,6 +134,7 @@ export function HeroBuddy({
   isOffDay,
   onFullDayLeave,
   isBirthday,
+  isReporting,
   orgDate,
   timeZone,
   deadlineHourLocal,
@@ -141,6 +149,7 @@ export function HeroBuddy({
   isOffDay: boolean;
   onFullDayLeave: boolean;
   isBirthday: boolean;
+  isReporting: boolean;
   orgDate: string;
   timeZone: string;
   /** First hour that counts as late, in org time. */
@@ -150,12 +159,12 @@ export function HeroBuddy({
   unread: HeroNotification[];
   freshUnlocks?: AccessoryId[];
 }) {
-  const router = useRouter();
+  const { open: openBuddy, prefetch } = useBuddyDialog();
   const now = useOrgNow();
   const hostRef = useRef<HTMLDivElement>(null);
   const ctlRef = useRef<MascotController | null>(null);
   const [ready, setReady] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [panel, setPanel] = useState<HeroPanelId | null>(null);
   const shown = useMemo(() => {
     const cfg = sanitizeAvatar(avatar, userId);
     if (!isBirthday) return cfg;
@@ -168,12 +177,13 @@ export function HeroBuddy({
     hasReport,
     isOffDay,
     onFullDayLeave,
+    isReporting,
     now,
     timeZone,
     deadlineHourLocal,
   );
 
-  useEffect(() => subscribeHeroSheet(setSheetOpen), []);
+  useEffect(() => subscribeHeroPanel(setPanel), []);
 
   useEffect(() => {
     return () => registerHeroController(null);
@@ -198,9 +208,9 @@ export function HeroBuddy({
     if (!ready) return;
     // Successful submit skips one snap so the eat moment can finish.
     // Any other close, including a minute later, re-applies the resting state now.
-    if (!sheetOpen && takeSkipHeroResting()) return;
-    mascotBus.emit(sheetOpen ? "report.writing" : resting, { userId });
-  }, [ready, sheetOpen, resting, userId]);
+    if (!panel && takeSkipHeroResting()) return;
+    mascotBus.emit(panelMoment(panel, resting), { userId });
+  }, [ready, panel, resting, userId]);
 
   useEffect(() => {
     if (!ready) return;
@@ -262,13 +272,14 @@ export function HeroBuddy({
   const unlockKey = freshUnlocks.join(",");
   useEffect(() => {
     if (!ready || !unlockKey) return;
-    if (toastUnlocked(freshUnlocks, (href) => router.push(href)) && userId) {
+    if (toastUnlocked(freshUnlocks, (href) => openBuddyFromHref(openBuddy, href)) && userId) {
       mascotBus.emit("reward.unlocked", { userId });
+      prefetch();
     }
-  }, [ready, unlockKey, freshUnlocks, router, userId]);
+  }, [ready, unlockKey, freshUnlocks, openBuddy, prefetch, userId]);
 
   return (
-    <div ref={hostRef} className="relative size-24 shrink-0">
+    <div ref={hostRef} className="relative size-28 shrink-0">
       <MascotStatic
         avatar={shown}
         size={HERO_PX}
@@ -321,6 +332,7 @@ function introAlreadySeen() {
 }
 
 export function HeroIntro() {
+  const { open, prefetch } = useBuddyDialog();
   const seen = useSyncExternalStore(
     subscribeIntro,
     introAlreadySeen,
@@ -332,12 +344,15 @@ export function HeroIntro() {
   return (
     <div className="flex items-center gap-3 rounded-lg bg-foreground/5 px-3 py-2 text-sm">
       <p className="min-w-0 flex-1">Meet your buddy. Make it yours.</p>
-      <Link
-        href="/settings?buddy=open"
+      <button
+        type="button"
         className="shrink-0 font-medium text-primary hover:underline"
+        onClick={() => open()}
+        onPointerEnter={prefetch}
+        onFocus={prefetch}
       >
         Customise
-      </Link>
+      </button>
       <button
         type="button"
         aria-label="Dismiss"

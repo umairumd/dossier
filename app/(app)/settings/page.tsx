@@ -7,8 +7,7 @@ import {
 import { getReportStatsData } from "@/lib/supabase/queries/reports";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { createClient } from "@/lib/supabase/server";
-import { getMyRewardStats, getMyUnlockIds } from "@/lib/actions/avatar";
-import { dateNDaysAgo, formatDate, safeTimeZone } from "@/lib/helpers/dates";
+import { dateNDaysAgo, formatDate } from "@/lib/helpers/dates";
 import {
   buildAttendanceStatusMap,
   computeReportStats,
@@ -30,14 +29,9 @@ import { ProfileForm } from "@/components/settings/profile-form";
 import { SettingsProfileBuddy } from "@/components/settings/settings-profile-buddy";
 import { PageHeader } from "@/components/shared/page-header";
 
-export default async function SettingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ wear?: string; buddy?: string }>;
-}) {
-  const { wear, buddy } = await searchParams;
+export default async function SettingsPage() {
   const supabase = await createClient();
-  const [profile, email, statsRows, settings, attendanceResult, ownedIds, rewardStats] =
+  const [profile, email, statsRows, settings, attendanceResult] =
     await Promise.all([
       getCurrentProfileWithDepartment(),
       getCurrentUserEmail(),
@@ -54,8 +48,6 @@ export default async function SettingsPage({
           .eq("profile_id", user.id)
           .gte("date", dateNDaysAgo(399));
       })(),
-      getMyUnlockIds(),
-      getMyRewardStats(),
     ]);
 
   if (!profile) {
@@ -83,7 +75,6 @@ export default async function SettingsPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <SettingsProfileBuddy
-            key={`${buddy ?? ""}:${wear ?? ""}`}
             userId={profile.id}
             name={profile.full_name}
             designation={profile.designation}
@@ -93,12 +84,6 @@ export default async function SettingsPage({
             avatar={profile.avatar}
             roleLabel={getRoleLabel(profile.role)}
             joinedLabel={`Joined ${formatDate(profile.created_at.slice(0, 10))}`}
-            ownedIds={ownedIds}
-            stats={rewardStats}
-            timeZone={safeTimeZone(settings.timezone)}
-            nowIso={new Date().toISOString()}
-            wear={wear}
-            fromQuery={buddy === "open" || Boolean(wear)}
           />
 
           <Separator />

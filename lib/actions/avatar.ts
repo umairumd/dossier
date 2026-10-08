@@ -73,8 +73,35 @@ export async function saveMyAvatar(input: AvatarConfig): Promise<{ ok: true; ava
 
   const { error } = await supabase.from("profiles").update({ avatar }).eq("id", user.id);
   if (error) return { ok: false, error: error.message };
+
+  const worn = Object.values(avatar.accessories).filter((id): id is AccessoryId => Boolean(id));
+  if (worn.length > 0) {
+    const admin = createAdminClient();
+    await admin
+      .from("avatar_unlocks")
+      .update({ seen_at: new Date().toISOString() })
+      .eq("profile_id", user.id)
+      .in("item_id", worn)
+      .is("seen_at", null);
+  }
+
   revalidatePath("/", "layout");
   return { ok: true, avatar };
+}
+
+/** Hide one hero unlock row. Unlocks are written with the service role, so this filters profile_id explicitly. */
+export async function markUnlockSeen(itemId: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const admin = createAdminClient();
+  await admin
+    .from("avatar_unlocks")
+    .update({ seen_at: new Date().toISOString() })
+    .eq("profile_id", user.id)
+    .eq("item_id", itemId)
+    .is("seen_at", null);
+  revalidatePath("/", "layout");
 }
 
 /** Call after report submission and on dashboard load (cheap: one select + maybe one insert). */
@@ -97,12 +124,62 @@ export async function syncMyUnlocks(): Promise<AccessoryId[]> {
   return fresh;
 }
 
+export type UnlockRow = { itemId: string; unlockedAt: string; seenAt: string | null };
+
+/** Owned wardrobe rows, newest first, including unlocked_at. */
+export async function getMyUnlocks(): Promise<UnlockRow[]> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from("avatar_unlocks")
+    .select("item_id, unlocked_at, seen_at")
+    .eq("profile_id", user.id)
+    .order("unlocked_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row: { item_id: string; unlocked_at: string; seen_at: string | null }) => ({
+    itemId: row.item_id,
+    unlockedAt: row.unlocked_at,
+    seenAt: row.seen_at,
+  }));
+}
+
 /** Item ids in avatar_unlocks for the signed-in person. */
 export async function getMyUnlockIds(): Promise<string[]> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
   return [...await ownedItems(user.id)];
+}
+
+export type BuddyDialogData = {
+  userId: string;
+  avatar: unknown;
+  ownedIds: string[];
+  stats: RewardStats;
+  timeZone: string;
+  nowIso: string;
+};
+
+/** Avatar, wardrobe, and reward stats for the customise dialog. */
+export async function getBuddyDialogData(): Promise<BuddyDialogData | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const [{ data: profile }, settings, stats, owned] = await Promise.all([
+    supabase.from("profiles").select("avatar").eq("id", user.id).maybeSingle(),
+    getOrganizationSettings(),
+    getRewardStats(user.id),
+    ownedItems(user.id),
+  ]);
+  return {
+    userId: user.id,
+    avatar: profile?.avatar ?? null,
+    ownedIds: [...owned],
+    stats,
+    timeZone: safeTimeZone(settings.timezone),
+    nowIso: new Date().toISOString(),
+  };
 }
 
 /** Reward stats for the signed-in person. */
