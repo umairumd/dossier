@@ -14,16 +14,8 @@ import {
 } from "@/lib/helpers/report-stats";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
 import type { AttendanceStatus } from "@/types/attendance";
-import { StatCard } from "@/components/analytics/stat-card";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { SettingsSection } from "@/components/shared/settings-section";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { SettingsProfileBuddy } from "@/components/settings/settings-profile-buddy";
@@ -62,100 +54,79 @@ export default async function SettingsPage() {
     ),
   });
 
+  const figures = [
+    { icon: <Flame className="size-4" />, label: "Current streak", value: stats.currentStreak, unit: stats.currentStreak === 1 ? "day" : "days" },
+    { icon: <TrendingUp className="size-4" />, label: "30-day completion", value: `${stats.completionPercentage}%`, unit: "" },
+    { icon: <Calendar className="size-4" />, label: "This month", value: stats.reportsThisMonth, unit: stats.reportsThisMonth === 1 ? "report" : "reports" },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Settings"
-        description="Your personal information and account security."
+        description="Your profile, password and session."
       />
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Profile</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6">
-          <SettingsProfileBuddy
-            userId={profile.id}
-            name={profile.full_name}
-            designation={profile.designation}
-            departmentNames={profile.department_names}
-            isRemote={profile.is_remote}
-            employmentType={profile.employment_type}
-            avatar={profile.avatar}
-            roleLabel={getRoleLabel(profile.role)}
-            joinedLabel={`Joined ${formatDate(profile.created_at.slice(0, 10))}`}
-          />
+      <section className="surface-card rounded-xl bg-card p-5 md:p-6">
+        <SettingsProfileBuddy
+          userId={profile.id}
+          name={profile.full_name}
+          designation={profile.designation}
+          departmentNames={profile.department_names}
+          isRemote={profile.is_remote}
+          employmentType={profile.employment_type}
+          avatar={profile.avatar}
+          roleLabel={getRoleLabel(profile.role)}
+          joinedLabel={`Joined ${formatDate(profile.created_at.slice(0, 10))}`}
+        />
+      </section>
 
-          <Separator />
+      <ProfileForm
+        initialFullName={profile.full_name}
+        initialDob={profile.date_of_birth ?? null}
+        email={email}
+        role={getRoleLabel(profile.role)}
+        departmentName={profile.department_names.join(", ") || "Unassigned"}
+      />
 
-          <ProfileForm
-            initialFullName={profile.full_name}
-            initialDob={profile.date_of_birth ?? null}
-            email={email}
-            role={getRoleLabel(profile.role)}
-            departmentName={
-              profile.department_names.join(", ") || "Unassigned"
-            }
-          />
-        </CardContent>
-      </Card>
+      <SettingsSection title="Your reporting" description="The last 30 days.">
+        <div className="grid overflow-hidden rounded-xl ring-1 ring-inset ring-foreground/10 sm:grid-cols-3">
+          {figures.map((figure, index) => (
+            <div
+              key={figure.label}
+              className={
+                index > 0
+                  ? "flex flex-col gap-1.5 border-t border-foreground/[0.06] px-4 py-3.5 sm:border-t-0 sm:border-l"
+                  : "flex flex-col gap-1.5 px-4 py-3.5"
+              }
+            >
+              <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                {figure.icon}
+                {figure.label}
+              </span>
+              <span className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-semibold tracking-tight tabular-nums">
+                  {figure.value}
+                </span>
+                {figure.unit && (
+                  <span className="text-[13px] text-muted-foreground">{figure.unit}</span>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      </SettingsSection>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Performance</CardTitle>
-          <CardDescription>Last 30 days</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            <StatCard
-              label="Current Streak"
-              value={stats.currentStreak}
-              unit="days"
-              icon={<Flame className="size-4" />}
-            />
-            <StatCard
-              label="30-Day Completion"
-              value={`${stats.completionPercentage}%`}
-              icon={<TrendingUp className="size-4" />}
-            />
-            <StatCard
-              label="This Month"
-              value={stats.reportsThisMonth}
-              unit="reports"
-              icon={<Calendar className="size-4" />}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <ChangePasswordForm />
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Security</CardTitle>
-          <CardDescription>
-            Choose a new password for your account.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChangePasswordForm />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Session</CardTitle>
-          <CardDescription>
-            Sign out of Dossier on this device.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <SignOutForm>
-            <Button type="submit" variant="outline">
-              <LogOut />
-              Sign Out
-            </Button>
-          </SignOutForm>
-        </CardContent>
-      </Card>
+      <SettingsSection title="Session" description="Sign out of Dossier on this device.">
+        <SignOutForm>
+          <Button type="submit" variant="outline" className="self-start">
+            <LogOut />
+            Sign out
+          </Button>
+        </SignOutForm>
+      </SettingsSection>
     </div>
   );
 }

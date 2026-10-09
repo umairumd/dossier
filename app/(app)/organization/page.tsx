@@ -1,19 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { FileText, Plus } from "lucide-react";
+import { ChevronRight, FileText, Plus } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import { getAttendanceSettings } from "@/lib/supabase/queries/attendance";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getOrgTemplates } from "@/lib/supabase/queries/templates";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { SettingsSection } from "@/components/shared/settings-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
@@ -39,127 +33,83 @@ export default async function OrganizationSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Organization" />
+      <PageHeader
+        title="Organization"
+        description={`How ${orgName ?? settings.orgName ?? "your organization"} works in Dossier.`}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Identity</CardTitle>
-          <CardDescription>
-            How your organization appears in Dossier.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <OrgIdentityForm initialName={orgName ?? settings.orgName} />
-        </CardContent>
-      </Card>
+      <OrgIdentityForm initialName={orgName ?? settings.orgName} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Schedule</CardTitle>
-          <CardDescription>
-            Configure when reports are due and which days count as working days.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <OrgScheduleForm
-            initialTimezone={settings.timezone}
-            initialWorkingDays={settings.workingDays}
-            initialDeadlineHour={settings.reportDeadlineHourLocal}
+      <OrgScheduleForm
+        initialTimezone={settings.timezone}
+        initialWorkingDays={settings.workingDays}
+        initialDeadlineHour={settings.reportDeadlineHourLocal}
+      />
+
+      <OrgAttendanceForm
+        initialGraceMinutes={attendanceSettings.graceMinutes}
+        initialFineLate={attendanceSettings.fineLateAmount}
+        initialFineVeryLate={attendanceSettings.fineVeryLateAmount}
+        initialFineUninformed={attendanceSettings.fineUninformedAmount}
+        initialInformedLeaves={attendanceSettings.informedLeavesPerMonth}
+        initialShiftFulltimeStart={attendanceSettings.shiftFulltimeStart}
+        initialShiftMorningStart={attendanceSettings.shiftMorningStart}
+        initialShiftMorningEnd={attendanceSettings.shiftMorningEnd}
+        initialShiftEveningStart={attendanceSettings.shiftEveningStart}
+        initialShiftEveningEnd={attendanceSettings.shiftEveningEnd}
+      />
+
+      <SettingsSection
+        title="Report templates"
+        description="The questions people answer each day. Assign templates to departments or to individual people."
+        aside={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/organization/templates/new">
+              <Plus className="size-4" />
+              New template
+            </Link>
+          </Button>
+        }
+      >
+        {activeTemplates.length === 0 ? (
+          <EmptyState
+            size="sm"
+            icon={<FileText className="size-4" />}
+            title="No templates yet."
           />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Attendance</CardTitle>
-          <CardDescription>
-            Configure shift times, grace periods, and fine amounts for
-            attendance tracking.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <OrgAttendanceForm
-            initialGraceMinutes={attendanceSettings.graceMinutes}
-            initialFineLate={attendanceSettings.fineLateAmount}
-            initialFineVeryLate={attendanceSettings.fineVeryLateAmount}
-            initialFineUninformed={attendanceSettings.fineUninformedAmount}
-            initialInformedLeaves={attendanceSettings.informedLeavesPerMonth}
-            initialShiftFulltimeStart={attendanceSettings.shiftFulltimeStart}
-            initialShiftMorningStart={attendanceSettings.shiftMorningStart}
-            initialShiftMorningEnd={attendanceSettings.shiftMorningEnd}
-            initialShiftEveningStart={attendanceSettings.shiftEveningStart}
-            initialShiftEveningEnd={attendanceSettings.shiftEveningEnd}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-base">Report Templates</CardTitle>
-              <CardDescription>
-                Manage templates for daily report submissions. Assign different
-                templates to departments or individual employees.
-              </CardDescription>
-            </div>
-            <Button asChild>
-              <Link href="/organization/templates/new">
-                <Plus className="size-4" />
-                New Template
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {activeTemplates.length === 0 ? (
-            <EmptyState
-              size="sm"
-              icon={<FileText className="size-4" />}
-              title="No templates yet."
-            />
-          ) : (
-            <ul className="divide-y divide-border">
+        ) : (
+          <div className="flex flex-col gap-3">
+            <ul className="flex flex-col divide-y divide-foreground/[0.06] overflow-hidden rounded-xl ring-1 ring-inset ring-foreground/10">
               {activeTemplates.map((template) => {
                 const count = template.fieldCount ?? 0;
                 return (
                   <li key={template.id}>
                     <Link
                       href={`/organization/templates/${template.id}`}
-                      className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-foreground/5 sm:px-6"
+                      className="flex min-h-12 items-center justify-between gap-3 px-4 py-2.5 transition-colors outline-none hover:bg-foreground/[0.03] focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset"
                     >
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="truncate text-sm font-medium">
-                          {template.name}
-                        </span>
-                        {template.isDefault && (
-                          <Badge variant="secondary" className="text-xs">
-                            Default
-                          </Badge>
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          {count} field{count !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                      <span className="shrink-0 text-sm text-muted-foreground">
-                        Edit
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm font-medium">{template.name}</span>
+                        {template.isDefault && <Badge variant="neutral">Default</Badge>}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2 text-[13px] text-muted-foreground">
+                        {count} {count === 1 ? "question" : "questions"}
+                        <ChevronRight aria-hidden className="size-4" />
                       </span>
                     </Link>
                   </li>
                 );
               })}
             </ul>
-          )}
-          <div className="border-t border-border px-4 py-3 sm:px-6">
             <Link
               href="/organization/templates"
-              className="text-sm text-muted-foreground hover:text-foreground"
+              className="self-start text-[13px] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             >
-              Manage all templates →
+              Manage all templates
             </Link>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </SettingsSection>
     </div>
   );
 }
