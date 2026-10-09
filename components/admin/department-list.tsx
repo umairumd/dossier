@@ -1,28 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataList, DataListRow } from "@/components/shared/data-list";
 import { EmptyState } from "@/components/shared/empty-state";
-import {
-  FilterSearchInput,
-  FilterToolbar,
-  filterSelectTriggerClassName,
-} from "@/components/shared/filter-toolbar";
+import { FilterSearchInput } from "@/components/shared/filter-toolbar";
+import { SegmentedFilter, type SegmentedOption } from "@/components/shared/segmented-filter";
 import { NoMembersIndicator } from "@/components/shared/employee-indicators";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { DepartmentActionsMenu } from "@/components/admin/department-actions-menu";
@@ -31,11 +13,11 @@ import type { DepartmentListItem, ManagerCandidate } from "@/types/department";
 
 type StatusFilter = "all" | "active" | "archived";
 
-const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "active", label: "Active" },
-  { value: "archived", label: "Archived" },
-];
+const COLUMNS = "minmax(0,1fr) minmax(0,1fr) 6rem 2rem";
+
+function peopleLabel(count: number): string {
+  return `${count} ${count === 1 ? "person" : "people"}`;
+}
 
 export function DepartmentList({
   departments,
@@ -67,35 +49,32 @@ export function DepartmentList({
     );
   }, [departments, query, statusFilter]);
 
+  const archivedCount = departments.filter((department) => department.archived_at).length;
+  const options: SegmentedOption<StatusFilter>[] = [
+    { value: "active", label: "Active", count: departments.length - archivedCount },
+    ...(archivedCount > 0
+      ? [{ value: "archived" as const, label: "Archived", count: archivedCount }]
+      : []),
+    { value: "all", label: "All", count: departments.length },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
-      <FilterToolbar
-        search={
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
           <FilterSearchInput
             value={query}
             onChange={setQuery}
-            placeholder="Search departments..."
+            placeholder="Search departments…"
           />
-        }
-        filters={[
-          <Select
-            key="status"
-            value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-          >
-            <SelectTrigger className={filterSelectTriggerClassName}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FILTER_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>,
-        ]}
-      />
+        </div>
+        <SegmentedFilter
+          label="Department status"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={options}
+        />
+      </div>
 
       {filtered.length === 0 ? (
         <EmptyState
@@ -107,111 +86,55 @@ export function DepartmentList({
           }
         />
       ) : (
-        <>
-        <div className="grid grid-cols-2 gap-3 md:hidden">
+        <DataList columns={COLUMNS} header={["Department", "Manager", "People", ""]}>
           {filtered.map((department) => (
-            <div
+            <DataListRow
               key={department.id}
-              className="surface-card flex h-full flex-col gap-3 rounded-xl bg-card p-4"
+              href={`/departments/${department.id}`}
+              label={`Open ${department.name}`}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <Link
-                      href={`/departments/${department.id}`}
-                      className="line-clamp-2 font-medium hover:underline"
-                    >
-                      {department.name}
-                    </Link>
-                    {department.employee_count === 0 && <NoMembersIndicator />}
-                  </div>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {department.manager_name ?? "Unassigned"}
-                  </p>
-                </div>
+              <span className="flex min-w-0 flex-col">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate text-sm font-medium">{department.name}</span>
+                  {department.employee_count === 0 && <NoMembersIndicator />}
+                  {department.archived_at && (
+                    <DepartmentStatusBadge archivedAt={department.archived_at} />
+                  )}
+                </span>
+                <span className="truncate text-[13px] text-muted-foreground md:hidden">
+                  {department.manager_name ?? "No manager"} ·{" "}
+                  {peopleLabel(department.employee_count)}
+                </span>
+              </span>
+              <span className="hidden min-w-0 items-center gap-2.5 md:flex">
+                {department.manager_name ? (
+                  <>
+                    <MemberAvatar
+                      userId={department.manager_id ?? undefined}
+                      name={department.manager_name}
+                      avatar={department.manager_avatar}
+                      size="sm"
+                    />
+                    <span className="truncate text-[13.5px] text-foreground/80">
+                      {department.manager_name}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-[13.5px] text-muted-foreground">No manager</span>
+                )}
+              </span>
+              <span className="hidden text-[13px] tabular-nums text-muted-foreground md:block">
+                {peopleLabel(department.employee_count)}
+              </span>
+              <span className="relative z-10 flex justify-end">
                 <DepartmentActionsMenu
                   department={department}
                   managerCandidates={managerCandidates}
                 />
-              </div>
-              <div className="mt-auto flex flex-wrap items-center gap-2">
-                {department.archived_at && (
-                  <DepartmentStatusBadge archivedAt={department.archived_at} />
-                )}
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {department.employee_count}{" "}
-                  {department.employee_count === 1 ? "employee" : "employees"}
-                </span>
-              </div>
-            </div>
+              </span>
+            </DataListRow>
           ))}
-        </div>
-
-        <div className="hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Manager</TableHead>
-              <TableHead className="text-center">Employees</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-12 text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((department) => (
-              <TableRow key={department.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/departments/${department.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {department.name}
-                    </Link>
-                    {department.employee_count === 0 && <NoMembersIndicator />}
-                  </div>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {department.manager_name ? (
-                    <div className="flex items-center gap-2">
-                      <MemberAvatar
-                        userId={department.manager_id ?? undefined}
-                        name={department.manager_name}
-                        avatar={department.manager_avatar}
-                        size="md"
-                      />
-                      <span>{department.manager_name}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                        —
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        Unassigned
-                      </span>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="text-center">
-                  {department.employee_count}
-                </TableCell>
-                <TableCell>
-                  <DepartmentStatusBadge archivedAt={department.archived_at} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <DepartmentActionsMenu
-                    department={department}
-                    managerCandidates={managerCandidates}
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        </div>
-        </>
+        </DataList>
       )}
     </div>
   );

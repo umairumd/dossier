@@ -28,9 +28,10 @@ export default async function InvitationsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Invitations"
-        count={pending.length}
-        countLabel={
-          pending.length === 1 ? "pending invitation" : "pending invitations"
+        description={
+          pending.length === 0
+            ? "No pending invitations"
+            : `${pending.length} pending`
         }
         action={
           <InviteEmployeeDialog

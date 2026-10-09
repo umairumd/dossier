@@ -1,23 +1,21 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataList, DataListRow, PersonCell } from "@/components/shared/data-list";
 import { EmptyState } from "@/components/shared/empty-state";
 import { InvitationActionsMenu } from "@/components/admin/invitation-actions-menu";
 import { LocalDateTime } from "@/components/shared/local-datetime";
-import {
-  FilterSearchInput,
-  FilterToolbar,
-} from "@/components/shared/filter-toolbar";
-import { RoleChip } from "@/components/shared/role-chip";
+import { FilterSearchInput } from "@/components/shared/filter-toolbar";
 import type { EmployeeListItem } from "@/types/employee";
+
+const ROLE_LABEL: Record<string, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  manager: "Manager",
+  member: "Member",
+};
+
+const COLUMNS = "minmax(0,1.3fr) minmax(0,1fr) 5.5rem 9rem 2rem";
 
 export function InvitationList({
   invitations,
@@ -43,15 +41,10 @@ export function InvitationList({
 
   return (
     <div className="flex flex-col gap-4">
-      <FilterToolbar
-        search={
-          <FilterSearchInput
-            value={query}
-            onChange={setQuery}
-            placeholder="Search invitations..."
-          />
-        }
-        filters={[]}
+      <FilterSearchInput
+        value={query}
+        onChange={setQuery}
+        placeholder="Search invitations…"
       />
 
       {filtered.length === 0 ? (
@@ -64,87 +57,40 @@ export function InvitationList({
           }
         />
       ) : (
-        <>
-        <div className="flex flex-col gap-3 md:hidden">
+        <DataList
+          columns={COLUMNS}
+          header={["Person", "Department", "Role", "Invited", ""]}
+        >
           {filtered.map((invitation) => (
-            <div
-              key={invitation.id}
-              className="surface-card flex flex-col gap-2 rounded-xl bg-card p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="font-medium">{invitation.full_name}</span>
-                  <span className="truncate text-sm text-muted-foreground">
-                    {invitation.email ?? "—"}
-                  </span>
-                </div>
+            <DataListRow key={invitation.id}>
+              <PersonCell
+                id={invitation.id}
+                name={invitation.full_name}
+                avatar={invitation.avatar}
+                detail={invitation.email ?? "—"}
+              />
+              <span className="hidden truncate text-[13.5px] text-foreground/80 md:block">
+                {invitation.department_names.join(", ") || "—"}
+              </span>
+              <span className="hidden text-[13px] text-foreground/80 md:block">
+                {ROLE_LABEL[invitation.role] ?? invitation.role}
+              </span>
+              <span className="hidden text-[13px] text-muted-foreground md:block">
+                {invitation.created_at ? (
+                  <LocalDateTime isoString={invitation.created_at} />
+                ) : (
+                  "—"
+                )}
+              </span>
+              <span className="relative z-10 flex justify-end">
                 <InvitationActionsMenu
                   employee={invitation}
                   isSelf={invitation.id === currentUserId}
                 />
-              </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <RoleChip role={invitation.role} />
-                <span>{invitation.department_names.join(", ") || "—"}</span>
-                <span className="ml-auto">
-                  Invited{" "}
-                  {invitation.created_at ? (
-                    <LocalDateTime isoString={invitation.created_at} />
-                  ) : (
-                    "—"
-                  )}
-                </span>
-              </div>
-            </div>
+              </span>
+            </DataListRow>
           ))}
-        </div>
-
-        <div className="hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Invited</TableHead>
-              <TableHead className="w-12 text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((invitation) => (
-              <TableRow key={invitation.id}>
-                <TableCell className="font-medium">
-                  {invitation.full_name}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {invitation.email ?? "—"}
-                </TableCell>
-                <TableCell>
-                  <RoleChip role={invitation.role} />
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {invitation.department_names.join(", ") || "—"}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {invitation.created_at ? (
-                    <LocalDateTime isoString={invitation.created_at} />
-                  ) : (
-                    "—"
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <InvitationActionsMenu
-                    employee={invitation}
-                    isSelf={invitation.id === currentUserId}
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        </div>
-        </>
+        </DataList>
       )}
     </div>
   );

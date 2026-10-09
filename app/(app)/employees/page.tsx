@@ -52,8 +52,10 @@ export default async function EmployeesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Employees"
-        count={employees.length}
-        countLabel={employees.length === 1 ? "employee" : "employees"}
+        description={(() => {
+          const current = employees.filter((employee) => employee.status !== "archived").length;
+          return `${current} ${current === 1 ? "person" : "people"} · ${departments.length} ${departments.length === 1 ? "department" : "departments"}`;
+        })()}
         action={
           <InviteEmployeeDialog
             departments={departments}

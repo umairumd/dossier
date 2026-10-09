@@ -6,8 +6,8 @@ export function DepartmentStatusBadge({
   archivedAt: string | null;
 }) {
   return archivedAt ? (
-    <Badge variant="outline">Archived</Badge>
+    <Badge variant="neutral">Archived</Badge>
   ) : (
-    <Badge>Active</Badge>
+    <Badge variant="success">Active</Badge>
   );
 }
