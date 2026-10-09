@@ -776,7 +776,7 @@ function WardrobeTile({
       {on ? (
         <Badge
           variant="secondary"
-          className="absolute top-2 right-2 h-5 px-1.5 text-[10px]"
+          className="absolute top-2 right-2 h-5 px-1.5 text-[11px]"
         >
           Wearing
         </Badge>

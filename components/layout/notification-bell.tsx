@@ -191,7 +191,7 @@ export function NotificationBell({
                           {n.body}
                         </p>
                       )}
-                      <p className="mt-1 text-[10px] text-muted-foreground">
+                      <p className="mt-1 text-[11px] text-muted-foreground">
                         {formatDistanceToNow(new Date(n.created_at), {
                           addSuffix: true,
                         })}

@@ -114,7 +114,7 @@ export function CompletionTrendCard({
       {footnote && (
         <p
           className={cn(
-            "mt-2 shrink-0 text-[10px] text-muted-foreground",
+            "mt-2 shrink-0 text-[11px] text-muted-foreground",
             dimmed && "opacity-50",
           )}
         >

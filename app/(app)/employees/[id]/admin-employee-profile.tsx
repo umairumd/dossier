@@ -154,7 +154,7 @@ export async function AdminEmployeeProfile({
             hint="Days in a row"
             icon={<Flame className="size-4" />}
             className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
-            labelClassName="text-[10px] sm:text-sm"
+            labelClassName="text-xs sm:text-sm"
             valueClassName="text-2xl sm:text-3xl"
           />
           <StatCard
@@ -165,7 +165,7 @@ export async function AdminEmployeeProfile({
             hint={`${tenureRate.submitted} of ${tenureRate.expected} working days`}
             icon={<TrendingUp className="size-4" />}
             className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
-            labelClassName="text-[10px] sm:text-sm"
+            labelClassName="text-xs sm:text-sm"
             valueClassName="text-2xl sm:text-3xl"
           />
           <StatCard
@@ -178,7 +178,7 @@ export async function AdminEmployeeProfile({
             }
             icon={<Calendar className="size-4" />}
             className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
-            labelClassName="text-[10px] sm:text-sm"
+            labelClassName="text-xs sm:text-sm"
             valueClassName="text-2xl sm:text-3xl"
           />
         </div>
