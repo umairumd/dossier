@@ -86,9 +86,17 @@ export function PersonCardStats({
 }
 
 /** Heading above a group of cards: "October · 4". */
-export function GroupHeading({ label, count }: { label: string; count?: number }) {
+export function GroupHeading({
+  label,
+  count,
+  className,
+}: {
+  label: string;
+  count?: number;
+  className?: string;
+}) {
   return (
-    <h2 className="mb-3 flex items-baseline gap-1.5 text-[13px] font-semibold">
+    <h2 className={cn("mb-3 flex items-baseline gap-1.5 text-[13px] font-semibold", className)}>
       {label}
       {count !== undefined && (
         <span className="font-normal tabular-nums text-muted-foreground">· {count}</span>

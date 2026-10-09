@@ -282,20 +282,24 @@ Rules:
 
 ## Cards
 
-### Stat Cards
+### Key figures
 
-Used on dashboards for key metrics:
+Key numbers sit in one `FigureStrip` (components/shared/figure-strip.tsx), not a card per number:
 
 ```
-┌─────────────────────┐
-│ Current Streak      │
-│ 5 days              │
-└─────────────────────┘
+┌──────────────┬──────────────┬──────────────┐
+│ Current streak│ Submission rate│ Last report │
+│ 5 days        │ 92%           │ Yesterday    │
+└──────────────┴──────────────┴──────────────┘
 ```
 
-- Label in muted text
-- Value large and bold
-- Optional unit suffix
+- Label 13px muted (optional icon), value 24/600 tabular, optional unit and hint
+- `variant="inset"` when the strip sits inside another card
+- Stacks with dividers on phones
+
+### Signed-out screens
+
+Sign in, password reset, first sign-in and account states use `AuthCard` (components/auth/auth-card.tsx) under the logo from the `(auth)` layout. Errors and messages use `AuthNotice`; the secondary link goes in `footer`, under the card.
 
 ### Content Cards
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { reportExcerpt } from "@/lib/reports/excerpt";
 import { useState, type ReactNode } from "react";
 import { MemberAvatar } from "@/components/mascot/member-avatar";
 import { HeroViewHeader } from "@/components/dashboard/hero-view-header";
@@ -9,7 +8,11 @@ import { useOrgNow } from "@/components/mascot/use-org-now";
 import { Tile, TileBody, TileFooterAction, TileHeader } from "@/components/ui/tile";
 import { deadlineWindow } from "@/lib/helpers/deadline-window";
 import { formatLocalTime } from "@/lib/helpers/time";
-import { getSubmissionStatus, type DeadlineContext } from "@/lib/reports/submission-status";
+import {
+  getSubmissionStatus,
+  SUBMISSION_STATUS_LABELS,
+  type DeadlineContext,
+} from "@/lib/reports/submission-status";
 import { cn } from "@/lib/utils";
 import type { DailyReport } from "@/types/report";
 import type { UserRole } from "@/types/profile";
@@ -38,8 +41,10 @@ function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] || fullName;
 }
 
-function excerpt(member: Submitted, templates: ReportTemplateWithFields[]): string {
-  return reportExcerpt(member.report, templates);
+function statusLabel(member: Submitted, deadline: DeadlineContext): string {
+  return SUBMISSION_STATUS_LABELS[
+    getSubmissionStatus(member.report.submitted_at, deadline.deadlineHourUtc, deadline)
+  ];
 }
 
 function deadlineCopy(minutesLeft: number, pastDue: boolean): string {
@@ -168,7 +173,7 @@ export function HeroTeamTile({
                                 </p>
                               </div>
                               <p className="truncate text-xs text-muted-foreground">
-                                {excerpt(member, templates) || "Submitted"}
+                                {statusLabel(member, deadline)}
                               </p>
                             </div>
                           </button>

@@ -4,9 +4,10 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { login } from "@/lib/actions/auth";
+import { AuthNotice } from "@/components/auth/auth-card";
+import { Field } from "@/components/shared/settings-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export function LoginForm({
   initialError,
@@ -30,13 +31,13 @@ export function LoginForm({
 
   return (
     <form action={handleSubmit} className="flex flex-col gap-4">
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      {initialMessage && (
-        <p className="text-sm text-muted-foreground">{initialMessage}</p>
-      )}
+      {error ? (
+        <AuthNotice tone="danger">{error}</AuthNotice>
+      ) : initialMessage ? (
+        <AuthNotice>{initialMessage}</AuthNotice>
+      ) : null}
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
+      <Field label="Email" htmlFor="email">
         <Input
           id="email"
           name="email"
@@ -45,10 +46,22 @@ export function LoginForm({
           autoComplete="email"
           disabled={isPending}
         />
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Password</Label>
+      <Field
+        label={
+          <span className="flex items-center justify-between">
+            Password
+            <Link
+              href="/forgot-password"
+              className="text-xs font-normal text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </span>
+        }
+        htmlFor="password"
+      >
         <Input
           id="password"
           name="password"
@@ -57,27 +70,14 @@ export function LoginForm({
           autoComplete="current-password"
           disabled={isPending}
         />
-        <div className="flex justify-end">
-          <Link
-            href="/forgot-password"
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            Forgot password?
-          </Link>
-        </div>
-      </div>
+      </Field>
 
-      <Button
-        type="submit"
-        variant="default"
-        className="mt-2"
-        disabled={isPending}
-      >
+      <Button type="submit" className="mt-1 w-full" disabled={isPending}>
         {isPending ? (
-          <div className="flex items-center gap-2">
+          <>
             <Loader2 className="size-4 animate-spin" />
-            Signing in...
-          </div>
+            Signing in…
+          </>
         ) : (
           "Sign in"
         )}

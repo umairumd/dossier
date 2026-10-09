@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/shared/settings-section";
 import {
   FIELD_TYPE_LABELS,
   type FieldType,
@@ -154,122 +155,105 @@ function FieldDialogForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{field ? "Edit Field" : "Add Field"}</DialogTitle>
+        <DialogTitle>{field ? "Edit question" : "Add question"}</DialogTitle>
       </DialogHeader>
       <DialogBody className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label>Field Type *</Label>
-          <Select
-            value={fieldType}
-            onValueChange={(value) => setFieldType(value as FieldType)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(FIELD_TYPE_LABELS).map(([value, typeLabel]) => (
-                <SelectItem key={value} value={value}>
-                  {typeLabel}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label>Label *</Label>
+        <Field label="Question" htmlFor="field-label">
           <Input
+            id="field-label"
             value={label}
             onChange={(event) => handleLabelChange(event.target.value)}
             placeholder="e.g. What did you deliver?"
           />
-        </div>
+        </Field>
 
-        <div className="flex flex-col gap-1.5">
-          <Label>
-            Field Key
-            <span className="ml-2 text-xs text-muted-foreground">
-              auto-generated
-            </span>
-          </Label>
-          <Input
-            value={key}
-            onChange={(event) => handleKeyChange(event.target.value)}
-            disabled={!!field}
-            className="font-mono text-sm"
-          />
-          {keyError && (
-            <p className="text-xs text-destructive">{keyError}</p>
-          )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Answer type">
+            <Select
+              value={fieldType}
+              onValueChange={(value) => setFieldType(value as FieldType)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(FIELD_TYPE_LABELS).map(([value, typeLabel]) => (
+                  <SelectItem key={value} value={value}>
+                    {typeLabel}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field
+            label="Key"
+            htmlFor="field-key"
+            error={keyError}
+            hint={field ? "Fixed once saved." : "Made from the question."}
+          >
+            <Input
+              id="field-key"
+              value={key}
+              onChange={(event) => handleKeyChange(event.target.value)}
+              disabled={!!field}
+              className="font-mono text-sm"
+            />
+          </Field>
         </div>
 
         {fieldType !== "checkbox" && (
-          <div className="flex flex-col gap-1.5">
-            <Label>
-              Placeholder
-              <span className="ml-1 font-normal text-muted-foreground">
-                (optional)
-              </span>
-            </Label>
+          <Field label="Placeholder" htmlFor="field-placeholder" hint="Optional. Hint text inside the empty answer.">
             <Input
+              id="field-placeholder"
               value={placeholder}
               onChange={(event) => setPlaceholder(event.target.value)}
               placeholder="Hint text shown in the field"
             />
-          </div>
+          </Field>
         )}
 
         {fieldType === "number" && (
-          <div className="flex gap-3">
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label>
-                Unit
-                <span className="ml-1 font-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </Label>
+          <div className="grid grid-cols-[minmax(0,1fr)_5rem_5rem] gap-3">
+            <Field label="Unit" htmlFor="field-unit">
               <Input
+                id="field-unit"
                 value={unit}
                 onChange={(event) => setUnit(event.target.value)}
-                placeholder="hours, %, items..."
+                placeholder="hours, %, items"
               />
-            </div>
-            <div className="flex w-20 flex-col gap-1.5">
-              <Label>Min</Label>
+            </Field>
+            <Field label="Min" htmlFor="field-min">
               <Input
+                id="field-min"
                 type="number"
                 value={minValue}
                 onChange={(event) => setMinValue(event.target.value)}
                 placeholder="0"
               />
-            </div>
-            <div className="flex w-20 flex-col gap-1.5">
-              <Label>Max</Label>
+            </Field>
+            <Field label="Max" htmlFor="field-max">
               <Input
+                id="field-max"
                 type="number"
                 value={maxValue}
                 onChange={(event) => setMaxValue(event.target.value)}
                 placeholder="100"
               />
-            </div>
+            </Field>
           </div>
         )}
 
         {fieldType === "select" && (
-          <div className="flex flex-col gap-1.5">
-            <Label>
-              Options *
-              <span className="ml-1 font-normal text-muted-foreground">
-                one per line
-              </span>
-            </Label>
+          <Field label="Options" htmlFor="field-options" hint="One per line.">
             <Textarea
+              id="field-options"
               value={options}
               onChange={(event) => setOptions(event.target.value)}
               placeholder={"Concept\nScripting\nFilming\nEditing\nDelivered"}
               rows={5}
             />
-          </div>
+          </Field>
         )}
 
         <Separator />
@@ -282,7 +266,7 @@ function FieldDialogForm({
               onCheckedChange={(value) => setIsRequired(!!value)}
             />
             <Label htmlFor="is_required" className="cursor-pointer font-normal">
-              Required field
+              Required
             </Label>
           </div>
           <div className="flex items-center gap-2">
@@ -292,19 +276,20 @@ function FieldDialogForm({
               onCheckedChange={(value) => setIsPreview(!!value)}
             />
             <Label htmlFor="is_preview" className="cursor-pointer font-normal">
-              Preview field
-              <span className="ml-2 text-xs text-muted-foreground">
-                shown in report lists
+              Show in report lists
+              <span className="ml-1.5 text-xs text-muted-foreground">
+                one question only
               </span>
             </Label>
           </div>
         </div>
       </DialogBody>
       <DialogFooter>
-        <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
           Cancel
         </Button>
         <Button
+          type="button"
           onClick={handleSave}
           disabled={
             !label.trim() ||
@@ -312,7 +297,7 @@ function FieldDialogForm({
             (fieldType === "select" && !options.trim())
           }
         >
-          {field ? "Save Field" : "Add Field"}
+          {field ? "Save question" : "Add question"}
         </Button>
       </DialogFooter>
     </>

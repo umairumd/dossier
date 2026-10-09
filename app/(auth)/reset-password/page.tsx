@@ -1,17 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { AuthCard, AuthNotice } from "@/components/auth/auth-card";
+import { Field } from "@/components/shared/settings-section";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 // Recovery emails must use the token_hash confirm route (see Supabase
 // Authentication > Email Templates > Reset Password):
@@ -37,7 +32,8 @@ async function exchangeResetToken(): Promise<{ error?: string }> {
   }
 
   const errorDescription =
-    hashParams.get("error_description") ?? searchParams.get("error_description");
+    hashParams.get("error_description") ??
+    searchParams.get("error_description");
   if (errorDescription) {
     return { error: decodeURIComponent(errorDescription.replace(/\+/g, " ")) };
   }
@@ -140,78 +136,64 @@ export default function ResetPasswordPage() {
     await supabase.auth.signOut();
     window.location.href =
       "/login?message=" +
-      encodeURIComponent("Your password has been updated. Sign in to continue.");
+      encodeURIComponent(
+        "Your password has been updated. Sign in to continue.",
+      );
   };
 
   if (status === "verifying") {
     return (
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Verifying your reset link...</CardTitle>
-        </CardHeader>
-      </Card>
+      <AuthCard
+        title="Checking your link…"
+        description="One moment while we verify your reset link."
+      />
     );
   }
 
   if (status === "error") {
     return (
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Reset link invalid</CardTitle>
-          <CardDescription>{errorMessage}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Request a new reset link from the sign-in page.
-          </p>
-        </CardContent>
-      </Card>
+      <AuthCard
+        title="Reset link invalid"
+        description={errorMessage}
+        footer={<Link href="/forgot-password">Request a new link</Link>}
+      />
     );
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>Set new password</CardTitle>
-        <CardDescription>
-          Choose a new password for your account.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {fieldError && (
-            <p className="text-sm text-destructive">{fieldError}</p>
-          )}
+    <AuthCard
+      title="Set a new password"
+      description={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {fieldError && <AuthNotice tone="danger">{fieldError}</AuthNotice>}
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password">New password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="new-password"
-              required
-            />
-          </div>
+        <Field label="New password" htmlFor="password">
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="new-password"
+            required
+          />
+        </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="confirm-password">Confirm password</Label>
-            <Input
-              id="confirm-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              autoComplete="new-password"
-              required
-            />
-          </div>
+        <Field label="Confirm password" htmlFor="confirm-password">
+          <Input
+            id="confirm-password"
+            type="password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            autoComplete="new-password"
+            required
+          />
+        </Field>
 
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Updating..." : "Update password"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        <Button type="submit" className="mt-1 w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Updating…" : "Update password"}
+        </Button>
+      </form>
+    </AuthCard>
   );
 }
