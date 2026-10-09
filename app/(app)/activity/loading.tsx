@@ -1,25 +1,31 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ActivityRowsSkeleton,
+  CardSkeleton,
+  PageHeaderSkeleton,
+  SkeletonLine,
+} from "@/components/shared/skeletons";
 
 export default function ActivityLoading() {
   return (
     <div className="flex flex-col gap-6">
-      {/* PageHeader */}
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-8 w-24" />
-        <Skeleton className="h-4 w-72" />
+      <div>
+        <PageHeaderSkeleton title="Activity" description={false} />
+        <div className="mt-4">
+          <SkeletonLine className="w-64" />
+        </div>
       </div>
-      {/* Activity card */}
-      <div className="surface-card rounded-xl bg-card p-5 flex flex-col gap-3">
-        <Skeleton className="h-5 w-32" />
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 py-2">
-            <Skeleton className="size-8 rounded-full shrink-0" />
-            <div className="flex flex-col gap-1.5 flex-1">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-3 w-24" />
-            </div>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Skeleton className="h-9 w-full rounded-lg sm:flex-1" />
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <Skeleton className="h-9 rounded-lg sm:w-44" />
+            <Skeleton className="h-9 rounded-lg sm:w-44" />
           </div>
-        ))}
+        </div>
+        <CardSkeleton label="All activity">
+          <ActivityRowsSkeleton groups={[2, 2, 6]} />
+        </CardSkeleton>
       </div>
     </div>
   );

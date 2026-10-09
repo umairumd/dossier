@@ -1,22 +1,20 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  CardSkeleton,
+  PageHeaderSkeleton,
+  ReportHistorySkeleton,
+  TodayReportSkeleton,
+} from "@/components/shared/skeletons";
 
 export default function ReportsLoading() {
   return (
     <div className="flex flex-col gap-6">
-      {/* PageHeader */}
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-8 w-32" />
-      </div>
-      {/* Today's report */}
-      <Skeleton className="h-28 w-full rounded-xl" />
-      {/* Report history card */}
-      <div className="surface-card rounded-xl bg-card p-5 flex flex-col gap-4">
-        <Skeleton className="h-5 w-32" />
-        <Skeleton className="h-9 w-full" />
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full rounded-lg" />
-        ))}
-      </div>
+      <PageHeaderSkeleton title="My Reports" description={false} />
+      <TodayReportSkeleton />
+      <CardSkeleton label="Report history" contentClassName="flex flex-col gap-4">
+        <Skeleton className="h-9 w-full rounded-lg" />
+        <ReportHistorySkeleton rows={6} />
+      </CardSkeleton>
     </div>
   );
 }

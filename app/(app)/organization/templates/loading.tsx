@@ -1,15 +1,19 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DataListSkeleton,
+  PageHeaderSkeleton,
+} from "@/components/shared/skeletons";
 
 export default function TemplatesLoading() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-8 w-32" />
-        <Skeleton className="h-9 w-32" />
-      </div>
-      {Array.from({ length: 3 }).map((_, index) => (
-        <Skeleton key={index} className="h-20 w-full rounded-xl" />
-      ))}
+      <PageHeaderSkeleton title="Report templates" action="button" />
+      <DataListSkeleton
+        columns="minmax(0,1fr) 7rem 2rem"
+        header={["Template", "Questions", ""]}
+        rows={4}
+        lead="mobile-sub"
+        cells={["text", "action"]}
+      />
     </div>
   );
 }

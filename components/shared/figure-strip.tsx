@@ -5,7 +5,7 @@ export interface Figure {
   label: string;
   value: ReactNode;
   unit?: string;
-  hint?: string;
+  hint?: ReactNode;
   icon?: ReactNode;
 }
 
