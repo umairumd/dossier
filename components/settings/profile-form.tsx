@@ -3,9 +3,8 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { mascotBus } from "@/components/mascot/mascot-bus";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, SaveBar, SettingsSection } from "@/components/shared/settings-section";
 import { updateOwnProfile } from "@/lib/actions/settings";
 
 export function ProfileForm({
@@ -21,6 +20,7 @@ export function ProfileForm({
   role: string;
   departmentName: string;
 }) {
+  const [saved, setSaved] = useState({ fullName: initialFullName, dob: initialDob ?? "" });
   const [fullName, setFullName] = useState(initialFullName);
   const [dateOfBirth, setDateOfBirth] = useState(initialDob ?? "");
   const [fieldError, setFieldError] = useState("");
@@ -48,41 +48,54 @@ export function ProfileForm({
         return;
       }
 
+      setSaved({ fullName: fullName.trim(), dob: dateOfBirth });
       toast.success("Profile updated.");
     });
   };
 
+  const dirty = fullName.trim() !== saved.fullName || dateOfBirth !== saved.dob;
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="full-name">Full name</Label>
+    <SettingsSection
+      title="Profile"
+      description="Your name and birthday. Role and department are set by an admin."
+      onSubmit={handleSubmit}
+      footer={
+        <SaveBar
+          dirty={dirty}
+          pending={isPending}
+          onReset={() => {
+            setFullName(saved.fullName);
+            setDateOfBirth(saved.dob);
+            setFieldError("");
+          }}
+        />
+      }
+    >
+      <Field label="Full name" htmlFor="full-name" error={fieldError || undefined}>
         <Input
           id="full-name"
           value={fullName}
           onChange={(event) => setFullName(event.target.value)}
           aria-invalid={!!fieldError}
         />
-        {fieldError && <p className="text-sm text-destructive">{fieldError}</p>}
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
+      </Field>
+      <Field label="Email" htmlFor="email">
         <Input id="email" value={email ?? ""} disabled readOnly />
+      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Role" htmlFor="role">
+          <Input id="role" value={role} disabled readOnly className="capitalize" />
+        </Field>
+        <Field label="Department" htmlFor="department">
+          <Input id="department" value={departmentName} disabled readOnly />
+        </Field>
       </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label>Role</Label>
-          <Input value={role} disabled readOnly className="capitalize" />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label>Department</Label>
-          <Input value={departmentName} disabled readOnly />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="dob">Date of Birth (optional)</Label>
+      <Field
+        label="Date of birth"
+        htmlFor="dob"
+        hint="Optional. Used to celebrate your birthday."
+      >
         <Input
           id="dob"
           name="date_of_birth"
@@ -90,15 +103,9 @@ export function ProfileForm({
           value={dateOfBirth}
           onChange={(event) => setDateOfBirth(event.target.value)}
           max={new Date().toISOString().slice(0, 10)}
+          className="sm:max-w-56"
         />
-        <p className="text-xs text-muted-foreground">
-          Optional. Used for birthday recognition.
-        </p>
-      </div>
-
-      <Button type="submit" disabled={isPending} className="self-start">
-        {isPending ? "Saving..." : "Save Changes"}
-      </Button>
-    </form>
+      </Field>
+    </SettingsSection>
   );
 }

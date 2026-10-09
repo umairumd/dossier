@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, SaveBar, SettingsSection } from "@/components/shared/settings-section";
 import { createClient } from "@/lib/supabase/client";
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -47,34 +46,45 @@ export function ChangePasswordForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <SettingsSection
+      title="Password"
+      description={`Choose a new password for your account. At least ${MIN_PASSWORD_LENGTH} characters.`}
+      onSubmit={handleSubmit}
+      footer={
+        <SaveBar
+          dirty={password.length > 0 && confirmPassword.length > 0}
+          pending={isSubmitting}
+          onReset={() => {
+            setPassword("");
+            setConfirmPassword("");
+            setFieldError("");
+          }}
+          label="Update password"
+          pendingLabel="Updating…"
+        />
+      }
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="New password" htmlFor="new-password">
+          <Input
+            id="new-password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="new-password"
+          />
+        </Field>
+        <Field label="Confirm new password" htmlFor="confirm-new-password">
+          <Input
+            id="confirm-new-password"
+            type="password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            autoComplete="new-password"
+          />
+        </Field>
+      </div>
       {fieldError && <p className="text-sm text-destructive">{fieldError}</p>}
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="new-password">New password</Label>
-        <Input
-          id="new-password"
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          autoComplete="new-password"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="confirm-new-password">Confirm new password</Label>
-        <Input
-          id="confirm-new-password"
-          type="password"
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-          autoComplete="new-password"
-        />
-      </div>
-
-      <Button type="submit" disabled={isSubmitting} className="self-start">
-        {isSubmitting ? "Updating..." : "Update Password"}
-      </Button>
-    </form>
+    </SettingsSection>
   );
 }

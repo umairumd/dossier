@@ -655,3 +655,4 @@ Cards on the home page follow the hero tiles:
 - Filters with a handful of values: `SegmentedFilter` with counts, next to the search field. Dropdowns only for long option lists.
 - Report lists: `ReportRoster` (who submitted on a date) and `ReportHistoryList` (a person's reports).
 - People cards: `PersonCard` (components/shared/person-card.tsx) with `PersonCardStats` or a one-line footer; `GroupHeading` ("October · 4") above each group. No uppercase labels.
+- Forms: `SettingsSection` (components/shared/settings-section.tsx): title and explanation on the left, `Field`s on the right, `SaveBar` at the bottom (Save is enabled only when something changed; Cancel appears with changes). Choices from a short list are chips or a select, never a bare number box.

@@ -2,9 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, SaveBar, SettingsSection } from "@/components/shared/settings-section";
 import { updateOrgName } from "@/lib/actions/admin/organization-settings";
 
 export function OrgIdentityForm({
@@ -12,8 +11,10 @@ export function OrgIdentityForm({
 }: {
   initialName: string | null;
 }) {
+  const [saved, setSaved] = useState(initialName ?? "");
   const [name, setName] = useState(initialName ?? "");
   const [isPending, startTransition] = useTransition();
+  const dirty = name.trim() !== saved;
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -27,25 +28,26 @@ export function OrgIdentityForm({
       }
 
       setName(name.trim());
+      setSaved(name.trim());
       toast.success("Organization name updated.");
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="org-name">Organization Name</Label>
+    <SettingsSection
+      title="Identity"
+      description="How your organization appears in Dossier."
+      onSubmit={handleSubmit}
+      footer={<SaveBar dirty={dirty} pending={isPending} onReset={() => setName(saved)} />}
+    >
+      <Field label="Organization name" htmlFor="org-name">
         <Input
           id="org-name"
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="Your organization name"
         />
-      </div>
-
-      <Button type="submit" disabled={isPending} className="self-start">
-        {isPending ? "Saving..." : "Save Changes"}
-      </Button>
-    </form>
+      </Field>
+    </SettingsSection>
   );
 }

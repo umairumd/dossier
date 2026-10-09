@@ -2,10 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Field, SaveBar, SettingsSection } from "@/components/shared/settings-section";
 import { updateAttendanceSettings } from "@/lib/actions/admin/organization-settings";
 
 // Strip seconds from "HH:MM:SS" → "HH:MM" for <input type="time">
@@ -63,6 +61,33 @@ export function OrgAttendanceForm({
     toTimeInput(initialShiftEveningEnd),
   );
   const [isPending, startTransition] = useTransition();
+  const current = [
+    graceMinutes,
+    fineLate,
+    fineVeryLate,
+    fineUninformed,
+    informedLeaves,
+    shiftFulltimeStart,
+    shiftMorningStart,
+    shiftMorningEnd,
+    shiftEveningStart,
+    shiftEveningEnd,
+  ];
+  const [saved, setSaved] = useState(current);
+  const dirty = current.join("|") !== saved.join("|");
+  const reset = () => {
+    const [g, fl, fvl, fu, il, sf, sms, sme, ses, see] = saved;
+    setGraceMinutes(g);
+    setFineLate(fl);
+    setFineVeryLate(fvl);
+    setFineUninformed(fu);
+    setInformedLeaves(il);
+    setShiftFulltimeStart(sf);
+    setShiftMorningStart(sms);
+    setShiftMorningEnd(sme);
+    setShiftEveningStart(ses);
+    setShiftEveningEnd(see);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,186 +116,142 @@ export function OrgAttendanceForm({
         toast.error(result.error ?? "Failed to save attendance settings.");
         return;
       }
+      setSaved(current);
       toast.success("Attendance settings saved.");
     });
   };
 
+  const sub = "text-[13px] font-semibold";
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      {/* Section 1: Fines & Grace */}
+    <SettingsSection
+      title="Attendance"
+      description="Shift times, the grace period and fines used when attendance is marked."
+      onSubmit={handleSubmit}
+      footer={<SaveBar dirty={dirty} pending={isPending} onReset={reset} />}
+    >
       <div className="flex flex-col gap-4">
-        <h3 className="text-sm font-medium">Fines & Grace Period</h3>
-
+        <h3 className={sub}>Grace period and leave</h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="grace-minutes">Grace Period (minutes)</Label>
+          <Field
+            label="Grace period (minutes)"
+            htmlFor="grace-minutes"
+            hint="Minutes after shift start before lateness is recorded."
+          >
             <Input
               id="grace-minutes"
               type="number"
+              inputMode="numeric"
               min={0}
               max={60}
               value={graceMinutes}
               onChange={(e) => setGraceMinutes(e.target.value)}
-              className="w-full"
             />
-            <p className="text-xs text-muted-foreground">
-              Minutes after shift start before lateness is recorded.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="informed-leaves">
-              Informed Leaves Allowed (per month)
-            </Label>
+          </Field>
+          <Field
+            label="Informed leaves per month"
+            htmlFor="informed-leaves"
+            hint="Beyond this, absences count as uninformed."
+          >
             <Input
               id="informed-leaves"
               type="number"
+              inputMode="numeric"
               min={0}
               max={31}
               value={informedLeaves}
               onChange={(e) => setInformedLeaves(e.target.value)}
-              className="w-full"
             />
-            <p className="text-xs text-muted-foreground">
-              Beyond this count, absences are treated as uninformed.
-            </p>
-          </div>
+          </Field>
         </div>
+      </div>
 
+      <div className="flex flex-col gap-4 border-t border-foreground/[0.08] pt-5">
+        <h3 className={sub}>Fines (PKR)</h3>
         <div className="grid gap-4 sm:grid-cols-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="fine-late">Late Fine (PKR)</Label>
+          <Field label="Late" htmlFor="fine-late" hint="After the grace period.">
             <Input
               id="fine-late"
               type="number"
+              inputMode="numeric"
               min={0}
               value={fineLate}
               onChange={(e) => setFineLate(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">After grace period.</p>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="fine-very-late">Very Late Fine (PKR)</Label>
+          </Field>
+          <Field label="Very late" htmlFor="fine-very-late" hint="Significantly late arrival.">
             <Input
               id="fine-very-late"
               type="number"
+              inputMode="numeric"
               min={0}
               value={fineVeryLate}
               onChange={(e) => setFineVeryLate(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              Significantly late arrival.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="fine-uninformed">Uninformed Absence Fine (PKR)</Label>
+          </Field>
+          <Field label="Uninformed absence" htmlFor="fine-uninformed" hint="No advance notice given.">
             <Input
               id="fine-uninformed"
               type="number"
+              inputMode="numeric"
               min={0}
               value={fineUninformed}
               onChange={(e) => setFineUninformed(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              No advance notice given.
-            </p>
-          </div>
+          </Field>
         </div>
       </div>
 
-      <Separator />
-
-      {/* Section 2: Full-time shift */}
-      <div className="flex flex-col gap-4">
-        <h3 className="text-sm font-medium">Full-time Shift</h3>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="shift-fulltime-start">Shift Start</Label>
-          <Input
-            id="shift-fulltime-start"
-            type="time"
-            value={shiftFulltimeStart}
-            onChange={(e) => setShiftFulltimeStart(e.target.value)}
-            className="w-36"
-          />
-          <p className="text-xs text-muted-foreground">
-            Grace period applies from this time.
-          </p>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Section 3: Part-time shifts */}
-      <div className="flex flex-col gap-4">
-        <h3 className="text-sm font-medium">Part-time Shifts</h3>
-
-        <div className="grid gap-6 sm:grid-cols-2">
-          <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium text-muted-foreground">
-              Morning Shift
-            </p>
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="shift-morning-start">Start</Label>
-                <Input
-                  id="shift-morning-start"
-                  type="time"
-                  value={shiftMorningStart}
-                  onChange={(e) => setShiftMorningStart(e.target.value)}
-                  className="w-32"
-                />
-              </div>
-              <span className="pb-2 text-sm text-muted-foreground">to</span>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="shift-morning-end">End</Label>
-                <Input
-                  id="shift-morning-end"
-                  type="time"
-                  value={shiftMorningEnd}
-                  onChange={(e) => setShiftMorningEnd(e.target.value)}
-                  className="w-32"
-                />
-              </div>
+      <div className="flex flex-col gap-4 border-t border-foreground/[0.08] pt-5">
+        <h3 className={sub}>Shifts</h3>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field label="Full-time start" htmlFor="shift-fulltime-start" hint="The grace period counts from here.">
+            <Input
+              id="shift-fulltime-start"
+              type="time"
+              value={shiftFulltimeStart}
+              onChange={(e) => setShiftFulltimeStart(e.target.value)}
+            />
+          </Field>
+          <Field label="Part-time morning" htmlFor="shift-morning-start">
+            <div className="flex items-center gap-2">
+              <Input
+                id="shift-morning-start"
+                type="time"
+                aria-label="Morning shift start"
+                value={shiftMorningStart}
+                onChange={(e) => setShiftMorningStart(e.target.value)}
+              />
+              <span className="text-xs text-muted-foreground">to</span>
+              <Input
+                id="shift-morning-end"
+                type="time"
+                aria-label="Morning shift end"
+                value={shiftMorningEnd}
+                onChange={(e) => setShiftMorningEnd(e.target.value)}
+              />
             </div>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium text-muted-foreground">
-              Evening Shift
-            </p>
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="shift-evening-start">Start</Label>
-                <Input
-                  id="shift-evening-start"
-                  type="time"
-                  value={shiftEveningStart}
-                  onChange={(e) => setShiftEveningStart(e.target.value)}
-                  className="w-32"
-                />
-              </div>
-              <span className="pb-2 text-sm text-muted-foreground">to</span>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="shift-evening-end">End</Label>
-                <Input
-                  id="shift-evening-end"
-                  type="time"
-                  value={shiftEveningEnd}
-                  onChange={(e) => setShiftEveningEnd(e.target.value)}
-                  className="w-32"
-                />
-              </div>
+          </Field>
+          <Field label="Part-time evening" htmlFor="shift-evening-start">
+            <div className="flex items-center gap-2">
+              <Input
+                id="shift-evening-start"
+                type="time"
+                aria-label="Evening shift start"
+                value={shiftEveningStart}
+                onChange={(e) => setShiftEveningStart(e.target.value)}
+              />
+              <span className="text-xs text-muted-foreground">to</span>
+              <Input
+                id="shift-evening-end"
+                type="time"
+                aria-label="Evening shift end"
+                value={shiftEveningEnd}
+                onChange={(e) => setShiftEveningEnd(e.target.value)}
+              />
             </div>
-          </div>
+          </Field>
         </div>
       </div>
-
-      <Button type="submit" disabled={isPending} className="self-start">
-        {isPending ? "Saving..." : "Save Changes"}
-      </Button>
-    </form>
+    </SettingsSection>
   );
 }

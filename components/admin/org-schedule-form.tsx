@@ -4,8 +4,15 @@ import { useMemo, useState, useTransition } from "react";
 import { ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Field, SaveBar, SettingsSection } from "@/components/shared/settings-section";
+import { formatHourLabel } from "@/lib/helpers/dates";
 import {
   Command,
   CommandEmpty,
@@ -108,12 +115,26 @@ export function OrgScheduleForm({
   initialWorkingDays: number[];
   initialDeadlineHour: number;
 }) {
-  const [timezone, setTimezone] = useState(initialTimezone);
+  const initial = {
+    timezone: initialTimezone,
+    workingDays: initialWorkingDays.length > 0 ? initialWorkingDays : [1, 2, 3, 4, 5],
+    deadlineHour: String(initialDeadlineHour),
+  };
+  const [saved, setSaved] = useState(initial);
+  const [timezone, setTimezone] = useState(initial.timezone);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
-  const [workingDays, setWorkingDays] = useState<number[]>(
-    initialWorkingDays.length > 0 ? initialWorkingDays : [1, 2, 3, 4, 5],
-  );
-  const [deadlineHour, setDeadlineHour] = useState(String(initialDeadlineHour));
+  const [workingDays, setWorkingDays] = useState<number[]>(initial.workingDays);
+  const [deadlineHour, setDeadlineHour] = useState(initial.deadlineHour);
+  const dirty =
+    timezone !== saved.timezone ||
+    deadlineHour !== saved.deadlineHour ||
+    workingDays.join(",") !== saved.workingDays.join(",");
+
+  const reset = () => {
+    setTimezone(saved.timezone);
+    setWorkingDays(saved.workingDays);
+    setDeadlineHour(saved.deadlineHour);
+  };
   const [isPending, startTransition] = useTransition();
   const groups = useMemo(() => groupedTimezones(), []);
 
@@ -153,14 +174,19 @@ export function OrgScheduleForm({
         return;
       }
 
-      toast.success("Settings saved.");
+      setSaved({ timezone, workingDays, deadlineHour });
+      toast.success("Schedule saved.");
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="timezone">Timezone</Label>
+    <SettingsSection
+      title="Schedule"
+      description="When reports are due and which days count as working days."
+      onSubmit={handleSubmit}
+      footer={<SaveBar dirty={dirty} pending={isPending} onReset={reset} />}
+    >
+      <Field label="Time zone" htmlFor="timezone">
         <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -169,7 +195,7 @@ export function OrgScheduleForm({
               variant="outline"
               role="combobox"
               aria-expanded={timezoneOpen}
-              className="w-full max-w-md justify-between font-normal"
+              className="h-9 w-full max-w-md justify-between font-normal"
             >
               <span className="truncate">{formatTimezoneLabel(timezone)}</span>
               <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
@@ -177,9 +203,9 @@ export function OrgScheduleForm({
           </PopoverTrigger>
           <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
             <Command>
-              <CommandInput placeholder="Search timezone..." />
+              <CommandInput placeholder="Search time zones…" />
               <CommandList>
-                <CommandEmpty>No timezone found.</CommandEmpty>
+                <CommandEmpty>No time zone found.</CommandEmpty>
                 {groups.map((group) => (
                   <CommandGroup key={group.region} heading={group.region}>
                     {group.zones.map((zone) => {
@@ -207,56 +233,50 @@ export function OrgScheduleForm({
             </Command>
           </PopoverContent>
         </Popover>
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-1.5">
-        <Label>Working Days</Label>
-        <div className="flex flex-wrap gap-2">
-          {DAYS.map((day) => (
-            <button
-              key={day.value}
-              type="button"
-              onClick={() => toggleDay(day.value)}
-              aria-pressed={workingDays.includes(day.value)}
-              className={cn(
-                "rounded-md border px-3 py-1.5 text-sm font-medium transition-colors",
-                workingDays.includes(day.value)
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-transparent text-muted-foreground",
-              )}
-            >
-              {day.label}
-            </button>
-          ))}
+      <Field label="Working days" hint="Reports are expected on these days.">
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Working days">
+          {DAYS.map((day) => {
+            const on = workingDays.includes(day.value);
+            return (
+              <button
+                key={day.value}
+                type="button"
+                onClick={() => toggleDay(day.value)}
+                aria-pressed={on}
+                className={cn(
+                  "h-9 w-12 rounded-lg text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                  on
+                    ? "bg-foreground/[0.12] text-foreground ring-1 ring-inset ring-foreground/15"
+                    : "text-muted-foreground ring-1 ring-inset ring-foreground/10 hover:text-foreground",
+                )}
+              >
+                {day.label}
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="deadline-hour">Report Deadline</Label>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            Employees must submit by
-          </span>
-          <Input
-            id="deadline-hour"
-            type="number"
-            min={0}
-            max={23}
-            value={deadlineHour}
-            onChange={(event) => setDeadlineHour(event.target.value)}
-            className="w-16 text-center"
-          />
-          <span className="text-sm text-muted-foreground">:00 in</span>
-          <span className="text-sm font-medium">{timezone}</span>
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Reports submitted after this time are marked Late.
-        </p>
-      </div>
-
-      <Button type="submit" disabled={isPending} className="self-start">
-        {isPending ? "Saving..." : "Save Changes"}
-      </Button>
-    </form>
+      <Field
+        label="Report deadline"
+        htmlFor="deadline-hour"
+        hint={`In ${timezone}. Reports after this time are marked late.`}
+      >
+        <Select value={deadlineHour} onValueChange={setDeadlineHour}>
+          <SelectTrigger id="deadline-hour" className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 24 }, (_, hour) => (
+              <SelectItem key={hour} value={String(hour)}>
+                {formatHourLabel(hour)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+    </SettingsSection>
   );
 }
