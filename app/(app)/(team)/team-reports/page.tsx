@@ -11,6 +11,7 @@ import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/quer
 import { getOrgTemplatesWithFields } from "@/lib/supabase/queries/templates";
 import {
   formatDate,
+  formatHourLabel,
   isValidDateString,
   isWorkingDay,
   todayInTimezone,
@@ -20,44 +21,21 @@ import type { TeamMemberReport } from "@/types/team";
 import { DateNav } from "@/components/shared/date-nav";
 import { PageHeader } from "@/components/shared/page-header";
 import { TeamReportsView } from "@/components/manager/team-reports-view";
-import { Separator } from "@/components/ui/separator";
 
-function submittedAside(
-  members: TeamMemberReport[],
-  reportDate: string,
-  workingDays: number[],
-) {
+function countIn(members: TeamMemberReport[], reportDate: string, workingDays: number[]) {
   const isOrgOffDay =
     workingDays.length > 0 && !isWorkingDay(reportDate, workingDays);
-
-  let submitted: number;
-  let total: number;
-
   if (isOrgOffDay) {
-    submitted = members.filter((member) => member.report != null).length;
-    total = submitted;
-  } else {
-    const countable = members.filter(
-      (member) =>
-        !(isAttendanceExempt(member.attendanceStatus) && !member.report),
-    );
-    submitted = countable.filter((member) => member.report != null).length;
-    total = countable.length;
+    const submitted = members.filter((member) => member.report != null).length;
+    return { submitted, total: submitted };
   }
-
-  const pct = total === 0 ? 0 : Math.round((submitted / total) * 100);
-  const color =
-    pct >= 80
-      ? "text-primary"
-      : pct >= 50
-        ? "text-yellow-500/70"
-        : "text-destructive";
-
-  return (
-    <span className={`shrink-0 text-sm font-medium ${color}`}>
-      {submitted}/{total} submitted
-    </span>
+  const countable = members.filter(
+    (member) => !(isAttendanceExempt(member.attendanceStatus) && !member.report),
   );
+  return {
+    submitted: countable.filter((member) => member.report != null).length,
+    total: countable.length,
+  };
 }
 
 export default async function TeamReportsPage({
@@ -103,16 +81,33 @@ export default async function TeamReportsPage({
   );
 
   const section1Label = isDeptManager
-    ? profile?.department_names.join(", ") || "Your Team"
-    : "Reporting to You";
+    ? profile?.department_names.join(", ") || "Your team"
+    : "Reporting to you";
   const section1Members = isDeptManager ? deptMembers : superviseeReports;
+  const groups = [
+    { key: "main", title: section1Label, members: section1Members },
+    ...(isDeptManager && exclusiveSupervisees.length > 0
+      ? [{ key: "also", title: "Also reporting to you", members: exclusiveSupervisees }]
+      : []),
+  ];
+  const everyone = groups.flatMap((group) => group.members);
+  const { submitted, total } = countIn(everyone, date, settings.workingDays);
 
   const deadline = getDeadlineContext(settings);
+  const description = [
+    groups.length === 1 ? section1Label : null,
+    `${total} ${total === 1 ? "person" : "people"}`,
+    `${submitted} in`,
+    isOrgOffDay ? null : `due ${formatHourLabel(settings.reportDeadlineHourLocal)}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Team Reports"
+        description={description}
         action={
           <DateNav
             date={date}
@@ -125,64 +120,24 @@ export default async function TeamReportsPage({
       />
 
       {isOrgOffDay && (
-        <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        <p className="rounded-xl bg-foreground/[0.03] px-4 py-3 text-sm text-muted-foreground ring-1 ring-inset ring-foreground/10">
           {formatDate(date)} is a non-working day. Only voluntary submissions
           are shown.
-        </div>
+        </p>
       )}
 
-      <div>
-        <h2 className="mb-3 hidden text-sm font-medium text-muted-foreground md:block">
-          {section1Label}
-        </h2>
-        <TeamReportsView
-          members={section1Members}
-          deadline={deadline}
-          emptyMessage={
-            isDeptManager
-              ? "No team members yet."
-              : "No one is reporting to you yet."
-          }
-          templates={templates}
-          reportDate={date}
-          viewerRole={profile?.role}
-          currentUserId={profile?.id}
-          groupTitle={section1Label}
-          groupAside={submittedAside(
-            section1Members,
-            date,
-            settings.workingDays,
-          )}
-          isOffDay={isOffDay}
-        />
-      </div>
-
-      {isDeptManager && exclusiveSupervisees.length > 0 && (
-        <>
-          <Separator className="my-6" />
-          <div>
-            <h2 className="mb-3 hidden text-sm font-medium text-muted-foreground md:block">
-              Also Reporting to You
-            </h2>
-            <TeamReportsView
-              members={exclusiveSupervisees}
-              deadline={deadline}
-              emptyMessage="No supervisees to show."
-              templates={templates}
-              reportDate={date}
-              viewerRole={profile?.role}
-              currentUserId={profile?.id}
-              groupTitle="Also Reporting to You"
-              groupAside={submittedAside(
-                exclusiveSupervisees,
-                date,
-                settings.workingDays,
-              )}
-              isOffDay={isOffDay}
-            />
-          </div>
-        </>
-      )}
+      <TeamReportsView
+        groups={groups}
+        deadline={deadline}
+        emptyMessage={
+          isDeptManager ? "No team members yet." : "No one is reporting to you yet."
+        }
+        templates={templates}
+        reportDate={date}
+        viewerRole={profile?.role}
+        currentUserId={profile?.id}
+        isOffDay={isOffDay}
+      />
     </div>
   );
 }

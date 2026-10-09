@@ -646,3 +646,11 @@ Cards on the home page follow the hero tiles:
 ## Report reader
 
 - One reader for every place a report is read (`ReportDetailSheet`). Body is `ReportFields`: template order; long text as paragraphs; two or more consecutive numbers as a figure strip; other short answers as a facts list (label left, answer right); links as a chip with the site name; unanswered fields hidden.
+
+## Pages
+
+- Page header: `PageHeader` with the title, one muted line of useful numbers (`description`, joined with " · "), and actions or `DateNav` on the right.
+- Lists: `DataList` (components/shared/data-list.tsx). One card per list, column header once, `DataListSection` rows for groups (departments), `DataListRow` makes the whole row open the item (links inside need `relative z-10`), `PersonCell` for buddy + name + designation, `DataListChevron` at the end. Inside a Card use `variant="bare"`. On phones a row shows its first two cells; hide the rest with `hidden md:block`.
+- Status: `SubmissionStatusBadge` tints (green on time, amber late, red missed, grey pending/leave/off).
+- Filters with a handful of values: `SegmentedFilter` with counts, next to the search field. Dropdowns only for long option lists.
+- Report lists: `ReportRoster` (who submitted on a date) and `ReportHistoryList` (a person's reports).

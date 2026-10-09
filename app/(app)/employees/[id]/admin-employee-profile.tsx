@@ -202,7 +202,7 @@ export async function AdminEmployeeProfile({
             </span>
           </div>
         </CardHeader>
-        <CardContent className="pr-0">
+        <CardContent>
           {employee.recent_reports.length === 0 ? (
             <EmptyState
               size="sm"

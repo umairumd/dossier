@@ -4,6 +4,7 @@ import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/quer
 import { getOrgTemplatesWithFields } from "@/lib/supabase/queries/templates";
 import {
   formatDate,
+  formatHourLabel,
   isValidDateString,
   isWorkingDay,
   todayInTimezone,
@@ -36,10 +37,20 @@ export default async function TrackReportsPage({
   const isOffDay =
     date === today && !isWorkingDay(today, settings.workingDays);
 
+  const submittedCount = members.filter((member) => member.report != null).length;
+  const description = [
+    `${members.length} ${members.length === 1 ? "person" : "people"} in ${departments.length} ${departments.length === 1 ? "department" : "departments"}`,
+    `${submittedCount} in`,
+    isOrgOffDay ? null : `due ${formatHourLabel(settings.reportDeadlineHourLocal)}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Track Reports"
+        description={description}
         action={
           <DateNav
             date={date}
@@ -52,10 +63,10 @@ export default async function TrackReportsPage({
       />
 
       {isOrgOffDay && (
-        <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        <p className="rounded-xl bg-foreground/[0.03] px-4 py-3 text-sm text-muted-foreground ring-1 ring-inset ring-foreground/10">
           {formatDate(date)} is a non-working day. Only voluntary submissions
           are shown.
-        </div>
+        </p>
       )}
 
       <OrgDailyReports

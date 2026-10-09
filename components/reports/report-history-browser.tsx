@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
-import { ReportHistoryCards } from "@/components/reports/report-history-cards";
-import { ReportHistoryTable } from "@/components/reports/report-history-table";
+import { ReportHistoryList } from "@/components/reports/report-history-list";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
 import type { DailyReport } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
@@ -59,20 +58,15 @@ export function ReportHistoryBrowser({
     report,
   }));
 
-  const templatesMap = new Map(
-    (templates ?? []).map((template) => [template.id, template.name]),
-  );
 
-  useEffect(() => {
-    if (!initialViewId || didOpenView) return;
-    const index = displayReports.findIndex(
-      (report) => report.id === initialViewId,
-    );
+  // Open ?view=<id> once (state adjusted during render, not in an effect).
+  if (initialViewId && !didOpenView) {
+    const index = displayReports.findIndex((report) => report.id === initialViewId);
     if (index >= 0) {
       setOpenIndex(index);
       setDidOpenView(true);
     }
-  }, [initialViewId, displayReports, didOpenView]);
+  }
 
   function handleIndexChange(next: number | null) {
     setOpenIndex(next);
@@ -88,19 +82,11 @@ export function ReportHistoryBrowser({
 
   return (
     <>
-      <div className="pr-4">
-        <ReportHistoryTable
-          reports={displayReports}
-          deadline={deadline}
-          onView={setOpenIndex}
-          templatesMap={templatesMap}
-        />
-      </div>
-      <ReportHistoryCards
+      <ReportHistoryList
         reports={displayReports}
         deadline={deadline}
+        templates={templates}
         onView={setOpenIndex}
-        templatesMap={templatesMap}
       />
       <ReportDetailSheet
         members={members}
