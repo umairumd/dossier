@@ -73,10 +73,10 @@ export function AttendanceLegend({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-6 w-6 text-muted-foreground"
+          className="size-9 text-muted-foreground"
           aria-label="Attendance legend"
         >
-          <Info className="h-3.5 w-3.5" />
+          <Info className="size-4" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 p-3">

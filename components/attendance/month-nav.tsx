@@ -89,12 +89,15 @@ export function MonthNav({
   };
 
   return (
-    <div className="flex items-center gap-1" aria-busy={isPending}>
+    <div
+      className="inline-flex h-9 items-center rounded-lg bg-foreground/[0.03] ring-1 ring-inset ring-foreground/10"
+      aria-busy={isPending}
+    >
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="size-8"
+        className="size-9 rounded-r-none rounded-l-lg"
         onClick={() => goToMonth(prevMonth)}
         disabled={isPending}
         aria-label="Previous month"
@@ -108,7 +111,7 @@ export function MonthNav({
             type="button"
             variant="ghost"
             disabled={isPending}
-            className="min-w-28 px-2 py-1 text-sm font-medium"
+            className="h-9 min-w-28 rounded-none px-2 text-sm font-medium"
           >
             {isPending ? (
               <Loader2
@@ -179,7 +182,7 @@ export function MonthNav({
         type="button"
         variant="ghost"
         size="icon"
-        className="size-8"
+        className="size-9 rounded-l-none rounded-r-lg"
         onClick={() => goToMonth(nextMonth)}
         disabled={isPending || isCurrentMonth}
         aria-label="Next month"
