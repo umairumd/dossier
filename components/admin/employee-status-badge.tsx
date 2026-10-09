@@ -5,21 +5,16 @@ const STATUS_LABELS: Record<EmployeeStatus, string> = {
   archived: "Archived",
   invited: "Invited",
   active: "Active",
-  disabled: "Disabled",
+  disabled: "Deactivated",
 };
 
-const STATUS_VARIANTS: Record<
-  EmployeeStatus,
-  "default" | "secondary" | "outline" | "destructive"
-> = {
-  archived: "outline",
-  invited: "outline",
-  active: "default",
-  disabled: "destructive",
+const STATUS_VARIANTS: Record<EmployeeStatus, "success" | "warning" | "neutral"> = {
+  archived: "neutral",
+  invited: "neutral",
+  active: "success",
+  disabled: "warning",
 };
 
 export function EmployeeStatusBadge({ status }: { status: EmployeeStatus }) {
-  return (
-    <Badge variant={STATUS_VARIANTS[status]}>{STATUS_LABELS[status]}</Badge>
-  );
+  return <Badge variant={STATUS_VARIANTS[status]}>{STATUS_LABELS[status]}</Badge>;
 }

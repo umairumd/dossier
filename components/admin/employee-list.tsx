@@ -1,53 +1,31 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { differenceInCalendarDays, format } from "date-fns";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
 import { EmployeeStatusBadge } from "@/components/admin/employee-status-badge";
+import { DataList, DataListRow, PersonCell } from "@/components/shared/data-list";
 import { EmptyState } from "@/components/shared/empty-state";
-import {
-  FilterSearchInput,
-  FilterToolbar,
-  filterSelectTriggerClassName,
-} from "@/components/shared/filter-toolbar";
-import { ListGroupCard } from "@/components/shared/list-group-card";
-import { ListRow } from "@/components/shared/list-row";
+import { FilterSearchInput } from "@/components/shared/filter-toolbar";
+import { SegmentedFilter, type SegmentedOption } from "@/components/shared/segmented-filter";
 import {
   PartTimeIndicator,
   RemoteIndicator,
 } from "@/components/shared/employee-indicators";
-import { MemberAvatar } from "@/components/shared/member-avatar";
-import { formatDate } from "@/lib/helpers/dates";
-import { RoleChip } from "@/components/shared/role-chip";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem, EmployeeStatus } from "@/types/employee";
 import type { ReportTemplate } from "@/types/template";
 
 type StatusFilter = "all" | EmployeeStatus;
 
-const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "Current" },
-  { value: "active", label: "Active" },
-  { value: "invited", label: "Invited" },
-  { value: "disabled", label: "Disabled" },
-  { value: "archived", label: "Archived" },
-];
+const ROLE_LABEL: Record<string, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  manager: "Manager",
+  member: "Member",
+};
+
+const COLUMNS = "minmax(0,1.3fr) minmax(0,1fr) 5.5rem 6.5rem 2rem";
 
 function resolveSource(
   employee: EmployeeListItem,
@@ -79,25 +57,6 @@ function resolveSource(
   return { source: "default", sourceName: null };
 }
 
-function formatTableLastSeen(
-  lastSignInAt: string | null,
-  lastReportDate: string | undefined,
-): string {
-  if (!lastSignInAt && !lastReportDate) {
-    return "—";
-  }
-  if (lastSignInAt && !lastReportDate) {
-    return formatDate(lastSignInAt.slice(0, 10));
-  }
-  if (!lastSignInAt && lastReportDate) {
-    return formatDate(lastReportDate);
-  }
-  if (new Date(lastSignInAt as string) > new Date(lastReportDate as string)) {
-    return formatDate((lastSignInAt as string).slice(0, 10));
-  }
-  return formatDate(lastReportDate as string);
-}
-
 function resolveLastSeenAt(
   lastSeenAt: string | null,
   lastSignInAt: string | null,
@@ -116,9 +75,9 @@ function formatLastSeen(lastSeenAt: string | null): string {
   const seen = new Date(lastSeenAt);
   const diff = differenceInCalendarDays(new Date(), seen);
   if (diff <= 0) return "Today";
-  if (diff < 7) return `Seen ${diff}d`;
+  if (diff === 1) return "Yesterday";
   const sameYear = seen.getFullYear() === new Date().getFullYear();
-  return `Seen ${format(seen, sameYear ? "MMM d" : "MMM d, yyyy")}`;
+  return format(seen, sameYear ? "MMM d" : "MMM d, yyyy");
 }
 
 export function EmployeeList({
@@ -157,35 +116,35 @@ export function EmployeeList({
     );
   }, [employees, query, statusFilter]);
 
+  const countOf = (filter: StatusFilter) =>
+    filter === "all"
+      ? employees.filter((employee) => employee.status !== "archived").length
+      : employees.filter((employee) => employee.status === filter).length;
+  const options: SegmentedOption<StatusFilter>[] = (
+    [
+      ["all", "Current"],
+      ["active", "Active"],
+      ["invited", "Invited"],
+      ["disabled", "Deactivated"],
+      ["archived", "Archived"],
+    ] as const
+  )
+    .map(([value, label]) => ({ value, label, count: countOf(value) }))
+    .filter((option) => option.value === "all" || option.count > 0);
+
   return (
     <div className="flex flex-col gap-4">
-      <FilterToolbar
-        search={
-          <FilterSearchInput
-            value={query}
-            onChange={setQuery}
-            placeholder="Search employees..."
-          />
-        }
-        filters={[
-          <Select
-            key="status"
-            value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-          >
-            <SelectTrigger className={filterSelectTriggerClassName}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FILTER_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>,
-        ]}
-      />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
+          <FilterSearchInput value={query} onChange={setQuery} placeholder="Search people…" />
+        </div>
+        <SegmentedFilter
+          label="Employee status"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={options}
+        />
+      </div>
 
       {filtered.length === 0 ? (
         <EmptyState
@@ -197,51 +156,55 @@ export function EmployeeList({
           }
         />
       ) : (
-        <>
-        <ListGroupCard className="md:hidden">
+        <DataList
+          columns={COLUMNS}
+          header={["Person", "Department", "Role", "Last seen", ""]}
+        >
           {filtered.map((employee) => {
             const resolved = resolveSource(employee, departments, templates);
-            const showRole =
-              employee.role === "owner" ||
-              employee.role === "admin" ||
-              employee.role === "manager";
+            const seen = formatLastSeen(
+              resolveLastSeenAt(
+                employee.last_seen_at,
+                employee.last_sign_in_at,
+                lastSeenByEmployeeId[employee.id],
+              ),
+            );
             return (
-              <ListRow
+              <DataListRow
                 key={employee.id}
                 href={`/employees/${employee.id}`}
-                showChevron={false}
-                leading={
-                  <MemberAvatar
-                    userId={employee.id}
-                    name={employee.full_name}
-                    avatar={employee.avatar}
-                    size="md"
-                  />
-                }
-                title={employee.full_name}
-                titleAddon={
-                  <>
-                    {showRole && <RoleChip role={employee.role} />}
-                    {employee.is_remote && <RemoteIndicator />}
-                    {employee.employment_type === "part_time" && (
-                      <PartTimeIndicator />
-                    )}
-                    {employee.status !== "active" && (
-                      <EmployeeStatusBadge status={employee.status} />
-                    )}
-                  </>
-                }
-                meta={[
-                  employee.designation,
-                  formatLastSeen(
-                    resolveLastSeenAt(
-                      employee.last_seen_at,
-                      employee.last_sign_in_at,
-                      lastSeenByEmployeeId[employee.id],
-                    ),
-                  ),
-                ]}
-                trailing={
+                label={`Open ${employee.full_name}`}
+              >
+                <PersonCell
+                  id={employee.id}
+                  name={employee.full_name}
+                  avatar={employee.avatar}
+                  addon={
+                    <>
+                      {employee.is_remote && <RemoteIndicator />}
+                      {employee.employment_type === "part_time" && <PartTimeIndicator />}
+                      {employee.status !== "active" && (
+                        <EmployeeStatusBadge status={employee.status} />
+                      )}
+                    </>
+                  }
+                  detail={
+                    <>
+                      {employee.designation ?? "—"}
+                      <span className="md:hidden"> · {seen}</span>
+                    </>
+                  }
+                />
+                <span className="hidden truncate text-[13.5px] text-foreground/80 md:block">
+                  {employee.department_names.join(", ") || "—"}
+                </span>
+                <span className="hidden text-[13px] text-foreground/80 md:block">
+                  {ROLE_LABEL[employee.role] ?? employee.role}
+                </span>
+                <span className="hidden text-[13px] text-muted-foreground md:block">
+                  {seen}
+                </span>
+                <span className="relative z-10 flex justify-end">
                   <EmployeeActionsMenu
                     employee={employee}
                     isSelf={employee.id === currentUserId}
@@ -251,99 +214,11 @@ export function EmployeeList({
                     currentTemplateSource={resolved.source}
                     currentTemplateSourceName={resolved.sourceName}
                   />
-                }
-              />
+                </span>
+              </DataListRow>
             );
           })}
-        </ListGroupCard>
-
-        <div className="hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead className="w-48">Designation</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead className="text-center">Role</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="w-28">Last Seen</TableHead>
-              <TableHead className="w-12 text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((employee) => {
-              const resolved = resolveSource(
-                employee,
-                departments,
-                templates,
-              );
-
-              return (
-              <TableRow key={employee.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2.5">
-                    <MemberAvatar
-                      userId={employee.id}
-                      name={employee.full_name}
-                      avatar={employee.avatar}
-                      size="md"
-                    />
-                    <div className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <Link
-                          href={`/employees/${employee.id}`}
-                          className="font-medium hover:underline"
-                        >
-                          {employee.full_name}
-                        </Link>
-                        {employee.is_remote && <RemoteIndicator />}
-                        {employee.employment_type === "part_time" && (
-                          <PartTimeIndicator />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="w-48">
-                  <span className="text-sm text-muted-foreground">
-                    {employee.designation ?? "—"}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span>
-                    {employee.department_names.join(", ") || "—"}
-                  </span>
-                </TableCell>
-                <TableCell className="text-center">
-                  <RoleChip role={employee.role} />
-                </TableCell>
-                <TableCell className="text-center">
-                  <EmployeeStatusBadge status={employee.status} />
-                </TableCell>
-                <TableCell className="w-28 text-sm text-muted-foreground">
-                  {formatTableLastSeen(
-                    employee.last_seen_at ?? employee.last_sign_in_at,
-                    lastSeenByEmployeeId[employee.id],
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <EmployeeActionsMenu
-                    employee={employee}
-                    isSelf={employee.id === currentUserId}
-                    departments={departments}
-                    candidates={candidates}
-                    templates={templates}
-                    currentTemplateSource={resolved.source}
-                    currentTemplateSourceName={resolved.sourceName}
-                  />
-                </TableCell>
-              </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-        </div>
-        </>
+        </DataList>
       )}
     </div>
   );

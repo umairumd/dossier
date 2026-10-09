@@ -16,8 +16,11 @@ export default async function DepartmentsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Departments"
-        count={departments.length}
-        countLabel={departments.length === 1 ? "department" : "departments"}
+        description={(() => {
+          const active = departments.filter((department) => !department.archived_at);
+          const people = active.reduce((sum, department) => sum + department.employee_count, 0);
+          return `${active.length} ${active.length === 1 ? "department" : "departments"} · ${people} ${people === 1 ? "person" : "people"} assigned`;
+        })()}
         action={<CreateDepartmentDialog />}
       />
 
