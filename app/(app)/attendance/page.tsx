@@ -146,16 +146,16 @@ export default async function AttendancePage({
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Attendance"
-          count={activeEmployees.length}
-          countLabel={
-            activeEmployees.length === 1 ? "teammate" : "teammates"
-          }
+          description={`You and ${activeEmployees.length} ${activeEmployees.length === 1 ? "teammate" : "teammates"}`}
           action={
-            <MonthNav
-              month={month}
-              baseHref="/attendance"
-              currentMonth={currentMonth}
-            />
+            <div className="flex flex-nowrap items-center gap-2">
+              <AttendanceLegend />
+              <MonthNav
+                month={month}
+                baseHref="/attendance"
+                currentMonth={currentMonth}
+              />
+            </div>
           }
         />
 
@@ -242,11 +242,10 @@ export default async function AttendancePage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Attendance"
-        count={activeEmployees.length}
-        countLabel={activeEmployees.length === 1 ? "employee" : "employees"}
-        description={<AttendanceLegend showHolidayHint />}
+        description={`${activeEmployees.length} ${activeEmployees.length === 1 ? "person" : "people"}${remoteEmployees.length > 0 ? ` · ${remoteEmployees.length} remote` : ""}`}
         action={
           <div className="flex flex-nowrap items-center gap-2">
+            <AttendanceLegend showHolidayHint />
             {isCurrentMonth && (
               <RunAccrualButton yearMonth={month} accrualDone={accrualDone} />
             )}

@@ -18,6 +18,7 @@ const ROUTE_LABELS: Record<string, string> = {
   account: "Account",
   "track-reports": "Track Reports",
   attendance: "Attendance",
+  birthdays: "Birthdays",
   "team-reports": "Team Reports",
   team: "Team Members",
   "missing-reports": "Missing Reports",

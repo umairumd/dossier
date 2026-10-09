@@ -75,7 +75,7 @@ export async function AppShell({
           notificationCount={unreadCount}
           notifications={notifications}
         />
-        <main className="flex-1 p-4 md:p-6">
+        <main className="isolate flex-1 p-4 md:p-6">
           <div className="mx-auto max-w-5xl">
             <SignedInBuddyProvider userId={profile.id} avatar={profile.avatar}>
               <BuddyDialogProvider>{children}</BuddyDialogProvider>
