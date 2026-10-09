@@ -654,3 +654,4 @@ Cards on the home page follow the hero tiles:
 - Status: `SubmissionStatusBadge` tints (green on time, amber late, red missed, grey pending/leave/off).
 - Filters with a handful of values: `SegmentedFilter` with counts, next to the search field. Dropdowns only for long option lists.
 - Report lists: `ReportRoster` (who submitted on a date) and `ReportHistoryList` (a person's reports).
+- People cards: `PersonCard` (components/shared/person-card.tsx) with `PersonCardStats` or a one-line footer; `GroupHeading` ("October · 4") above each group. No uppercase labels.
