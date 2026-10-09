@@ -642,3 +642,7 @@ Cards on the home page follow the hero tiles:
 
 - Desktop: the sidebar sits on the app frame (`bg-shell`); the page is a raised panel (`data-app-panel`, rounded, 10% border) that scrolls on its own. Anything that needs the scroll position should use the panel, not `window` (scroll events: listen with `capture: true` on `window`).
 - Sidebar items: 36px high, `rounded-lg`, neutral active fill (`bg-foreground/[0.07]` with a faint inset ring), no sideways motion on hover. Section labels use `label-eyebrow`.
+
+## Report reader
+
+- One reader for every place a report is read (`ReportDetailSheet`). Body is `ReportFields`: template order; long text as paragraphs; two or more consecutive numbers as a figure strip; other short answers as a facts list (label left, answer right); links as a chip with the site name; unanswered fields hidden.
