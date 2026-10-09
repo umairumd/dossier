@@ -8,7 +8,7 @@ import { getSupervisedMembers } from "@/lib/supabase/queries/supervisor/team";
 import { createClient } from "@/lib/supabase/server";
 import { TeamMemberCard } from "@/components/manager/team-member-card";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Separator } from "@/components/ui/separator";
+import { GroupHeading } from "@/components/shared/person-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { formatDaysAgoShort } from "@/lib/helpers/dates";
 
@@ -36,7 +36,7 @@ function MemberGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {members.map((member) => (
         <TeamMemberCard
           key={member.id}
@@ -99,44 +99,38 @@ export default async function TeamMembersPage() {
   ]).size;
 
   const section1Label = isDeptManager
-    ? profile?.department_names.join(", ") || "Your Team"
-    : "Reporting to You";
+    ? profile?.department_names.join(", ") || "Your team"
+    : "Reporting to you";
   const section1Members = isDeptManager ? deptMembers : supervisedMembers;
+
+  const twoGroups = isDeptManager && exclusiveSupervisees.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Team Members"
-        count={uniqueCount}
-        countLabel={uniqueCount === 1 ? "member" : "members"}
+        description={`${twoGroups ? "" : `${section1Label} · `}${uniqueCount} ${uniqueCount === 1 ? "person" : "people"}`}
       />
 
-      <div>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-          {section1Label}
-        </h2>
+      <section>
+        {twoGroups && <GroupHeading label={section1Label} count={section1Members.length} />}
         <MemberGrid
           members={section1Members}
           emptyMessage="No team members assigned yet."
           managerIds={isDeptManager ? managerIds : undefined}
           memberStatsMap={memberStatsMap}
         />
-      </div>
+      </section>
 
-      {isDeptManager && exclusiveSupervisees.length > 0 && (
-        <>
-          <Separator className="my-6" />
-          <div>
-            <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-              Also Reporting to You
-            </h2>
-            <MemberGrid
-              members={exclusiveSupervisees}
-              emptyMessage="No supervisees to show."
-              memberStatsMap={memberStatsMap}
-            />
-          </div>
-        </>
+      {twoGroups && (
+        <section className="mt-2">
+          <GroupHeading label="Also reporting to you" count={exclusiveSupervisees.length} />
+          <MemberGrid
+            members={exclusiveSupervisees}
+            emptyMessage="No supervisees to show."
+            memberStatsMap={memberStatsMap}
+          />
+        </section>
       )}
     </div>
   );

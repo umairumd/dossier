@@ -26,7 +26,12 @@ export default async function BirthdaysPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Birthdays"
-        description="Team birthdays and upcoming celebrations."
+        description={[
+          `${withDOB.length} ${withDOB.length === 1 ? "birthday" : "birthdays"} on file`,
+          missingDOB.length > 0 ? `${missingDOB.length} missing a date` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
       />
       <BirthdayList
         withDOB={withDOB}

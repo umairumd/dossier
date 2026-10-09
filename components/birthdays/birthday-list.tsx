@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import Link from "next/link";
 import { differenceInYears, format } from "date-fns";
 import { Cake } from "lucide-react";
 import {
@@ -11,7 +10,8 @@ import {
 } from "@/components/mascot/ambient-buddy";
 import { EmptyState } from "@/components/shared/empty-state";
 import type { BirthdayPerson } from "@/lib/supabase/queries/admin/birthdays";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { GroupHeading, PersonCard } from "@/components/shared/person-card";
 
 /** Calendar date from a YYYY-MM-DD string, without a UTC shift. */
 function calendarDate(iso: string) {
@@ -23,13 +23,23 @@ function sortByMonthDay(a: BirthdayPerson, b: BirthdayPerson): number {
   return a.date_of_birth!.slice(5, 10).localeCompare(b.date_of_birth!.slice(5, 10));
 }
 
-function SectionHeader({ label, count }: { label: string; count: number }) {
-  return (
-    <div className="mb-3 flex items-baseline gap-1.5">
-      <h2 className="text-sm font-semibold">{label}</h2>
-      <span className="text-sm text-muted-foreground">· {count}</span>
-    </div>
-  );
+/** Days until the next occurrence of a birthday, from the org date. */
+function daysUntil(dateOfBirth: string, orgToday: string): number {
+  const [y, m, d] = orgToday.split("-").map(Number);
+  const today = Date.UTC(y, m - 1, d);
+  const month = Number(dateOfBirth.slice(5, 7)) - 1;
+  const day = Number(dateOfBirth.slice(8, 10));
+  let next = Date.UTC(y, month, day);
+  if (next < today) next = Date.UTC(y + 1, month, day);
+  return Math.round((next - today) / 86_400_000);
+}
+
+function whenLabel(days: number): string {
+  if (days === 0) return "today";
+  if (days === 1) return "tomorrow";
+  if (days < 60) return `in ${days} days`;
+  const months = Math.round(days / 30);
+  return `in ${months} months`;
 }
 
 function BirthdayCard({
@@ -44,7 +54,6 @@ function BirthdayCard({
   variant: "today" | "default" | "missing";
 }) {
   const isTodayCard = variant === "today";
-  const isMissing = variant === "missing";
   const dob = person.date_of_birth ? calendarDate(person.date_of_birth) : null;
   const age =
     dob != null && person.date_of_birth
@@ -53,74 +62,55 @@ function BirthdayCard({
           dob,
         )
       : null;
-  const formattedDate = dob ? format(dob, "MMMM d") : null;
+
+  let footer: ReactNode;
+  if (variant === "missing" || !dob || !person.date_of_birth) {
+    footer = <span className="text-[13px] text-muted-foreground">No date on file</span>;
+  } else if (isTodayCard) {
+    footer = (
+      <span className="text-[13px]">
+        <span className="font-medium">Today</span>
+        {age != null && <span className="text-muted-foreground"> · turns {age}</span>}
+      </span>
+    );
+  } else {
+    footer = (
+      <span className="text-[13px]">
+        <span className="font-medium">{format(dob, "MMM d")}</span>
+        <span className="text-muted-foreground">
+          {" · "}
+          {whenLabel(daysUntil(person.date_of_birth, orgToday))}
+        </span>
+      </span>
+    );
+  }
 
   return (
-    <div
-      className={cn(
-        "relative flex h-full min-h-[200px] flex-col items-center justify-between gap-0 rounded-xl border p-5 text-center transition-colors hover:bg-foreground/5",
-        isTodayCard
-          ? "border-primary/30 bg-primary/5"
-          : "border-border bg-card",
-        isMissing && "opacity-50",
-      )}
-    >
-      {isTodayCard && (
-        <span className="absolute top-3 right-3 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-          Today
-        </span>
-      )}
-      <div className="mb-3 flex w-full flex-col items-center gap-2">
+    <PersonCard
+      href={`/employees/${person.id}`}
+      avatar={
         <AmbientBuddy
           userId={person.id}
           name={person.full_name}
           avatar={person.avatar}
           order={order}
-          size="xl"
+          size="card"
           birthday={isTodayCard}
         />
-        <div className="flex w-full flex-col items-center gap-0.5">
-          <span
-            className={cn(
-              "text-sm font-semibold",
-              isTodayCard ? "text-primary" : "text-foreground",
-            )}
-          >
-            {person.full_name}
-          </span>
-          {person.designation ? (
-            <span className="text-xs text-muted-foreground">
-              {person.designation}
-            </span>
-          ) : null}
-        </div>
-      </div>
-      <div className="mt-auto w-full border-t border-border pt-3 text-center">
-        {isMissing || !formattedDate ? (
-          <span className="text-xs text-muted-foreground">No date on file</span>
-        ) : (
-          <div className="flex flex-col items-center gap-0.5">
-            <span
-              className={cn(
-                "text-xs font-medium uppercase tracking-wide",
-                isTodayCard ? "text-primary" : "text-muted-foreground",
-              )}
-            >
-              {formattedDate}
-            </span>
-            {isTodayCard && age != null && (
-              <span className="text-xs text-muted-foreground">Turns {age}</span>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+      }
+      name={person.full_name}
+      detail={person.designation}
+      footer={footer}
+      tag={isTodayCard ? <Badge variant="success">Today</Badge> : undefined}
+      highlight={isTodayCard}
+      dimmed={variant === "missing"}
+    />
   );
 }
 
 function CardGrid({ children }: { children: ReactNode }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
       {children}
     </div>
   );
@@ -184,17 +174,16 @@ export function BirthdayList({
       <div className="flex flex-col gap-8">
         {today.length > 0 && (
           <section>
-            <SectionHeader label="Today" count={today.length} />
+            <GroupHeading label="Today" count={today.length} />
             <CardGrid>
               {today.map((person) => (
-                <Link key={person.id} href={`/employees/${person.id}`} className="block h-full">
-                  <BirthdayCard
-                    person={person}
-                    orgToday={orgToday}
-                    order={order++}
-                    variant="today"
-                  />
-                </Link>
+                <BirthdayCard
+                  key={person.id}
+                  person={person}
+                  orgToday={orgToday}
+                  order={order++}
+                  variant="today"
+                />
               ))}
             </CardGrid>
           </section>
@@ -202,43 +191,36 @@ export function BirthdayList({
 
         {thisMonth.length > 0 && (
           <section>
-            <SectionHeader
+            <GroupHeading
               label={format(calendarDate(orgToday), "MMMM")}
               count={thisMonth.length}
             />
             <CardGrid>
               {thisMonth.map((person) => (
-                <Link key={person.id} href={`/employees/${person.id}`} className="block h-full">
-                  <BirthdayCard
-                    person={person}
-                    orgToday={orgToday}
-                    order={order++}
-                    variant="default"
-                  />
-                </Link>
+                <BirthdayCard
+                  key={person.id}
+                  person={person}
+                  orgToday={orgToday}
+                  order={order++}
+                  variant="default"
+                />
               ))}
             </CardGrid>
           </section>
         )}
 
-        {(today.length > 0 || thisMonth.length > 0) &&
-          remainingMonths.length > 0 && (
-            <hr className="my-6 border-border" />
-          )}
-
         {remainingMonths.map((group) => (
           <section key={group.month}>
-            <SectionHeader label={group.label} count={group.people.length} />
+            <GroupHeading label={group.label} count={group.people.length} />
             <CardGrid>
               {group.people.map((person) => (
-                <Link key={person.id} href={`/employees/${person.id}`} className="block h-full">
-                  <BirthdayCard
-                    person={person}
-                    orgToday={orgToday}
-                    order={order++}
-                    variant="default"
-                  />
-                </Link>
+                <BirthdayCard
+                  key={person.id}
+                  person={person}
+                  orgToday={orgToday}
+                  order={order++}
+                  variant="default"
+                />
               ))}
             </CardGrid>
           </section>
@@ -253,20 +235,19 @@ export function BirthdayList({
 
         {missingDOB.length > 0 && (
           <section>
-            <SectionHeader
+            <GroupHeading
               label="No birthday on file"
               count={missingDOB.length}
             />
             <CardGrid>
               {missingDOB.map((person) => (
-                <Link key={person.id} href={`/employees/${person.id}`} className="block h-full">
-                  <BirthdayCard
-                    person={person}
-                    orgToday={orgToday}
-                    order={order++}
-                    variant="missing"
-                  />
-                </Link>
+                <BirthdayCard
+                  key={person.id}
+                  person={person}
+                  orgToday={orgToday}
+                  order={order++}
+                  variant="missing"
+                />
               ))}
             </CardGrid>
           </section>
