@@ -85,7 +85,7 @@ inoma-hub/
 │   ├── reports/                  # Report form, history, status cards
 │   ├── manager/                  # Team reports view, member cards, highlights
 │   ├── admin/                    # Employee/department sheets
-│   ├── analytics/                # StatCard, ActivityFeed, trends
+│   ├── analytics/                # ActivityFeed, charts, trends
 │   └── settings/                 # Profile form, password form
 ├── lib/
 │   ├── actions/                  # Server Actions (mutations)

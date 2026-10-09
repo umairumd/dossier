@@ -3,16 +3,10 @@
 import { useEffect, useState } from "react";
 import { markOnboarded } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/client";
+import { AuthCard, AuthNotice } from "@/components/auth/auth-card";
+import { Field } from "@/components/shared/settings-section";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -91,75 +85,66 @@ export default function OnboardingPage() {
 
   if (!ready) {
     return (
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Loading...</CardTitle>
-        </CardHeader>
-      </Card>
+      <AuthCard
+        title="Welcome to Dossier"
+        description="Getting things ready…"
+      />
     );
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>Set your password</CardTitle>
-        <CardDescription>
-          You&apos;re logging in for the first time. Please set a permanent
-          password to secure your account.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {fieldError && (
-            <p className="text-sm text-destructive">{fieldError}</p>
-          )}
+    <AuthCard
+      title="Welcome to Dossier"
+      description="This is your first sign-in. Set a password you'll use from now on."
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {fieldError && <AuthNotice tone="danger">{fieldError}</AuthNotice>}
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password">New password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="new-password"
-              required
-            />
-          </div>
+        <Field
+          label="Password"
+          htmlFor="password"
+          hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+        >
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="new-password"
+            required
+          />
+        </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="confirm">Confirm password</Label>
-            <Input
-              id="confirm"
-              type="password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              autoComplete="new-password"
-              required
-            />
-          </div>
+        <Field label="Confirm password" htmlFor="confirm">
+          <Input
+            id="confirm"
+            type="password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            autoComplete="new-password"
+            required
+          />
+        </Field>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="dob">Date of Birth (optional)</Label>
-            <Input
-              id="dob"
-              name="date_of_birth"
-              type="date"
-              value={dateOfBirth}
-              onChange={(event) => setDateOfBirth(event.target.value)}
-              max={new Date().toISOString().slice(0, 10)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Optional. Used for birthday recognition.
-            </p>
-          </div>
+        <Field
+          label="Date of birth"
+          htmlFor="dob"
+          hint="Optional. Only used to celebrate your birthday."
+        >
+          <Input
+            id="dob"
+            name="date_of_birth"
+            type="date"
+            value={dateOfBirth}
+            onChange={(event) => setDateOfBirth(event.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
+          />
+        </Field>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting
-              ? "Setting up your account..."
-              : "Set Password & Continue"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        <Button type="submit" className="mt-1 w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Setting up…" : "Continue"}
+        </Button>
+      </form>
+    </AuthCard>
   );
 }

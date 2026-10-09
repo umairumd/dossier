@@ -12,13 +12,7 @@ import { calendarDayToneClass } from "@/lib/helpers/attendance-day-tones";
 import { formatDate, isWorkingDay } from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
 import { AttendanceLegend } from "@/components/attendance/attendance-legend";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
 import {
   Popover,
   PopoverContent,
@@ -48,18 +42,17 @@ function formatCheckIn(time: string | null): string {
   return time.slice(0, 5);
 }
 
-function formatMonthTitle(yearMonth: string): string {
-  const [year, month] = yearMonth.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
-
-function formatOptionalStat(value: number | undefined): string {
-  return value === undefined ? "—" : String(value);
-}
+// Month summary beside the calendar; dots use the calendar's day tones.
+const SUMMARY_DOT: Record<
+  "present" | "late" | "absent" | "leave" | "wfh",
+  string
+> = {
+  present: "bg-emerald-500",
+  late: "bg-yellow-500",
+  absent: "bg-red-500",
+  leave: "bg-amber-500",
+  wfh: "bg-cyan-500",
+};
 
 export function PersonalMonthCalendar({
   records,
@@ -67,16 +60,12 @@ export function PersonalMonthCalendar({
   workingDays,
   today,
   shift,
-  leaveBalance,
-  fines,
 }: {
   records: AttendanceRecord[];
   yearMonth: string;
   workingDays: number[];
   today: string;
   shift: ShiftAssignment | null;
-  leaveBalance?: number;
-  fines?: number;
 }) {
   const [year, month] = yearMonth.split("-").map(Number);
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
@@ -120,21 +109,21 @@ export function PersonalMonthCalendar({
   }
 
   const shiftLabel = shift ? SHIFT_TYPE_LABELS[shift.shift_type] : "—";
+  const pastRecords = records.filter((record) => record.date <= today);
 
-  const lateCount = records.filter(
+  const lateCount = pastRecords.filter(
     (record) =>
       record.status === "late_minor" || record.status === "late_major",
   ).length;
-  const absentCount = records.filter(
+  const absentCount = pastRecords.filter(
     (record) => record.status === "absent",
   ).length;
-  const leaveCount = records.filter(
+  const leaveCount = pastRecords.filter(
     (record) => record.status === "leave" || record.status === "half_leave",
   ).length;
 
   const presentDays = records.filter(
-    (record) =>
-      record.date <= today && PRESENT_STATUSES.has(record.status),
+    (record) => record.date <= today && PRESENT_STATUSES.has(record.status),
   ).length;
 
   let workingDaysSoFar = 0;
@@ -152,20 +141,25 @@ export function PersonalMonthCalendar({
       ? null
       : Math.round((presentDays / workingDaysSoFar) * 100);
 
-  const monthStats: { label: string; value: string; accent: string }[] = [
-    { label: "Late", value: String(lateCount), accent: "border-yellow-500" },
-    { label: "Absent", value: String(absentCount), accent: "border-red-500" },
-    { label: "Leaves", value: String(leaveCount), accent: "border-amber-500" },
-    {
-      label: "Balance",
-      value: formatOptionalStat(leaveBalance),
-      accent: "border-emerald-500",
-    },
-    {
-      label: "Fines",
-      value: formatOptionalStat(fines),
-      accent: "border-red-500/40",
-    },
+  const wfhCount = pastRecords.filter(
+    (record) => record.status === "work_from_home",
+  ).length;
+  const onTimeCount = pastRecords.filter(
+    (record) => record.status === "present",
+  ).length;
+
+  const summary: {
+    key: keyof typeof SUMMARY_DOT;
+    label: string;
+    value: number;
+  }[] = [
+    { key: "present", label: "On time", value: onTimeCount },
+    { key: "late", label: "Late", value: lateCount },
+    { key: "absent", label: "Absent", value: absentCount },
+    { key: "leave", label: "Leave", value: leaveCount },
+    ...(wfhCount > 0
+      ? [{ key: "wfh" as const, label: "Work from home", value: wfhCount }]
+      : []),
   ];
 
   const paddedCells = [...cells];
@@ -181,20 +175,23 @@ export function PersonalMonthCalendar({
   }
 
   return (
-    <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-stretch">
-      <Card className="w-full flex-1 lg:w-3/4">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">{formatMonthTitle(yearMonth)}</CardTitle>
-          <CardAction>
+    <Card>
+      <CardLabelHeader
+        label="Your attendance"
+        aside={
+          <span className="-my-2 -mr-2 flex items-center gap-1">
+            {shift ? <span>{shiftLabel}</span> : null}
             <AttendanceLegend variant="calendar" />
-          </CardAction>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-1.5">
+          </span>
+        }
+      />
+      <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-0">
+        <div className="flex min-w-0 flex-col gap-1.5 lg:pr-6">
           <div className="grid grid-cols-7 gap-1.5">
             {WEEKDAY_LABELS.map((label) => (
               <div
                 key={label}
-                className="text-center text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                className="pb-1 text-center text-xs text-muted-foreground"
               >
                 {label}
               </div>
@@ -204,14 +201,11 @@ export function PersonalMonthCalendar({
           {weeks.map((week, weekIndex) => (
             <div
               key={week[0]?.key ?? weekIndex}
-              className={cn(
-                "grid grid-cols-7 gap-1.5 pb-1.5",
-                weekIndex < weeks.length - 1 && "border-b border-foreground/5",
-              )}
+              className="grid grid-cols-7 gap-1.5"
             >
               {week.map((cell) => {
                 if (cell.kind === "empty") {
-                  return <div key={cell.key} className="h-12" />;
+                  return <div key={cell.key} className="h-11 sm:h-12" />;
                 }
 
                 const status: AttendanceStatus | null =
@@ -229,12 +223,11 @@ export function PersonalMonthCalendar({
                     type="button"
                     disabled={!interactive}
                     className={cn(
-                      "box-border flex h-12 w-full flex-col items-center justify-center gap-0.5 rounded-md text-sm font-medium transition-colors",
-                      cell.isToday
-                        ? "border-2 border-foreground bg-transparent text-foreground"
-                        : cell.isFuture
-                          ? "bg-transparent text-muted-foreground/40"
-                          : calendarDayToneClass(status),
+                      "flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:h-12",
+                      cell.isFuture
+                        ? "bg-transparent text-muted-foreground/40"
+                        : calendarDayToneClass(status),
+                      cell.isToday && "ring-2 ring-inset ring-foreground/80",
                       interactive && "cursor-pointer",
                     )}
                     aria-label={
@@ -243,17 +236,14 @@ export function PersonalMonthCalendar({
                         : formatDate(cell.date)
                     }
                   >
-                    <span
-                      className={cn(
-                        "text-sm leading-none tabular-nums",
-                        cell.isToday ? "opacity-80" : "opacity-70",
-                      )}
-                    >
+                    <span className="text-[13px] leading-none tabular-nums opacity-75">
                       {cell.day}
                     </span>
-                    <span className="text-xs font-semibold leading-none">
-                      {shortCode}
-                    </span>
+                    {shortCode ? (
+                      <span className="text-[11px] font-semibold leading-none">
+                        {shortCode}
+                      </span>
+                    ) : null}
                   </button>
                 );
 
@@ -296,49 +286,50 @@ export function PersonalMonthCalendar({
               })}
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card className="w-full lg:w-1/4">
-        <CardContent className="flex flex-col">
-          <div className="border-b border-foreground/10 pb-4">
-            <p className="text-4xl font-bold tabular-nums text-foreground">
+        <aside className="flex flex-col gap-5 border-t border-foreground/[0.06] pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[13px] text-muted-foreground">
+              Attendance rate
+            </span>
+            <span className="text-[28px] font-semibold leading-none tracking-tight tabular-nums">
               {attendanceRate === null ? "—" : `${attendanceRate}%`}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Attendance Rate
-            </p>
-            <div className="mt-3 h-1 w-full rounded bg-foreground/10">
+            </span>
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.08]">
               <div
-                className="h-1 rounded bg-emerald-500 transition-[width]"
-                style={{
-                  width:
-                    attendanceRate === null ? "0%" : `${attendanceRate}%`,
-                }}
+                className="h-full rounded-full bg-emerald-500 transition-[width]"
+                style={{ width: `${attendanceRate ?? 0}%` }}
               />
             </div>
+            <span className="text-xs text-muted-foreground">
+              {workingDaysSoFar === 0
+                ? "No working days yet"
+                : `Present ${presentDays} of ${workingDaysSoFar} working days`}
+            </span>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            {monthStats.map((stat) => (
+          <dl className="flex flex-col divide-y divide-foreground/[0.06]">
+            {summary.map((item) => (
               <div
-                key={stat.label}
-                className={cn(
-                  "flex flex-col gap-1 border-l-4 py-3 pl-3",
-                  stat.accent,
-                )}
+                key={item.key}
+                className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
               >
-                <span className="text-xs tracking-wide text-muted-foreground uppercase">
-                  {stat.label}
-                </span>
-                <span className="text-2xl font-bold tabular-nums text-foreground">
-                  {stat.value}
-                </span>
+                <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span
+                    aria-hidden
+                    className={cn("size-2 rounded-full", SUMMARY_DOT[item.key])}
+                  />
+                  {item.label}
+                </dt>
+                <dd className="text-sm font-medium tabular-nums">
+                  {item.value}
+                </dd>
               </div>
             ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </dl>
+        </aside>
+      </CardContent>
+    </Card>
   );
 }

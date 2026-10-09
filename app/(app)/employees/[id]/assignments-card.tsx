@@ -7,7 +7,7 @@ import { AssignShiftDialog } from "@/components/admin/assign-shift-dialog";
 import { AssignSupervisorsDialog } from "@/components/admin/assign-supervisors-dialog";
 import { AssignTemplateDialog } from "@/components/admin/assign-template-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { ShiftAssignment } from "@/types/attendance";
 import { SHIFT_TYPE_LABELS } from "@/types/attendance";
@@ -93,9 +93,7 @@ export function AssignmentsCard(
   return (
     <>
       <Card className="h-full">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Assignments</CardTitle>
-        </CardHeader>
+        <CardLabelHeader label="Assignments" />
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-1">

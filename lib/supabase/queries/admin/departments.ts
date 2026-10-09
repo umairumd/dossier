@@ -258,7 +258,7 @@ export const getDepartmentDetail = cache(
           supabase
             .from("daily_reports")
             .select("author_id, report_date")
-            .gte("report_date", dateNDaysAgo(6))
+            .gte("report_date", dateNDaysAgo(59))
             .in("author_id", memberIds),
           supabase
             .from("attendance_records")
@@ -288,8 +288,9 @@ export const getDepartmentDetail = cache(
         onLeaveMemberIds.push(row.profile_id);
       }
 
+      // 60 days: the page shows the last 30 and compares with the 30 before.
       trend = buildCompletionTrend(
-        7,
+        60,
         buildSubmittersByDate(trendReports ?? []),
         members.length,
         settings.workingDays,

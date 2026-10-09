@@ -1,22 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ListPlus, Loader2, Plus } from "lucide-react";
-import { EmptyState } from "@/components/shared/empty-state";
+import { ListPlus, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/shared/empty-state";
+import { PageHeader } from "@/components/shared/page-header";
+import {
+  Field,
+  SaveBar,
+  SettingsSection,
+} from "@/components/shared/settings-section";
 import { TemplateFieldDialog } from "@/components/admin/template-field-dialog";
 import { TemplateFieldRow } from "@/components/admin/template-field-row";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -58,6 +56,11 @@ export function TemplateEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [editingField, setEditingField] = useState<TemplateField | null>(null);
   const [isFieldDialogOpen, setIsFieldDialogOpen] = useState(false);
+  const snapshot = JSON.stringify({ name, description, isDefault, fields });
+  const [savedSnapshot, setSavedSnapshot] = useState(() =>
+    template ? snapshot : "",
+  );
+  const dirty = snapshot !== savedSnapshot;
 
   const sortedFields = [...fields].sort((a, b) => a.fieldOrder - b.fieldOrder);
 
@@ -121,19 +124,27 @@ export function TemplateEditor({
     });
   }
 
-  async function handleSave() {
+  function handleReset() {
+    setName(template?.name ?? "");
+    setDescription(template?.description ?? "");
+    setIsDefault(template?.isDefault ?? false);
+    setFields(template?.fields ?? []);
+  }
+
+  async function handleSave(event: FormEvent) {
+    event.preventDefault();
     if (!name.trim()) {
       toast.error("Template name is required.");
       return;
     }
     if (fields.length === 0) {
-      toast.error("At least one field is required.");
+      toast.error("Add at least one question.");
       return;
     }
 
     const keys = fields.map((field) => field.key);
     if (new Set(keys).size !== keys.length) {
-      toast.error("Field keys must be unique.");
+      toast.error("Question keys must be unique.");
       return;
     }
 
@@ -156,6 +167,7 @@ export function TemplateEditor({
         toast.error(result.error ?? "Couldn't save template.");
         return;
       }
+      setSavedSnapshot(snapshot);
       toast.success("Template updated.");
       return;
     }
@@ -172,46 +184,50 @@ export function TemplateEditor({
     }
   }
 
+  const count = sortedFields.length;
+
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        href="/organization/templates"
-        className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Report Templates
-      </Link>
+      <PageHeader
+        title={template ? template.name : "New template"}
+        description={
+          template
+            ? `${count} question${count === 1 ? "" : "s"}${template.isDefault ? " · Org default" : ""}`
+            : "Name the template, then add the questions people answer each day."
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            {template ? "Edit Template" : "New Template"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label>Template Name *</Label>
+      <form onSubmit={handleSave} noValidate className="flex flex-col gap-6">
+        <SettingsSection
+          title="Details"
+          description="How the template shows up when you pick one for a department."
+        >
+          <Field label="Name" htmlFor="template-name">
             <Input
+              id="template-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="e.g. Design Template"
+              placeholder="e.g. Design team"
             />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>
-              Description
-              <span className="ml-1 font-normal text-muted-foreground">
-                (optional)
-              </span>
-            </Label>
+          </Field>
+          <Field
+            label="Description"
+            htmlFor="template-description"
+            hint="Optional."
+          >
             <Input
+              id="template-description"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              placeholder="For the design team daily reports"
+              placeholder="For the design team's daily reports"
             />
-          </div>
-
-          {!template?.isDefault && (
+          </Field>
+          {template?.isDefault ? (
+            <p className="text-[13px] text-muted-foreground">
+              This is the org default. People without a department template
+              use it.
+            </p>
+          ) : (
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -220,83 +236,70 @@ export function TemplateEditor({
                   onCheckedChange={(value) => setIsDefault(!!value)}
                 />
                 <Label htmlFor="is_default" className="cursor-pointer font-normal">
-                  Set as org default template
+                  Make this the org default
                 </Label>
               </div>
               {isDefault && (
                 <p className="ml-6 text-xs text-muted-foreground">
-                  This will replace the current default template. All members
-                  without a specific template will use this one.
+                  Replaces the current default. People without a department
+                  template will use this one.
                 </p>
               )}
             </div>
           )}
-          {template?.isDefault && (
-            <p className="text-xs text-muted-foreground">
-              This is the org default template. Members without a specific
-              template use this.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        </SettingsSection>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-base">Fields</CardTitle>
-              <CardDescription>
-                Define what employees fill in each day. One field can be marked
-                as Preview — it shows as a summary in report lists.
-              </CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={handleAddField}>
-              <Plus className="mr-1.5 size-4" />
-              Add Field
+        <SettingsSection
+          title="Questions"
+          description="What people answer each day, in this order. Mark one to show in report lists."
+          aside={
+            <Button type="button" variant="outline" size="sm" onClick={handleAddField}>
+              <Plus className="size-4" />
+              Add question
             </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2 p-0">
-          {sortedFields.length === 0 && (
+          }
+          footer={
+            <SaveBar
+              dirty={dirty && Boolean(name.trim()) && count > 0}
+              pending={isSaving}
+              onReset={template ? handleReset : undefined}
+              label={template ? "Save changes" : "Create template"}
+              pendingLabel={template ? "Saving…" : "Creating…"}
+              hint={
+                count === 0
+                  ? "Add at least one question."
+                  : !name.trim()
+                    ? "Give the template a name."
+                    : undefined
+              }
+            />
+          }
+        >
+          {count === 0 ? (
             <EmptyState
               size="sm"
               icon={<ListPlus className="size-4" />}
-              title="No fields yet."
-              description="Add your first field above."
+              title="No questions yet."
+              description="Add the first one to get started."
             />
-          )}
-          {sortedFields.map((field, index) => (
-            <TemplateFieldRow
-              key={field.id || field.key}
-              field={field}
-              index={index}
-              total={sortedFields.length}
-              onEdit={() => handleEditField(field)}
-              onDelete={() => handleDeleteField(field)}
-              onMoveUp={() => handleMoveUp(index)}
-              onMoveDown={() => handleMoveDown(index)}
-            />
-          ))}
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end">
-        <Button
-          onClick={handleSave}
-          disabled={isSaving || !name.trim() || fields.length === 0}
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 size-4 animate-spin" />
-              Saving...
-            </>
-          ) : template ? (
-            "Save Changes"
           ) : (
-            "Create Template"
+            <ul className="flex flex-col divide-y divide-foreground/[0.06] overflow-hidden rounded-lg ring-1 ring-inset ring-foreground/10">
+              {sortedFields.map((field, index) => (
+                <TemplateFieldRow
+                  key={field.id || field.key}
+                  field={field}
+                  index={index}
+                  total={count}
+                  onEdit={() => handleEditField(field)}
+                  onDelete={() => handleDeleteField(field)}
+                  onMoveUp={() => handleMoveUp(index)}
+                  onMoveDown={() => handleMoveDown(index)}
+                />
+              ))}
+            </ul>
           )}
-        </Button>
-      </div>
+        </SettingsSection>
+      </form>
 
       <TemplateFieldDialog
         open={isFieldDialogOpen}

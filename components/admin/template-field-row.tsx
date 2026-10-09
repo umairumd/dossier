@@ -1,14 +1,12 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Star, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { FIELD_TYPE_LABELS, type TemplateField } from "@/types/template";
 
+// One question in the template editor. The row opens the question; the
+// order arrows and delete sit above that target.
 export function TemplateFieldRow({
   field,
   index,
@@ -26,14 +24,29 @@ export function TemplateFieldRow({
   onMoveUp: () => void;
   onMoveDown: () => void;
 }) {
+  const meta = [
+    FIELD_TYPE_LABELS[field.fieldType],
+    field.unit,
+    field.isRequired ? "Required" : "Optional",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <div className="flex items-center gap-3 border-b border-border px-6 py-3 transition-colors last:border-0 hover:bg-foreground/5">
-      <div className="flex shrink-0 flex-col gap-0.5">
+    <li className="group relative flex min-h-14 items-center gap-3 px-3 py-2.5 transition-colors hover:bg-foreground/[0.03] sm:px-4">
+      <button
+        type="button"
+        onClick={onEdit}
+        aria-label={`Edit ${field.label}`}
+        className="absolute inset-0 outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset"
+      />
+      <span className="relative z-10 flex shrink-0 flex-col">
         <button
           type="button"
           onClick={onMoveUp}
           disabled={index === 0}
-          className="p-0.5 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label="Move up"
+          className="rounded p-0.5 text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
         >
           <ChevronUp className="size-3.5" />
         </button>
@@ -41,51 +54,35 @@ export function TemplateFieldRow({
           type="button"
           onClick={onMoveDown}
           disabled={index === total - 1}
-          className="p-0.5 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label="Move down"
+          className="rounded p-0.5 text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
         >
           <ChevronDown className="size-3.5" />
         </button>
-      </div>
+      </span>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium">{field.label}</span>
-          {field.isRequired && (
-            <span className="text-xs text-destructive">Required</span>
-          )}
-          {field.isPreview && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Star className="size-3 fill-primary text-primary" />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Preview field — shown in report lists</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {FIELD_TYPE_LABELS[field.fieldType]}
-          {field.unit && ` · ${field.unit}`}
-        </p>
-      </div>
+      <span className="w-5 shrink-0 text-[13px] tabular-nums text-muted-foreground">
+        {index + 1}
+      </span>
 
-      <div className="flex shrink-0 items-center gap-1">
-        <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
-          Edit
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onDelete}
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 className="size-4" />
-        </Button>
-      </div>
-    </div>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-sm font-medium">{field.label}</span>
+          {field.isPreview && <Badge variant="neutral">In lists</Badge>}
+        </span>
+        <span className="truncate text-[13px] text-muted-foreground">{meta}</span>
+      </span>
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={onDelete}
+        aria-label={`Remove ${field.label}`}
+        className="relative z-10 text-muted-foreground hover:text-destructive"
+      >
+        <Trash2 className="size-4" />
+      </Button>
+    </li>
   );
 }

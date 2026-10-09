@@ -3,13 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogBody,
@@ -97,14 +91,10 @@ export function LeaveBalanceCard({
   if (!balance) {
     return (
       <Card>
-        <CardHeader className="pb-3">
-          <CardDescription>Leave Balance</CardDescription>
-          <CardTitle className="text-base font-medium text-muted-foreground">
-            Not initialized
-          </CardTitle>
-        </CardHeader>
-        {canAdjust && (
-          <CardContent>
+        <CardLabelHeader label="Leave balance" />
+        <CardContent className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">Not initialized yet.</p>
+          {canAdjust && (
             <Button
               type="button"
               size="sm"
@@ -114,8 +104,8 @@ export function LeaveBalanceCard({
             >
               {isPending ? "Initializing..." : "Initialize"}
             </Button>
-          </CardContent>
-        )}
+          )}
+        </CardContent>
       </Card>
     );
   }
@@ -126,51 +116,55 @@ export function LeaveBalanceCard({
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <CardDescription>Leave Balance</CardDescription>
-          {canAdjust && (
+      <CardLabelHeader
+        label="Leave balance"
+        aside={
+          canAdjust && (
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs"
+              className="-mr-2"
               onClick={() => setOpen(true)}
             >
               Adjust
             </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] divide-x divide-border">
-          <div className="flex min-w-0 flex-col justify-center pr-3 sm:pr-4">
-            <p className="text-xs text-muted-foreground">Contract Period</p>
-            <p className="mt-1 text-sm font-medium text-foreground">
-              <span>{formatDate(balance.contract_year_start)} → </span>
-              <br className="md:hidden" />
-              <span>{formatDate(balance.contract_year_end)}</span>
-            </p>
-          </div>
-          <div className="flex flex-col items-center px-2 text-center sm:px-4">
-            <p className="text-2xl font-semibold">{accrued}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Accrued</p>
-          </div>
-          <div className="flex flex-col items-center px-2 text-center sm:px-4">
-            <p className="text-2xl font-semibold">{used}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Used</p>
-          </div>
-          <div className="flex flex-col items-center px-2 text-center sm:px-4">
-            <p
+          )
+        }
+      />
+      <CardContent className="flex flex-col gap-3">
+        <p className="text-[13px] text-muted-foreground">
+          Contract year {formatDate(balance.contract_year_start)} –{" "}
+          {formatDate(balance.contract_year_end)}
+        </p>
+        <div className="grid grid-cols-3 overflow-hidden rounded-lg ring-1 ring-inset ring-foreground/10">
+          {[
+            { label: "Accrued", value: accrued },
+            { label: "Used", value: used },
+            { label: "Remaining", value: remaining },
+          ].map((figure, index) => (
+            <div
+              key={figure.label}
               className={cn(
-                "text-2xl font-semibold",
-                remaining < 0 && "text-destructive",
+                "flex min-w-0 flex-col gap-1 px-3 py-3 sm:px-4",
+                index > 0 && "border-l border-foreground/[0.06]",
               )}
             >
-              {remaining}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">Remaining</p>
-          </div>
+              <span className="text-[13px] text-muted-foreground">
+                {figure.label}
+              </span>
+              <span
+                className={cn(
+                  "text-2xl font-semibold tracking-tight tabular-nums",
+                  figure.label === "Remaining" &&
+                    remaining < 0 &&
+                    "text-destructive",
+                )}
+              >
+                {figure.value}
+              </span>
+            </div>
+          ))}
         </div>
 
         {canAdjust && (

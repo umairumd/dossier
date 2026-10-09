@@ -1,17 +1,11 @@
 import { Calendar, FileText, Flame, TrendingUp } from "lucide-react";
-import { StatCard } from "@/components/analytics/stat-card";
+import { FigureStrip } from "@/components/shared/figure-strip";
 import { LeaveBalanceCard } from "@/components/attendance/leave-balance-card";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ProfileHeader } from "@/components/shared/profile-header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
 import {
   getActiveLeaveBalance,
   getCurrentShift,
@@ -127,44 +121,31 @@ export async function TeamEmployeeProfile({
       </div>
 
       <div className="flex flex-col gap-6">
-        <div className="flex flex-row gap-2 sm:grid sm:grid-cols-3 sm:gap-6">
-          <StatCard
-            label="Current Streak"
-            value={overview.current_streak}
-            unit={overview.current_streak === 1 ? "day" : "days"}
-            hint="Days in a row"
-            icon={<Flame size={14} />}
-            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
-            labelClassName="text-xs sm:text-sm"
-            valueClassName="text-2xl sm:text-3xl"
-          />
-          <StatCard
-            label="Submission Rate"
-            value={
-              overview.tenure_rate.expected === 0
-                ? "—"
-                : `${overview.tenure_rate.rate}%`
-            }
-            hint={`${overview.tenure_rate.submitted} of ${overview.tenure_rate.expected} working days`}
-            icon={<TrendingUp size={14} />}
-            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
-            labelClassName="text-xs sm:text-sm"
-            valueClassName="text-2xl sm:text-3xl"
-          />
-          <StatCard
-            label="Last Submitted"
-            value={formatDaysAgoLong(overview.last_submitted_date)}
-            hint={
-              overview.last_submitted_date
+        <FigureStrip
+          figures={[
+            {
+              icon: <Flame />,
+              label: "Current streak",
+              value: overview.current_streak,
+              unit: overview.current_streak === 1 ? "day" : "days",
+            },
+            {
+              icon: <TrendingUp />,
+              label: "Submission rate",
+              value:
+                overview.tenure_rate.expected === 0 ? "—" : `${overview.tenure_rate.rate}%`,
+              hint: `${overview.tenure_rate.submitted} of ${overview.tenure_rate.expected} working days`,
+            },
+            {
+              icon: <Calendar />,
+              label: "Last report",
+              value: formatDaysAgoLong(overview.last_submitted_date),
+              hint: overview.last_submitted_date
                 ? formatDate(overview.last_submitted_date)
-                : "No reports yet"
-            }
-            icon={<Calendar size={14} />}
-            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
-            labelClassName="text-xs sm:text-sm"
-            valueClassName="text-2xl sm:text-3xl"
-          />
-        </div>
+                : "No reports yet",
+            },
+          ]}
+        />
         {inDepartment && (
           <LeaveBalanceCard
             balance={resolvedLeaveBalance}
@@ -177,13 +158,10 @@ export async function TeamEmployeeProfile({
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Last 10 Reports</CardTitle>
-          <CardDescription>
-            {overview.report_count} total{" "}
-            {overview.report_count === 1 ? "report" : "reports"}
-          </CardDescription>
-        </CardHeader>
+        <CardLabelHeader
+          label="Recent reports"
+          aside={`${overview.report_count} total`}
+        />
         <CardContent>
           {overview.recent_reports.length === 0 ? (
             <EmptyState

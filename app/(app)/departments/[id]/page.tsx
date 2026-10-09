@@ -1,5 +1,3 @@
-import { AlertCircle, CheckCircle, TrendingUp } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   getDepartmentDetail,
@@ -13,8 +11,11 @@ import {
 } from "@/lib/supabase/queries/organization-settings";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { todayInTimezone } from "@/lib/helpers/dates";
-import { CompletionTrendCard } from "@/components/analytics/completion-trend-card";
-import { StatCard } from "@/components/analytics/stat-card";
+import { completionWindows } from "@/lib/helpers/completion-trend";
+import { CompletionLineChart } from "@/components/analytics/completion-line-chart";
+import { DataList, DataListRow, PersonCell } from "@/components/shared/data-list";
+import { GroupHeading } from "@/components/shared/person-card";
+import { PageHeader } from "@/components/shared/page-header";
 import { DepartmentDetailActions } from "@/components/admin/department-detail-actions";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { DepartmentMemberActions } from "@/components/admin/department-member-actions";
@@ -25,10 +26,9 @@ import {
   PartTimeIndicator,
   RemoteIndicator,
 } from "@/components/shared/employee-indicators";
-import { MemberAvatar } from "@/components/shared/member-avatar";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
 import type { DepartmentListItem } from "@/types/department";
 
 export default async function DepartmentDetailPage({
@@ -96,8 +96,6 @@ export default async function DepartmentDetailPage({
     (member) => !onLeaveIds.has(member.id),
   ).length;
   const missingToday = Math.max(expectedToday - submittedToday, 0);
-  const completionPct =
-    totalCount === 0 ? 0 : Math.round((submittedToday / totalCount) * 100);
   const today = todayInTimezone(settings.timezone);
 
   const currentTemplate = detail.template_id
@@ -111,75 +109,64 @@ export default async function DepartmentDetailPage({
     addCandidates,
   };
 
+  const deadlinePassed =
+    getSubmissionStatus(null, deadline.deadlineHourUtc, deadline, today) === "missed";
+  const { trend, previousAverage } = completionWindows(detail.trend, today, deadlinePassed);
+
+  const description = [
+    `${detail.members.length} ${detail.members.length === 1 ? "person" : "people"}`,
+    detail.manager ? `managed by ${detail.manager.full_name}` : "no manager",
+    hasReportingMembers
+      ? `${submittedToday} of ${totalCount} in today${missingToday > 0 && deadlinePassed ? ` · ${missingToday} missing` : ""}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <div className="flex flex-col gap-6">
       <BreadcrumbLabel label={detail.name} />
-      <Card>
-        <CardContent className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight">
-                {detail.name}
-              </h1>
-              {detail.archived_at && (
-                <Badge variant="outline">Archived</Badge>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {detail.members.length} member
-              {detail.members.length !== 1 ? "s" : ""}
-              {detail.manager && (
-                <> · Manager: {detail.manager.full_name}</>
-              )}
-            </p>
-          </div>
-          <DepartmentDetailActions variant="edit" {...actionProps} />
-        </CardContent>
-      </Card>
+      <PageHeader
+        title={detail.name}
+        description={
+          <>
+            {detail.archived_at && <Badge variant="neutral" className="mr-1.5">Archived</Badge>}
+            {description}
+          </>
+        }
+        action={<DepartmentDetailActions variant="edit" {...actionProps} />}
+      />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Manager</CardTitle>
+          <CardLabelHeader
+            label="Manager"
+            aside={
               <DepartmentDetailActions
                 variant={detail.manager ? "change-manager" : "assign-manager"}
                 {...actionProps}
               />
-            </div>
-          </CardHeader>
+            }
+          />
           <CardContent>
             {detail.manager ? (
-              <div className="flex items-center gap-3">
-                <MemberAvatar
-                  userId={detail.manager.id}
-                  name={detail.manager.full_name}
-                  avatar={detail.manager.avatar}
-                  size="md"
-                />
-                <div>
-                  <p className="text-sm font-medium">
-                    {detail.manager.full_name}
-                  </p>
-                  {detail.manager.designation && (
-                    <p className="text-xs text-muted-foreground">
-                      {detail.manager.designation}
-                    </p>
-                  )}
-                </div>
-              </div>
+              <PersonCell
+                id={detail.manager.id}
+                name={detail.manager.full_name}
+                avatar={detail.manager.avatar}
+                detail={detail.manager.designation ?? undefined}
+                href={`/employees/${detail.manager.id}`}
+              />
             ) : (
-              <p className="text-sm text-muted-foreground">
-                No manager assigned
-              </p>
+              <p className="text-sm text-muted-foreground">No manager assigned</p>
             )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Report Template</CardTitle>
+          <CardLabelHeader
+            label="Report template"
+            aside={
               <DeptTemplateActions
                 departmentId={detail.id}
                 departmentName={detail.name}
@@ -188,154 +175,102 @@ export default async function DepartmentDetailPage({
                 canCreate
                 showCurrentName={false}
               />
-            </div>
-          </CardHeader>
+            }
+          />
           <CardContent>
             {currentTemplate ? (
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-0.5">
                 <p className="text-sm font-medium">{currentTemplate.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {currentTemplate.fieldCount ?? 0} fields
-                  {currentTemplate.isDefault ? " · Org default" : ""}
+                <p className="text-[13px] text-muted-foreground">
+                  {currentTemplate.fieldCount ?? 0}{" "}
+                  {(currentTemplate.fieldCount ?? 0) === 1 ? "question" : "questions"}
+                  {currentTemplate.isDefault ? " · organization default" : ""}
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Using org default
-              </p>
+              <p className="text-sm text-muted-foreground">Using the organization default</p>
             )}
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-        <StatCard
-          label="Submitted Today"
-          value={hasReportingMembers ? `${submittedToday}/${totalCount}` : "—"}
-          icon={<CheckCircle className="size-4" />}
+      {hasReportingMembers && (
+        <CompletionLineChart
+          title="Department completion"
+          trend={trend}
+          previousAverage={previousAverage}
+          today={today}
         />
-        <StatCard
-          label="Completion"
-          value={hasReportingMembers ? `${completionPct}%` : "—"}
-          icon={<TrendingUp className="size-4" />}
-        />
-        <StatCard
-          label="Missing"
-          value={hasReportingMembers ? missingToday : "—"}
-          icon={<AlertCircle className="size-4" />}
-          valueClassName={
-            hasReportingMembers && missingToday > 0
-              ? "text-destructive"
-              : undefined
-          }
-        />
-      </div>
+      )}
 
-      <CompletionTrendCard
-        title="7-Day Completion"
-        description="Last 7 days for this department"
-        trend={detail.trend}
-      />
-
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Members</CardTitle>
-            <DepartmentDetailActions variant="add-member" {...actionProps} />
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {detail.members.length === 0 ? (
-            <EmptyState
-              illustration="team"
-              title="No members in this department yet."
-              className="py-6"
-            />
-          ) : (
-            <ul className="divide-y divide-border">
-              {detail.members.map((member) => {
-                const submittedAt =
-                  detail.submittedAtByMemberId[member.id] ?? null;
-
-                return (
-                  <li
-                    key={member.id}
-                    className="flex items-center justify-between px-4 py-3"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <MemberAvatar
-                        userId={member.id}
-                        name={member.full_name}
-                        avatar={member.avatar}
-                        size="sm"
-                      />
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`/employees/${member.id}`}
-                            className="text-sm font-medium hover:underline"
-                          >
-                            {member.full_name}
-                          </Link>
-                          {member.id === detail.manager_id && (
-                            <ManagerIndicator />
-                          )}
-                          {!member.has_onboarded && (
-                            <Badge variant="outline" className="text-xs">
-                              Invited
-                            </Badge>
-                          )}
-                          {member.is_remote && <RemoteIndicator />}
-                          {member.employment_type === "part_time" && (
-                            <PartTimeIndicator />
-                          )}
-                        </div>
-                        {member.designation && (
-                          <span className="text-xs text-muted-foreground">
-                            {member.designation}
-                          </span>
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <GroupHeading label="Members" count={detail.members.length} className="mb-0" />
+          <DepartmentDetailActions variant="add-member" {...actionProps} />
+        </div>
+        {detail.members.length === 0 ? (
+          <EmptyState illustration="team" title="No members in this department yet." className="py-6" />
+        ) : (
+          <DataList
+            columns="minmax(0,1fr) 7.5rem 2rem"
+            header={["Person", "Today", ""]}
+          >
+            {detail.members.map((member) => {
+              const submittedAt = detail.submittedAtByMemberId[member.id] ?? null;
+              return (
+                <DataListRow
+                  key={member.id}
+                  href={`/employees/${member.id}`}
+                  label={`Open ${member.full_name}`}
+                >
+                  <PersonCell
+                    id={member.id}
+                    name={member.full_name}
+                    avatar={member.avatar}
+                    detail={member.designation ?? undefined}
+                    addon={
+                      <>
+                        {member.id === detail.manager_id && <ManagerIndicator />}
+                        {member.is_remote && <RemoteIndicator />}
+                        {member.employment_type === "part_time" && <PartTimeIndicator />}
+                      </>
+                    }
+                  />
+                  <span className="flex items-center gap-2">
+                    {member.has_onboarded ? (
+                      <SubmissionStatusBadge
+                        status={getSubmissionStatus(
+                          submittedAt,
+                          deadline.deadlineHourUtc,
+                          deadline,
+                          today,
+                          onLeaveIds.has(member.id),
                         )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {submittedAt ? (
-                        <SubmissionStatusBadge
-                          status={getSubmissionStatus(
-                            submittedAt,
-                            deadline.deadlineHourUtc,
-                            deadline,
-                            today,
-                            onLeaveIds.has(member.id),
-                          )}
-                        />
-                      ) : member.has_onboarded ? (
-                        <SubmissionStatusBadge
-                          status={getSubmissionStatus(
-                            null,
-                            deadline.deadlineHourUtc,
-                            deadline,
-                            today,
-                            onLeaveIds.has(member.id),
-                          )}
-                        />
-                      ) : (
-                        <Badge variant="outline" className="text-xs">
-                          Invited
-                        </Badge>
-                      )}
+                      />
+                    ) : (
+                      <Badge variant="neutral">Invited</Badge>
+                    )}
+                    <span className="relative z-10 md:hidden">
                       <DepartmentMemberActions
                         employeeId={member.id}
                         departmentId={detail.id}
                         employeeName={member.full_name}
                       />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+                    </span>
+                  </span>
+                  <span className="relative z-10 hidden justify-end md:flex">
+                    <DepartmentMemberActions
+                      employeeId={member.id}
+                      departmentId={detail.id}
+                      employeeName={member.full_name}
+                    />
+                  </span>
+                </DataListRow>
+              );
+            })}
+          </DataList>
+        )}
+      </section>
     </div>
   );
 }

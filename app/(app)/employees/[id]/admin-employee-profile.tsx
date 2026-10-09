@@ -16,9 +16,9 @@ import {
 } from "@/lib/supabase/queries/templates";
 import { formatDate, formatDaysAgoLong } from "@/lib/helpers/dates";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
-import { StatCard } from "@/components/analytics/stat-card";
+import { FigureStrip } from "@/components/shared/figure-strip";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
 import { EmployeeHeroClient } from "@/components/admin/employee-hero-client";
 import { AssignmentsCard } from "./assignments-card";
 import { DetailsCard } from "./details-card";
@@ -146,42 +146,30 @@ export async function AdminEmployeeProfile({
       </div>
 
       <div className="flex flex-col gap-6">
-        <div className="flex flex-row gap-2 sm:grid sm:grid-cols-3 sm:gap-6">
-          <StatCard
-            label="Current Streak"
-            value={employee.stats.currentStreak}
-            unit="days"
-            hint="Days in a row"
-            icon={<Flame className="size-4" />}
-            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
-            labelClassName="text-xs sm:text-sm"
-            valueClassName="text-2xl sm:text-3xl"
-          />
-          <StatCard
-            label="Submission Rate"
-            value={
-              tenureRate.expected === 0 ? "—" : `${tenureRate.rate}%`
-            }
-            hint={`${tenureRate.submitted} of ${tenureRate.expected} working days`}
-            icon={<TrendingUp className="size-4" />}
-            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
-            labelClassName="text-xs sm:text-sm"
-            valueClassName="text-2xl sm:text-3xl"
-          />
-          <StatCard
-            label="Last Submitted"
-            value={formatDaysAgoLong(employee.stats.lastSubmittedDate)}
-            hint={
-              employee.stats.lastSubmittedDate
+        <FigureStrip
+          figures={[
+            {
+              icon: <Flame />,
+              label: "Current streak",
+              value: employee.stats.currentStreak,
+              unit: employee.stats.currentStreak === 1 ? "day" : "days",
+            },
+            {
+              icon: <TrendingUp />,
+              label: "Submission rate",
+              value: tenureRate.expected === 0 ? "—" : `${tenureRate.rate}%`,
+              hint: `${tenureRate.submitted} of ${tenureRate.expected} working days`,
+            },
+            {
+              icon: <Calendar />,
+              label: "Last report",
+              value: formatDaysAgoLong(employee.stats.lastSubmittedDate),
+              hint: employee.stats.lastSubmittedDate
                 ? formatDate(employee.stats.lastSubmittedDate)
-                : "No reports yet"
-            }
-            icon={<Calendar className="size-4" />}
-            className="min-w-0 flex-1 max-sm:[--card-spacing:--spacing(3)]"
-            labelClassName="text-xs sm:text-sm"
-            valueClassName="text-2xl sm:text-3xl"
-          />
-        </div>
+                : "No reports yet",
+            },
+          ]}
+        />
         {isOwnerOrAdmin && (
           <LeaveBalanceCard
             balance={resolvedLeaveBalance}
@@ -194,14 +182,10 @@ export async function AdminEmployeeProfile({
       </div>
 
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Report History</CardTitle>
-            <span className="text-sm text-muted-foreground">
-              {employee.report_count} total
-            </span>
-          </div>
-        </CardHeader>
+        <CardLabelHeader
+          label="Report history"
+          aside={`${employee.report_count} total`}
+        />
         <CardContent>
           {employee.recent_reports.length === 0 ? (
             <EmptyState

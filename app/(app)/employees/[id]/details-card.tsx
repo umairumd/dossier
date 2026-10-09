@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { RoleChip } from "@/components/shared/role-chip";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
 import { formatDate } from "@/lib/helpers/dates";
 import type { UserRole } from "@/types/profile";
 
@@ -24,9 +24,7 @@ export function DetailsCard({
 }) {
   return (
     <Card className="h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">Details</CardTitle>
-      </CardHeader>
+      <CardLabelHeader label="Details" />
       <CardContent className="flex flex-col gap-3">
         {showAdminFields && (
           <div className="flex flex-col gap-1">

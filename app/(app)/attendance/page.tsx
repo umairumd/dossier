@@ -27,6 +27,7 @@ import { AttendanceLegend } from "@/components/attendance/attendance-legend";
 import { PersonalMonthCalendar } from "@/components/attendance/personal-month-calendar";
 import { RunAccrualButton } from "@/components/attendance/run-accrual-button";
 import { PageHeader } from "@/components/shared/page-header";
+import { GroupHeading } from "@/components/shared/person-card";
 export const dynamic = "force-dynamic";
 
 export default async function AttendancePage({
@@ -36,8 +37,7 @@ export default async function AttendancePage({
 }) {
   const profile = await getCurrentProfile();
 
-  const isOwnerOrAdmin =
-    profile?.role === "owner" || profile?.role === "admin";
+  const isOwnerOrAdmin = profile?.role === "owner" || profile?.role === "admin";
   const isManager = profile?.role === "manager";
   const isSupervisor = Boolean(profile?.is_supervisor);
   const isMember = profile?.role === "member" && !isSupervisor;
@@ -88,8 +88,6 @@ export default async function AttendancePage({
           workingDays={settings.workingDays}
           today={today}
           shift={myShift}
-          leaveBalance={undefined}
-          fines={undefined}
         />
       </div>
     );
@@ -159,25 +157,20 @@ export default async function AttendancePage({
           }
         />
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Your attendance
-          </h2>
-          <PersonalMonthCalendar
-            records={myRecords}
-            yearMonth={month}
-            workingDays={settings.workingDays}
-            today={today}
-            shift={myShift}
-            leaveBalance={undefined}
-            fines={undefined}
-          />
-        </section>
+        <PersonalMonthCalendar
+          records={myRecords}
+          yearMonth={month}
+          workingDays={settings.workingDays}
+          today={today}
+          shift={myShift}
+        />
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Your team
-          </h2>
+          <GroupHeading
+            label="Your team"
+            count={activeEmployees.length}
+            className="mb-0"
+          />
           <AttendanceGrid
             onSiteEmployees={onSiteEmployees}
             remoteEmployees={remoteEmployees}
