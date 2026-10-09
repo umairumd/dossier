@@ -20,6 +20,7 @@ import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { SettingsProfileBuddy } from "@/components/settings/settings-profile-buddy";
 import { PageHeader } from "@/components/shared/page-header";
+import { FigureStrip } from "@/components/shared/figure-strip";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -90,31 +91,13 @@ export default async function SettingsPage() {
       />
 
       <SettingsSection title="Your reporting" description="The last 30 days.">
-        <div className="grid overflow-hidden rounded-xl ring-1 ring-inset ring-foreground/10 sm:grid-cols-3">
-          {figures.map((figure, index) => (
-            <div
-              key={figure.label}
-              className={
-                index > 0
-                  ? "flex flex-col gap-1.5 border-t border-foreground/[0.06] px-4 py-3.5 sm:border-t-0 sm:border-l"
-                  : "flex flex-col gap-1.5 px-4 py-3.5"
-              }
-            >
-              <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                {figure.icon}
-                {figure.label}
-              </span>
-              <span className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-semibold tracking-tight tabular-nums">
-                  {figure.value}
-                </span>
-                {figure.unit && (
-                  <span className="text-[13px] text-muted-foreground">{figure.unit}</span>
-                )}
-              </span>
-            </div>
-          ))}
-        </div>
+        <FigureStrip
+          variant="inset"
+          figures={figures.map((figure) => ({
+            ...figure,
+            unit: figure.unit || undefined,
+          }))}
+        />
       </SettingsSection>
 
       <ChangePasswordForm />

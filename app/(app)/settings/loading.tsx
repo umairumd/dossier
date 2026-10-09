@@ -1,43 +1,80 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  FieldSkeleton,
+  FigureStripSkeleton,
+  PageHeaderSkeleton,
+  SettingsSectionSkeleton,
+  SkeletonLine,
+} from "@/components/shared/skeletons";
 
 export default function SettingsLoading() {
   return (
     <div className="flex flex-col gap-6">
-      {/* h1 + subtitle */}
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-8 w-28" />
-        <Skeleton className="h-4 w-52" />
-      </div>
-      {/* Profile card: xl avatar + name + form fields */}
-      <div className="surface-card rounded-xl bg-card p-5 flex flex-col gap-6">
-        <Skeleton className="h-5 w-16" />
-        <div className="flex items-center gap-4">
-          <Skeleton className="size-16 rounded-full shrink-0" />
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-5 w-36" />
-            <Skeleton className="h-4 w-24" />
+      <PageHeaderSkeleton title="Settings" />
+
+      <section className="surface-card rounded-xl bg-card p-5 md:p-6">
+        <div className="flex w-full items-center gap-4 py-2">
+          <div className="flex shrink-0 flex-col items-center gap-1">
+            <span className="flex h-[70px] items-start">
+              <Skeleton className="size-16 rounded-full" />
+            </span>
+            <span className="flex h-7 items-center">
+              <Skeleton className="h-3 w-16" />
+            </span>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <SkeletonLine size="xl" className="w-44" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-24 rounded-full" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="ml-auto h-2.5 w-24" />
+            </div>
           </div>
         </div>
+      </section>
+
+      <SettingsSectionSkeleton
+        title="Profile"
+        description="Your name and birthday. Role and department are set by an admin."
+      >
+        <FieldSkeleton label="Full name" />
+        <FieldSkeleton label="Email" />
         <div className="grid gap-4 sm:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-9 w-full rounded-md" />
-          ))}
+          <FieldSkeleton label="Role" />
+          <FieldSkeleton label="Department" />
         </div>
-        <Skeleton className="h-9 w-24 rounded-md" />
-      </div>
-      {/* Performance card: 3 stat cards */}
-      <div className="surface-card rounded-xl bg-card p-5 flex flex-col gap-4">
-        <Skeleton className="h-5 w-28" />
-        <div className="grid gap-4 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-xl" />
-          ))}
+        <FieldSkeleton label="Date of birth" wide={false} hint />
+      </SettingsSectionSkeleton>
+
+      <SettingsSectionSkeleton
+        title="Your reporting"
+        description="The last 30 days."
+        saveBar={false}
+      >
+        <FigureStripSkeleton
+          variant="inset"
+          labels={["Current streak", "30-day completion", "This month"]}
+        />
+      </SettingsSectionSkeleton>
+
+      <SettingsSectionSkeleton
+        title="Password"
+        description="Choose a new password for your account. At least 8 characters."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FieldSkeleton label="New password" />
+          <FieldSkeleton label="Confirm new password" />
         </div>
-      </div>
-      {/* Security card */}
-      <Skeleton className="h-40 w-full rounded-xl" />
-      {/* Session card */}
-      <Skeleton className="h-20 w-full rounded-xl" />
+      </SettingsSectionSkeleton>
+
+      <SettingsSectionSkeleton
+        title="Session"
+        description="Sign out of Dossier on this device."
+        saveBar={false}
+      >
+        <Skeleton className="h-9 w-28 rounded-lg" />
+      </SettingsSectionSkeleton>
     </div>
   );
 }
