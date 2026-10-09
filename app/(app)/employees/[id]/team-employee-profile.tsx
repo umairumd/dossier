@@ -184,7 +184,7 @@ export async function TeamEmployeeProfile({
             {overview.report_count === 1 ? "report" : "reports"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="pr-0">
+        <CardContent>
           {overview.recent_reports.length === 0 ? (
             <EmptyState
               size="sm"

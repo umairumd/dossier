@@ -1,374 +1,133 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { LocalTime } from "@/components/shared/local-time";
-import { MemberAvatar } from "@/components/shared/member-avatar";
-import {
-  getSubmissionStatus,
-  SUBMISSION_STATUS_LABELS,
-  type DeadlineContext,
-  type SubmissionStatus,
-} from "@/lib/reports/submission-status";
-import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
-import { EmployeeNameLink } from "@/components/manager/employee-name-link";
-import {
-  ManagerIndicator,
-  PartTimeIndicator,
-  RemoteIndicator,
-} from "@/components/shared/employee-indicators";
+import { useMemo, useState } from "react";
 import {
   EmptyState,
   illustrationForTeamEmpty,
 } from "@/components/shared/empty-state";
+import { FilterSearchInput } from "@/components/shared/filter-toolbar";
+import { SegmentedFilter } from "@/components/shared/segmented-filter";
 import {
-  FilterSearchInput,
-  FilterToolbar,
-  filterSelectTriggerClassName,
-} from "@/components/shared/filter-toolbar";
-import { ListGroupCard } from "@/components/shared/list-group-card";
-import { ListRow } from "@/components/shared/list-row";
-import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
-import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
-import type { DailyReport } from "@/types/report";
+  ReportRoster,
+  matchesRosterFilter,
+  rosterFilterOptions,
+  rosterStatus,
+  type RosterFilter,
+} from "@/components/reports/report-roster";
+import type { DeadlineContext } from "@/lib/reports/submission-status";
+import { sortTeamMembersBySubmission } from "@/lib/helpers/team-sort";
 import type { TeamMemberReport } from "@/types/team";
 import type { ReportTemplateWithFields } from "@/types/template";
 import type { UserRole } from "@/types/profile";
 
-type StatusFilter = "all" | SubmissionStatus;
-
-function memberStatus(
-  member: TeamMemberReport,
-  deadline: DeadlineContext,
-  reportDate?: string,
-  isOffDay?: boolean,
-): SubmissionStatus {
-  return getSubmissionStatus(
-    member.report?.submitted_at ?? null,
-    deadline.deadlineHourUtc,
-    deadline,
-    reportDate,
-    member.isOnLeave,
-    isOffDay,
-  );
+export interface TeamReportsGroup {
+  key: string;
+  title: string;
+  members: TeamMemberReport[];
+  managerId?: string;
 }
 
-function NameIndicators({
-  isManager,
-  isRemote,
-  employmentType,
-}: {
-  isManager: boolean;
-  isRemote?: boolean;
-  employmentType?: "full_time" | "part_time";
-}) {
-  return (
-    <>
-      {isManager && <ManagerIndicator />}
-      {isRemote && <RemoteIndicator />}
-      {employmentType === "part_time" && <PartTimeIndicator />}
-    </>
-  );
-}
-
+// Team Reports: search and a status filter over one list. When there is more
+// than one group (your department and people who also report to you), each
+// group is a section row in the same list.
 export function TeamReportsView({
-  members,
+  groups,
   deadline,
   adminView = false,
   emptyMessage,
-  showFilters = true,
-  managerId,
   templates,
   reportDate,
   viewerRole,
   currentUserId,
-  groupTitle,
-  groupAside,
   isOffDay,
 }: {
-  members: TeamMemberReport[];
+  groups: TeamReportsGroup[];
   deadline: DeadlineContext;
   adminView?: boolean;
   emptyMessage?: string;
-  showFilters?: boolean;
-  managerId?: string;
   templates?: ReportTemplateWithFields[];
   reportDate?: string;
   viewerRole?: UserRole;
   currentUserId?: string;
-  groupTitle?: string;
-  groupAside?: ReactNode;
   isOffDay?: boolean;
 }) {
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [filter, setFilter] = useState<RosterFilter>("all");
 
-  const filtered = useMemo(() => {
-    let result = members;
+  const everyone = useMemo(() => groups.flatMap((group) => group.members), [groups]);
+  const statusOf = (member: TeamMemberReport) =>
+    rosterStatus(member, deadline, reportDate, isOffDay);
 
-    if (showFilters) {
-      const normalized = query.trim().toLowerCase();
+  const options = rosterFilterOptions(everyone.map(statusOf));
 
+  const sections = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return groups.map((group) => {
+      let members = group.members;
       if (normalized) {
-        result = result.filter((member) =>
+        members = members.filter((member) =>
           member.fullName.toLowerCase().includes(normalized),
         );
       }
-
-      if (statusFilter !== "all") {
-        result = result.filter(
-          (member) =>
-            memberStatus(member, deadline, reportDate, isOffDay) === statusFilter,
+      if (filter !== "all") {
+        members = members.filter((member) =>
+          matchesRosterFilter(
+            rosterStatus(member, deadline, reportDate, isOffDay),
+            filter,
+          ),
         );
       }
+      return {
+        key: group.key,
+        title: groups.length > 1 ? group.title : undefined,
+        members: sortTeamMembersBySubmission(members),
+        managerId: group.managerId,
+        emptyMessage: "No one matches.",
+      };
+    });
+  }, [groups, query, filter, deadline, reportDate, isOffDay]);
 
-      result = sortTeamMembersBySubmission(result);
-    }
+  if (everyone.length === 0) {
+    const message = emptyMessage ?? "No one is reporting to you yet.";
+    return <EmptyState title={message} illustration={illustrationForTeamEmpty(message)} />;
+  }
 
-    if (managerId) {
-      result = [...result].sort((a, b) => {
-        const aIsManager = a.employeeId === managerId ? -1 : 0;
-        const bIsManager = b.employeeId === managerId ? -1 : 0;
-        return aIsManager - bIsManager;
-      });
-    }
-
-    return result;
-  }, [members, query, statusFilter, deadline, showFilters, managerId, reportDate, isOffDay]);
-
-  const submittedMembers = useMemo(
-    () =>
-      filtered.filter(
-        (member): member is TeamMemberReport & { report: DailyReport } =>
-          member.report !== null,
-      ),
-    [filtered],
-  );
-
-  const openReport = (employeeId: string) => {
-    const index = submittedMembers.findIndex(
-      (member) => member.employeeId === employeeId,
-    );
-    if (index !== -1) {
-      setOpenIndex(index);
-    }
-  };
-
-  const resolvedEmptyMessage =
-    emptyMessage ??
-    (members.length === 0
-      ? "No employees are assigned to your department yet."
-      : "No reports match your filters.");
+  const nothingMatches = sections.every((section) => section.members.length === 0);
 
   return (
     <div className="flex flex-col gap-4">
-      {showFilters && (
-        <FilterToolbar
-          search={
-            <FilterSearchInput
-              value={query}
-              onChange={setQuery}
-              placeholder="Search employees..."
-            />
-          }
-          filters={[
-            <Select
-              key="status"
-              value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-            >
-              <SelectTrigger className={filterSelectTriggerClassName}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="on_time">{SUBMISSION_STATUS_LABELS.on_time}</SelectItem>
-                <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
-                <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
-                <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
-                <SelectItem value="on_leave">{SUBMISSION_STATUS_LABELS.on_leave}</SelectItem>
-              </SelectContent>
-            </Select>,
-          ]}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
+          <FilterSearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Search people…"
+          />
+        </div>
+        <SegmentedFilter
+          label="Report status"
+          value={filter}
+          onChange={setFilter}
+          options={options}
         />
-      )}
+      </div>
 
-      {filtered.length === 0 ? (
-        <EmptyState
-          title={resolvedEmptyMessage}
-          illustration={illustrationForTeamEmpty(resolvedEmptyMessage)}
-        />
+      {nothingMatches ? (
+        <EmptyState size="sm" title="No one matches your filters." />
       ) : (
-        <>
-          <div className="hidden md:block">
-            <Table className="table-fixed w-full">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[180px]">
-                    Employee
-                  </TableHead>
-                  <TableHead className="w-[160px]">
-                    Designation
-                  </TableHead>
-                  <TableHead className="w-[120px]">
-                    <div className="flex justify-center">Status</div>
-                  </TableHead>
-                  <TableHead className="w-[160px] text-right">
-                    Submitted
-                  </TableHead>
-                  <TableHead className="w-[60px]">
-                    <div className="flex justify-end">{""}</div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((member) => {
-                  const status = memberStatus(member, deadline, reportDate, isOffDay);
-                  const isManager = managerId === member.employeeId;
-
-                  return (
-                    <TableRow key={member.employeeId}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <MemberAvatar
-                            userId={member.employeeId}
-                            name={member.fullName}
-                            avatar={member.avatar}
-                            size="md"
-                          />
-                          <div className="flex min-w-0 flex-col gap-0.5">
-                            <div className="flex min-w-0 items-center gap-1">
-                              <EmployeeNameLink
-                                employeeId={member.employeeId}
-                                fullName={member.fullName}
-                              />
-                              <NameIndicators
-                                isManager={isManager}
-                                isRemote={member.isRemote}
-                                employmentType={member.employment_type}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="w-[160px]">
-                        <span className="text-sm text-muted-foreground">
-                          {member.designation ?? "—"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="w-[120px]">
-                        <div className="flex justify-center">
-                          <SubmissionStatusBadge status={status} />
-                        </div>
-                      </TableCell>
-                      <TableCell className="w-[160px] text-right">
-                        <span className="text-sm text-muted-foreground">
-                          {member.report ? (
-                            <LocalTime isoString={member.report.submitted_at} />
-                          ) : (
-                            "—"
-                          )}
-                        </span>
-                      </TableCell>
-                      <TableCell className="w-[60px]">
-                        <div className="flex justify-end">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openReport(member.employeeId)}
-                            disabled={!member.report}
-                          >
-                            View
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-
-          <ListGroupCard
-            className="md:hidden"
-            title={groupTitle}
-            aside={groupAside}
-          >
-            {filtered.map((member) => {
-              const status = memberStatus(member, deadline, reportDate, isOffDay);
-              const isManager = managerId === member.employeeId;
-              const hasReport = member.report !== null;
-
-              return (
-                <ListRow
-                  key={member.employeeId}
-                  leading={
-                    <MemberAvatar
-                      userId={member.employeeId}
-                      name={member.fullName}
-                      avatar={member.avatar}
-                      size="sm"
-                    />
-                  }
-                  title={member.fullName}
-                  titleAddon={
-                    <NameIndicators
-                      isManager={isManager}
-                      isRemote={member.isRemote}
-                      employmentType={member.employment_type}
-                    />
-                  }
-                  meta={[
-                    member.designation,
-                    member.report ? (
-                      <LocalTime
-                        key="time"
-                        isoString={member.report.submitted_at}
-                      />
-                    ) : (
-                      "No report"
-                    ),
-                  ]}
-                  trailing={<SubmissionStatusBadge status={status} />}
-                  onClick={
-                    hasReport
-                      ? () => openReport(member.employeeId)
-                      : undefined
-                  }
-                />
-              );
-            })}
-          </ListGroupCard>
-        </>
+        <ReportRoster
+          sections={sections.filter(
+            (section) => groups.length === 1 || section.members.length > 0,
+          )}
+          deadline={deadline}
+          reportDate={reportDate}
+          isOffDay={isOffDay}
+          templates={templates}
+          adminView={adminView}
+          viewerRole={viewerRole}
+          currentUserId={currentUserId}
+        />
       )}
-
-      <ReportDetailSheet
-        members={submittedMembers}
-        index={openIndex}
-        onIndexChange={setOpenIndex}
-        deadline={deadline}
-        adminView={adminView}
-        templates={templates}
-        viewerRole={viewerRole}
-        currentUserId={currentUserId}
-      />
     </div>
   );
 }

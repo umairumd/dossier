@@ -49,11 +49,15 @@ export function DateNav({
   const centerLabel = date === today ? "Today" : formatDate(date);
 
   return (
-    <div className="flex items-center gap-1" aria-busy={isPending}>
+    <div
+      className="inline-flex h-9 items-center rounded-lg bg-foreground/[0.03] ring-1 ring-inset ring-foreground/10"
+      aria-busy={isPending}
+    >
       <Button
         type="button"
         variant="ghost"
-        size="icon-sm"
+        size="icon"
+        className="size-9 rounded-r-none rounded-l-lg"
         onClick={() => goToDate(previousDate)}
         disabled={isPending}
         aria-label="Previous day"
@@ -69,7 +73,7 @@ export function DateNav({
             size="sm"
             disabled={isPending}
             className={cn(
-              "min-w-20",
+              "h-9 min-w-20 rounded-none px-2 font-medium",
               isOffDay && "hover:bg-transparent dark:hover:bg-transparent",
             )}
           >
@@ -106,7 +110,8 @@ export function DateNav({
       <Button
         type="button"
         variant="ghost"
-        size="icon-sm"
+        size="icon"
+        className="size-9 rounded-l-none rounded-r-lg"
         onClick={() => goToDate(nextDate)}
         disabled={isPending || isToday}
         aria-label="Next day"

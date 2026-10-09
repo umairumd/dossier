@@ -1,5 +1,6 @@
 "use client";
 
+import { reportExcerpt } from "@/lib/reports/excerpt";
 import { useState, type ReactNode } from "react";
 import { MemberAvatar } from "@/components/mascot/member-avatar";
 import { HeroViewHeader } from "@/components/dashboard/hero-view-header";
@@ -38,18 +39,7 @@ function firstName(fullName: string): string {
 }
 
 function excerpt(member: Submitted, templates: ReportTemplateWithFields[]): string {
-  const report = member.report;
-  const responses = report.field_responses;
-  const template = templates.find((item) => item.id === report.template_id);
-  if (responses && template) {
-    const fields = [...template.fields].sort((a, b) => a.fieldOrder - b.fieldOrder);
-    for (const field of fields) {
-      if (field.fieldType !== "text" && field.fieldType !== "textarea") continue;
-      const raw = responses[field.id] ?? responses[field.key];
-      if (typeof raw === "string" && raw.trim()) return raw.trim().replace(/\s+/g, " ");
-    }
-  }
-  return report.content?.trim().replace(/\s+/g, " ") ?? "";
+  return reportExcerpt(member.report, templates);
 }
 
 function deadlineCopy(minutesLeft: number, pastDue: boolean): string {

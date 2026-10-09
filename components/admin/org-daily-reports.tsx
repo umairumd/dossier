@@ -1,32 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { TeamReportsView } from "@/components/manager/team-reports-view";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FilterSearchInput } from "@/components/shared/filter-toolbar";
+import { SegmentedFilter } from "@/components/shared/segmented-filter";
 import {
-  FilterSearchInput,
-  FilterToolbar,
-  filterSelectTriggerClassName,
-} from "@/components/shared/filter-toolbar";
+  ReportRoster,
+  matchesRosterFilter,
+  rosterFilterOptions,
+  type RosterFilter,
+} from "@/components/reports/report-roster";
 import { cn } from "@/lib/utils";
 import { isWorkingDay } from "@/lib/helpers/dates";
 import { isAttendanceExempt } from "@/lib/helpers/report-stats";
 import {
   getSubmissionStatus,
-  SUBMISSION_STATUS_LABELS,
   type DeadlineContext,
   type SubmissionStatus,
 } from "@/lib/reports/submission-status";
@@ -38,7 +26,6 @@ import type { ReportTemplateWithFields } from "@/types/template";
 import type { UserRole } from "@/types/profile";
 import type { TeamMemberReport } from "@/types/team";
 
-type StatusFilter = "all" | SubmissionStatus;
 
 const UNASSIGNED_ID = "__unassigned__";
 
@@ -134,17 +121,6 @@ function sortByStatusThenName(
   });
 }
 
-function completionClass(pct: number): string {
-  if (pct >= 80) {
-    return "text-primary";
-  }
-  if (pct >= 50) {
-    // One-off: shadcn has no semantic warning token; yellow is not a theme variable.
-    return "text-yellow-500/70";
-  }
-  return "text-destructive";
-}
-
 export function OrgDailyReports({
   members,
   departments,
@@ -167,7 +143,7 @@ export function OrgDailyReports({
   focusDepartmentId?: string;
 }) {
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<RosterFilter>("all");
 
   const visibleMembers = useMemo(
     () =>
@@ -188,9 +164,11 @@ export function OrgDailyReports({
     }
 
     if (statusFilter !== "all") {
-      result = result.filter(
-        (member) =>
-          memberStatus(member, deadline, reportDate, isOffDay) === statusFilter,
+      result = result.filter((member) =>
+        matchesRosterFilter(
+          memberStatus(member, deadline, reportDate, isOffDay),
+          statusFilter,
+        ),
       );
     }
 
@@ -294,98 +272,66 @@ export function OrgDailyReports({
   ]);
 
   const hasQuery = query.trim().length > 0;
+  const options = rosterFilterOptions(
+    visibleMembers.map((member) => memberStatus(member, deadline, reportDate, isOffDay)),
+  );
+  // Neutral until the deadline has passed; then departments still missing
+  // reports turn amber.
+  const deadlinePassed =
+    getSubmissionStatus(null, deadline.deadlineHourUtc, deadline, reportDate) === "missed";
+  const shownSections = sections.filter(
+    (section) => section.visible.length > 0 || (!hasQuery && statusFilter === "all"),
+  );
 
   return (
-    <div className="flex flex-col gap-6">
-      <FilterToolbar
-        search={
-          <FilterSearchInput
-            value={query}
-            onChange={setQuery}
-            placeholder="Search employees..."
-          />
-        }
-        filters={[
-          <Select
-            key="status"
-            value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-          >
-            <SelectTrigger className={filterSelectTriggerClassName}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="on_time">{SUBMISSION_STATUS_LABELS.on_time}</SelectItem>
-              <SelectItem value="late">{SUBMISSION_STATUS_LABELS.late}</SelectItem>
-              <SelectItem value="pending">{SUBMISSION_STATUS_LABELS.pending}</SelectItem>
-              <SelectItem value="missed">{SUBMISSION_STATUS_LABELS.missed}</SelectItem>
-              <SelectItem value="on_leave">{SUBMISSION_STATUS_LABELS.on_leave}</SelectItem>
-              <SelectItem value="off">{SUBMISSION_STATUS_LABELS.off}</SelectItem>
-            </SelectContent>
-          </Select>,
-        ]}
-      />
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
+          <FilterSearchInput value={query} onChange={setQuery} placeholder="Search people…" />
+        </div>
+        <SegmentedFilter
+          label="Report status"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={options}
+        />
+      </div>
 
-      {members.length === 0 && (
+      {members.length === 0 ? (
         <EmptyState title="No employees in the organization yet." />
+      ) : shownSections.length === 0 ? (
+        <EmptyState size="sm" title="No one matches your filters." />
+      ) : (
+        <ReportRoster
+          sections={shownSections.map((section) => {
+            const allIn = section.total > 0 && section.submitted >= section.total;
+            return {
+              key: section.id,
+              title: section.name,
+              managerId: section.managerId,
+              members: section.visible,
+              emptyMessage: "No employees in this department.",
+              aside: (
+                <span
+                  className={cn(
+                    allIn && "text-green-700 dark:text-green-300",
+                    !allIn && deadlinePassed && "text-amber-700 dark:text-amber-300",
+                  )}
+                >
+                  {allIn ? "All in" : `${section.submitted} of ${section.total} in`}
+                </span>
+              ),
+            };
+          })}
+          deadline={deadline}
+          reportDate={reportDate}
+          isOffDay={isOffDay}
+          templates={templates}
+          adminView
+          viewerRole={viewerRole}
+          currentUserId={currentUserId}
+        />
       )}
-
-      {sections.map((section) => {
-        const emptyMessage = hasQuery
-          ? "No matching people."
-          : statusFilter !== "all"
-            ? "Everyone submitted today."
-            : "No employees in this department.";
-
-        const sectionTitle =
-          section.id === UNASSIGNED_ID
-            ? section.name
-            : `${section.name} Department`;
-        const submittedAside = (
-          <span
-            className={cn(
-              "shrink-0 text-sm font-medium",
-              completionClass(section.completionPct),
-            )}
-          >
-            {section.submitted}/{section.total} submitted
-          </span>
-        );
-
-        return (
-          <Card
-            key={section.id}
-            className="max-md:gap-0 max-md:bg-transparent max-md:bg-none max-md:py-0 max-md:border-0 max-md:shadow-none"
-          >
-            <CardHeader className="hidden pb-3 md:block">
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle className="min-w-0 truncate text-base">
-                  {sectionTitle}
-                </CardTitle>
-                {submittedAside}
-              </div>
-            </CardHeader>
-            <CardContent className="p-0 max-md:px-0">
-              <TeamReportsView
-                members={section.visible}
-                deadline={deadline}
-                adminView
-                showFilters={false}
-                emptyMessage={emptyMessage}
-                managerId={section.managerId}
-                templates={templates}
-                reportDate={reportDate}
-                viewerRole={viewerRole}
-                currentUserId={currentUserId}
-                groupTitle={sectionTitle}
-                groupAside={submittedAside}
-                isOffDay={isOffDay}
-              />
-            </CardContent>
-          </Card>
-        );
-      })}
     </div>
   );
 }

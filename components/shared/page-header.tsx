@@ -23,8 +23,8 @@ export function PageHeader({
 
   return (
     <div className={className}>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex min-w-0 flex-col gap-0.5">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
           {hasSubtitle && (
             <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-sm text-muted-foreground">
