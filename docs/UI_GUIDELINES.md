@@ -637,3 +637,8 @@ Cards on the home page follow the hero tiles:
 - Status colour only when it means something: neutral before the deadline, amber once it has passed or a value is below its threshold, green when complete.
 - Activity rows (home card and Activity page share `ActivityRowShell` in `components/analytics/activity-row.tsx`): an icon chip for the event's scenario (`EVENT_ICON`), faintly tinted by its kind (`CATEGORY_TONE`: reports green, people blue, attendance and leave amber, departments and templates violet, settings grey); the sentence with the actor in medium weight ("You" for the viewer); an optional muted detail line (comment preview, leave type and date); the clock time. Text stays neutral; colour lives only in the chip.
 - Team and company feeds fold each day's report submissions into one row: a summary on the home page, expandable on the Activity page.
+
+## App frame
+
+- Desktop: the sidebar sits on the app frame (`bg-shell`); the page is a raised panel (`data-app-panel`, rounded, 10% border) that scrolls on its own. Anything that needs the scroll position should use the panel, not `window` (scroll events: listen with `capture: true` on `window`).
+- Sidebar items: 36px high, `rounded-lg`, neutral active fill (`bg-foreground/[0.07]` with a faint inset ring), no sideways motion on hover. Section labels use `label-eyebrow`.

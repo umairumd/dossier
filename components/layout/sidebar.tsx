@@ -3,8 +3,10 @@
 import { useEffect, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { NavLinks } from "@/components/layout/nav-links";
+import { SidebarAccount } from "@/components/layout/user-menu";
 import type { NavSection } from "@/components/layout/nav-config";
 import { cn } from "@/lib/utils";
+import type { Profile } from "@/types/profile";
 
 const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
 const SIDEBAR_COLLAPSED_EVENT = "sidebar-collapsed-change";
@@ -20,21 +22,30 @@ function subscribeToCollapsed(onStoreChange: () => void) {
 }
 
 function getCollapsedSnapshot() {
-  return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+  } catch {
+    return false;
+  }
 }
 
 function getCollapsedServerSnapshot() {
   return false;
 }
 
+// Desktop sidebar. It has no surface of its own: it sits on the app frame
+// (bg-shell) next to the raised page panel. The collapse button lives in the
+// top bar (TopNav), which dispatches SIDEBAR_TOGGLE_EVENT.
 export function Sidebar({
   mainSections,
   accountSections,
   orgName,
+  profile,
 }: {
   mainSections: NavSection[];
   accountSections: NavSection[];
   orgName?: string;
+  profile: Profile;
 }) {
   const collapsed = useSyncExternalStore(
     subscribeToCollapsed,
@@ -44,8 +55,12 @@ export function Sidebar({
 
   useEffect(() => {
     const handler = () => {
-      const next = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) !== "true";
-      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      try {
+        const next = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) !== "true";
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      } catch {
+        // Storage unavailable: the sidebar simply stays as it is.
+      }
       window.dispatchEvent(new Event(SIDEBAR_COLLAPSED_EVENT));
     };
 
@@ -56,54 +71,45 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border transition-all duration-200 md:flex",
-        collapsed ? "w-12" : "w-56",
+        "hidden h-svh shrink-0 flex-col py-2 transition-[width] duration-200 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none md:flex",
+        collapsed ? "w-[60px] px-2" : "w-60 px-2.5",
       )}
     >
       <div
         className={cn(
-          "flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto overflow-x-hidden",
-          collapsed ? "items-center px-1.5 py-4" : "p-4",
+          "flex h-14 shrink-0 items-center gap-2.5",
+          collapsed ? "justify-center" : "px-1.5",
         )}
       >
-        <div
-          className={cn(
-            "flex items-center gap-2 pb-4",
-            collapsed ? "justify-center" : "px-2.5",
-          )}
-        >
-          <Image
-            src="/logo.png"
-            alt="Dossier"
-            width={32}
-            height={32}
-            className="rounded-sm"
-            style={{ width: 32, height: 32 }}
-          />
-          {!collapsed && (
-            <span className="text-base font-semibold tracking-tight">
-              Dossier
+        <Image
+          src="/logo.png"
+          alt="Dossier"
+          width={28}
+          height={28}
+          className="shrink-0 rounded-md"
+          style={{ width: 28, height: 28 }}
+        />
+        {!collapsed && (
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-sm leading-tight font-semibold">
+              {orgName ?? "Dossier"}
             </span>
-          )}
-        </div>
+            {orgName && (
+              <span className="text-xs leading-tight text-muted-foreground">
+                Dossier
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="-mx-1.5 flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-1.5 pt-3">
         <NavLinks sections={mainSections} collapsed={collapsed} />
       </div>
 
-      <div
-        className={cn(
-          "flex flex-col gap-1 border-t border-border pt-3",
-          collapsed ? "items-center px-1.5 pb-4" : "px-4 pb-4",
-        )}
-      >
+      <div className="flex shrink-0 flex-col gap-2 border-t border-foreground/[0.06] pt-3">
         <NavLinks sections={accountSections} collapsed={collapsed} />
-
-        {orgName && !collapsed && (
-          <div className="mt-2 flex items-center px-2.5">
-            <span className="inline-flex max-w-full items-center truncate rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-              {orgName}
-            </span>
-          </div>
-        )}
+        <SidebarAccount profile={profile} collapsed={collapsed} />
       </div>
     </aside>
   );

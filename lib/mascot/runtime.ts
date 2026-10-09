@@ -81,7 +81,9 @@ function listen() {
   window.addEventListener("pointermove", onPointer, { passive: true });
   window.addEventListener("pointerdown", onPointer, { passive: true });
   window.addEventListener("keydown", activity, { passive: true });
-  window.addEventListener("scroll", activity, { passive: true });
+  // Capture: also hears scrolling inside the app panel (it scrolls on its own
+  // on desktop), not only the window.
+  window.addEventListener("scroll", activity, { passive: true, capture: true });
   document.addEventListener("visibilitychange", onVisibility);
 }
 

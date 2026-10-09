@@ -6,6 +6,7 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-shell: var(--shell);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
@@ -84,6 +85,8 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   /* Design language: surfaces, skeletons (docs/design/PLAN.md) */
+  /* App frame behind the page panel and under the sidebar (desktop). */
+  --shell: color-mix(in oklab, var(--background) 96%, var(--foreground));
   --surface-border: oklch(0 0 0 / 0.08);
   --surface-border-hover: oklch(0 0 0 / 0.16);
   --surface-highlight: transparent;
@@ -126,6 +129,7 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --shell: color-mix(in oklab, var(--background) 96.5%, var(--foreground));
   --surface-border: oklch(1 0 0 / 0.09);
   --surface-border-hover: oklch(1 0 0 / 0.16);
   --surface-highlight: oklch(1 0 0 / 0.04);

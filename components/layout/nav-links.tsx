@@ -17,24 +17,18 @@ export function NavLinks({
   const pathname = usePathname();
 
   return (
-    <nav
-      className={cn(
-        "flex flex-col",
-        collapsed ? "items-center gap-6" : "gap-6",
-      )}
-    >
-      {sections.map((section) => (
+    <nav className={cn("flex flex-col", collapsed && "items-center")}>
+      {sections.map((section, index) => (
         <div
-          key={section.title || "root"}
+          key={section.title || `section-${index}`}
           className={cn(
             "flex flex-col gap-0.5",
             collapsed && "items-center",
+            index > 0 && (collapsed ? "mt-4" : "mt-5"),
           )}
         >
           {section.title && !collapsed && (
-            <span className="label-eyebrow px-2.5 pb-1 pt-1">
-              {section.title}
-            </span>
+            <span className="label-eyebrow px-2.5 pb-1.5">{section.title}</span>
           )}
           {section.items.map((item) => {
             const isActive =
@@ -49,28 +43,29 @@ export function NavLinks({
                 href={item.href}
                 title={collapsed ? item.label : undefined}
                 aria-label={collapsed ? item.label : undefined}
+                aria-current={isActive ? "page" : undefined}
                 onClick={() => onNavigate?.()}
                 className={cn(
-                  "group flex items-center font-medium text-muted-foreground transition-all duration-150 hover:translate-x-0.5 hover:text-foreground",
+                  "group relative flex items-center rounded-lg text-sm outline-none transition-[background-color,color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-ring/50",
                   collapsed
-                    ? "h-9 w-9 justify-center rounded-md"
-                    : "gap-2 rounded-md px-2.5 py-1.5 text-sm",
+                    ? "size-9 justify-center"
+                    : "h-9 gap-2.5 px-2.5 hover:translate-x-0.5 motion-reduce:hover:translate-x-0",
                   isActive
-                    ? "bg-primary/10 text-foreground"
-                    : "hover:bg-foreground/5",
+                    ? "bg-foreground/[0.08] font-medium text-foreground shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_6%,transparent)]"
+                    : "text-foreground/70 hover:bg-foreground/[0.05] hover:text-foreground",
                 )}
               >
                 <span
                   className={cn(
-                    "transition-colors",
+                    "flex shrink-0 transition-colors",
                     isActive
                       ? "text-foreground"
-                      : "text-muted-foreground group-hover:text-foreground",
+                      : "text-foreground/55 group-hover:text-foreground",
                   )}
                 >
                   {item.icon}
                 </span>
-                {!collapsed && item.label}
+                {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );
           })}
