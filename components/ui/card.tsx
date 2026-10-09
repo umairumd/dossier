@@ -86,7 +86,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-footer"
       className={cn(
-        "flex items-center rounded-b-xl border-t bg-foreground/[0.02] p-(--card-spacing)",
+        "flex items-center rounded-b-xl border-t bg-fill-subtle p-(--card-spacing)",
         className
       )}
       {...props}
@@ -137,11 +137,11 @@ function CardFooterLink({
   return (
     <div
       data-slot="card-footer"
-      className={cn("mt-auto border-t border-foreground/10", className)}
+      className={cn("mt-auto border-t border-edge", className)}
     >
       <Link
         href={href}
-        className="group/footer flex h-12 w-full items-center justify-between px-(--card-spacing) text-sm font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.03] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset"
+        className="group/footer flex h-12 w-full items-center justify-between px-(--card-spacing) text-sm font-medium text-muted-foreground transition-colors outline-none hover:bg-fill-subtle hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset"
       >
         {children}
         <ChevronRight

@@ -221,7 +221,7 @@ export function HomeActivityCard({
                 >
                   {group.label}
                 </h3>
-                <ul className="flex flex-col divide-y divide-foreground/[0.06]">
+                <ul className="flex flex-col divide-y divide-line">
                   {group.rows.map((row) => {
                     if (row.kind === "digest") {
                       const { headline, names, detail } = digestText(row);

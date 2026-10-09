@@ -65,7 +65,7 @@ export async function AppShell({
       <div className="flex min-w-0 flex-1 flex-col md:py-2 md:pr-2">
         <div
           data-app-panel
-          className="flex min-h-0 flex-1 flex-col bg-background md:overflow-y-auto md:rounded-xl md:border md:border-foreground/10"
+          className="flex min-h-0 flex-1 flex-col bg-background md:overflow-y-auto md:rounded-xl md:border md:border-edge"
         >
         <TopNav
           mainSections={mainSections}

@@ -22,7 +22,7 @@ export function Meter({
       aria-valuemin={0}
       aria-valuemax={100}
       aria-label={label}
-      className={cn("h-1 overflow-hidden rounded-full bg-foreground/[0.08]", className)}
+      className={cn("h-1 overflow-hidden rounded-full bg-fill-active", className)}
     >
       <div
         className={cn(

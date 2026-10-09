@@ -626,7 +626,7 @@ function DigestRow({
         trailing={<DeleteSlot id={null} {...controls} />}
       />
       {open ? (
-        <ul className="ml-11 flex flex-col divide-y divide-foreground/[0.06] border-l border-foreground/10 pl-3">
+        <ul className="ml-11 flex flex-col divide-y divide-line border-l border-edge pl-3">
           {row.entries.map((entry) => (
             <li key={entry.id}>
               <EntryRow item={entry} {...controls} />
@@ -707,7 +707,7 @@ export function ActivityFeed({
               >
                 {group.label}
               </h3>
-              <ul className="flex flex-col divide-y divide-foreground/[0.06]">
+              <ul className="flex flex-col divide-y divide-line">
                 {group.rows.map((row) => (
                   <li
                     key={

@@ -36,7 +36,7 @@ export function DataList({
       {header && (
         <div
           aria-hidden
-          className="hidden h-10 items-center gap-x-4 border-b border-foreground/[0.08] px-(--row-x) text-xs text-muted-foreground md:grid md:grid-cols-(--cols)"
+          className="hidden h-10 items-center gap-x-4 border-b border-edge px-(--row-x) text-xs text-muted-foreground md:grid md:grid-cols-(--cols)"
         >
           {header.map((cell, index) => (
             <span key={index} className="truncate">
@@ -45,7 +45,7 @@ export function DataList({
           ))}
         </div>
       )}
-      <ul className="flex flex-col divide-y divide-foreground/[0.06]">{children}</ul>
+      <ul className="flex flex-col divide-y divide-line">{children}</ul>
     </div>
   );
 }
@@ -58,7 +58,7 @@ export function DataListSection({
   aside?: ReactNode;
 }) {
   return (
-    <li className="flex h-11 items-center justify-between gap-3 bg-foreground/[0.025] px-(--row-x)">
+    <li className="flex h-11 items-center justify-between gap-3 bg-fill-subtle px-(--row-x)">
       <span className="truncate text-[13px] font-semibold">{title}</span>
       {aside != null && aside !== false && (
         <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground">
@@ -92,7 +92,7 @@ export function DataListRow({
     <li
       className={cn(
         "relative grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-(--row-x) py-2.5 md:grid-cols-(--cols)",
-        interactive && "transition-colors hover:bg-foreground/[0.03]",
+        interactive && "transition-colors hover:bg-fill-subtle",
         className,
       )}
     >

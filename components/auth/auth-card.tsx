@@ -58,7 +58,7 @@ export function AuthNotice({
         "rounded-lg px-3 py-2 text-[13px] leading-relaxed",
         tone === "danger"
           ? "bg-destructive/10 text-destructive"
-          : "bg-foreground/[0.04] text-muted-foreground",
+          : "bg-fill-hover text-muted-foreground",
       )}
     >
       {children}

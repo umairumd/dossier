@@ -7,7 +7,7 @@ export function DateTile({ date }: { date: string }) {
   const day = parsed.getUTCDate();
 
   return (
-    <div className="flex size-10 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg bg-foreground/[0.05] leading-none ring-1 ring-inset ring-foreground/10">
+    <div className="flex size-10 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg bg-fill-hover leading-none ring-1 ring-inset ring-edge">
       <span className="text-[11px] leading-none font-medium text-muted-foreground uppercase">
         {month}
       </span>

@@ -1,12 +1,20 @@
 "use client";
 
 import { Check, Palette } from "lucide-react";
-import { ACCENT_PRESETS, useAccent, type Accent } from "@/components/accent-provider";
+import {
+  ACCENT_PRESETS,
+  SURFACE_PRESETS,
+  useAccent,
+  type Accent,
+  type Surface,
+} from "@/components/accent-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -28,8 +36,13 @@ const ACCENT_SWATCH: Record<Accent, string> = {
   rose: "#e11d48",
 };
 
+const SURFACE_LABELS: Record<Surface, string> = {
+  new: "New",
+  classic: "Classic",
+};
+
 export function AccentPicker() {
-  const { accent, setAccent } = useAccent();
+  const { accent, setAccent, surface, setSurface } = useAccent();
 
   return (
     <DropdownMenu>
@@ -38,12 +51,13 @@ export function AccentPicker() {
           variant="ghost"
           size="icon"
           className="text-foreground/70"
-          aria-label="Change accent color"
+          aria-label="Change accent and surfaces"
         >
           <Palette />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuLabel>Accent</DropdownMenuLabel>
         {ACCENT_PRESETS.map((preset) => (
           <DropdownMenuItem key={preset} onSelect={() => setAccent(preset)}>
             <span
@@ -52,6 +66,14 @@ export function AccentPicker() {
             />
             {ACCENT_LABELS[preset]}
             {accent === preset && <Check className="ml-auto size-4" />}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Surfaces (dark)</DropdownMenuLabel>
+        {SURFACE_PRESETS.map((preset) => (
+          <DropdownMenuItem key={preset} onSelect={() => setSurface(preset)}>
+            {SURFACE_LABELS[preset]}
+            {surface === preset && <Check className="ml-auto size-4" />}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

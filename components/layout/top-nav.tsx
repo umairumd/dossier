@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Menu, PanelLeft } from "lucide-react";
-import { AccentPicker } from "@/components/accent-picker";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +38,7 @@ export function TopNav({
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-foreground/10 bg-background px-4">
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-edge bg-background px-4">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button
@@ -106,7 +105,6 @@ export function TopNav({
 
       <div className="ml-auto flex items-center gap-1">
         <div className="hidden sm:block">
-          <AccentPicker />
         </div>
         <ThemeToggle />
         <NotificationBell

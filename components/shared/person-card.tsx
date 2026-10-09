@@ -48,7 +48,7 @@ export function PersonCard({
         ) : null}
       </span>
       {footer ? (
-        <span className="mt-auto flex w-full flex-col border-t border-foreground/[0.08] pt-3">
+        <span className="mt-auto flex w-full flex-col border-t border-edge pt-3">
           {footer}
         </span>
       ) : null}
@@ -70,7 +70,7 @@ export function PersonCardStats({
           title={item.title}
           className={cn(
             "flex min-w-0 flex-col items-center gap-0.5 px-1",
-            index > 0 && "border-l border-foreground/[0.08]",
+            index > 0 && "border-l border-edge",
           )}
         >
           <span className="max-w-full truncate text-[15px] font-semibold tabular-nums">

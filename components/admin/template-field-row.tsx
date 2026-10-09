@@ -33,7 +33,7 @@ export function TemplateFieldRow({
     .join(" · ");
 
   return (
-    <li className="group relative flex min-h-14 items-center gap-3 px-3 py-2.5 transition-colors hover:bg-foreground/[0.03] sm:px-4">
+    <li className="group relative flex min-h-14 items-center gap-3 px-3 py-2.5 transition-colors hover:bg-fill-subtle sm:px-4">
       <button
         type="button"
         onClick={onEdit}

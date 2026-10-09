@@ -200,7 +200,7 @@ export function ReportDetailSheet({
       >
         {index !== null && current && (
           <>
-            <header className="flex shrink-0 flex-col gap-3 border-b border-foreground/[0.08] px-5 pt-5 pb-4">
+            <header className="flex shrink-0 flex-col gap-3 border-b border-edge px-5 pt-5 pb-4">
               <div className="flex items-center gap-3">
                 <MemberAvatar
                   userId={current.employeeId}
@@ -255,7 +255,7 @@ export function ReportDetailSheet({
                       >
                         <ChevronRight className="size-4" />
                       </Button>
-                      <span aria-hidden className="mx-1.5 h-4 w-px bg-foreground/10" />
+                      <span aria-hidden className="mx-1.5 h-4 w-px bg-edge" />
                     </>
                   )}
                   <DialogClose asChild>
@@ -304,7 +304,7 @@ export function ReportDetailSheet({
               {showComments && (
                 <section
                   aria-label="Comments"
-                  className="mt-6 flex flex-col gap-3 border-t border-foreground/[0.08] pt-5"
+                  className="mt-6 flex flex-col gap-3 border-t border-edge pt-5"
                 >
                   <h3 className="flex items-center gap-2 text-[13px] font-medium">
                     Comments
@@ -389,8 +389,8 @@ export function ReportDetailSheet({
             </div>
 
             {showComments && !commentsReadOnly && (
-              <div className="shrink-0 border-t border-foreground/[0.08] bg-foreground/[0.015] px-4 py-3">
-                <div className="flex items-end gap-2 rounded-xl bg-foreground/[0.04] p-1.5 pl-3 ring-1 ring-inset ring-foreground/10 focus-within:ring-ring/60">
+              <div className="shrink-0 border-t border-edge bg-fill-subtle px-4 py-3">
+                <div className="flex items-end gap-2 rounded-xl bg-fill-hover p-1.5 pl-3 ring-1 ring-inset ring-edge focus-within:ring-ring/60">
                   <Textarea
                     value={commentBody}
                     onChange={(e) => setCommentBody(e.target.value)}

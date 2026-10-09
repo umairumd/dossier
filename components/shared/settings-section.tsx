@@ -65,7 +65,7 @@ export function SaveBar({
   hint?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-end gap-2 border-t border-foreground/[0.08] bg-foreground/[0.015] px-5 py-3 md:px-6">
+    <div className="flex items-center justify-end gap-2 border-t border-edge bg-fill-subtle px-5 py-3 md:px-6">
       {hint ? <span className="mr-auto text-xs text-muted-foreground">{hint}</span> : null}
       {dirty && onReset ? (
         <Button type="button" variant="ghost" onClick={onReset} disabled={pending}>

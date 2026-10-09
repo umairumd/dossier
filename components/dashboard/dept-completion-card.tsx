@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Building2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
   Card,
@@ -11,17 +11,10 @@ import {
   CardLabelHeader,
 } from "@/components/ui/card";
 import { Meter } from "@/components/ui/meter";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { DateStepper } from "@/components/shared/date-nav";
 import { fetchDeptCompletion } from "@/lib/actions/admin/dept-completion";
-import { formatDate, isWorkingDay, shiftReportDate, todayInTimezone } from "@/lib/helpers/dates";
+import { formatDate, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
-import { DayOffTag } from "@/components/shared/day-off-tag";
 import type { DeptCompletionRow } from "@/lib/supabase/queries/admin/dept-completion";
 
 // Neutral until the deadline has passed: "0 of 3 in" at 9 AM is normal, not
@@ -108,10 +101,6 @@ export function DeptCompletionCard({
   // client-side check for non-today dates).
   const [isOffDay, setIsOffDay] = useState(initialIsOffDay);
 
-  const isToday = date >= today;
-  const previousDate = shiftReportDate(date, -1);
-  const nextDate = shiftReportDate(date, 1);
-  const centerLabel = date === today ? "Today" : formatDate(date);
 
   const goToDate = (next: string) => {
     startTransition(async () => {
@@ -135,70 +124,16 @@ export function DeptCompletionCard({
       <CardLabelHeader
         label={date === today ? "Departments today" : `Departments · ${formatDate(date)}`}
         aside={
-      <div className="flex items-center gap-1" aria-busy={isPending}>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => goToDate(previousDate)}
-          disabled={isPending}
-          aria-label="Previous day"
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
+          <span className="-my-1 -mr-1">
+            <DateStepper
               size="sm"
-              disabled={isPending}
-              className={cn(
-                "min-w-28",
-                isOffDay && "hover:bg-transparent dark:hover:bg-transparent",
-              )}
-            >
-              {isPending ? (
-                <Loader2
-                  className="mx-auto size-4 animate-spin text-muted-foreground"
-                  aria-label="Loading"
-                />
-              ) : isOffDay ? (
-                <span className="flex items-center">
-                  <DayOffTag />
-                </span>
-              ) : (
-                centerLabel
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="center">
-            <Calendar
-              mode="single"
-              selected={new Date(`${date}T00:00:00`)}
-              onSelect={(selected) => {
-                if (!selected) return;
-                const y = selected.getFullYear();
-                const m = String(selected.getMonth() + 1).padStart(2, "0");
-                const d = String(selected.getDate()).padStart(2, "0");
-                goToDate(`${y}-${m}-${d}`);
-              }}
-              disabled={(day) => day > new Date() || isPending}
-              autoFocus
+              date={date}
+              timezone={timezone}
+              isOffDay={isOffDay}
+              isPending={isPending}
+              onChange={goToDate}
             />
-          </PopoverContent>
-        </Popover>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => goToDate(nextDate)}
-          disabled={isPending || isToday}
-          aria-label="Next day"
-        >
-          <ChevronRight className="size-4" />
-        </Button>
-      </div>
+          </span>
         }
       />
       <CardContent>
@@ -248,7 +183,7 @@ export function DeptCompletionCard({
                   key={dept.departmentId}
                   href={href}
                   className={cn(
-                    "rounded-lg transition-colors hover:bg-foreground/5",
+                    "rounded-lg transition-colors hover:bg-fill-hover",
                     isOffDay ? "cursor-pointer px-3 py-3" : "px-2 py-2.5",
                   )}
                 >

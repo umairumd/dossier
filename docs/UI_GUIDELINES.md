@@ -280,6 +280,10 @@ Rules:
 
 ---
 
+## Colour
+
+Use the surface roles, never ad-hoc opacities: `bg-background` (page), `bg-card` + `surface-card` (cards), `bg-popover` / `surface-overlay` (menus, dialogs), `bg-fill-subtle` (tiles, fields, notices inside cards), `bg-fill-hover` / `bg-fill-active` (hover and selected), `border-line` / `divide-line` (dividers), `border-edge` / `ring-edge` (outlines), `border-line-strong` (emphasis). See docs/design/PLAN.md "Colour".
+
 ## Cards
 
 ### Key figures

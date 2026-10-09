@@ -8,7 +8,6 @@ export default function AuthLayout({
   return (
     <div
       className="flex min-h-svh flex-col items-center justify-center gap-6 px-4 py-10 sm:p-8"
-      data-accent="default"
     >
       <div className="flex items-center gap-2.5">
         <Image

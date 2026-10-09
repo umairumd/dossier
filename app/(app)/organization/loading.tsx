@@ -56,7 +56,7 @@ export default function OrganizationLoading() {
             />
           </div>
         </div>
-        <div className="flex flex-col gap-4 border-t border-foreground/[0.08] pt-5">
+        <div className="flex flex-col gap-4 border-t border-edge pt-5">
           <h3 className={sub}>Fines (PKR)</h3>
           <div className="grid gap-4 sm:grid-cols-3">
             <FieldSkeleton label="Late" hint="After the grace period." />
@@ -64,7 +64,7 @@ export default function OrganizationLoading() {
             <FieldSkeleton label="Uninformed absence" hint="No advance notice given." />
           </div>
         </div>
-        <div className="flex flex-col gap-4 border-t border-foreground/[0.08] pt-5">
+        <div className="flex flex-col gap-4 border-t border-edge pt-5">
           <h3 className={sub}>Shifts</h3>
           <div className="grid gap-4 sm:grid-cols-3">
             <FieldSkeleton
@@ -84,7 +84,7 @@ export default function OrganizationLoading() {
         aside={<Skeleton className="h-8 w-32 rounded-lg" />}
       >
         <div className="flex flex-col gap-3">
-          <ul className="flex flex-col divide-y divide-foreground/[0.06] overflow-hidden rounded-xl ring-1 ring-inset ring-foreground/10">
+          <ul className="flex flex-col divide-y divide-line overflow-hidden rounded-xl ring-1 ring-inset ring-edge">
             {["w-32", "w-40"].map((width) => (
               <li
                 key={width}

@@ -128,7 +128,7 @@ function FactValue({ answer }: { answer: Answer }) {
   }
   if (fieldType === "select") {
     return (
-      <span className="inline-flex h-6 items-center rounded-full bg-foreground/[0.07] px-2.5 text-xs font-medium text-foreground ring-1 ring-inset ring-foreground/15">
+      <span className="inline-flex h-6 items-center rounded-full bg-fill-active px-2.5 text-xs font-medium text-foreground ring-1 ring-inset ring-line-strong">
         {asText(answer.value)}
       </span>
     );
@@ -136,7 +136,7 @@ function FactValue({ answer }: { answer: Answer }) {
   return <span className="text-sm text-foreground">{asText(answer.value)}</span>;
 }
 
-const PANEL = "rounded-xl bg-foreground/[0.03] ring-1 ring-inset ring-foreground/[0.08]";
+const PANEL = "rounded-xl bg-fill-subtle ring-1 ring-inset ring-edge";
 
 function BlockView({ block }: { block: Block }) {
   switch (block.kind) {
@@ -159,7 +159,7 @@ function BlockView({ block }: { block: Block }) {
               href={block.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-8 max-w-full items-center gap-2 self-start rounded-lg bg-foreground/[0.05] px-2.5 text-[13px] ring-1 ring-inset ring-foreground/10 transition-colors hover:bg-foreground/[0.08]"
+              className="inline-flex h-8 max-w-full items-center gap-2 self-start rounded-lg bg-fill-hover px-2.5 text-[13px] ring-1 ring-inset ring-edge transition-colors hover:bg-fill-active"
             >
               <Link2 aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
               <span className="shrink-0 font-medium text-foreground">{parts.host}</span>
@@ -186,8 +186,8 @@ function BlockView({ block }: { block: Block }) {
               key={item.label}
               className={cn(
                 "flex min-w-0 flex-col gap-1 px-3.5 py-3",
-                index % cols !== 0 && "border-l border-foreground/[0.06]",
-                index >= cols && "border-t border-foreground/[0.06]",
+                index % cols !== 0 && "border-l border-line",
+                index >= cols && "border-t border-line",
               )}
             >
               <span className="truncate text-xs text-muted-foreground">{item.label}</span>
@@ -206,7 +206,7 @@ function BlockView({ block }: { block: Block }) {
     }
     case "facts":
       return (
-        <div className={cn(PANEL, "flex flex-col divide-y divide-foreground/[0.06]")}>
+        <div className={cn(PANEL, "flex flex-col divide-y divide-line")}>
           {block.items.map((item) => (
             <div
               key={item.label}

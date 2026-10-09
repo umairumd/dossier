@@ -27,7 +27,7 @@ export function FigureStrip({
         "grid overflow-hidden rounded-xl sm:grid-cols-(--cols)",
         variant === "card"
           ? "surface-card bg-card"
-          : "ring-1 ring-inset ring-foreground/10",
+          : "ring-1 ring-inset ring-edge",
         className,
       )}
       style={{ "--cols": `repeat(${figures.length}, minmax(0, 1fr))` } as React.CSSProperties}
@@ -37,7 +37,7 @@ export function FigureStrip({
           key={figure.label}
           className={cn(
             "flex min-w-0 flex-col gap-1.5 px-4 py-3.5 md:px-5 md:py-4",
-            index > 0 && "border-t border-foreground/[0.06] sm:border-t-0 sm:border-l",
+            index > 0 && "border-t border-line sm:border-t-0 sm:border-l",
           )}
         >
           <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground [&_svg]:size-4">

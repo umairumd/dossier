@@ -56,7 +56,7 @@ export function RunAccrualButton({
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex size-8 items-center justify-center rounded-md text-emerald-500 hover:bg-foreground/5"
+                  className="inline-flex size-8 items-center justify-center rounded-md text-emerald-500 hover:bg-fill-hover"
                   aria-label={label}
                 >
                   <CheckCircle2 className="size-4" />

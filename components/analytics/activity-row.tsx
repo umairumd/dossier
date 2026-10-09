@@ -193,7 +193,7 @@ export function ActivityRowShell({
     <div
       className={cn(
         "group/row -mx-2 flex items-center gap-2 rounded-lg px-2",
-        interactive && "transition-colors hover:bg-foreground/5",
+        interactive && "transition-colors hover:bg-fill-hover",
         className,
       )}
     >

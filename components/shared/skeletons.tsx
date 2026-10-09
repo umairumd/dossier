@@ -299,7 +299,7 @@ export function CardRowsSkeleton({
   trailing?: boolean;
 }) {
   return (
-    <ul className="-mx-(--card-spacing) flex flex-col divide-y divide-foreground/[0.06]">
+    <ul className="-mx-(--card-spacing) flex flex-col divide-y divide-line">
       {Array.from({ length: rows }, (_, index) => (
         <li
           key={index}
@@ -409,7 +409,7 @@ export function SettingsSectionSkeleton({
       aside={aside}
       footer={
         saveBar ? (
-          <div className="flex items-center justify-end gap-2 border-t border-foreground/[0.08] bg-foreground/[0.015] px-5 py-3 md:px-6">
+          <div className="flex items-center justify-end gap-2 border-t border-edge bg-fill-subtle px-5 py-3 md:px-6">
             <Skeleton className="h-9 w-28 rounded-lg" />
           </div>
         ) : undefined
@@ -454,7 +454,7 @@ export function PersonCardSkeleton({
         ) : null}
       </span>
       {footer !== "none" ? (
-        <span className="mt-auto flex w-full border-t border-foreground/[0.08] pt-3">
+        <span className="mt-auto flex w-full border-t border-edge pt-3">
           {footer === "stats" ? (
             <span className="grid w-full grid-cols-3">
               {[0, 1, 2].map((i) => (
@@ -462,7 +462,7 @@ export function PersonCardSkeleton({
                   key={i}
                   className={cn(
                     "flex flex-col items-center gap-0.5 px-1",
-                    i > 0 && "border-l border-foreground/[0.08]",
+                    i > 0 && "border-l border-edge",
                   )}
                 >
                   <span className="flex h-[22.5px] items-center">
@@ -525,7 +525,7 @@ export function ActivityRowsSkeleton({ groups = [3, 4] }: { groups?: number[] })
           <span className={cn("flex h-5 items-center pb-1", groupIndex > 0 && "mt-4")}>
             <Skeleton className="h-2.5 w-16" />
           </span>
-          <ul className="flex flex-col divide-y divide-foreground/[0.06]">
+          <ul className="flex flex-col divide-y divide-line">
             {Array.from({ length: count }, () => {
               const index = n++;
               return (
@@ -551,7 +551,7 @@ export function ActivityRowsSkeleton({ groups = [3, 4] }: { groups?: number[] })
 /** Today's report panel (My Reports, home hero) while it loads. */
 export function TodayReportSkeleton() {
   return (
-    <section className="flex flex-col rounded-xl border border-foreground/10 bg-foreground/[0.03] p-4 md:p-[18px]">
+    <section className="flex flex-col rounded-xl border border-edge bg-fill-subtle p-4 md:p-[18px]">
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="min-w-0">
@@ -605,7 +605,7 @@ export function CompletionChartSkeleton({ title }: { title: string }) {
       <div className="relative mt-3 h-40 md:h-[200px]">
         <div className="absolute inset-y-[22px] left-9 right-4 flex flex-col justify-between">
           {[0, 1, 2, 3, 4].map((i) => (
-            <span key={i} className="h-px w-full bg-foreground/[0.06]" />
+            <span key={i} className="h-px w-full bg-fill-hover" />
           ))}
         </div>
         <Skeleton className="absolute bottom-7 left-9 right-4 h-1/2 rounded-md opacity-60" />

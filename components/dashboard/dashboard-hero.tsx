@@ -5,7 +5,6 @@ import { formatDistanceToNow } from "date-fns";
 import { Bell } from "lucide-react";
 import {
   HeroBuddy,
-  HeroIntro,
   type HeroNotification,
 } from "@/components/dashboard/hero-buddy";
 import { HeroForYou, type ForYouItem } from "@/components/dashboard/hero-for-you";
@@ -199,8 +198,6 @@ export function DashboardHero({
           </div>
         )}
       </div>
-
-      <HeroIntro />
 
       <div ref={areaRef} className="scroll-mt-16">
         <HeroDeck

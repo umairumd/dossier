@@ -51,8 +51,8 @@ export function NavLinks({
                     ? "size-9 justify-center"
                     : "h-9 gap-2.5 px-2.5 hover:translate-x-0.5 motion-reduce:hover:translate-x-0",
                   isActive
-                    ? "bg-foreground/[0.08] font-medium text-foreground shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_6%,transparent)]"
-                    : "text-foreground/70 hover:bg-foreground/[0.05] hover:text-foreground",
+                    ? "bg-fill-active font-medium text-foreground shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--foreground)_6%,transparent)]"
+                    : "text-foreground/70 hover:bg-fill-hover hover:text-foreground",
                 )}
               >
                 <span

@@ -19,46 +19,46 @@ import {
 } from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
 
-export function DateNav({
+/**
+ * The grouped day control: previous, the date (opens a calendar), next.
+ * `DateNav` drives it with the URL; cards that load their own data (the
+ * home Departments card) pass `onChange`. `size="sm"` fits a card header.
+ */
+export function DateStepper({
   date,
-  baseHref,
   timezone,
+  onChange,
+  isPending = false,
   isOffDay = false,
+  size = "default",
 }: {
   date: string;
-  baseHref: string;
-  /** @deprecated Center always shows "Today" or formatDate(date). */
-  label?: string;
   timezone: string;
-  /** When true, center control shows DayOffTag instead of the date label. */
+  onChange: (next: string) => void;
+  isPending?: boolean;
   isOffDay?: boolean;
+  size?: "default" | "sm";
 }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const today = todayInTimezone(timezone);
   const isToday = date >= today;
-  const previousDate = shiftReportDate(date, -1);
-  const nextDate = shiftReportDate(date, 1);
-
-  const goToDate = (next: string) => {
-    startTransition(() => {
-      router.push(`${baseHref}?date=${next}`);
-    });
-  };
-
   const centerLabel = date === today ? "Today" : formatDate(date);
+  const h = size === "sm" ? "h-8" : "h-9";
+  const icon = size === "sm" ? "size-8" : "size-9";
 
   return (
     <div
-      className="inline-flex h-9 items-center rounded-lg bg-foreground/[0.03] ring-1 ring-inset ring-foreground/10"
+      className={cn(
+        "inline-flex items-center rounded-lg bg-fill-subtle ring-1 ring-inset ring-edge",
+        h,
+      )}
       aria-busy={isPending}
     >
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="size-9 rounded-r-none rounded-l-lg"
-        onClick={() => goToDate(previousDate)}
+        className={cn(icon, "rounded-r-none rounded-l-lg")}
+        onClick={() => onChange(shiftReportDate(date, -1))}
         disabled={isPending}
         aria-label="Previous day"
       >
@@ -73,7 +73,8 @@ export function DateNav({
             size="sm"
             disabled={isPending}
             className={cn(
-              "h-9 min-w-20 rounded-none px-2 font-medium",
+              h,
+              "min-w-20 rounded-none px-2 font-medium",
               isOffDay && "hover:bg-transparent dark:hover:bg-transparent",
             )}
           >
@@ -97,7 +98,7 @@ export function DateNav({
               if (!selected) return;
               // Same Intl en-CA + timeZone path as todayInTimezone /
               // getSubmissionStatus — never browser getFullYear/getMonth.
-              goToDate(dateInTimezone(selected, timezone));
+              onChange(dateInTimezone(selected, timezone));
             }}
             disabled={(day) =>
               isPending || dateInTimezone(day, timezone) > today
@@ -111,13 +112,45 @@ export function DateNav({
         type="button"
         variant="ghost"
         size="icon"
-        className="size-9 rounded-l-none rounded-r-lg"
-        onClick={() => goToDate(nextDate)}
+        className={cn(icon, "rounded-l-none rounded-r-lg")}
+        onClick={() => onChange(shiftReportDate(date, 1))}
         disabled={isPending || isToday}
         aria-label="Next day"
       >
         <ChevronRight className="size-4" />
       </Button>
     </div>
+  );
+}
+
+export function DateNav({
+  date,
+  baseHref,
+  timezone,
+  isOffDay = false,
+}: {
+  date: string;
+  baseHref: string;
+  /** @deprecated Center always shows "Today" or formatDate(date). */
+  label?: string;
+  timezone: string;
+  /** When true, center control shows DayOffTag instead of the date label. */
+  isOffDay?: boolean;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <DateStepper
+      date={date}
+      timezone={timezone}
+      isOffDay={isOffDay}
+      isPending={isPending}
+      onChange={(next) =>
+        startTransition(() => {
+          router.push(`${baseHref}?date=${next}`);
+        })
+      }
+    />
   );
 }

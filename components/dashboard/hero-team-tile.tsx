@@ -142,7 +142,7 @@ export function HeroTeamTile({
                 <p className="text-xs text-muted-foreground">{summaryBits.join(" · ")}</p>
               )}
             </div>
-            <div className="flex min-w-0 flex-col justify-center md:border-l md:border-foreground/8 md:pl-5">
+            <div className="flex min-w-0 flex-col justify-center md:border-l md:border-edge md:pl-5">
               {members.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No team members assigned yet</p>
               ) : everyoneIn ? (
@@ -156,7 +156,7 @@ export function HeroTeamTile({
                         <li key={member.report.id}>
                           <button
                             type="button"
-                            className="flex w-full items-center gap-2 rounded-lg py-1 text-left outline-none hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-ring"
+                            className="flex w-full items-center gap-2 rounded-lg py-1 text-left outline-none hover:bg-fill-hover focus-visible:ring-2 focus-visible:ring-ring"
                             onClick={() => setIndex(itemIndex)}
                           >
                             <MemberAvatar
@@ -313,7 +313,7 @@ export function HeroTeamView({
       {members.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">No team members assigned yet</p>
       ) : (
-        <div className="mt-4 grid grid-cols-1 divide-y divide-foreground/10 md:grid-cols-3 md:divide-x md:divide-y-0">
+        <div className="mt-4 grid grid-cols-1 divide-y divide-edge md:grid-cols-3 md:divide-x md:divide-y-0">
           <Column title="Not in yet" count={missing.length}>
             {missing.map((member) => (
               <Person

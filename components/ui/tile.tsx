@@ -2,12 +2,25 @@ import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function Tile({ className, ...props }: React.ComponentProps<"section">) {
+/**
+ * A tile. "inset" (default) sits inside the hero card as a see-through panel;
+ * "card" stands on the page and looks like every other card (bg-card and the
+ * card sheen), with card padding (20px).
+ */
+export function Tile({
+  className,
+  surface = "inset",
+  ...props
+}: React.ComponentProps<"section"> & { surface?: "inset" | "card" }) {
   return (
     <section
       data-slot="tile"
+      data-variant={surface}
       className={cn(
-        "flex flex-col rounded-xl border border-foreground/10 bg-foreground/[0.03] p-4 md:p-[18px]",
+        "flex flex-col rounded-xl",
+        surface === "card"
+          ? "surface-card bg-card p-5"
+          : "border border-edge bg-fill-subtle p-4 md:p-[18px]",
         className,
       )}
       {...props}
@@ -77,8 +90,8 @@ export function TileFooterAction({
         type="button"
         data-slot="tile-footer-action"
         className={cn(
-          "group flex h-12 w-full items-center justify-between rounded-b-xl border-t border-foreground/10 px-4 text-sm font-medium text-muted-foreground transition-colors outline-none md:px-[18px]",
-          "hover:bg-foreground/[0.03] hover:text-foreground focus-visible:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset",
+          "group flex h-12 w-full items-center justify-between rounded-b-xl border-t border-edge px-4 text-sm font-medium text-muted-foreground transition-colors outline-none md:px-[18px]",
+          "hover:bg-fill-subtle hover:text-foreground focus-visible:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset",
           className,
         )}
         {...props}

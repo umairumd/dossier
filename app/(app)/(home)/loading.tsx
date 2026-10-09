@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 // same frame with one tile instead of two.
 
 const TILE =
-  "flex flex-col rounded-xl border border-foreground/10 bg-foreground/[0.03] p-4 md:p-[18px]";
+  "flex flex-col rounded-xl border border-edge bg-fill-subtle p-4 md:p-[18px]";
 
 function TileSkeleton({ className, children }: { className?: string; children?: React.ReactNode }) {
   return <div className={cn(TILE, className)}>{children}</div>;
@@ -21,7 +21,7 @@ function TileSkeleton({ className, children }: { className?: string; children?: 
 
 function CardFooterSkeleton() {
   return (
-    <div className="mt-auto flex h-12 items-center border-t border-foreground/[0.08] px-(--card-spacing)">
+    <div className="mt-auto flex h-12 items-center border-t border-edge px-(--card-spacing)">
       <Skeleton className="h-3 w-24" />
     </div>
   );

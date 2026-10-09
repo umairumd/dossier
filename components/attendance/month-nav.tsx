@@ -90,7 +90,7 @@ export function MonthNav({
 
   return (
     <div
-      className="inline-flex h-9 items-center rounded-lg bg-foreground/[0.03] ring-1 ring-inset ring-foreground/10"
+      className="inline-flex h-9 items-center rounded-lg bg-fill-subtle ring-1 ring-inset ring-edge"
       aria-busy={isPending}
     >
       <Button

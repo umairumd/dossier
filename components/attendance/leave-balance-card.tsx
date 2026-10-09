@@ -137,7 +137,7 @@ export function LeaveBalanceCard({
           Contract year {formatDate(balance.contract_year_start)} –{" "}
           {formatDate(balance.contract_year_end)}
         </p>
-        <div className="grid grid-cols-3 overflow-hidden rounded-lg ring-1 ring-inset ring-foreground/10">
+        <div className="grid grid-cols-3 overflow-hidden rounded-lg ring-1 ring-inset ring-edge">
           {[
             { label: "Accrued", value: accrued },
             { label: "Used", value: used },
@@ -147,7 +147,7 @@ export function LeaveBalanceCard({
               key={figure.label}
               className={cn(
                 "flex min-w-0 flex-col gap-1 px-3 py-3 sm:px-4",
-                index > 0 && "border-l border-foreground/[0.06]",
+                index > 0 && "border-l border-line",
               )}
             >
               <span className="text-[13px] text-muted-foreground">
