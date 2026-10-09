@@ -53,5 +53,5 @@ export const CATEGORY_TONE: Record<ActivityCategory, string> = {
     "bg-amber-500/10 text-amber-700 ring-amber-600/20 dark:text-amber-300 dark:ring-amber-300/20",
   organization:
     "bg-violet-500/10 text-violet-700 ring-violet-600/20 dark:text-violet-300 dark:ring-violet-300/20",
-  settings: "bg-foreground/[0.05] text-foreground/70 ring-foreground/10",
+  settings: "bg-fill-hover text-foreground/70 ring-edge",
 };

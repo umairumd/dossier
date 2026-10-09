@@ -165,7 +165,7 @@ export function OrgAttendanceForm({
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 border-t border-foreground/[0.08] pt-5">
+      <div className="flex flex-col gap-4 border-t border-edge pt-5">
         <h3 className={sub}>Fines (PKR)</h3>
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="Late" htmlFor="fine-late" hint="After the grace period.">
@@ -201,7 +201,7 @@ export function OrgAttendanceForm({
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 border-t border-foreground/[0.08] pt-5">
+      <div className="flex flex-col gap-4 border-t border-edge pt-5">
         <h3 className={sub}>Shifts</h3>
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="Full-time start" htmlFor="shift-fulltime-start" hint="The grace period counts from here.">

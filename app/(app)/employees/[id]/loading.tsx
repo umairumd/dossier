@@ -115,13 +115,13 @@ export default function EmployeeProfileLoading() {
         />
         <CardSkeleton label="Leave balance" contentClassName="flex flex-col gap-3">
           <SkeletonLine size="13" className="w-56" />
-          <div className="grid grid-cols-3 overflow-hidden rounded-lg ring-1 ring-inset ring-foreground/10">
+          <div className="grid grid-cols-3 overflow-hidden rounded-lg ring-1 ring-inset ring-edge">
             {["Accrued", "Used", "Remaining"].map((label, index) => (
               <div
                 key={label}
                 className={
                   index > 0
-                    ? "flex min-w-0 flex-col gap-1 border-l border-foreground/[0.06] px-3 py-3 sm:px-4"
+                    ? "flex min-w-0 flex-col gap-1 border-l border-line px-3 py-3 sm:px-4"
                     : "flex min-w-0 flex-col gap-1 px-3 py-3 sm:px-4"
                 }
               >

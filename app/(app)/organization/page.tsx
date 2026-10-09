@@ -79,14 +79,14 @@ export default async function OrganizationSettingsPage() {
           />
         ) : (
           <div className="flex flex-col gap-3">
-            <ul className="flex flex-col divide-y divide-foreground/[0.06] overflow-hidden rounded-xl ring-1 ring-inset ring-foreground/10">
+            <ul className="flex flex-col divide-y divide-line overflow-hidden rounded-xl ring-1 ring-inset ring-edge">
               {activeTemplates.map((template) => {
                 const count = template.fieldCount ?? 0;
                 return (
                   <li key={template.id}>
                     <Link
                       href={`/organization/templates/${template.id}`}
-                      className="flex min-h-12 items-center justify-between gap-3 px-4 py-2.5 transition-colors outline-none hover:bg-foreground/[0.03] focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset"
+                      className="flex min-h-12 items-center justify-between gap-3 px-4 py-2.5 transition-colors outline-none hover:bg-fill-subtle focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset"
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-sm font-medium">{template.name}</span>

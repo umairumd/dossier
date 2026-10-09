@@ -8,7 +8,7 @@ export default function AttendanceLoading() {
     <div className="flex flex-col gap-6">
       <PageHeaderSkeleton title="Attendance" action="nav" actionClassName="w-60" />
       <div className="surface-card overflow-hidden rounded-xl bg-card">
-        <div className="flex h-14 items-center gap-4 border-b border-foreground/[0.08] px-4">
+        <div className="flex h-14 items-center gap-4 border-b border-edge px-4">
           <Skeleton className="h-3 w-20 shrink-0" />
           <div className="grid flex-1 grid-cols-[repeat(15,minmax(0,1fr))] gap-2">
             {Array.from({ length: 15 }, (_, i) => (
@@ -19,7 +19,7 @@ export default function AttendanceLoading() {
         {Array.from({ length: 7 }, (_, row) => (
           <div
             key={row}
-            className="flex h-[58px] items-center gap-4 border-b border-foreground/[0.06] px-4 last:border-b-0"
+            className="flex h-[58px] items-center gap-4 border-b border-line px-4 last:border-b-0"
           >
             <div className="flex w-[180px] shrink-0 items-center gap-2.5 sm:w-[240px]">
               <Skeleton className="size-7 shrink-0 rounded-full" />

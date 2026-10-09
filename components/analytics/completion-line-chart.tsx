@@ -38,7 +38,7 @@ export function CompletionLineChart({
 }) {
   const avg = average(trend);
   return (
-    <Tile>
+    <Tile surface="card">
       <div className="flex items-start justify-between gap-4">
         <div>
           <TileHeader eyebrow={title} />
@@ -256,7 +256,7 @@ function Plot({ points, today }: { points: CompletionTrendPoint[]; today: string
       {hover && active != null && (
         <div
           className={cn(
-            "pointer-events-none absolute z-10 w-44 rounded-lg bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md ring-1 ring-foreground/10",
+            "pointer-events-none absolute z-10 w-44 rounded-lg bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md ring-1 ring-edge",
           )}
           style={{
             left: Math.min(Math.max(8, xAt(active) + 8), Math.max(8, width - 184)),
@@ -272,7 +272,7 @@ function Plot({ points, today }: { points: CompletionTrendPoint[]; today: string
           </p>
           {hover.missingNames && hover.missingNames.length > 0 && (
             <>
-              <div className="my-1.5 h-px bg-foreground/10" />
+              <div className="my-1.5 h-px bg-edge" />
               <p className="text-muted-foreground">Missing: {hover.missingNames.join(", ")}</p>
             </>
           )}

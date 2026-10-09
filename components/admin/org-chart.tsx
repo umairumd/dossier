@@ -23,7 +23,7 @@ function EmployeeRow({
   return (
     <Link
       href={`/employees/${employee.id}`}
-      className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-foreground/5"
+      className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-fill-hover"
     >
       <MemberAvatar
         userId={employee.id}

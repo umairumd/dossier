@@ -59,9 +59,9 @@ function dayTone(
 const TONE_CLASS: Record<DayTone, string> = {
   submitted: "bg-foreground/75",
   missed: "bg-transparent ring-[1.5px] ring-inset ring-red-600/70 dark:ring-red-400/70",
-  weekend: "bg-foreground/[0.06]",
+  weekend: "bg-fill-hover",
   leave: "bg-amber-500/60 dark:bg-amber-300/55",
-  open: "bg-transparent ring-1 ring-inset ring-foreground/15",
+  open: "bg-transparent ring-1 ring-inset ring-line-strong",
 };
 
 const TODAY_CLASS = "bg-transparent ring-2 ring-inset ring-foreground";

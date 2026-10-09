@@ -180,7 +180,7 @@ export function HolidayDayHeader({
             isOff && !isHoliday && "bg-muted",
             isToday
               ? "bg-foreground text-background hover:bg-foreground"
-              : "hover:bg-foreground/5",
+              : "hover:bg-fill-hover",
           )}
           aria-label={
             isHoliday

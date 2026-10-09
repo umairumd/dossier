@@ -5,6 +5,14 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Shared fills and lines (docs/design/PLAN.md "Colour"): use these instead
+   * of ad-hoc foreground/[x] opacities. */
+  --color-fill-subtle: var(--fill-subtle);
+  --color-fill-hover: var(--fill-hover);
+  --color-fill-active: var(--fill-active);
+  --color-line: var(--line);
+  --color-edge: var(--edge);
+  --color-line-strong: var(--line-strong);
   --color-background: var(--background);
   --color-shell: var(--shell);
   --color-foreground: var(--foreground);
@@ -95,158 +103,72 @@
   --overlay-border: oklch(0 0 0 / 0.1);
   --overlay-shadow: 0 24px 64px -16px oklch(0 0 0 / 0.25);
   --skeleton: oklch(0 0 0 / 0.06);
+  /* Fills and lines, relative to the text colour. */
+  --fill-subtle: color-mix(in oklab, var(--foreground) 3%, transparent);
+  --fill-hover: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --fill-active: color-mix(in oklab, var(--foreground) 9%, transparent);
+  --line: color-mix(in oklab, var(--foreground) 6%, transparent);
+  --edge: color-mix(in oklab, var(--foreground) 10%, transparent);
+  --line-strong: color-mix(in oklab, var(--foreground) 15%, transparent);
+  /* Card treatment: diagonal sheen, edge, top light. */
+  --surface-sheen: color-mix(in oklab, var(--primary) 5%, transparent);
+  --card-edge: color-mix(in oklab, var(--foreground) 10%, transparent);
+  --hero-sheen: var(--surface-sheen);
 }
 
+/* Dark surfaces, option D (docs/design/PLAN.md "Colour"): one neutral ramp.
+ * Base (shell and page) < card < raised (menus, dialogs). Tiles and fields
+ * are see-through fills, so they read the same on any surface. */
 .dark {
-  --background: hsl(210 11% 3%);
-  --foreground: hsl(210 14% 97%);
-  --card: hsl(220 8% 6%);
-  --card-foreground: hsl(210 14% 97%);
-  --popover: hsl(220 8% 8%);
-  --popover-foreground: hsl(210 14% 97%);
+  --background: #070708;
+  --foreground: #f4f4f5;
+  --card: #101012;
+  --card-foreground: #f4f4f5;
+  --popover: #18181b;
+  --popover-foreground: #f4f4f5;
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: hsl(220 8% 8%);
-  --muted-foreground: hsl(220 6% 57%);
-  --accent: hsl(220 8% 9%);
-  --accent-foreground: hsl(210 14% 97%);
+  --secondary: #1c1c1f;
+  --secondary-foreground: #f4f4f5;
+  --muted: #141416;
+  --muted-foreground: #8e8e94;
+  --accent: #1c1c1f;
+  --accent-foreground: #f4f4f5;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: hsl(225 8% 15%);
-  --input: hsl(225 8% 15%);
+  --border: rgb(255 255 255 / 0.09);
+  --input: rgb(255 255 255 / 0.1);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar: #070708;
+  --sidebar-foreground: #f4f4f5;
+  --sidebar-primary: oklch(0.922 0 0);
+  --sidebar-primary-foreground: oklch(0.205 0 0);
+  --sidebar-accent: #1c1c1f;
+  --sidebar-accent-foreground: #f4f4f5;
+  --sidebar-border: rgb(255 255 255 / 0.06);
   --sidebar-ring: oklch(0.556 0 0);
-  --shell: color-mix(in oklab, var(--background) 96.5%, var(--foreground));
-  --surface-border: oklch(1 0 0 / 0.09);
-  --surface-border-hover: oklch(1 0 0 / 0.16);
-  --surface-highlight: oklch(1 0 0 / 0.04);
-  --overlay-surface: hsl(225 8% 8%);
-  --overlay-surface-top: hsl(228 8% 11%);
-  --overlay-border: oklch(1 0 0 / 0.1);
+  --shell: #070708;
+  --surface-border: rgb(255 255 255 / 0.09);
+  --surface-border-hover: rgb(255 255 255 / 0.16);
+  --surface-highlight: transparent;
+  --overlay-surface: #18181b;
+  --overlay-surface-top: #1c1c1f;
+  --overlay-border: rgb(255 255 255 / 0.1);
   --overlay-shadow: 0 32px 80px -16px oklch(0 0 0 / 0.8);
-  --skeleton: oklch(1 0 0 / 0.05);
-}
-
-/*
- * Accent presets — curated overrides of the primary/ring semantic tokens
- * only. Everything else (background, card, muted, border, destructive...)
- * stays governed by the neutral :root/.dark tokens above, so switching
- * accent never touches contrast-sensitive neutrals. "neutral" (no
- * data-accent attribute) is the default and needs no override block —
- * it's just the grayscale --primary already defined above.
- */
-
-:root[data-accent="blue"] {
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --ring: #3b82f6;
-  --sidebar-primary: #2563eb;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-ring: #3b82f6;
-}
-.dark[data-accent="blue"] {
-  --primary: #3b82f6;
-  --primary-foreground: #0a0a0a;
-  --ring: #3b82f6;
-  --sidebar-primary: #3b82f6;
-  --sidebar-primary-foreground: #0a0a0a;
-  --sidebar-ring: #3b82f6;
-}
-
-:root[data-accent="green"] {
-  --primary: #16a34a;
-  --primary-foreground: #ffffff;
-  --ring: #22c55e;
-  --sidebar-primary: #16a34a;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-ring: #22c55e;
-}
-.dark[data-accent="green"] {
-  --primary: #22c55e;
-  --primary-foreground: #0a0a0a;
-  --ring: #22c55e;
-  --sidebar-primary: #22c55e;
-  --sidebar-primary-foreground: #0a0a0a;
-  --sidebar-ring: #22c55e;
-}
-
-:root[data-accent="violet"] {
-  --primary: #7c3aed;
-  --primary-foreground: #ffffff;
-  --ring: #8b5cf6;
-  --sidebar-primary: #7c3aed;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-ring: #8b5cf6;
-}
-.dark[data-accent="violet"] {
-  --primary: #8b5cf6;
-  --primary-foreground: #0a0a0a;
-  --ring: #8b5cf6;
-  --sidebar-primary: #8b5cf6;
-  --sidebar-primary-foreground: #0a0a0a;
-  --sidebar-ring: #8b5cf6;
-}
-
-:root[data-accent="orange"] {
-  --primary: #ea580c;
-  --primary-foreground: #ffffff;
-  --ring: #f97316;
-  --sidebar-primary: #ea580c;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-ring: #f97316;
-}
-.dark[data-accent="orange"] {
-  --primary: #f97316;
-  --primary-foreground: #0a0a0a;
-  --ring: #f97316;
-  --sidebar-primary: #f97316;
-  --sidebar-primary-foreground: #0a0a0a;
-  --sidebar-ring: #f97316;
-}
-
-:root[data-accent="rose"] {
-  --primary: #e11d48;
-  --primary-foreground: #ffffff;
-  --ring: #f43f5e;
-  --sidebar-primary: #e11d48;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-ring: #f43f5e;
-}
-.dark[data-accent="rose"] {
-  --primary: #f43f5e;
-  --primary-foreground: #0a0a0a;
-  --ring: #f43f5e;
-  --sidebar-primary: #f43f5e;
-  --sidebar-primary-foreground: #0a0a0a;
-  --sidebar-ring: #f43f5e;
-}
-
-/* Auth pages set data-accent="default" on a subtree so stored accents on
- * <html> don't color login (and other unauthenticated) primary buttons.
- * These selectors must live on the subtree, not :root — html already
- * carries the user's accent. */
-[data-accent="default"] {
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --ring: oklch(0.708 0 0);
-}
-.dark [data-accent="default"] {
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --ring: oklch(0.556 0 0);
+  --skeleton: rgb(255 255 255 / 0.05);
+  --fill-subtle: rgb(255 255 255 / 0.035);
+  --fill-hover: rgb(255 255 255 / 0.06);
+  --fill-active: rgb(255 255 255 / 0.1);
+  --line: rgb(255 255 255 / 0.06);
+  --edge: rgb(255 255 255 / 0.09);
+  --line-strong: rgb(255 255 255 / 0.15);
+  --surface-sheen: rgb(255 255 255 / 0.045);
+  --card-edge: rgb(255 255 255 / 0.09);
+  --hero-sheen: rgb(255 255 255 / 0.05);
 }
 
 @layer base {
@@ -292,12 +214,16 @@
   animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* The card treatment (unchanged from before the design work): a soft diagonal
- * tint and a 10% edge. It has no fill of its own: Card adds bg-card, the
+/* The card treatment: a soft diagonal sheen and one edge, nothing else. Values come from the surface tokens above. It has no fill of its own: Card adds bg-card, the
  * dashboard hero sits directly on the page background. */
 @utility surface-card {
-  background-image: linear-gradient(to bottom right in oklab, color-mix(in oklab, var(--primary) 5%, transparent), transparent);
-  border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+  background-image: linear-gradient(to bottom right in oklab, var(--surface-sheen), transparent);
+  border: 1px solid var(--card-edge);
+}
+
+/* The dashboard hero: no fill of its own, a slightly wider sheen. */
+.surface-card[data-hero-card] {
+  background-image: linear-gradient(to bottom right in oklab, var(--hero-sheen), transparent 70%);
 }
 
 /* Clickable cards: the border brightens on hover instead of a fill. */

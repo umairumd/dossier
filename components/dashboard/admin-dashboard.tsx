@@ -300,7 +300,7 @@ function ShortcutCard({
       className="surface-card surface-card-interactive group flex w-full items-center gap-3.5 rounded-xl bg-card px-4 py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       {...props}
     >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-foreground/[0.06] ring-1 ring-foreground/10 ring-inset">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-fill-hover ring-1 ring-edge ring-inset">
         {icon}
       </span>
       <span className="flex min-w-0 flex-1 flex-col">

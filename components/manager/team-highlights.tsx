@@ -31,7 +31,7 @@ function StandingList({
   }
 
   return (
-    <ul className="flex flex-col divide-y divide-foreground/[0.06]">
+    <ul className="flex flex-col divide-y divide-line">
       {items.map((item) => (
         <li
           key={item.employeeId}

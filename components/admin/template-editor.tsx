@@ -283,7 +283,7 @@ export function TemplateEditor({
               description="Add the first one to get started."
             />
           ) : (
-            <ul className="flex flex-col divide-y divide-foreground/[0.06] overflow-hidden rounded-lg ring-1 ring-inset ring-foreground/10">
+            <ul className="flex flex-col divide-y divide-line overflow-hidden rounded-lg ring-1 ring-inset ring-edge">
               {sortedFields.map((field, index) => (
                 <TemplateFieldRow
                   key={field.id || field.key}

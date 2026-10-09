@@ -71,10 +71,10 @@ export function SidebarAccount({
           type="button"
           aria-label="Account menu"
           className={cn(
-            "flex items-center rounded-xl text-left transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-ring/50 data-[state=open]:bg-foreground/[0.06]",
+            "flex items-center rounded-xl text-left transition-colors outline-none hover:bg-fill-hover focus-visible:ring-2 focus-visible:ring-ring/50 data-[state=open]:bg-fill-hover",
             collapsed
               ? "size-10 justify-center self-center"
-              : "w-full gap-2.5 p-2 ring-1 ring-inset ring-foreground/[0.08]",
+              : "w-full gap-2.5 p-2 ring-1 ring-inset ring-edge",
           )}
         >
           <MemberAvatar

@@ -142,7 +142,7 @@ export function HeroProgressTile({
       <TileHeader eyebrow="Your progress" aside={streak > 0 ? `${streak}-day streak` : undefined} />
       <TileBody className="mt-3 gap-3">
         {showingFresh && isAccessoryId(showingFresh.itemId) && (
-          <div className="flex items-center gap-3 rounded-lg bg-foreground/[0.04] p-2">
+          <div className="flex items-center gap-3 rounded-lg bg-fill-hover p-2">
             <MascotStatic
               avatar={equipAccessory(base, ACCESSORIES[showingFresh.itemId].slot, showingFresh.itemId)}
               size={48}

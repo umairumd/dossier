@@ -107,7 +107,7 @@ export function Sidebar({
         <NavLinks sections={mainSections} collapsed={collapsed} />
       </div>
 
-      <div className="flex shrink-0 flex-col gap-2 border-t border-foreground/[0.06] pt-3">
+      <div className="flex shrink-0 flex-col gap-2 border-t border-line pt-3">
         <NavLinks sections={accountSections} collapsed={collapsed} />
         <SidebarAccount profile={profile} collapsed={collapsed} />
       </div>

@@ -55,7 +55,10 @@ export function HeroReportPanel({
   timeZone,
   deadlineHourLocal,
   shiftFulltimeStart,
+  surface = "inset",
 }: {
+  /** "card" when it stands on the page (My Reports), "inset" in the hero. */
+  surface?: "inset" | "card";
   open: boolean;
   onOpen: () => void;
   onClose: (options?: { restoreFocus?: boolean }) => void;
@@ -145,7 +148,7 @@ export function HeroReportPanel({
   );
 
   return (
-    <Tile data-today-report className="scroll-mt-16" style={{ viewTransitionName: "hero-report" }}>
+    <Tile surface={surface} data-today-report className="scroll-mt-16" style={{ viewTransitionName: "hero-report" }}>
       {open ? (
         <HeroViewHeader
           title="Today's report"
@@ -466,6 +469,7 @@ export function ReportsToday({ initialOpen, ...props }: ReportsTodayProps) {
   return (
     <HeroReportPanel
       {...props}
+      surface="card"
       open={open}
       onOpen={openPanel}
       onClose={close}

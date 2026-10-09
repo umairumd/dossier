@@ -248,8 +248,8 @@ export function OrgScheduleForm({
                 className={cn(
                   "h-9 w-12 rounded-lg text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                   on
-                    ? "bg-foreground/[0.12] text-foreground ring-1 ring-inset ring-foreground/15"
-                    : "text-muted-foreground ring-1 ring-inset ring-foreground/10 hover:text-foreground",
+                    ? "bg-fill-active text-foreground ring-1 ring-inset ring-line-strong"
+                    : "text-muted-foreground ring-1 ring-inset ring-edge hover:text-foreground",
                 )}
               >
                 {day.label}

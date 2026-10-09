@@ -70,7 +70,7 @@ export function ProfileHeader({
             {avatarNode}
             <span
               aria-hidden
-              className="absolute right-0 bottom-0 flex size-5 items-center justify-center rounded-full bg-card text-foreground ring-1 ring-foreground/15"
+              className="absolute right-0 bottom-0 flex size-5 items-center justify-center rounded-full bg-card text-foreground ring-1 ring-line-strong"
             >
               <Pencil className="size-2.5" />
             </span>

@@ -225,7 +225,7 @@ export function AttendanceGrid({
     return (
       <tr
         key={emp.id}
-        className="border-b border-border/40 bg-card transition-colors hover:bg-foreground/5"
+        className="border-b border-border/40 bg-card transition-colors hover:bg-fill-hover"
       >
         {renderNameCell(emp)}
 
@@ -324,7 +324,7 @@ export function AttendanceGrid({
     return (
       <tr
         key={emp.id}
-        className="border-b border-border/40 bg-card transition-colors hover:bg-foreground/5"
+        className="border-b border-border/40 bg-card transition-colors hover:bg-fill-hover"
       >
         {renderNameCell(emp)}
 
@@ -663,7 +663,7 @@ export function AttendanceGrid({
           The full day-by-day grid is available on larger screens.
         </p>
       </div>
-      <div className="hidden overflow-x-auto rounded-xl ring-1 ring-foreground/10 md:block">
+      <div className="surface-card hidden overflow-x-auto rounded-xl bg-card md:block">
       <table className="w-full min-w-max border-collapse text-sm">
         <thead>
           <tr className="border-b border-border">

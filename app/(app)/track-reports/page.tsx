@@ -63,7 +63,7 @@ export default async function TrackReportsPage({
       />
 
       {isOrgOffDay && (
-        <p className="rounded-xl bg-foreground/[0.03] px-4 py-3 text-sm text-muted-foreground ring-1 ring-inset ring-foreground/10">
+        <p className="rounded-xl bg-fill-subtle px-4 py-3 text-sm text-muted-foreground ring-1 ring-inset ring-edge">
           {formatDate(date)} is a non-working day. Only voluntary submissions
           are shown.
         </p>

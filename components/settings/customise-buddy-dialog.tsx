@@ -394,7 +394,7 @@ export function CustomiseBuddyDialog({
             </DialogDescription>
           </DialogHeader>
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-4 pt-4 lg:flex-row lg:gap-8 lg:px-6">
-            <div className="flex w-full shrink-0 flex-col items-center gap-3 self-start rounded-xl bg-card p-4 ring-1 ring-foreground/10 lg:sticky lg:top-0 lg:w-[280px]">
+            <div className="flex w-full shrink-0 flex-col items-center gap-3 self-start rounded-xl bg-card p-4 ring-1 ring-edge lg:sticky lg:top-0 lg:w-[280px]">
               <div className="pt-4">
                 <div className="relative size-40">
                   <MascotStatic
@@ -668,7 +668,7 @@ function OptionTile({
         "flex h-28 w-full flex-col items-center justify-center gap-1.5 rounded-xl px-1.5 ring-1 transition-[background-color,box-shadow,transform] duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.98]",
         pressed
           ? "bg-primary/10 text-foreground ring-2 ring-foreground"
-          : "text-muted-foreground ring-foreground/10 hover:bg-foreground/5 hover:text-foreground",
+          : "text-muted-foreground ring-edge hover:bg-fill-hover hover:text-foreground",
       )}
     >
       <BuddyStill avatar={avatar} px={40} />
@@ -697,7 +697,7 @@ function WardrobeSkeleton() {
             {section.items.map((id) => (
               <div
                 key={id}
-                className={cn(WARDROBE_CARD, "ring-foreground/10")}
+                className={cn(WARDROBE_CARD, "ring-edge")}
               >
                 <Skeleton className="size-14 rounded-full" />
                 <Skeleton className="h-3.5 w-16" />
@@ -761,8 +761,8 @@ function WardrobeTile({
       className={cn(
         WARDROBE_CARD,
         on
-          ? "bg-foreground/[0.04] ring-2 ring-foreground"
-          : "ring-foreground/10 hover:bg-foreground/5",
+          ? "bg-fill-hover ring-2 ring-foreground"
+          : "ring-edge hover:bg-fill-hover",
         locked && "cursor-not-allowed hover:bg-transparent",
         !locked && "active:scale-[0.98]",
       )}

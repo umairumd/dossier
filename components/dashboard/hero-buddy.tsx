@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { SIGN_IN_WAVE_KEY } from "@/components/auth/sign-out-form";
 import { MascotStatic } from "@/components/mascot/mascot";
@@ -32,7 +32,6 @@ const LiveMascot = dynamic(
 );
 
 const HERO_PX = 112;
-const INTRO_KEY = "dossier-buddy-introduced";
 const NOTIF_DELAY_MS = 2500;
 
 function reportWindowMoment(
@@ -311,63 +310,6 @@ export function HeroBuddy({
         }}
         aria-label="Your buddy"
       />
-    </div>
-  );
-}
-
-function subscribeIntro() {
-  return () => {};
-}
-
-function introHiddenOnServer() {
-  return true;
-}
-
-function introAlreadySeen() {
-  try {
-    return localStorage.getItem(INTRO_KEY) === "1";
-  } catch {
-    return true;
-  }
-}
-
-export function HeroIntro() {
-  const { open, prefetch } = useBuddyDialog();
-  const seen = useSyncExternalStore(
-    subscribeIntro,
-    introAlreadySeen,
-    introHiddenOnServer,
-  );
-  const [dismissed, setDismissed] = useState(false);
-  if (seen || dismissed) return null;
-
-  return (
-    <div className="flex items-center gap-3 rounded-lg bg-foreground/5 px-3 py-2 text-sm">
-      <p className="min-w-0 flex-1">Meet your buddy. Make it yours.</p>
-      <button
-        type="button"
-        className="shrink-0 font-medium text-primary hover:underline"
-        onClick={() => open()}
-        onPointerEnter={prefetch}
-        onFocus={prefetch}
-      >
-        Customise
-      </button>
-      <button
-        type="button"
-        aria-label="Dismiss"
-        className="shrink-0 rounded-md px-1.5 text-base leading-none text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        onClick={() => {
-          try {
-            localStorage.setItem(INTRO_KEY, "1");
-          } catch {
-            // Hiding it for this view is enough when storage is blocked.
-          }
-          setDismissed(true);
-        }}
-      >
-        ×
-      </button>
     </div>
   );
 }

@@ -288,7 +288,7 @@ export function PersonalMonthCalendar({
           ))}
         </div>
 
-        <aside className="flex flex-col gap-5 border-t border-foreground/[0.06] pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+        <aside className="flex flex-col gap-5 border-t border-line pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
           <div className="flex flex-col gap-1.5">
             <span className="text-[13px] text-muted-foreground">
               Attendance rate
@@ -296,7 +296,7 @@ export function PersonalMonthCalendar({
             <span className="text-[28px] font-semibold leading-none tracking-tight tabular-nums">
               {attendanceRate === null ? "—" : `${attendanceRate}%`}
             </span>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.08]">
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-fill-active">
               <div
                 className="h-full rounded-full bg-emerald-500 transition-[width]"
                 style={{ width: `${attendanceRate ?? 0}%` }}
@@ -309,7 +309,7 @@ export function PersonalMonthCalendar({
             </span>
           </div>
 
-          <dl className="flex flex-col divide-y divide-foreground/[0.06]">
+          <dl className="flex flex-col divide-y divide-line">
             {summary.map((item) => (
               <div
                 key={item.key}

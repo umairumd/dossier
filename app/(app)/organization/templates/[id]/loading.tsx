@@ -30,7 +30,7 @@ export default function TemplateEditorLoading() {
         description="What people answer each day, in this order. Mark one to show in report lists."
         aside={<Skeleton className="h-8 w-32 rounded-lg" />}
       >
-        <ul className="flex flex-col divide-y divide-foreground/[0.06] overflow-hidden rounded-lg ring-1 ring-inset ring-foreground/10">
+        <ul className="flex flex-col divide-y divide-line overflow-hidden rounded-lg ring-1 ring-inset ring-edge">
           {["w-56", "w-44", "w-64", "w-40"].map((width, index) => (
             <li
               key={width}
