@@ -144,11 +144,11 @@ export async function ManagerDashboard({
         stats={
           isOffDay
             ? [
-                { label: "Team Size", value: String(teamSize) },
+                { label: "Team size", value: String(teamSize) },
                 { label: "Submitted", value: String(submittedToday) },
               ]
             : [
-                { label: "Team Size", value: String(teamSize) },
+                { label: "Team size", value: String(teamSize) },
                 { label: "Submitted", value: String(submittedToday) },
                 { label: "Missing", value: String(missingToday) },
                 { label: "Completion", value: `${completionPercentage}%` },

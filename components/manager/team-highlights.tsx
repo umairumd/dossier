@@ -1,7 +1,7 @@
 import { Users } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { MemberAvatar } from "@/components/shared/member-avatar";
-import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
+import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import { EmployeeNameLink } from "@/components/manager/employee-name-link";
 import { cn } from "@/lib/utils";
 import type { TeamMemberStanding } from "@/types/team-insights";
@@ -79,7 +79,7 @@ export function TeamHighlights({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Card>
-        <CardLabelHeader label="Longest streaks" aside="Consecutive days" />
+        <CardTitleHeader title="Longest streaks" aside="Consecutive days" />
         <CardContent>
           <StandingList
             items={longestStreaks}
@@ -90,7 +90,7 @@ export function TeamHighlights({
       </Card>
 
       <Card>
-        <CardLabelHeader label="Needs a nudge" aside="Last 30 days" />
+        <CardTitleHeader title="Needs a nudge" aside="Last 30 days" />
         <CardContent>
           <StandingList
             items={frequentlyMissing}

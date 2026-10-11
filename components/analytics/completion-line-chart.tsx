@@ -41,7 +41,7 @@ export function CompletionLineChart({
     <Tile surface="card">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <TileHeader eyebrow={title} />
+          <TileHeader title={title} />
           <p className="text-xs text-muted-foreground">Last 30 days · working days</p>
         </div>
         <div className="text-right">

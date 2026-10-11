@@ -12,7 +12,7 @@ import { calendarDayToneClass } from "@/lib/helpers/attendance-day-tones";
 import { formatDate, isWorkingDay } from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
 import { AttendanceLegend } from "@/components/attendance/attendance-legend";
-import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
+import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import {
   Popover,
   PopoverContent,
@@ -176,8 +176,8 @@ export function PersonalMonthCalendar({
 
   return (
     <Card>
-      <CardLabelHeader
-        label="Your attendance"
+      <CardTitleHeader
+        title="Your attendance"
         aside={
           <span className="-my-2 -mr-2 flex items-center gap-1">
             {shift ? <span>{shiftLabel}</span> : null}

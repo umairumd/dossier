@@ -33,9 +33,7 @@ export function HeroForYou({ items }: { items: ForYouItem[] }) {
 
   return (
     <section aria-label="For you" className="flex flex-col gap-2">
-      <h2 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-        For you
-      </h2>
+      <h2 className="card-title">For you</h2>
       <ul
         className={cn(
           "grid grid-cols-1 gap-2",

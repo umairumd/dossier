@@ -299,6 +299,17 @@
 }
 
 @layer utilities {
+  /* Card and tile titles: sentence case, 14px medium, full contrast. */
+  .card-title {
+    @apply text-sm font-medium text-foreground;
+  }
+
+  /* A label above a value inside a card (Email, Role) and figure labels. */
+  .field-label {
+    @apply text-[13px] leading-5 text-muted-foreground;
+  }
+
+  /* Small caps for navigation, menu and table headings only, never card titles. */
   .label-eyebrow {
     @apply text-[11px] font-medium uppercase tracking-wide text-muted-foreground;
   }

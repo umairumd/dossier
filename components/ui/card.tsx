@@ -94,26 +94,26 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-// Home-card header, same pattern as the hero tiles: a small caps label on the
+// Card header, same pattern as the hero tiles: a sentence-case title on the
 // left and a quiet note or control on the right.
-function CardLabelHeader({
-  label,
+function CardTitleHeader({
+  title,
   aside,
   className,
 }: {
-  label: React.ReactNode
+  title: React.ReactNode
   aside?: React.ReactNode
   className?: string
 }) {
   return (
     <div
-      data-slot="card-label-header"
+      data-slot="card-title-header"
       className={cn(
         "-mb-1.5 flex min-h-7 items-center justify-between gap-3 px-(--card-spacing)",
         className
       )}
     >
-      <h2 className="label-eyebrow">{label}</h2>
+      <h2 className="card-title">{title}</h2>
       {aside != null && aside !== false && (
         <div className="flex shrink-0 items-center text-xs text-muted-foreground">
           {aside}
@@ -155,7 +155,7 @@ function CardFooterLink({
 
 export {
   Card,
-  CardLabelHeader,
+  CardTitleHeader,
   CardFooterLink,
   CardHeader,
   CardFooter,

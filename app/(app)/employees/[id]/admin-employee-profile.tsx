@@ -18,7 +18,7 @@ import { formatDate, formatDaysAgoLong } from "@/lib/helpers/dates";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { FigureStrip } from "@/components/shared/figure-strip";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
-import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
+import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import { EmployeeHeroClient } from "@/components/admin/employee-hero-client";
 import { AssignmentsCard } from "./assignments-card";
 import { DetailsCard } from "./details-card";
@@ -182,8 +182,8 @@ export async function AdminEmployeeProfile({
       </div>
 
       <Card>
-        <CardLabelHeader
-          label="Report history"
+        <CardTitleHeader
+          title="Report history"
           aside={`${employee.report_count} total`}
         />
         <CardContent>

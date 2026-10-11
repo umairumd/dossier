@@ -135,9 +135,9 @@ export async function EmployeeDashboard({
         template={template ?? undefined}
         shiftFulltimeStart={attendanceSettings.shiftFulltimeStart}
         stats={[
-          { label: "Current Streak", value: `${stats.currentStreak} days` },
-          { label: "This Month", value: `${stats.reportsThisMonth} reports` },
-          { label: "30-Day Rate", value: `${stats.completionPercentage}%` },
+          { label: "Current streak", value: `${stats.currentStreak} days` },
+          { label: "This month", value: `${stats.reportsThisMonth} reports` },
+          { label: "30-day rate", value: `${stats.completionPercentage}%` },
         ]}
       />
 

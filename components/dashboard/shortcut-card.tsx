@@ -8,24 +8,26 @@ import { ChevronRight } from "lucide-react";
 // ShortcutCard is a button (a dialog trigger, so it forwards props) and
 // ShortcutLink goes to a page; both look the same. Client components: a
 // dialog trigger (asChild) cannot slot onto a server-rendered element.
+// The card is a size container: when it is narrow (two to a row on a phone)
+// the icon stacks above the text and the chevron is dropped.
 const SHORTCUT =
-  "surface-card surface-card-interactive group flex w-full items-center gap-3.5 rounded-xl bg-card px-4 py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
+  "@container surface-card surface-card-interactive group block w-full rounded-xl bg-card px-4 py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 
 function ShortcutBody({ icon, title, hint }: { icon: ReactNode; title: string; hint: string }) {
   return (
-    <>
+    <span className="flex flex-col items-start gap-3 @[15rem]:flex-row @[15rem]:items-center @[15rem]:gap-3.5">
       <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-fill-hover ring-1 ring-edge ring-inset">
         {icon}
       </span>
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-sm font-medium">{title}</span>
+      <span className="flex w-full min-w-0 flex-1 flex-col">
+        <span className="truncate text-sm font-medium">{title}</span>
         <span className="truncate text-xs text-muted-foreground">{hint}</span>
       </span>
       <ChevronRight
         aria-hidden
-        className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+        className="hidden size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 @[15rem]:block"
       />
-    </>
+    </span>
   );
 }
 
