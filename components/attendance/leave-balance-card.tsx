@@ -134,7 +134,7 @@ export function LeaveBalanceCard({
       />
       <CardContent className="flex flex-col gap-3">
         <p className="text-[13px] text-muted-foreground">
-          Contract year {formatDate(balance.contract_year_start)} –{" "}
+          Contract year {formatDate(balance.contract_year_start)} to{" "}
           {formatDate(balance.contract_year_end)}
         </p>
         <div className="grid grid-cols-3 overflow-hidden rounded-lg ring-1 ring-inset ring-edge">

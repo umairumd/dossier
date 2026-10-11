@@ -38,13 +38,13 @@ export default async function TrackReportsPage({
     date === today && !isWorkingDay(today, settings.workingDays);
 
   const submittedCount = members.filter((member) => member.report != null).length;
-  const description = [
-    `${members.length} ${members.length === 1 ? "person" : "people"} in ${departments.length} ${departments.length === 1 ? "department" : "departments"}`,
+  // At most one middle dot: who, then today's numbers.
+  const description = `${members.length} ${members.length === 1 ? "person" : "people"} in ${departments.length} ${departments.length === 1 ? "department" : "departments"} · ${[
     `${submittedCount} in`,
     isOrgOffDay ? null : `due ${formatHourLabel(settings.reportDeadlineHourLocal)}`,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(", ")}`;
 
   return (
     <div className="flex flex-col gap-6">

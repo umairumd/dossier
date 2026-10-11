@@ -98,7 +98,7 @@ export function HeroReportPanel({
   const progress = deadlineWindow(now, timeZone, shiftFulltimeStart, deadlineHourLocal);
   const dueClock = formatDeadlineClock(deadlineHourLocal);
   const timeTone = progress.amber
-    ? "text-amber-700 dark:text-amber-400"
+    ? "text-warn"
     : "text-foreground";
 
   function handleSubmitted(info?: ReportSubmitInfo) {
@@ -158,7 +158,7 @@ export function HeroReportPanel({
             <>
               Due {dueClock}
               {" · "}
-              <span className={progress.amber ? "text-amber-700 dark:text-amber-400" : undefined}>
+              <span className={progress.amber ? "text-warn" : undefined}>
                 {formatMinutesLeft(progress.minutesLeft)}
               </span>
             </>

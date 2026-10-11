@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { RotateCcw } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -76,7 +76,7 @@ export function RemoteDayCellVisual({
     cellColorClass(null),
   );
   const transparentUnsetClass =
-    "flex h-8 w-full items-center justify-center rounded text-xs text-muted-foreground/30";
+    "flex h-8 w-full items-center justify-center rounded text-xs text-muted-foreground";
 
   if (isFuture) {
     return <div className={transparentUnsetClass}>—</div>;
@@ -90,7 +90,7 @@ export function RemoteDayCellVisual({
 
   if (isOff && (!record || record.status === "weekly_off")) {
     return (
-      <div className="flex h-8 w-full items-center justify-center rounded bg-muted text-[10px] font-medium text-muted-foreground/40">
+      <div className="flex h-8 w-full items-center justify-center rounded bg-muted text-[10px] font-medium text-muted-foreground">
         OFF
       </div>
     );
@@ -112,7 +112,7 @@ export function RemoteDayCellVisual({
           cellColorClass("present"),
         )}
       >
-        ✓
+        <Check className="size-3.5" aria-label="Report submitted" />
       </div>
     );
   }
@@ -122,8 +122,8 @@ export function RemoteDayCellVisual({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex h-8 w-full items-center justify-center rounded bg-emerald-800/60 text-xs font-medium text-emerald-100">
-              ✓
+            <div className="flex h-8 w-full items-center justify-center rounded bg-ok/15 text-xs font-medium text-ok">
+              <Check className="size-3.5" aria-label="Present" />
             </div>
           </TooltipTrigger>
           <TooltipContent>Manually marked present</TooltipContent>
@@ -134,7 +134,7 @@ export function RemoteDayCellVisual({
 
   if (isOff) {
     return (
-      <div className="flex h-8 w-full items-center justify-center rounded bg-muted text-[10px] font-medium text-muted-foreground/40">
+      <div className="flex h-8 w-full items-center justify-center rounded bg-muted text-[10px] font-medium text-muted-foreground">
         OFF
       </div>
     );
@@ -340,8 +340,9 @@ export function RemoteDayCellPopover({
 
             {hasReport ? (
               <div className="flex flex-col gap-2">
-                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                  ✓ Report submitted
+                <p className="flex items-center gap-1 text-xs font-medium text-ok">
+                  <Check className="size-3.5" aria-hidden />
+                  Report submitted
                 </p>
                 {!isReadOnly && (
                   <Button

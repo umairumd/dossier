@@ -46,12 +46,12 @@ export const EVENT_CATEGORY: Record<ActivityEventType, ActivityCategory> = {
 // icon in the same hue. Text stays neutral.
 export const CATEGORY_TONE: Record<ActivityCategory, string> = {
   reports:
-    "bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-300 dark:ring-emerald-300/20",
+    "bg-ok/10 text-ok ring-ok/20",
   people:
-    "bg-sky-500/10 text-sky-700 ring-sky-600/20 dark:text-sky-300 dark:ring-sky-300/20",
+    "bg-info/10 text-info ring-info/20",
   attendance:
-    "bg-amber-500/10 text-amber-700 ring-amber-600/20 dark:text-amber-300 dark:ring-amber-300/20",
+    "bg-warn/10 text-warn ring-warn/20",
   organization:
-    "bg-violet-500/10 text-violet-700 ring-violet-600/20 dark:text-violet-300 dark:ring-violet-300/20",
+    "bg-leave/10 text-leave ring-leave/20",
   settings: "bg-fill-hover text-foreground/70 ring-edge",
 };

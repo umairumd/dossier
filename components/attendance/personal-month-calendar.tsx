@@ -47,11 +47,11 @@ const SUMMARY_DOT: Record<
   "present" | "late" | "absent" | "leave" | "wfh",
   string
 > = {
-  present: "bg-emerald-500",
-  late: "bg-yellow-500",
-  absent: "bg-red-500",
-  leave: "bg-amber-500",
-  wfh: "bg-cyan-500",
+  present: "bg-ok",
+  late: "bg-warn",
+  absent: "bg-danger",
+  leave: "bg-leave",
+  wfh: "bg-info",
 };
 
 export function PersonalMonthCalendar({
@@ -225,7 +225,7 @@ export function PersonalMonthCalendar({
                     className={cn(
                       "flex h-11 w-full flex-col items-center justify-center gap-1 rounded-lg text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:h-12",
                       cell.isFuture
-                        ? "bg-transparent text-muted-foreground/40"
+                        ? "bg-transparent text-muted-foreground"
                         : calendarDayToneClass(status),
                       cell.isToday && "ring-2 ring-inset ring-foreground/80",
                       interactive && "cursor-pointer",
@@ -298,7 +298,7 @@ export function PersonalMonthCalendar({
             </span>
             <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-fill-active">
               <div
-                className="h-full rounded-full bg-emerald-500 transition-[width]"
+                className="h-full rounded-full bg-ok transition-[width]"
                 style={{ width: `${attendanceRate ?? 0}%` }}
               />
             </div>

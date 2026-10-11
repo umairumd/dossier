@@ -88,10 +88,10 @@ export function getSubmissionStatus(
 }
 
 export const SUBMISSION_STATUS_LABELS: Record<SubmissionStatus, string> = {
-  on_time: "On Time",
+  on_time: "On time",
   late: "Late",
   missed: "Missed",
   pending: "Pending",
-  on_leave: "On Leave",
-  off: "Day Off",
+  on_leave: "On leave",
+  off: "Day off",
 };

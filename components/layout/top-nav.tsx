@@ -80,7 +80,7 @@ export function TopNav({
 
             {orgName && (
               <div className="mt-2 flex items-center gap-1.5 px-2.5">
-                <span className="truncate text-xs text-muted-foreground/50">
+                <span className="truncate text-xs text-muted-foreground">
                   {orgName}
                 </span>
               </div>

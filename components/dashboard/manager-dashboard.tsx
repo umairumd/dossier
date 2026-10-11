@@ -92,7 +92,7 @@ export async function ManagerDashboard({
   if (teamSize === 0) {
     contextLine = "No team members assigned yet";
   } else if (missingToday === 0) {
-    contextLine = `✓ Your entire team has submitted today`;
+    contextLine = `Your entire team has submitted today`;
   } else {
     contextLine = `${submittedToday} of ${teamSize} team members have submitted today`;
   }

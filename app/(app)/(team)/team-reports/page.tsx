@@ -94,14 +94,15 @@ export default async function TeamReportsPage({
   const { submitted, total } = countIn(everyone, date, settings.workingDays);
 
   const deadline = getDeadlineContext(settings);
-  const description = [
-    groups.length === 1 ? section1Label : null,
+  // At most one middle dot: who, then today's numbers.
+  const counts = [
     `${total} ${total === 1 ? "person" : "people"}`,
     `${submitted} in`,
     isOrgOffDay ? null : `due ${formatHourLabel(settings.reportDeadlineHourLocal)}`,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
+  const description = groups.length === 1 ? `${section1Label} · ${counts}` : counts;
 
   return (
     <div className="flex flex-col gap-6">

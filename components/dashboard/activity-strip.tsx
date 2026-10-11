@@ -58,9 +58,9 @@ function dayTone(
 // outline (not a solid block), off days barely there, leave in amber.
 const TONE_CLASS: Record<DayTone, string> = {
   submitted: "bg-foreground/75",
-  missed: "bg-transparent ring-[1.5px] ring-inset ring-red-600/70 dark:ring-red-400/70",
+  missed: "bg-transparent ring-[1.5px] ring-inset ring-danger/70",
   weekend: "bg-fill-hover",
-  leave: "bg-amber-500/60 dark:bg-amber-300/55",
+  leave: "bg-leave/60",
   open: "bg-transparent ring-1 ring-inset ring-line-strong",
 };
 
@@ -101,7 +101,7 @@ export function ActivityStrip({
               key={date}
               title={date}
               className={cn(
-                "aspect-square w-full rounded-[3px] md:rounded-[5px]",
+                "aspect-square w-full rounded-xs md:rounded-sm",
                 date === today ? TODAY_CLASS : TONE_CLASS[tones[index]],
               )}
             />
@@ -118,7 +118,7 @@ export function ActivityStrip({
             ] as const
           ).map(([tone, label]) => (
             <span key={label} className="flex items-center gap-1.5">
-              <span className={cn("size-2.5 rounded-[3px]", tone)} />
+              <span className={cn("size-2.5 rounded-xs", tone)} />
               {label}
             </span>
           ))}

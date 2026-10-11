@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Coffee, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -10,7 +10,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { DayOffTag } from "@/components/shared/day-off-tag";
 import {
   dateInTimezone,
   formatDate,
@@ -48,7 +47,13 @@ export function DateStepper({
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-lg bg-fill-subtle ring-1 ring-inset ring-edge",
+        "inline-flex items-center rounded-lg ring-1 ring-inset transition-colors",
+        // On a day off the whole control turns amber; the label is plain text.
+        isOffDay
+          ? // Opaque: the same 12% amber as the off badge, mixed over the card
+            // colour, so it matches the pill even on the darker page.
+            "bg-[color-mix(in_srgb,var(--status-warn)_12%,var(--card))] text-warn ring-warn/30"
+          : "bg-fill-subtle ring-edge",
         h,
       )}
       aria-busy={isPending}
@@ -57,7 +62,11 @@ export function DateStepper({
         type="button"
         variant="ghost"
         size="icon"
-        className={cn(icon, "rounded-r-none rounded-l-lg")}
+        className={cn(
+          icon,
+          "rounded-r-none rounded-l-lg",
+          isOffDay && "text-warn hover:bg-warn/15 hover:text-warn",
+        )}
         onClick={() => onChange(shiftReportDate(date, -1))}
         disabled={isPending}
         aria-label="Previous day"
@@ -74,8 +83,9 @@ export function DateStepper({
             disabled={isPending}
             className={cn(
               h,
-              "min-w-20 rounded-none px-2 font-medium",
-              isOffDay && "hover:bg-transparent dark:hover:bg-transparent",
+              "min-w-20 rounded-none px-2 font-medium aria-expanded:bg-fill-hover",
+              isOffDay &&
+                "text-warn hover:bg-warn/15 hover:text-warn aria-expanded:bg-warn/15 aria-expanded:text-warn",
             )}
           >
             {isPending ? (
@@ -84,7 +94,10 @@ export function DateStepper({
                 aria-label="Loading"
               />
             ) : isOffDay ? (
-              <DayOffTag />
+              <span className="flex items-center gap-1.5">
+                <Coffee className="size-4" aria-hidden />
+                Day off
+              </span>
             ) : (
               centerLabel
             )}
@@ -112,7 +125,11 @@ export function DateStepper({
         type="button"
         variant="ghost"
         size="icon"
-        className={cn(icon, "rounded-l-none rounded-r-lg")}
+        className={cn(
+          icon,
+          "rounded-l-none rounded-r-lg",
+          isOffDay && "text-warn hover:bg-warn/15 hover:text-warn",
+        )}
         onClick={() => onChange(shiftReportDate(date, 1))}
         disabled={isPending || isToday}
         aria-label="Next day"
@@ -134,7 +151,7 @@ export function DateNav({
   /** @deprecated Center always shows "Today" or formatDate(date). */
   label?: string;
   timezone: string;
-  /** When true, center control shows DayOffTag instead of the date label. */
+  /** On a day off the control turns amber and reads "Day off". */
   isOffDay?: boolean;
 }) {
   const router = useRouter();

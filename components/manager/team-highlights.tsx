@@ -58,7 +58,7 @@ function StandingList({
           <span
             className={cn(
               "shrink-0 text-sm tabular-nums text-foreground/80",
-              isWarning?.(item) && "text-amber-700 dark:text-amber-300",
+              isWarning?.(item) && "text-warn",
             )}
           >
             {metric(item)}

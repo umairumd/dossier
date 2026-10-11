@@ -13,6 +13,16 @@
   --color-line: var(--line);
   --color-edge: var(--edge);
   --color-line-strong: var(--line-strong);
+  /* Inside a card, a recessed area (attendance day cells): between page and card. */
+  --color-sunken: color-mix(in oklab, var(--card) 45%, var(--background));
+  /* Status colours (docs/design/PLAN.md "Colour"): one hue per meaning. */
+  --color-ok: var(--status-ok);
+  --color-warn: var(--status-warn);
+  --color-danger: var(--status-danger);
+  --color-severe: var(--status-severe);
+  --color-leave: var(--status-leave);
+  --color-info: var(--status-info);
+  --color-holiday: var(--status-holiday);
   --color-background: var(--background);
   --color-shell: var(--shell);
   --color-foreground: var(--foreground);
@@ -60,7 +70,8 @@
 :root {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --background: oklch(1 0 0);
+  /* Light: a soft grey base with white cards (same depth rule as dark). */
+  --background: oklch(0.97 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -70,8 +81,8 @@
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted: oklch(0.955 0 0);
+  --muted-foreground: oklch(0.52 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -84,7 +95,7 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
+  --sidebar: oklch(0.97 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
@@ -94,7 +105,7 @@
   --sidebar-ring: oklch(0.708 0 0);
   /* Design language: surfaces, skeletons (docs/design/PLAN.md) */
   /* App frame behind the page panel and under the sidebar (desktop). */
-  --shell: color-mix(in oklab, var(--background) 96%, var(--foreground));
+  --shell: var(--background);
   --surface-border: oklch(0 0 0 / 0.08);
   --surface-border-hover: oklch(0 0 0 / 0.16);
   --surface-highlight: transparent;
@@ -110,10 +121,19 @@
   --line: color-mix(in oklab, var(--foreground) 6%, transparent);
   --edge: color-mix(in oklab, var(--foreground) 10%, transparent);
   --line-strong: color-mix(in oklab, var(--foreground) 15%, transparent);
-  /* Card treatment: diagonal sheen, edge, top light. */
-  --surface-sheen: color-mix(in oklab, var(--primary) 5%, transparent);
+  /* Card treatment: diagonal sheen and edge. */
+  --surface-sheen: transparent;
   --card-edge: color-mix(in oklab, var(--foreground) 10%, transparent);
-  --hero-sheen: var(--surface-sheen);
+  /* Status colours: on time / success, late / warning / day off, absent /
+   * missed / error, very late, leave, remote / info, holiday. */
+  --status-ok: #047857;
+  --status-warn: #b45309;
+  --status-danger: #b91c1c;
+  --status-severe: #c2410c;
+  --status-leave: #7e22ce;
+  --status-info: #0369a1;
+  --status-holiday: #0f766e;
+  --hero-sheen: rgb(255 255 255 / 0.8);
 }
 
 /* Dark surfaces, option D (docs/design/PLAN.md "Colour"): one neutral ramp.
@@ -168,6 +188,13 @@
   --line-strong: rgb(255 255 255 / 0.15);
   --surface-sheen: rgb(255 255 255 / 0.045);
   --card-edge: rgb(255 255 255 / 0.09);
+  --status-ok: #34d399;
+  --status-warn: #fbbf24;
+  --status-danger: #f87171;
+  --status-severe: #fb923c;
+  --status-leave: #c084fc;
+  --status-info: #38bdf8;
+  --status-holiday: #2dd4bf;
   --hero-sheen: rgb(255 255 255 / 0.05);
 }
 

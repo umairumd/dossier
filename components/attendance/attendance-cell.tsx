@@ -14,7 +14,7 @@ export function AttendanceCell({
   // look identical (bg-muted + smaller muted type, not cellColorClass).
   if (status === "weekly_off") {
     return (
-      <div className="flex h-8 w-full items-center justify-center rounded bg-muted text-[10px] font-medium text-muted-foreground/40">
+      <div className="flex h-8 w-full items-center justify-center rounded bg-muted text-[10px] font-medium text-muted-foreground">
         OFF
       </div>
     );

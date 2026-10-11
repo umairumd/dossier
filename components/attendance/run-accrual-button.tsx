@@ -56,7 +56,7 @@ export function RunAccrualButton({
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex size-8 items-center justify-center rounded-md text-emerald-500 hover:bg-fill-hover"
+                  className="inline-flex size-9 items-center justify-center rounded-lg text-ok hover:bg-fill-hover"
                   aria-label={label}
                 >
                   <CheckCircle2 className="size-4" />
@@ -87,7 +87,7 @@ export function RunAccrualButton({
         return;
       }
       toast.success(
-        `Accrual complete — ${result.count} employees credited 2 leaves`,
+        `Accrual complete. ${result.count} employees credited 2 leaves`,
       );
       setConfirmOpen(false);
     });

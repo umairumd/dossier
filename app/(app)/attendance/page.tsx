@@ -238,10 +238,10 @@ export default async function AttendancePage({
         description={`${activeEmployees.length} ${activeEmployees.length === 1 ? "person" : "people"}${remoteEmployees.length > 0 ? ` · ${remoteEmployees.length} remote` : ""}`}
         action={
           <div className="flex flex-nowrap items-center gap-2">
-            <AttendanceLegend showHolidayHint />
             {isCurrentMonth && (
               <RunAccrualButton yearMonth={month} accrualDone={accrualDone} />
             )}
+            <AttendanceLegend showHolidayHint />
             <MonthNav
               month={month}
               baseHref="/attendance"

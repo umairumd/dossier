@@ -113,15 +113,11 @@ export default async function DepartmentDetailPage({
     getSubmissionStatus(null, deadline.deadlineHourUtc, deadline, today) === "missed";
   const { trend, previousAverage } = completionWindows(detail.trend, today, deadlinePassed);
 
-  const description = [
-    `${detail.members.length} ${detail.members.length === 1 ? "person" : "people"}`,
-    detail.manager ? `managed by ${detail.manager.full_name}` : "no manager",
-    hasReportingMembers
-      ? `${submittedToday} of ${totalCount} in today${missingToday > 0 && deadlinePassed ? ` · ${missingToday} missing` : ""}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  // At most one middle dot: the department, then today.
+  const who = `${detail.members.length} ${detail.members.length === 1 ? "person" : "people"}, ${detail.manager ? `managed by ${detail.manager.full_name}` : "no manager"}`;
+  const description = hasReportingMembers
+    ? `${who} · ${submittedToday} of ${totalCount} in today${missingToday > 0 && deadlinePassed ? `, ${missingToday} missing` : ""}`
+    : who;
 
   return (
     <div className="flex flex-col gap-6">

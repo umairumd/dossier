@@ -20,11 +20,12 @@ import {
   computeReportStats,
 } from "@/lib/helpers/report-stats";
 import type { AttendanceStatus } from "@/types/attendance";
-import { Building2, ChevronRight, UserPlus } from "lucide-react";
+import { Building2, FileText, UserPlus } from "lucide-react";
 import { HomeActivityCard } from "@/components/dashboard/home-activity-card";
 import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
 import { CreateDepartmentDialog } from "@/components/admin/create-department-dialog";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { ShortcutCard, ShortcutLink } from "@/components/dashboard/shortcut-card";
 import type { HeroPanelId } from "@/components/dashboard/hero-controller";
 import { CompletionLineChart } from "@/components/analytics/completion-line-chart";
 import { getCompanyCompletion } from "@/lib/supabase/queries/admin/analytics";
@@ -112,11 +113,11 @@ export async function AdminDashboard({
   // HeroReportStatus below the divider.
   let contextLine: string;
   if (summary.totalMembers === 0 && summary.pendingInvites > 0) {
-    contextLine = `${summary.pendingInvites} invitation${summary.pendingInvites === 1 ? "" : "s"} pending — waiting for your first employee to sign in`;
+    contextLine = `${summary.pendingInvites} invitation${summary.pendingInvites === 1 ? "" : "s"} pending. Waiting for your first employee to sign in`;
   } else if (summary.totalMembers === 0) {
     contextLine = "Start by inviting your first employee";
   } else if (summary.completionPercentageToday === 100) {
-    contextLine = `✓ All ${summary.totalMembers} employees have submitted today`;
+    contextLine = `All ${summary.totalMembers} employees have submitted today`;
   } else if (summary.pendingInvites > 0) {
     contextLine = `${summary.pendingInvites} employee${summary.pendingInvites === 1 ? "" : "s"} haven't accepted their invitation yet`;
   } else if (summary.missingToday > 0) {
@@ -235,7 +236,7 @@ export async function AdminDashboard({
       </div>
 
       <div
-        className="grid gap-4 sm:grid-cols-2 animate-in fade-in-0 duration-300 fill-mode-both"
+        className="grid gap-4 sm:grid-cols-3 animate-in fade-in-0 duration-300 fill-mode-both"
         style={{ animationDelay: "75ms" }}
       >
         <InviteEmployeeDialog
@@ -259,6 +260,12 @@ export async function AdminDashboard({
             />
           }
         />
+        <ShortcutLink
+          href="/organization/templates/new"
+          icon={<FileText className="size-4" />}
+          title="New template"
+          hint="Set the questions for daily reports"
+        />
       </div>
 
       <HomeActivityCard
@@ -278,39 +285,5 @@ export async function AdminDashboard({
         currentUserId={profile?.id}
       />
     </div>
-  );
-}
-
-
-// Compact shortcut: icon, title, one-line hint. Rendered as the dialog
-// trigger, so it is a button (asChild-safe: forwards props and ref).
-function ShortcutCard({
-  icon,
-  title,
-  hint,
-  ...props
-}: React.ComponentProps<"button"> & {
-  icon: React.ReactNode;
-  title: string;
-  hint: string;
-}) {
-  return (
-    <button
-      type="button"
-      className="surface-card surface-card-interactive group flex w-full items-center gap-3.5 rounded-xl bg-card px-4 py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-      {...props}
-    >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-fill-hover ring-1 ring-edge ring-inset">
-        {icon}
-      </span>
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-sm font-medium">{title}</span>
-        <span className="truncate text-xs text-muted-foreground">{hint}</span>
-      </span>
-      <ChevronRight
-        aria-hidden
-        className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-      />
-    </button>
   );
 }

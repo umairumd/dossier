@@ -314,8 +314,8 @@ export function OrgDailyReports({
               aside: (
                 <span
                   className={cn(
-                    allIn && "text-green-700 dark:text-green-300",
-                    !allIn && deadlinePassed && "text-amber-700 dark:text-amber-300",
+                    allIn && "text-ok",
+                    !allIn && deadlinePassed && "text-warn",
                   )}
                 >
                   {allIn ? "All in" : `${section.submitted} of ${section.total} in`}
