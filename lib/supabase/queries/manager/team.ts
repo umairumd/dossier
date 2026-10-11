@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { AttendanceStatus } from "@/types/attendance";
@@ -29,9 +29,7 @@ export const getTeamRoster = cache(
   async (): Promise<TeamRosterMember[]> => {
     const supabase = await createClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return [];
@@ -61,9 +59,7 @@ export const getTeamReportingRoster = cache(
   async (): Promise<TeamRosterMember[]> => {
     const supabase = await createClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return [];

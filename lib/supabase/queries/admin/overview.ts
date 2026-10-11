@@ -14,30 +14,29 @@ import type { OrganizationSummary } from "@/types/admin-overview";
 // never displayed.
 export const getOrganizationSummary = cache(
   async (): Promise<OrganizationSummary> => {
-    await requireAdminUser();
-
     const supabase = await createClient();
 
-    const settings = await getOrganizationSettings();
-
-    const [employees, departments] = await Promise.all([
+    // Independent reads run together; only the count needs the roster first.
+    const [, settings, employees, departments, eligible] = await Promise.all([
+      requireAdminUser(),
+      getOrganizationSettings(),
       getAllEmployees(),
       getAllDepartments(),
+      supabase
+        .from("profiles")
+        .select("id")
+        .eq("has_onboarded", true)
+        .eq("is_active", true)
+        .is("archived_at", null)
+        .neq("role", "owner"),
     ]);
+    const { data: eligibleProfiles, error: eligibleError } = eligible;
 
     const staff = employees.filter((employee) => employee.role === "member");
     const managers = employees.filter(
       (employee) =>
         employee.role === "manager" && employee.status !== "archived",
     );
-
-    const { data: eligibleProfiles, error: eligibleError } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("has_onboarded", true)
-      .eq("is_active", true)
-      .is("archived_at", null)
-      .neq("role", "owner");
 
     if (eligibleError) {
       throw new Error("Failed to load today's completion roster.");

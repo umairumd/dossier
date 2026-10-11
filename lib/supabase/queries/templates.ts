@@ -172,38 +172,39 @@ export const resolveTemplate = cache(
   ): Promise<ReportTemplateWithFields | null> => {
     const supabase = await createClient();
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("template_id")
-      .eq("id", profileId)
-      .single();
+    // Look up the individual and department assignments and the org default
+    // together, then load both candidate templates together: two rounds
+    // instead of up to five. Priority is unchanged: individual, then the
+    // first department (by name) with a template, then the default.
+    const [{ data: profile }, depts, defaultTmplP] = await Promise.all([
+      supabase.from("profiles").select("template_id").eq("id", profileId).single(),
+      departmentIds.length > 0
+        ? supabase
+            .from("departments")
+            .select("template_id, name")
+            .in("id", departmentIds)
+            .not("template_id", "is", null)
+            .order("name", { ascending: true })
+            .limit(1)
+            .then((result) => result.data)
+        : Promise.resolve(null),
+      Promise.resolve(getDefaultTemplate()),
+    ]);
 
-    if (profile?.template_id) {
-      const tmpl = await getTemplateWithFields(profile.template_id);
-      if (tmpl && !tmpl.archivedAt) {
-        return tmpl;
-      }
+    const deptTemplateId = depts?.[0]?.template_id as string | undefined;
+    const [individual, department] = await Promise.all([
+      profile?.template_id ? getTemplateWithFields(profile.template_id) : null,
+      deptTemplateId ? getTemplateWithFields(deptTemplateId) : null,
+    ]);
+
+    if (individual && !individual.archivedAt) {
+      return individual;
+    }
+    if (department && !department.archivedAt) {
+      return department;
     }
 
-    if (departmentIds.length > 0) {
-      const { data: depts } = await supabase
-        .from("departments")
-        .select("template_id, name")
-        .in("id", departmentIds)
-        .not("template_id", "is", null)
-        .order("name", { ascending: true })
-        .limit(1);
-
-      const deptTemplateId = depts?.[0]?.template_id;
-      if (deptTemplateId) {
-        const tmpl = await getTemplateWithFields(deptTemplateId);
-        if (tmpl && !tmpl.archivedAt) {
-          return tmpl;
-        }
-      }
-    }
-
-    const defaultTmpl = await getDefaultTemplate();
+    const defaultTmpl = await defaultTmplP;
     if (defaultTmpl) {
       return defaultTmpl;
     }

@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { insertLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
@@ -195,9 +195,7 @@ export const getTeamMonthlyAttendance = cache(
 export const getMyAttendance = cache(
   async (yearMonth: string): Promise<AttendanceRecord[]> => {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return [];
 
     const startDate = `${yearMonth}-01`;
@@ -393,9 +391,7 @@ export const getEmployeeLeaveRequests = cache(
 export const getMyTodayAttendanceStatus = cache(
   async (today: string): Promise<AttendanceStatus | null> => {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return null;
 
     const { data } = await supabase

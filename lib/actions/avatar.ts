@@ -8,9 +8,10 @@
  * - getRewardStats stays private. Callers use getMyRewardStats / syncMyUnlocks, which
  *   always load the signed-in profile.
  */
+import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { safeTimeZone, shiftReportDate, todayInTimezone } from "@/lib/helpers/dates";
 import { buildAttendanceStatusMap } from "@/lib/helpers/report-stats";
 import { computeRewardStats } from "@/lib/helpers/reward-stats";
@@ -60,7 +61,7 @@ async function ownedItems(profileId: string): Promise<Set<string>> {
 
 export async function saveMyAvatar(input: AvatarConfig): Promise<{ ok: true; avatar: AvatarConfig } | { ok: false; error: string }> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return { ok: false, error: "Not signed in" };
 
   const owned = await ownedItems(user.id);
@@ -91,8 +92,7 @@ export async function saveMyAvatar(input: AvatarConfig): Promise<{ ok: true; ava
 
 /** Hide one hero unlock row. Unlocks are written with the service role, so this filters profile_id explicitly. */
 export async function markUnlockSeen(itemId: string): Promise<void> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return;
   const admin = createAdminClient();
   await admin
@@ -106,10 +106,9 @@ export async function markUnlockSeen(itemId: string): Promise<void> {
 
 /** Call after report submission and on dashboard load (cheap: one select + maybe one insert). */
 export async function syncMyUnlocks(): Promise<AccessoryId[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
-  const stats = await getRewardStats(user.id);
+  const stats = await getRewardStatsOnce(user.id);
   const owned = await ownedItems(user.id);
   const fresh = evaluateUnlocks(stats, owned).filter(
     (id) => !SET_ASIDE.accessories.includes(id),
@@ -129,7 +128,7 @@ export type UnlockRow = { itemId: string; unlockedAt: string; seenAt: string | n
 /** Owned wardrobe rows, newest first, including unlocked_at. */
 export async function getMyUnlocks(): Promise<UnlockRow[]> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
   const { data, error } = await supabase
     .from("avatar_unlocks")
@@ -146,8 +145,7 @@ export async function getMyUnlocks(): Promise<UnlockRow[]> {
 
 /** Item ids in avatar_unlocks for the signed-in person. */
 export async function getMyUnlockIds(): Promise<string[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
   return [...await ownedItems(user.id)];
 }
@@ -164,7 +162,7 @@ export type BuddyDialogData = {
 /** Avatar, wardrobe, and reward stats for the customise dialog. */
 export async function getBuddyDialogData(): Promise<BuddyDialogData | null> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
   const [{ data: profile }, settings, stats, owned] = await Promise.all([
     supabase.from("profiles").select("avatar").eq("id", user.id).maybeSingle(),
@@ -184,11 +182,14 @@ export async function getBuddyDialogData(): Promise<BuddyDialogData | null> {
 
 /** Reward stats for the signed-in person. */
 export async function getMyRewardStats(): Promise<RewardStats> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return EMPTY_REWARD_STATS;
-  return getRewardStats(user.id);
+  return getRewardStatsOnce(user.id);
 }
+
+// The home hero asks for reward stats twice (the progress tile and the unlock
+// check); during one render they share a single computation.
+const getRewardStatsOnce = cache((profileId: string) => getRewardStats(profileId));
 
 async function getRewardStats(profileId: string): Promise<RewardStats> {
   if (!profileId) return EMPTY_REWARD_STATS;

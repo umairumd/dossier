@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import type { ActivityLogEntry } from "@/types/activity";
 
@@ -75,9 +75,7 @@ export const getMyActivityLog = cache(
     const supabase = await createClient();
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getAuthUser();
       if (!user) return [];
 
       const { data, error } = await applyActivityQueryOptions(

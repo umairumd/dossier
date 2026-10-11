@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import {
   buildAttendanceStatusMap,
   computeReportStats,
@@ -37,9 +37,7 @@ export const getTeamMemberOverview = cache(
   async (employeeId: string): Promise<TeamMemberOverview | null> => {
     const supabase = await createClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return null;

@@ -1,81 +1,119 @@
+import { Suspense } from "react";
 import { getReportHistory, getReportStatsData, getTodayReport } from "@/lib/supabase/queries/reports";
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
-import { getOrganizationSettings, getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
+import { getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getMyActivityLog } from "@/lib/supabase/queries/admin/activity";
-import { getAttendanceSettings, getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
+import { getAttendanceSettings } from "@/lib/supabase/queries/attendance";
 import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queries/notifications";
 import { getAvatarsByProfileIds, type ProfileWithDepartment } from "@/lib/supabase/queries/profile";
-import { createClient } from "@/lib/supabase/server";
-import { getMyRewardStats, getMyUnlocks, syncMyUnlocks } from "@/lib/actions/avatar";
-import { dateNDaysAgo, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
-import {
-  buildAttendanceStatusMap,
-  computeReportStats,
-} from "@/lib/helpers/report-stats";
-import type { AttendanceStatus } from "@/types/attendance";
+import { getHomeDay, getMyAttendanceHistory } from "@/lib/supabase/queries/home";
+import { getMyRewardStats, getMyUnlocks } from "@/lib/actions/avatar";
+import { buildAttendanceStatusMap, computeReportStats } from "@/lib/helpers/report-stats";
 import { HomeActivityCard } from "@/components/dashboard/home-activity-card";
 import { ActivityStrip } from "@/components/dashboard/activity-strip";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import type { HeroPanelId } from "@/components/dashboard/hero-controller";
 import { RecentReportsCard } from "@/components/reports/recent-reports-card";
+import {
+  ActivityStripSkeleton,
+  HomeActivitySkeleton,
+  HomeHeroSkeleton,
+  RecentReportsSkeleton,
+} from "@/components/shared/skeletons";
 
 const RECENT_PREVIEW_SIZE = 5;
 const MY_ACTIVITY_LIMIT = 20;
 
-export async function EmployeeDashboard({
+// Each card fetches its own data and streams in behind its own skeleton.
+// Shared queries are cache()-wrapped and run once per request. The cards sit
+// inside the hero's boundary: they all start fetching at once, but none can
+// appear before the hero does.
+export function EmployeeDashboard({
   profile,
   initialPanel,
 }: {
   profile: ProfileWithDepartment;
   initialPanel: HeroPanelId | null;
 }) {
-  const supabase = await createClient();
-  const [todayReport, preview, statsRows, settings, template, templates, attendanceResult, myActivity, notifications, forYou, rewardStats, unlocks, freshUnlocks, attendanceSettings] =
-    await Promise.all([
-      getTodayReport(),
-      getReportHistory(1, RECENT_PREVIEW_SIZE),
-      getReportStatsData(),
-      getOrganizationSettings(),
-      resolveTemplate(profile.id, profile.department_ids),
-      getOrgTemplatesWithFields(),
-      supabase
-        .from("attendance_records")
-        .select("date, status")
-        .eq("profile_id", profile.id)
-        .gte("date", dateNDaysAgo(399)),
-      getMyActivityLog(MY_ACTIVITY_LIMIT),
-      getMyNotifications(),
-      getForYouNotifications(),
-      getMyRewardStats(),
-      getMyUnlocks(),
-      syncMyUnlocks(),
-      getAttendanceSettings(),
-    ]);
+  const strip = <ActivityStripSkeleton />;
+  const recent = <RecentReportsSkeleton />;
+  const activity = <HomeActivitySkeleton />;
 
-  const attendanceByDate = buildAttendanceStatusMap(
-    (attendanceResult.data as { date: string; status: AttendanceStatus }[]) ??
-      [],
+  return (
+    <div className="flex flex-col gap-6">
+      <Suspense
+        fallback={
+          <>
+            <HomeHeroSkeleton stats={3} team={false} />
+            {strip}
+            {recent}
+            {activity}
+          </>
+        }
+      >
+        <EmployeeHero profile={profile} initialPanel={initialPanel} />
+        <Suspense fallback={strip}>
+          <ActivityStripSection />
+        </Suspense>
+        <Suspense fallback={recent}>
+          <RecentReportsSection profile={profile} />
+        </Suspense>
+        <Suspense fallback={activity}>
+          <MyActivitySection profileId={profile.id} />
+        </Suspense>
+      </Suspense>
+    </div>
   );
+}
+
+async function EmployeeHero({
+  profile,
+  initialPanel,
+}: {
+  profile: ProfileWithDepartment;
+  initialPanel: HeroPanelId | null;
+}) {
+  const forYouP = getForYouNotifications();
+  const [
+    day,
+    forYou,
+    todayReport,
+    statsRows,
+    template,
+    attendanceRows,
+    notifications,
+    rewardStats,
+    unlocks,
+    attendanceSettings,
+    actorAvatars,
+  ] = await Promise.all([
+    getHomeDay(),
+    forYouP,
+    getTodayReport(),
+    getReportStatsData(),
+    resolveTemplate(profile.id, profile.department_ids),
+    getMyAttendanceHistory(),
+    getMyNotifications(),
+    getMyRewardStats(),
+    getMyUnlocks(),
+    getAttendanceSettings(),
+    forYouP.then((notes) =>
+      getAvatarsByProfileIds(
+        notes.flatMap((note) =>
+          note.entity_type === "employee" && note.entity_id ? [note.entity_id] : [],
+        ),
+      ),
+    ),
+  ]);
+
+  const { settings, todayDate, isOffDay, onFullDayLeave } = day;
   const stats = computeReportStats(statsRows, settings.timezone, {
     workingDays: settings.workingDays,
-    attendanceByDate,
+    attendanceByDate: buildAttendanceStatusMap(attendanceRows),
   });
-  const deadline = getDeadlineContext(settings);
   const submittedToday = !!todayReport;
   const streak = stats.currentStreak;
-  const todayDate = todayInTimezone(settings.timezone);
-
-  // Same off-day rule as manager/admin: non-working day or holiday attendance.
-  const todayAttendanceStatus = await getMyTodayAttendanceStatus(todayDate);
-  const isHoliday = todayAttendanceStatus === "holiday";
-  const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
-  const onFullDayLeave = todayAttendanceStatus === "leave";
   const isBirthday = profile.date_of_birth?.slice(5, 10) === todayDate.slice(5, 10);
-  const actorAvatars = await getAvatarsByProfileIds(
-    forYou.flatMap((note) =>
-      note.entity_type === "employee" && note.entity_id ? [note.entity_id] : [],
-    ),
-  );
   const unread = notifications
     .filter((note) => note.read_at == null)
     .map((note) => ({ type: note.type, created_at: note.created_at }));
@@ -105,8 +143,9 @@ export async function EmployeeDashboard({
     contextLine = "You're all caught up for today";
   }
 
+  // The hero reveals itself once its buddies are drawn (see DashboardHero).
   return (
-    <div className="flex flex-col gap-6">
+    <div>
       <DashboardHero
         userId={profile.id}
         name={profile.full_name}
@@ -121,13 +160,13 @@ export async function EmployeeDashboard({
         timeZone={settings.timezone}
         deadlineHourLocal={settings.reportDeadlineHourLocal}
         currentStreak={stats.currentStreak}
+        submissionRate={stats.completionPercentage}
         unread={unread}
         notifications={forYou}
         actorAvatars={actorAvatars}
         rewardStats={rewardStats}
         unlocks={unlocks}
         asOf={new Date().toISOString()}
-        freshUnlocks={freshUnlocks}
         contextLine={contextLine}
         isReporting={profile.is_reporting}
         initialPanel={initialPanel}
@@ -140,49 +179,66 @@ export async function EmployeeDashboard({
           { label: "30-day rate", value: `${stats.completionPercentage}%` },
         ]}
       />
+    </div>
+  );
+}
 
-      <div
-        className="animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "0ms" }}
-      >
-        <ActivityStrip
-          reports={statsRows}
-          timezone={settings.timezone}
-          workingDays={settings.workingDays}
-          attendanceByDate={attendanceByDate}
-        />
-      </div>
+async function ActivityStripSection() {
+  const [statsRows, attendanceRows, day] = await Promise.all([
+    getReportStatsData(),
+    getMyAttendanceHistory(),
+    getHomeDay(),
+  ]);
+  return (
+    <div className="rise-in">
+      <ActivityStrip
+        reports={statsRows}
+        timezone={day.settings.timezone}
+        workingDays={day.settings.workingDays}
+        attendanceByDate={buildAttendanceStatusMap(attendanceRows)}
+      />
+    </div>
+  );
+}
 
-      <div
-        className="animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "75ms" }}
-      >
-        <RecentReportsCard
-          reports={preview.reports}
-          viewAllHref="/reports"
-          deadline={deadline}
-          userName={profile.full_name}
-          avatar={profile.avatar}
-          templates={templates}
-          viewerRole={profile.role}
-          currentUserId={profile.id}
-        />
-      </div>
-
-      <HomeActivityCard
-        mode="personal"
-        className="animate-in fade-in-0 duration-300 fill-mode-both"
-        items={myActivity}
-        timeZone={settings.timezone}
-        today={{
-          date: todayDate,
-          submitted: 0,
-          expected: 0,
-          deadlineLabel: "",
-          deadlinePassed: false,
-        }}
+async function RecentReportsSection({ profile }: { profile: ProfileWithDepartment }) {
+  const [preview, templates, day] = await Promise.all([
+    getReportHistory(1, RECENT_PREVIEW_SIZE),
+    getOrgTemplatesWithFields(),
+    getHomeDay(),
+  ]);
+  return (
+    <div className="rise-in">
+      <RecentReportsCard
+        reports={preview.reports}
+        viewAllHref="/reports"
+        deadline={getDeadlineContext(day.settings)}
+        userName={profile.full_name}
+        avatar={profile.avatar}
+        templates={templates}
+        viewerRole={profile.role}
         currentUserId={profile.id}
       />
     </div>
+  );
+}
+
+async function MyActivitySection({ profileId }: { profileId: string }) {
+  const [myActivity, day] = await Promise.all([getMyActivityLog(MY_ACTIVITY_LIMIT), getHomeDay()]);
+  return (
+    <HomeActivityCard
+      mode="personal"
+      className="rise-in"
+      items={myActivity}
+      timeZone={day.settings.timezone}
+      today={{
+        date: day.todayDate,
+        submitted: 0,
+        expected: 0,
+        deadlineLabel: "",
+        deadlinePassed: false,
+      }}
+      currentUserId={profileId}
+    />
   );
 }
