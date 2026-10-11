@@ -47,7 +47,7 @@ export default function HomeLoading() {
           <div className="grid w-full shrink-0 grid-cols-4 gap-x-6 gap-y-4 md:w-auto">
             {Array.from({ length: 4 }, (_, i) => (
               <div key={i} className="flex flex-col gap-0.5 md:w-[123px]">
-                <span className="flex h-[16.5px] items-center">
+                <span className="flex h-5 items-center">
                   <Skeleton className="h-2.5 w-16" />
                 </span>
                 <span className="flex h-7 items-center">
@@ -60,13 +60,13 @@ export default function HomeLoading() {
 
         <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
           <TileSkeleton className="h-[113px] gap-3 md:col-span-2">
-            <SkeletonLine size="xs" className="w-28" />
+            <SkeletonLine size="sm" className="w-28" />
             <SkeletonLine className="w-64" />
             <Skeleton className="mt-auto h-9 w-36 rounded-lg" />
           </TileSkeleton>
           {[0, 1].map((i) => (
             <TileSkeleton key={i} className="h-[338px] gap-3">
-              <SkeletonLine size="xs" className="w-24" />
+              <SkeletonLine size="sm" className="w-24" />
               <div className="flex flex-1 items-center justify-center">
                 <Skeleton className="size-[104px] rounded-full" />
               </div>

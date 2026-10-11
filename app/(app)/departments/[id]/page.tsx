@@ -28,7 +28,7 @@ import {
 } from "@/components/shared/employee-indicators";
 import { SubmissionStatusBadge } from "@/components/manager/submission-status-badge";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
+import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import type { DepartmentListItem } from "@/types/department";
 
 export default async function DepartmentDetailPage({
@@ -135,8 +135,8 @@ export default async function DepartmentDetailPage({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card>
-          <CardLabelHeader
-            label="Manager"
+          <CardTitleHeader
+            title="Manager"
             aside={
               <DepartmentDetailActions
                 variant={detail.manager ? "change-manager" : "assign-manager"}
@@ -160,8 +160,8 @@ export default async function DepartmentDetailPage({
         </Card>
 
         <Card>
-          <CardLabelHeader
-            label="Report template"
+          <CardTitleHeader
+            title="Report template"
             aside={
               <DeptTemplateActions
                 departmentId={detail.id}

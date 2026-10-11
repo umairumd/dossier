@@ -250,7 +250,7 @@ function WorkingRest({
       <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
-          <TileHeader eyebrow="Today's report" aside={`Due ${dueClock}`} />
+          <TileHeader title="Today's report" aside={`Due ${dueClock}`} />
           <p className={cn("mt-2 leading-none", timeTone)}>
             <span className="text-[28px] font-semibold tracking-tight md:text-[34px]">
               {remaining}

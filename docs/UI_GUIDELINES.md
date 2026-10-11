@@ -561,7 +561,9 @@ Type "DELETE" to confirm:
 ### Typography
 
 - Page titles: `text-2xl font-semibold tracking-tight`
-- Card titles: `text-lg font-semibold`
+- Card and tile titles: `card-title` (14px medium, sentence case), via `CardTitleHeader` or `TileHeader`
+- Labels above a value inside a card: `field-label` (13px muted, sentence case)
+- Small caps (`label-eyebrow`): sidebar section headings, dropdown menu labels and table headings only
 - Body text: `text-sm`
 - Muted text: `text-muted-foreground`
 
@@ -583,8 +585,8 @@ Type "DELETE" to confirm:
 
 ### Tile anatomy
 
-- Eyebrow label: 11px, uppercase, tracking, muted.
-- Optional aside on the eyebrow line: muted, or amber for a deadline warning.
+- Title: `card-title` (14px medium, sentence case).
+- Optional aside on the title line: muted, or amber for a deadline warning.
 - Body, then an optional actions row at the bottom.
 - Padding 18px on desktop, 16px on a phone.
 - `rounded-xl`, `border-foreground/10`, and the subtle `bg-foreground/[0.03]` surface.
@@ -639,7 +641,7 @@ Type "DELETE" to confirm:
 
 Cards on the home page follow the hero tiles:
 
-- Header: `CardLabelHeader` (small caps label left, quiet note or control right). Not `CardTitle` + `CardDescription`.
+- Header: `CardTitleHeader` (sentence-case title left, quiet note or control right). Not `CardTitle` + `CardDescription`.
 - Main link: `CardFooterLink` (full-width row with a chevron along the bottom), not a "View all" text link in the header or body.
 - People rows: buddy face (`MemberAvatar size="sm"`), name, designation in muted text, value right-aligned and `tabular-nums`.
 - Status colour only when it means something: neutral before the deadline, amber once it has passed or a value is below its threshold, green when complete.

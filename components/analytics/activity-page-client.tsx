@@ -7,7 +7,7 @@ import {
   FilterToolbar,
   filterSelectTriggerClassName,
 } from "@/components/shared/filter-toolbar";
-import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
+import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -223,8 +223,8 @@ export function ActivityPageClient({
       />
 
       <Card>
-        <CardLabelHeader
-          label={
+        <CardTitleHeader
+          title={
             category === "all" ? "All activity" : ACTIVITY_CATEGORY_LABELS[category]
           }
         />

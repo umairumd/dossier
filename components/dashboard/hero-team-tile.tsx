@@ -19,8 +19,6 @@ import type { UserRole } from "@/types/profile";
 import type { TeamMemberReport } from "@/types/team";
 import type { ReportTemplateWithFields } from "@/types/template";
 
-const eyebrow =
-  "text-[11px] font-medium uppercase tracking-wide text-muted-foreground";
 const LEAVE_DATE = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
@@ -117,7 +115,7 @@ export function HeroTeamTile({
     <>
       <Tile className="h-full" style={{ viewTransitionName: "hero-team" }}>
         <TileHeader
-          eyebrow={label}
+          title={label}
           aside={
             !orgOffDay ? (
               <span className={progress.amber ? "text-warn" : undefined}>
@@ -402,7 +400,7 @@ function Column({
 }) {
   return (
     <div className="py-3 md:px-4 md:py-0 md:first:pl-0 md:last:pr-0">
-      <p className={eyebrow}>
+      <p className="field-label">
         {title} · {count}
       </p>
       <div className="mt-2">

@@ -182,24 +182,24 @@ export async function AdminDashboard({
         stats={
           isOffDay
             ? [
-                { label: "Total Members", value: String(summary.totalMembers) },
+                { label: "Total members", value: String(summary.totalMembers) },
                 {
-                  label: "Submitted Today",
+                  label: "Submitted today",
                   value: String(summary.submittedToday),
                 },
               ]
             : [
-                { label: "Total Members", value: String(summary.totalMembers) },
+                { label: "Total members", value: String(summary.totalMembers) },
                 {
-                  label: "Submitted Today",
+                  label: "Submitted today",
                   value: String(summary.submittedToday),
                 },
                 {
-                  label: "Missing Today",
+                  label: "Missing today",
                   value: String(summary.missingToday),
                 },
                 {
-                  label: "Today's Completion",
+                  label: "Today's completion",
                   value:
                     summary.totalMembers === 0
                       ? "—"
@@ -236,7 +236,7 @@ export async function AdminDashboard({
       </div>
 
       <div
-        className="grid gap-4 sm:grid-cols-3 animate-in fade-in-0 duration-300 fill-mode-both"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 [&>:last-child:nth-child(odd)]:col-span-2 sm:[&>:last-child:nth-child(odd)]:col-span-1 animate-in fade-in-0 duration-300 fill-mode-both"
         style={{ animationDelay: "75ms" }}
       >
         <InviteEmployeeDialog
