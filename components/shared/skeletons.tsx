@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { DataList, DataListRow, DataListSection } from "@/components/shared/data-list";
 import { FigureStrip } from "@/components/shared/figure-strip";
 import { SettingsSection } from "@/components/shared/settings-section";
-import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
+import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import { Tile, TileHeader } from "@/components/ui/tile";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -282,7 +282,7 @@ export function CardSkeleton({
 }) {
   return (
     <Card className={className}>
-      <CardLabelHeader label={label} aside={aside} />
+      <CardTitleHeader title={label} aside={aside} />
       {children ? <CardContent className={contentClassName}>{children}</CardContent> : null}
     </Card>
   );
@@ -555,8 +555,8 @@ export function TodayReportSkeleton() {
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="min-w-0">
-            <div className="flex h-[16.5px] items-center justify-between gap-3">
-              <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+            <div className="flex h-5 items-center justify-between gap-3">
+              <h2 className="card-title">
                 Today&apos;s report
               </h2>
               <Skeleton className="h-2.5 w-20" />
@@ -593,7 +593,7 @@ export function CompletionChartSkeleton({ title }: { title: string }) {
     <Tile>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <TileHeader eyebrow={title} />
+          <TileHeader title={title} />
           <p className="text-xs text-muted-foreground">Last 30 days · working days</p>
         </div>
         <div className="flex flex-col items-end">

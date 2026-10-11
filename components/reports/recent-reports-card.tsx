@@ -4,7 +4,7 @@ import {
   Card,
   CardContent,
   CardFooterLink,
-  CardLabelHeader,
+  CardTitleHeader,
 } from "@/components/ui/card";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
 import type { DailyReport } from "@/types/report";
@@ -33,7 +33,7 @@ export function RecentReportsCard({
 }) {
   return (
     <Card>
-      <CardLabelHeader label="Your recent reports" />
+      <CardTitleHeader title="Your recent reports" />
       <CardContent>
         {reports.length === 0 ? (
           <EmptyState

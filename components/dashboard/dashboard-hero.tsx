@@ -189,7 +189,7 @@ export function DashboardHero({
           >
             {stats.map((stat) => (
               <div key={stat.label} className="flex flex-col gap-0.5">
-                <span className="label-eyebrow">{stat.label}</span>
+                <span className="field-label">{stat.label}</span>
                 <span className="text-xl font-semibold tracking-tight">
                   {stat.value}
                 </span>

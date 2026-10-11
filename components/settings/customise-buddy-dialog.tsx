@@ -91,8 +91,7 @@ const WARDROBE_CARD =
   "relative flex h-full min-h-44 flex-col items-center gap-1 rounded-xl px-3 pt-5 pb-3 text-center ring-1 outline-none transition-[background-color,box-shadow,transform] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 const WARDROBE_GRID = "grid auto-rows-fr grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4";
 const LOOK_GRID = "grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7";
-const SECTION_EYEBROW =
-  "text-[11px] font-medium uppercase tracking-wide text-muted-foreground";
+const SECTION_TITLE = "card-title";
 
 const SLOT_ORDER: AccessorySlot[] = ["head", "face", "neck", "body"];
 const SLOT_LABEL: Record<AccessorySlot, string> = {
@@ -570,7 +569,7 @@ export function CustomiseBuddyDialog({
                       )}
                       {WARDROBE_SECTIONS.map((section) => (
                         <section key={section.slot} className="flex flex-col gap-2">
-                          <h3 className={SECTION_EYEBROW}>{section.label}</h3>
+                          <h3 className={SECTION_TITLE}>{section.label}</h3>
                           <div className={WARDROBE_GRID}>
                             {section.items.map((id) => (
                               <WardrobeTile
@@ -642,7 +641,7 @@ function OptionGroup({
 }) {
   return (
     <section className="flex flex-col gap-2">
-      <h3 className={SECTION_EYEBROW}>{label}</h3>
+      <h3 className={SECTION_TITLE}>{label}</h3>
       <div className={className}>{children}</div>
     </section>
   );
@@ -690,7 +689,7 @@ function WardrobeSkeleton() {
     <div className="flex flex-col gap-6" aria-hidden>
       {WARDROBE_SECTIONS.map((section) => (
         <section key={section.slot} className="flex flex-col gap-2">
-          <h3 className={SECTION_EYEBROW}>
+          <h3 className={SECTION_TITLE}>
             <Skeleton className="inline-block h-3 w-12 align-middle" />
           </h3>
           <div className={WARDROBE_GRID}>

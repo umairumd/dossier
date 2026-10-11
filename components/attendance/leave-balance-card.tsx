@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
+import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogBody,
@@ -91,7 +91,7 @@ export function LeaveBalanceCard({
   if (!balance) {
     return (
       <Card>
-        <CardLabelHeader label="Leave balance" />
+        <CardTitleHeader title="Leave balance" />
         <CardContent className="flex items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">Not initialized yet.</p>
           {canAdjust && (
@@ -116,8 +116,8 @@ export function LeaveBalanceCard({
 
   return (
     <Card>
-      <CardLabelHeader
-        label="Leave balance"
+      <CardTitleHeader
+        title="Leave balance"
         aside={
           canAdjust && (
             <Button

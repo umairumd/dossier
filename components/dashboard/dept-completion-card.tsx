@@ -8,12 +8,12 @@ import {
   Card,
   CardContent,
   CardFooterLink,
-  CardLabelHeader,
+  CardTitleHeader,
 } from "@/components/ui/card";
 import { Meter } from "@/components/ui/meter";
 import { DateStepper } from "@/components/shared/date-nav";
 import { fetchDeptCompletion } from "@/lib/actions/admin/dept-completion";
-import { formatDate, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
 import type { DeptCompletionRow } from "@/lib/supabase/queries/admin/dept-completion";
 
@@ -121,8 +121,8 @@ export function DeptCompletionCard({
 
   return (
     <Card>
-      <CardLabelHeader
-        label={date === today ? "Departments today" : `Departments · ${formatDate(date)}`}
+      <CardTitleHeader
+        title="Departments"
         aside={
           <span className="-my-1 -mr-1">
             <DateStepper
