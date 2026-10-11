@@ -14,7 +14,7 @@ export function RemoteIndicator() {
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="inline-flex shrink-0">
-            <Wifi className="size-3.5 text-muted-foreground/60" />
+            <Wifi className="size-3.5 text-muted-foreground" />
           </span>
         </TooltipTrigger>
         <TooltipContent>

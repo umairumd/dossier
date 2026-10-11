@@ -40,20 +40,20 @@ export const TYPE_ICONS: Record<
   NotificationType,
   { Icon: ComponentType<{ className?: string }>; className: string }
 > = {
-  leave_approved: { Icon: CheckCircle, className: "text-green-500" },
-  leave_rejected: { Icon: XCircle, className: "text-red-500" },
-  report_deadline: { Icon: Clock, className: "text-amber-500" },
-  employee_invited: { Icon: UserPlus, className: "text-blue-500" },
-  employee_onboarded: { Icon: UserCheck, className: "text-blue-500" },
-  attendance_fine: { Icon: AlertTriangle, className: "text-amber-500" },
-  leave_request_submitted: { Icon: CalendarClock, className: "text-blue-500" },
-  shift_assigned: { Icon: Clock, className: "text-blue-500" },
-  template_assigned: { Icon: FileText, className: "text-blue-500" },
-  supervisor_assigned: { Icon: Users, className: "text-blue-500" },
-  employee_deactivated: { Icon: UserX, className: "text-amber-500" },
-  employee_archived: { Icon: Archive, className: "text-amber-500" },
+  leave_approved: { Icon: CheckCircle, className: "text-ok" },
+  leave_rejected: { Icon: XCircle, className: "text-danger" },
+  report_deadline: { Icon: Clock, className: "text-warn" },
+  employee_invited: { Icon: UserPlus, className: "text-info" },
+  employee_onboarded: { Icon: UserCheck, className: "text-info" },
+  attendance_fine: { Icon: AlertTriangle, className: "text-warn" },
+  leave_request_submitted: { Icon: CalendarClock, className: "text-info" },
+  shift_assigned: { Icon: Clock, className: "text-info" },
+  template_assigned: { Icon: FileText, className: "text-info" },
+  supervisor_assigned: { Icon: Users, className: "text-info" },
+  employee_deactivated: { Icon: UserX, className: "text-warn" },
+  employee_archived: { Icon: Archive, className: "text-warn" },
   birthday: { Icon: Cake, className: "text-pink-500" },
-  report_commented: { Icon: MessageSquare, className: "text-blue-500" },
+  report_commented: { Icon: MessageSquare, className: "text-info" },
 };
 
 export function NotificationBell({

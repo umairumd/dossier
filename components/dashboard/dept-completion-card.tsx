@@ -40,8 +40,8 @@ function DeptRow({
         <span
           className={cn(
             "shrink-0 text-sm tabular-nums text-foreground/80",
-            behind && "text-amber-700 dark:text-amber-300",
-            allIn && "text-green-700 dark:text-green-300",
+            behind && "text-warn",
+            allIn && "text-ok",
           )}
         >
           {allIn ? "All in" : `${submitted} of ${total} in`}

@@ -85,22 +85,22 @@ export async function EmployeeDashboard({
   let contextLine: string;
   if (isOffDay) {
     if (streak > 2) {
-      contextLine = `🔥 ${streak}-day streak and counting — great work`;
+      contextLine = `${streak}-day streak and counting. Great work`;
     } else if (streak === 2) {
-      contextLine = "2 days in a row — you're building a streak";
+      contextLine = "2 days in a row. You're building a streak";
     } else if (streak > 0) {
-      contextLine = `🔥 ${streak}-day streak`;
+      contextLine = `${streak}-day streak`;
     } else {
       contextLine = "You're all caught up for today";
     }
   } else if (!submittedToday && streak > 0) {
-    contextLine = `🔥 ${streak}-day streak — submit today's report to keep it going`;
+    contextLine = `${streak}-day streak. Submit today's report to keep it going`;
   } else if (!submittedToday && streak === 0) {
     contextLine = "Submit today's report to start your streak";
   } else if (submittedToday && streak > 2) {
-    contextLine = `🔥 ${streak}-day streak and counting — great work`;
+    contextLine = `${streak}-day streak and counting. Great work`;
   } else if (submittedToday && streak === 2) {
-    contextLine = "2 days in a row — you're building a streak";
+    contextLine = "2 days in a row. You're building a streak";
   } else {
     contextLine = "You're all caught up for today";
   }

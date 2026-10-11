@@ -149,7 +149,7 @@ export function HeroProgressTile({
               alt=""
             />
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">New unlock</p>
+              <p className="text-xs font-medium text-ok">New unlock</p>
               <p className="text-sm font-semibold">{ACCESSORIES[showingFresh.itemId].label}</p>
               <p className="truncate text-xs text-muted-foreground">
                 {rewardReason(showingFresh.itemId)} · {formatDistanceToNow(new Date(showingFresh.unlockedAt), { addSuffix: true })}

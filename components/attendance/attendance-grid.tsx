@@ -58,17 +58,17 @@ function formatFineCompact(amount: number): string {
 
 function leaveBalanceClass(balance: number): string {
   if (balance > 0) {
-    return "font-medium text-emerald-600 dark:text-emerald-400";
+    return "font-medium text-ok";
   }
   if (balance < 0) {
-    return "font-medium text-red-600 dark:text-red-400";
+    return "font-medium text-danger";
   }
   return "text-muted-foreground";
 }
 
 function renderBalanceCell(balance: number) {
   return (
-    <td className="bg-background px-3 py-2 text-center text-xs">
+    <td className="bg-sunken px-3 py-2 text-center text-xs">
       <span className={leaveBalanceClass(balance)}>
         {formatLeaveBalance(balance)}
       </span>
@@ -237,8 +237,8 @@ export function AttendanceGrid({
 
           if (isFuture) {
             return (
-              <td key={day} className="bg-background px-1 py-1">
-                <div className="flex h-8 w-full items-center justify-center rounded text-xs text-muted-foreground/30">
+              <td key={day} className="bg-sunken px-1 py-1">
+                <div className="flex h-8 w-full items-center justify-center rounded text-xs text-muted-foreground">
                   —
                 </div>
               </td>
@@ -248,7 +248,7 @@ export function AttendanceGrid({
           return (
             <td
               key={day}
-              className="bg-background px-1 py-1"
+              className="bg-sunken px-1 py-1"
               onClick={() =>
                 handleDayCellClick(emp.id, new Date(year, month - 1, day))
               }
@@ -272,27 +272,27 @@ export function AttendanceGrid({
           );
         })}
 
-        <td className="bg-background px-3 py-2 text-center text-xs">
+        <td className="bg-sunken px-3 py-2 text-center text-xs">
           {late > 0 ? (
-            <span className="font-medium text-yellow-600 dark:text-yellow-400">
+            <span className="font-medium text-warn">
               {late}
             </span>
           ) : (
             <span className="text-muted-foreground">0</span>
           )}
         </td>
-        <td className="bg-background px-3 py-2 text-center text-xs">
+        <td className="bg-sunken px-3 py-2 text-center text-xs">
           {absent > 0 ? (
-            <span className="font-medium text-red-600 dark:text-red-400">
+            <span className="font-medium text-danger">
               {absent}
             </span>
           ) : (
             <span className="text-muted-foreground">0</span>
           )}
         </td>
-        <td className="bg-background px-3 py-2 text-center text-xs">
+        <td className="bg-sunken px-3 py-2 text-center text-xs">
           {leaves > 0 ? (
-            <span className="font-medium text-purple-600 dark:text-purple-400">
+            <span className="font-medium text-leave">
               {leaves}
             </span>
           ) : (
@@ -302,9 +302,9 @@ export function AttendanceGrid({
         {showBalanceAndFines && (
           <>
             {renderBalanceCell(emp.leave_balance)}
-            <td className="bg-background px-3 py-2 text-center text-xs">
+            <td className="bg-sunken px-3 py-2 text-center text-xs">
               {fines > 0 ? (
-                <span className="font-medium text-red-600 dark:text-red-400">
+                <span className="font-medium text-danger">
                   PKR {fines}
                 </span>
               ) : (
@@ -348,7 +348,7 @@ export function AttendanceGrid({
           return (
             <td
               key={day}
-              className="bg-background px-1 py-1"
+              className="bg-sunken px-1 py-1"
               onClick={() =>
                 handleDayCellClick(emp.id, new Date(year, month - 1, day))
               }
@@ -385,21 +385,21 @@ export function AttendanceGrid({
           );
         })}
 
-        <td className="bg-background px-3 py-2 text-center text-xs">
+        <td className="bg-sunken px-3 py-2 text-center text-xs">
           <span className="text-muted-foreground">0</span>
         </td>
-        <td className="bg-background px-3 py-2 text-center text-xs">
+        <td className="bg-sunken px-3 py-2 text-center text-xs">
           {absent > 0 ? (
-            <span className="font-medium text-red-600 dark:text-red-400">
+            <span className="font-medium text-danger">
               {absent}
             </span>
           ) : (
             <span className="text-muted-foreground">0</span>
           )}
         </td>
-        <td className="bg-background px-3 py-2 text-center text-xs">
+        <td className="bg-sunken px-3 py-2 text-center text-xs">
           {leaves > 0 ? (
-            <span className="font-medium text-purple-600 dark:text-purple-400">
+            <span className="font-medium text-leave">
               {leaves}
             </span>
           ) : (
@@ -409,7 +409,7 @@ export function AttendanceGrid({
         {showBalanceAndFines && (
           <>
             {renderBalanceCell(emp.leave_balance)}
-            <td className="bg-background px-3 py-2 text-center text-xs">
+            <td className="bg-sunken px-3 py-2 text-center text-xs">
               <span className="text-muted-foreground">—</span>
             </td>
           </>
@@ -461,7 +461,7 @@ export function AttendanceGrid({
     if (status === "weekly_off") {
       return {
         label: "OFF",
-        className: "bg-muted text-muted-foreground/40",
+        className: "bg-muted text-muted-foreground",
         status,
       };
     }
@@ -595,19 +595,19 @@ export function AttendanceGrid({
               {
                 label: "Late",
                 value: summary.late,
-                color: summary.late > 0 ? "text-yellow-500" : "",
+                color: summary.late > 0 ? "text-warn" : "",
               },
               {
                 label: "Absent",
                 value: summary.absent,
-                color: summary.absent > 0 ? "text-red-500" : "",
+                color: summary.absent > 0 ? "text-danger" : "",
               },
               {
                 label: "Leaves",
                 value: summary.leaves,
                 color:
                   summary.leaves > 0
-                    ? "text-purple-600 dark:text-purple-400"
+                    ? "text-leave"
                     : "",
               },
               ...(showBalanceAndFines
@@ -621,7 +621,7 @@ export function AttendanceGrid({
                       label: "Fines",
                       value: formatFineCompact(summary.fines),
                       color: summary.fines
-                        ? "text-red-500"
+                        ? "text-danger"
                         : "text-muted-foreground",
                     },
                   ]
@@ -664,7 +664,7 @@ export function AttendanceGrid({
         </p>
       </div>
       <div className="surface-card hidden overflow-x-auto rounded-xl bg-card md:block">
-      <table className="w-full min-w-max border-collapse text-sm">
+      <table className="w-full min-w-max border-collapse text-sm [&_tr>*:nth-child(2)]:pl-2">
         <thead>
           <tr className="border-b border-border">
             <th className="sticky top-0 left-0 z-40 min-w-36 bg-card px-3 py-2 text-left label-eyebrow md:min-w-48 md:px-4">
@@ -698,14 +698,14 @@ export function AttendanceGrid({
                   key={day}
                   className={cn(
                     "sticky top-0 z-30 w-10 bg-card px-1 py-1.5 text-center",
-                    isHoliday && "text-teal-600 dark:text-teal-400",
+                    isHoliday && "text-holiday",
                     isOff && !isHoliday && "text-muted-foreground",
                   )}
                 >
                   <div
                     className={cn(
                       "flex flex-col items-center gap-0.5 rounded-md px-0.5 py-0.5",
-                      isHoliday && "bg-teal-500/10",
+                      isHoliday && "bg-holiday/10",
                       isOff && !isHoliday && "bg-muted/50",
                       isToday && "bg-foreground text-background",
                     )}
@@ -716,9 +716,9 @@ export function AttendanceGrid({
                         isToday
                           ? "text-background/70"
                           : isHoliday
-                            ? "text-teal-600/70 dark:text-teal-400/70"
+                            ? "text-holiday/70"
                             : isOff
-                              ? "text-muted-foreground/60"
+                              ? "text-muted-foreground"
                               : "text-foreground",
                       )}
                     >
@@ -734,9 +734,9 @@ export function AttendanceGrid({
                           isToday
                             ? "font-bold text-background"
                             : isHoliday
-                              ? "text-teal-600 dark:text-teal-400"
+                              ? "text-holiday"
                               : isOff
-                                ? "text-muted-foreground/60"
+                                ? "text-muted-foreground"
                                 : "text-foreground",
                         )}
                       >
@@ -778,7 +778,7 @@ export function AttendanceGrid({
               </td>
               <td
                 colSpan={days.length + (showBalanceAndFines ? 5 : 3)}
-                className="h-10 border-y border-border bg-background"
+                className="h-10 border-y border-border bg-sunken"
               />
             </tr>
           )}

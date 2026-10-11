@@ -45,7 +45,7 @@ export function SegmentedFilter<T extends string>({
             className={cn(
               "flex h-full shrink-0 items-center gap-1.5 rounded-md px-3 text-[13px] whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
               on
-                ? "bg-background text-foreground shadow-sm ring-1 ring-edge dark:bg-fill-active dark:shadow-none"
+                ? "bg-card text-foreground shadow-sm ring-1 ring-edge dark:bg-fill-active dark:shadow-none"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >

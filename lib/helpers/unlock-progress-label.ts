@@ -18,9 +18,9 @@ export function seasonWindowLabel(id: AccessoryId): string | null {
   const [fromMonth, fromDay] = rule.from.split("-").map(Number);
   const [toMonth, toDay] = rule.to.split("-").map(Number);
   if (fromMonth === toMonth) {
-    return `${MONTHS[fromMonth - 1]} ${fromDay} – ${toDay}`;
+    return `${MONTHS[fromMonth - 1]} ${fromDay} - ${toDay}`;
   }
-  return `${MONTHS[fromMonth - 1]} ${fromDay} – ${MONTHS[toMonth - 1]} ${toDay}`;
+  return `${MONTHS[fromMonth - 1]} ${fromDay} - ${MONTHS[toMonth - 1]} ${toDay}`;
 }
 
 export function unlockProgressLabel(

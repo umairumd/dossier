@@ -24,13 +24,17 @@ const badgeVariants = cva(
         // neutral-700 in light because muted-foreground drops under 4.5:1
         // once the foreground/8 fill darkens the background.
         success:
-          "border-transparent bg-green-800/12 text-green-800 ring-1 ring-inset ring-green-800/30 dark:bg-green-300/12 dark:text-green-300 dark:ring-green-300/30",
+          "border-transparent bg-ok/12 text-ok ring-1 ring-inset ring-ok/30",
         warning:
-          "border-transparent bg-amber-800/12 text-amber-800 ring-1 ring-inset ring-amber-800/30 dark:bg-amber-300/12 dark:text-amber-300 dark:ring-amber-300/30",
+          "border-transparent bg-warn/12 text-warn ring-1 ring-inset ring-warn/30",
         danger:
-          "border-transparent bg-red-700/12 text-red-700 ring-1 ring-inset ring-red-700/30 dark:bg-red-300/12 dark:text-red-300 dark:ring-red-300/30",
+          "border-transparent bg-danger/12 text-danger ring-1 ring-inset ring-danger/30",
         neutral:
-          "border-transparent bg-fill-active text-neutral-700 ring-1 ring-inset ring-line-strong dark:text-neutral-300 dark:ring-line-strong",
+          "border-transparent bg-fill-active text-neutral-700 ring-1 ring-inset ring-line-strong dark:text-neutral-300",
+        leave:
+          "border-transparent bg-leave/12 text-leave ring-1 ring-inset ring-leave/30",
+        // Day off: the same amber as the day-off date control, with its icon.
+        off: "border-transparent bg-warn/12 text-warn ring-1 ring-inset ring-warn/30",
       },
     },
     defaultVariants: {

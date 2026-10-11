@@ -1,5 +1,6 @@
 "use client";
 
+import { calendarDayToneClass } from "@/lib/helpers/attendance-day-tones";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Clock, RotateCcw } from "lucide-react";
@@ -81,29 +82,9 @@ function computeFine(
   return 0;
 }
 
-// Cell color classes per status
+// Cell color classes per status: the shared attendance tones.
 export function cellColorClass(status: AttendanceStatus | null): string {
-  if (!status) return "bg-muted/30 text-muted-foreground hover:bg-muted/50";
-  switch (status) {
-    case "present":
-      return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25";
-    case "late_minor":
-      return "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/25";
-    case "late_major":
-      return "bg-orange-500/20 text-orange-600 dark:text-orange-400 hover:bg-orange-500/30";
-    case "work_from_home":
-      return "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/25";
-    case "leave":
-      return "bg-purple-500/15 text-purple-600 dark:text-purple-400 hover:bg-purple-500/25";
-    case "half_leave":
-      return "bg-purple-500/10 text-purple-500 hover:bg-purple-500/20";
-    case "absent":
-      return "bg-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/30";
-    case "weekly_off":
-      return "bg-muted/50 text-muted-foreground hover:bg-muted/70";
-    case "holiday":
-      return "bg-teal-500/15 text-teal-600 dark:text-teal-400 hover:bg-teal-500/25";
-  }
+  return calendarDayToneClass(status);
 }
 
 export function AttendanceCellPopover({
@@ -234,7 +215,7 @@ export function AttendanceCellPopover({
           className={cn(
             "flex h-8 w-full items-center justify-center rounded font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             isOffCell
-              ? "bg-muted text-[10px] text-muted-foreground/40"
+              ? "bg-muted text-[10px] text-muted-foreground"
               : cn("text-xs", cellColorClass(currentStatus)),
             existingRecord?.notes && "border border-dashed border-foreground/40",
             triggerClassName,

@@ -30,7 +30,7 @@ export function TemplateFieldRow({
     field.isRequired ? "Required" : "Optional",
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
 
   return (
     <li className="group relative flex min-h-14 items-center gap-3 px-3 py-2.5 transition-colors hover:bg-fill-subtle sm:px-4">

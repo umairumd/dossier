@@ -120,7 +120,7 @@ export function HeroTeamTile({
           eyebrow={label}
           aside={
             !orgOffDay ? (
-              <span className={progress.amber ? "text-amber-700 dark:text-amber-400" : undefined}>
+              <span className={progress.amber ? "text-warn" : undefined}>
                 {deadlineCopy(progress.minutesLeft, progress.pastDue)}
               </span>
             ) : undefined
@@ -187,7 +187,7 @@ export function HeroTeamTile({
                   <p
                     className={cn(
                       "text-sm font-medium",
-                      progress.pastDue && "text-amber-700 dark:text-amber-400",
+                      progress.pastDue && "text-warn",
                     )}
                   >
                     {progress.pastDue ? "Missing" : "Not in yet"}
@@ -302,7 +302,7 @@ export function HeroTeamView({
             {deadlineText ? (
               <>
                 {" · "}
-                <span className={progress.amber ? "text-amber-700 dark:text-amber-400" : undefined}>
+                <span className={progress.amber ? "text-warn" : undefined}>
                   {deadlineText}
                 </span>
               </>
@@ -333,6 +333,12 @@ export function HeroTeamView({
               const late =
                 getSubmissionStatus(member.report.submitted_at, deadline.deadlineHourLocal, deadline) === "late";
               const sheetIndex = submitted.findIndex((item) => item.report.id === member.report.id);
+              const extras = [
+                comments > 0 ? `${comments} ${comments === 1 ? "comment" : "comments"}` : null,
+                late ? "late" : null,
+              ]
+                .filter(Boolean)
+                .join(", ");
               return (
                 <div key={member.report.id} className="flex items-center gap-2 py-1.5">
                   <MemberAvatar name={member.fullName} userId={member.employeeId} avatar={member.avatar} size="md" />
@@ -340,8 +346,7 @@ export function HeroTeamView({
                     <p className="truncate text-sm font-medium">{member.fullName}</p>
                     <p className="text-xs text-muted-foreground">
                       {formatLocalTime(member.report.submitted_at)}
-                      {comments > 0 ? ` · ${comments} ${comments === 1 ? "comment" : "comments"}` : ""}
-                      {late ? " · late" : ""}
+                      {extras ? ` · ${extras}` : ""}
                     </p>
                   </div>
                   <button
@@ -456,7 +461,7 @@ function CompletionRing({
           strokeLinecap="round"
           strokeDasharray={`${circ * ratio} ${circ}`}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          className="stroke-emerald-600 dark:stroke-emerald-400"
+          className="stroke-ok"
         />
       </svg>
       {size >= 40 && (

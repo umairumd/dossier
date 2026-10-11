@@ -33,3 +33,13 @@ Option D from the canvas page "Colour · surfaces". Dark mode uses one neutral r
 - Fills: `bg-fill-subtle` (tiles, fields, notices), `bg-fill-hover`, `bg-fill-active`. Lines: `border-line` / `divide-line` (dividers), `border-edge` / `ring-edge` (outlines), `line-strong`. No `foreground/[x]` opacities in components.
 - The accent picker and the Classic surface switch were removed (Oct 10). Accent colours may come back later, tied to the buddy's colour.
 - Light mode is unchanged; the same tokens resolve to foreground-relative values there.
+
+## Design audit fixes (Oct 11, branch `refactor/design-audit-fixes`)
+
+- Contrast: no faded secondary text (`text-muted-foreground/30–60`); readable text uses `text-muted-foreground`. Light `--muted-foreground` darkened to pass on the grey base.
+- Status colours: one token per meaning, light and dark (`ok`, `warn`, `danger`, `severe`, `leave`, `info`, `holiday` → `text-ok`, `bg-leave/15`, ...). No raw palette classes (green, amber, purple...) in components. Attendance grid, calendar, popovers and legend share `calendarDayToneClass`; leave is purple everywhere.
+- Day off: the date control turns amber with plain "Day off" text; elsewhere it is the `off` badge (amber, cup icon). Status labels are sentence case (On time, On leave, Day off).
+- Copy: no long dashes or emoji in messages; at most one middle dot per line.
+- Light mode: grey base (`--background` = shell), white cards and popovers, no card sheen; the hero gets a soft white wash.
+- Radii: buttons `md`/`lg`, cards `xl`; one-off pixel radii removed.
+- Home: shortcut cards moved to a client component (`shortcut-card.tsx`) so the dialog triggers render on the server.

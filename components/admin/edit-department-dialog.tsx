@@ -143,8 +143,8 @@ export function EditDepartmentDialog({
               )}
               {!managerNote && managerCandidates.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  No employees have the Manager role yet — assign that role to
-                  someone first from the Employees page.
+                  No one has the Manager role yet. Give someone that role on
+                  the Employees page first.
                 </p>
               )}
             </div>

@@ -27,8 +27,8 @@ export function Meter({
       <div
         className={cn(
           "h-full rounded-full",
-          tone === "warning" && "bg-amber-500",
-          tone === "success" && "bg-emerald-600 dark:bg-emerald-400",
+          tone === "warning" && "bg-warn",
+          tone === "success" && "bg-ok",
           tone === "neutral" && "bg-foreground/70",
         )}
         style={{ width: `${pct}%` }}

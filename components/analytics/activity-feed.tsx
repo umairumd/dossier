@@ -261,7 +261,7 @@ const EVENT_LABELS: Record<
       lead: e.actor_name ?? "Admin",
       rest:
         typeof count === "number"
-          ? ` ran leave accrual — ${count} balances updated`
+          ? ` ran leave accrual, ${count} balances updated`
           : " ran leave accrual",
     };
   },

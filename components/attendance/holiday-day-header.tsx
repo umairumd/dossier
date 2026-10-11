@@ -43,9 +43,9 @@ function DayHeaderContent({
           isToday
             ? "text-background/70"
             : isHoliday
-              ? "text-teal-600/70 dark:text-teal-400/70"
+              ? "text-holiday/70"
               : isOff
-                ? "text-muted-foreground/60"
+                ? "text-muted-foreground"
                 : "text-foreground",
         )}
       >
@@ -61,9 +61,9 @@ function DayHeaderContent({
             isToday
               ? "font-bold text-background"
               : isHoliday
-                ? "text-teal-600 dark:text-teal-400"
+                ? "text-holiday"
                 : isOff
-                  ? "text-muted-foreground/60"
+                  ? "text-muted-foreground"
                   : "text-foreground",
           )}
         >
@@ -126,7 +126,7 @@ export function HolidayDayHeader({
       if (result.count > 0) {
         toast.success(`Holiday marked for ${result.count} employees`);
       } else {
-        toast.info("No eligible employees — all on approved leave");
+        toast.info("No eligible employees. Everyone is on approved leave");
       }
       setNameDraft("");
       setConfirmOpen(false);
@@ -167,7 +167,7 @@ export function HolidayDayHeader({
       <th
         className={cn(
           "sticky top-0 z-30 w-10 bg-card px-1 py-1.5 text-center",
-          isHoliday && "text-teal-600 dark:text-teal-400",
+          isHoliday && "text-holiday",
           isOff && !isHoliday && "text-muted-foreground",
         )}
       >
@@ -176,7 +176,7 @@ export function HolidayDayHeader({
           onClick={handleOpen}
           className={cn(
             "flex w-full flex-col items-center gap-0.5 rounded-md px-0.5 py-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            isHoliday && "bg-teal-500/10",
+            isHoliday && "bg-holiday/10",
             isOff && !isHoliday && "bg-muted",
             isToday
               ? "bg-foreground text-background hover:bg-foreground"
@@ -205,9 +205,7 @@ export function HolidayDayHeader({
               <AlertDialogTitle>Holiday</AlertDialogTitle>
               <AlertDialogDescription>
                 {formatDate(date)}
-                {holidayName
-                  ? ` — ${holidayName}`
-                  : " — Unnamed holiday"}
+                {holidayName ? `: ${holidayName}` : ": unnamed holiday"}
               </AlertDialogDescription>
             </AlertDialogHeader>
 
