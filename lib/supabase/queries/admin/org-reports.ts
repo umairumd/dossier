@@ -51,6 +51,7 @@ export const getOrgReportsForDate = cache(
       { data: reports, error: reportsError },
       { data: departments, error: departmentsError },
       { data: attendanceRows, error: attendanceError },
+      { data: memberships, error: membershipsError },
     ] = await Promise.all([
       adminClient
         .from("profiles")
@@ -75,6 +76,8 @@ export const getOrgReportsForDate = cache(
         .select("profile_id, status")
         .eq("date", date)
         .in("status", ["leave", "half_leave", "holiday", "weekly_off"]),
+      // All assignments, filtered to the roster below: one round, not two.
+      adminClient.from("profile_departments").select("profile_id, department_id"),
     ]);
 
     if (employeesError) {
@@ -109,17 +112,13 @@ export const getOrgReportsForDate = cache(
     const departmentIdsByProfile = new Map<string, string[]>();
 
     if (employeeIds.length > 0) {
-      const { data: memberships, error: membershipsError } = await adminClient
-        .from("profile_departments")
-        .select("profile_id, department_id")
-        .in("profile_id", employeeIds);
-
       if (membershipsError) {
         throw new Error("Failed to load department assignments.");
       }
 
+      const rosterIds = new Set(employeeIds);
       for (const row of memberships ?? []) {
-        if (!activeDepartmentIds.has(row.department_id)) {
+        if (!rosterIds.has(row.profile_id) || !activeDepartmentIds.has(row.department_id)) {
           continue;
         }
 

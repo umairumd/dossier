@@ -211,17 +211,18 @@ export const getAllEmployees = cache(async (): Promise<EmployeeListItem[]> => {
 
   const supabase = await createClient();
 
-  const { data: profiles, error } = await supabase
-    .from("profiles")
-    .select(PROFILE_SELECT)
-    .eq("exclude_from_attendance", false)
-    .order("full_name", { ascending: true });
+  const [{ data: profiles, error }, authUsersById] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(PROFILE_SELECT)
+      .eq("exclude_from_attendance", false)
+      .order("full_name", { ascending: true }),
+    loadAuthUsersById(),
+  ]);
 
   if (error) {
     throw new Error("Failed to load employees.");
   }
-
-  const authUsersById = await loadAuthUsersById();
 
   const employees = await attachMemberships(
     supabase,

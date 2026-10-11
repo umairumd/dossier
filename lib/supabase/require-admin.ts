@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import type { Profile } from "@/types/profile";
 
@@ -12,21 +12,14 @@ function isOwnerOrAdmin(role: string | undefined): boolean {
 // admin client (lib/supabase/admin.ts) bypasses RLS entirely, so it must
 // call this first — every admin-only query and Server Action does.
 export async function requireAdminUser() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     throw new Error("Not authenticated.");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+  // The cached profile of the signed-in user: no extra query during a render.
+  const profile = await getCurrentProfile();
 
   if (!isOwnerOrAdmin(profile?.role)) {
     throw new Error("Not authorized.");
@@ -36,21 +29,14 @@ export async function requireAdminUser() {
 }
 
 export async function requireOwnerUser() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     throw new Error("Not authenticated.");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+  // The cached profile of the signed-in user: no extra query during a render.
+  const profile = await getCurrentProfile();
 
   if (profile?.role !== "owner") {
     throw new Error("Not authorized.");
@@ -62,9 +48,7 @@ export async function requireOwnerUser() {
 export async function requireSupervisorUser() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     throw new Error("Not authenticated.");
@@ -90,10 +74,7 @@ export async function requireManagerUser(): Promise<{
   userId: string;
   profile: Profile;
 }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     redirect("/login");

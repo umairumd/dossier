@@ -8,7 +8,7 @@
  * outside the box without shifting anything (canvas is absolutely positioned,
  * pointer-events: none).
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   type AvatarConfig, type FollowMode, type MascotController, type MascotState, type MomentId, type Spill,
   type Expression, MOMENTS, MOMENT_COOLDOWN_MS, PALETTES, SPILL_LIVE, SPILL_STATIC, createSynth, mount, renderStatic,
@@ -140,7 +140,9 @@ export interface MascotStaticProps {
 export function MascotStatic({ avatar, size, state, expression, mini, bodyColor, spill = SPILL_STATIC, fitParent = false, className, alt = "" }: MascotStaticProps) {
   const [src, setSrc] = useState<string | null>(null);
   const key = useMemo(() => JSON.stringify([avatar, size, state, expression, mini, bodyColor, spill]), [avatar, size, state, expression, mini, bodyColor, spill]);
-  useEffect(() => {
+  // Layout effect: the picture is drawn before the browser paints, so a buddy
+  // that mounts on the client never shows the disc for a frame.
+  useLayoutEffect(() => {
     // Client-only canvas draw. The colour disc below is the server placeholder.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSrc(renderStatic(avatar, { size, state, expression, mini, bodyColor, spill }));
