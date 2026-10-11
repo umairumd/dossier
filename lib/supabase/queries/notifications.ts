@@ -1,13 +1,11 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import type { Notification } from "@/types/notification";
 
 // Get recent notifications for current user (last 20)
 export const getMyNotifications = cache(async (): Promise<Notification[]> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
 
   const { data } = await supabase
@@ -25,9 +23,7 @@ const FOR_YOU_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 /** Uncleared notifications from the last 7 days, newest first. Read or not. */
 export const getForYouNotifications = cache(async (): Promise<Notification[]> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return [];
 
   const since = new Date(Date.now() - FOR_YOU_WINDOW_MS).toISOString();
@@ -45,9 +41,7 @@ export const getForYouNotifications = cache(async (): Promise<Notification[]> =>
 // Get unread count for current user
 export const getUnreadNotificationCount = cache(async (): Promise<number> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return 0;
 
   const { count } = await supabase

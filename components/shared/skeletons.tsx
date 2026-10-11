@@ -3,14 +3,16 @@ import { DataList, DataListRow, DataListSection } from "@/components/shared/data
 import { FigureStrip } from "@/components/shared/figure-strip";
 import { SettingsSection } from "@/components/shared/settings-section";
 import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
-import { Tile, TileHeader } from "@/components/ui/tile";
+import { Tile } from "@/components/ui/tile";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SHORTCUT_BODY, SHORTCUT_CARD, SHORTCUT_GRID } from "@/components/dashboard/shortcut-styles";
 import { cn } from "@/lib/utils";
 
 // Loading shapes built from the real containers (PageHeader, DataList, Card,
 // SettingsSection, FigureStrip), so a page keeps its frame while it loads and
-// nothing moves when the content arrives. Static text (titles, column
-// headers, card labels) is shown as is; only data is a skeleton.
+// nothing moves when the content arrives. Page titles and column headers are
+// shown as is; card and tile titles, their notes and footer links are bars
+// sized to the text they stand in for, so a loading card reads as loading.
 
 const WIDTHS = ["w-36", "w-28", "w-44", "w-32", "w-24", "w-40", "w-30", "w-36"];
 const SUB_WIDTHS = ["w-24", "w-20", "w-28", "w-16", "w-24", "w-20", "w-28", "w-16"];
@@ -44,6 +46,26 @@ export function SkeletonLine({
       <Skeleton className={cn(bar, "w-24", className)} />
     </span>
   );
+}
+
+/**
+ * A bar the rough width of a piece of text, for titles and short labels.
+ * A span, so it can sit inside a heading.
+ */
+export function TextSkeleton({ text, className }: { text: string; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      data-slot="skeleton"
+      className={cn("skeleton inline-block h-3 rounded-md align-middle", className)}
+      style={{ width: `${Math.max(3, Math.round(text.length * 0.55 * 10) / 10)}em` }}
+    />
+  );
+}
+
+/** Text placeholder: a string becomes a bar, anything else renders as is. */
+function asBar(node: ReactNode, className?: string): ReactNode {
+  return typeof node === "string" ? <TextSkeleton text={node} className={className} /> : node;
 }
 
 /** Screen-reader note for a loading region. */
@@ -282,7 +304,7 @@ export function CardSkeleton({
 }) {
   return (
     <Card className={className}>
-      <CardTitleHeader title={label} aside={aside} />
+      <CardTitleHeader title={asBar(label)} aside={asBar(aside, "h-2.5")} />
       {children ? <CardContent className={contentClassName}>{children}</CardContent> : null}
     </Card>
   );
@@ -556,9 +578,7 @@ export function TodayReportSkeleton() {
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="min-w-0">
             <div className="flex h-5 items-center justify-between gap-3">
-              <h2 className="card-title">
-                Today&apos;s report
-              </h2>
+              <TextSkeleton text="Today's report" />
               <Skeleton className="h-2.5 w-20" />
             </div>
             <span className="mt-2 flex h-7 items-center md:h-[34px]">
@@ -588,13 +608,17 @@ export function ReportHistorySkeleton({ rows = 5 }: { rows?: number }) {
 }
 
 /** CompletionLineChart while it loads (home, department detail). */
-export function CompletionChartSkeleton({ title }: { title: string }) {
+export function CompletionChartSkeleton({ title = "Company completion" }: { title?: string }) {
   return (
     <Tile>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <TileHeader title={title} />
-          <p className="text-xs text-muted-foreground">Last 30 days · working days</p>
+          <span className="flex h-5 items-center">
+            <TextSkeleton text={title} />
+          </span>
+          <span className="flex h-4 items-center">
+            <TextSkeleton text="Last 30 days · working days" className="h-2.5" />
+          </span>
         </div>
         <div className="flex flex-col items-end">
           <span className="flex h-[30px] items-center">
@@ -610,9 +634,237 @@ export function CompletionChartSkeleton({ title }: { title: string }) {
         </div>
         <Skeleton className="absolute bottom-7 left-9 right-4 h-1/2 rounded-md opacity-60" />
       </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">
-        Weekends and holidays are skipped. Includes voluntary submissions.
-      </p>
+      <span className="mt-2 flex h-[16.5px] items-center">
+        <TextSkeleton text="Weekends and holidays are skipped. Includes voluntary submissions." className="h-2 max-w-full" />
+      </span>
     </Tile>
   );
 }
+
+// ── Home ──────────────────────────────────────────────────────────────
+// Each home card streams in on its own (components/dashboard/home-sections),
+// with one of these in its place until its data arrives.
+
+const HOME_TILE = "flex flex-col rounded-xl border border-edge bg-fill-subtle p-4 md:p-[18px]";
+
+/** A card's footer link row with its label shown as is. */
+function CardFooterSkeleton({ label }: { label?: string }) {
+  return (
+    <div
+      data-slot="card-footer"
+      className="mt-auto flex h-12 items-center justify-between border-t border-edge px-(--card-spacing) text-sm font-medium text-muted-foreground"
+    >
+      <TextSkeleton text={label ?? "View all"} />
+    </div>
+  );
+}
+
+/** The dashboard hero: buddy, greeting, figures, today's report and the tiles. */
+export function HomeHeroSkeleton({ stats = 4, team = true }: { stats?: number; team?: boolean }) {
+  return (
+    <div className="surface-card flex flex-col gap-6 rounded-xl px-3 pt-6 pb-3 md:p-6">
+      <div className="flex flex-col gap-6 px-3 md:flex-row md:px-0 md:items-center md:justify-between">
+        <div className="flex min-w-0 flex-1 items-center gap-5">
+          <Skeleton className="size-28 shrink-0 rounded-full" />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <SkeletonLine className="w-24" />
+            <SkeletonLine size="2xl" className="w-48" />
+            <SkeletonLine className="w-40" />
+            <SkeletonLine className="mt-1 w-56" />
+          </div>
+        </div>
+        <div
+          className="grid w-full shrink-0 gap-x-6 gap-y-4 md:w-auto"
+          style={{ gridTemplateColumns: `repeat(${stats}, minmax(0, 1fr))` }}
+        >
+          {Array.from({ length: stats }, (_, i) => (
+            <div key={i} className="flex flex-col gap-0.5 md:w-[123px]">
+              <span className="flex h-5 items-center">
+                <Skeleton className="h-2.5 w-16" />
+              </span>
+              <span className="flex h-7 items-center">
+                <Skeleton className="h-5 w-14" />
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
+        <div className="md:col-span-2">
+          <TodayReportSkeleton />
+        </div>
+        {Array.from({ length: team ? 2 : 1 }, (_, i) => (
+          <div key={i} className={cn(HOME_TILE, "h-[338px] gap-3", !team && "md:col-span-2")}>
+            <SkeletonLine size="sm" className="w-24" />
+            <div className="flex flex-1 items-center justify-center">
+              <Skeleton className="size-[104px] rounded-full" />
+            </div>
+            <SkeletonLine className="mx-auto w-28" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The 30-day chart before its title is known (the route-level loading screen). */
+export function HomeChartSkeleton() {
+  return (
+    <div className={cn(HOME_TILE, "h-[307px]")}>
+      <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-1">
+          <SkeletonLine className="w-36" />
+          <SkeletonLine size="xs" className="w-24" />
+        </div>
+        <Skeleton className="h-6 w-14" />
+      </div>
+      <Skeleton className="mt-3 h-40 w-full rounded-lg md:h-[200px]" />
+    </div>
+  );
+}
+
+/** People rows: buddy, name and designation, a value on the right. */
+function PeopleRowsSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <ul className="flex flex-col divide-y divide-line">
+      {Array.from({ length: rows }, (_, i) => (
+        <li key={i} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+          <Skeleton className="size-8 shrink-0 rounded-full" />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <SkeletonLine className={WIDTHS[i % WIDTHS.length]} />
+            <SkeletonLine size="xs" className={SUB_WIDTHS[i % SUB_WIDTHS.length]} />
+          </span>
+          <Skeleton className="h-3 w-10 shrink-0" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** A list card before its title is known (the route-level loading screen). */
+export function HomeListCardSkeleton() {
+  return (
+    <CardSkeleton label={<Skeleton className="h-3 w-28" />} className="h-[301px] pb-0" contentClassName="flex-1">
+      <div className="grid h-full grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="size-8 shrink-0 rounded-full" />
+            <span className="flex flex-col">
+              <SkeletonLine className={i % 2 ? "w-24" : "w-32"} />
+              <SkeletonLine size="xs" className="w-20" />
+            </span>
+          </div>
+        ))}
+      </div>
+    </CardSkeleton>
+  );
+}
+
+/** Departments card on the admin home. */
+export function DeptCompletionSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <Card className="pb-0">
+      <CardTitleHeader
+        title={<TextSkeleton text="Departments" />}
+        aside={
+          <span className="-my-1 -mr-1">
+            <Skeleton className="h-8 w-32 rounded-lg" />
+          </span>
+        }
+      />
+      <CardContent>
+        <div className="-mx-2 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+          {Array.from({ length: rows }, (_, i) => (
+            <div key={i} className="flex flex-col gap-2 px-2 py-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <SkeletonLine className={WIDTHS[i % WIDTHS.length]} />
+                <Skeleton className="h-3 w-14" />
+              </div>
+              <Skeleton className="h-1 w-full rounded-full" />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+      <CardFooterSkeleton label="Track reports" />
+    </Card>
+  );
+}
+
+/** Longest streaks and Needs a nudge on the manager home. */
+export function TeamHighlightsSkeleton() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <CardSkeleton label="Longest streaks" aside="Consecutive days">
+        <PeopleRowsSkeleton />
+      </CardSkeleton>
+      <CardSkeleton label="Needs a nudge" aside="Last 30 days">
+        <PeopleRowsSkeleton />
+      </CardSkeleton>
+    </div>
+  );
+}
+
+/** The member's 30-day strip. */
+export function ActivityStripSkeleton() {
+  return (
+    <CardSkeleton label="Last 30 days" contentClassName="flex flex-col gap-3">
+      <div className="grid grid-cols-[repeat(30,minmax(0,1fr))] gap-1 md:gap-1.5">
+        {Array.from({ length: 30 }, (_, i) => (
+          <Skeleton key={i} className="aspect-square w-full rounded-xs md:rounded-sm" />
+        ))}
+      </div>
+      <span className="flex h-4 items-center">
+        <Skeleton className="h-2.5 w-64 max-w-full" />
+      </span>
+    </CardSkeleton>
+  );
+}
+
+/** The member's recent reports card. */
+export function RecentReportsSkeleton() {
+  return (
+    <Card>
+      <CardTitleHeader title={<TextSkeleton text="Your recent reports" />} />
+      <CardContent>
+        <ReportHistorySkeleton />
+      </CardContent>
+      <CardFooterSkeleton label="All reports" />
+    </Card>
+  );
+}
+
+/** The activity card at the bottom of every home. */
+export function HomeActivitySkeleton({ title = "Company activity" }: { title?: string }) {
+  return (
+    <div className="surface-card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card pt-(--card-spacing) [--card-spacing:--spacing(5)]">
+      <div className="-mb-1.5 flex min-h-7 items-center px-(--card-spacing)">
+        <TextSkeleton text={title} />
+      </div>
+      <div className="px-(--card-spacing)">
+        <ActivityRowsSkeleton groups={[2, 3]} />
+      </div>
+      <CardFooterSkeleton label="All activity" />
+    </div>
+  );
+}
+
+/** The admin shortcuts: invite, new department, new template. */
+export function ShortcutGridSkeleton({ count = 3 }: { count?: number }) {
+  return (
+    <div className={SHORTCUT_GRID}>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className={SHORTCUT_CARD}>
+          <span className={SHORTCUT_BODY}>
+            <Skeleton className="size-9 shrink-0 rounded-lg" />
+            <span className="flex w-full min-w-0 flex-1 flex-col">
+              <SkeletonLine className="w-28" />
+              <SkeletonLine size="xs" className="w-36 max-w-full" />
+            </span>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+

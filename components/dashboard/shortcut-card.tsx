@@ -3,19 +3,21 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
+import { SHORTCUT_BODY, SHORTCUT_CARD } from "@/components/dashboard/shortcut-styles";
+import { cn } from "@/lib/utils";
 
 // Compact shortcuts on the admin home: icon, title, one-line hint.
 // ShortcutCard is a button (a dialog trigger, so it forwards props) and
 // ShortcutLink goes to a page; both look the same. Client components: a
 // dialog trigger (asChild) cannot slot onto a server-rendered element.
-// The card is a size container: when it is narrow (two to a row on a phone)
-// the icon stacks above the text and the chevron is dropped.
-const SHORTCUT =
-  "@container surface-card surface-card-interactive group block w-full rounded-xl bg-card px-4 py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
+const SHORTCUT = cn(
+  SHORTCUT_CARD,
+  "surface-card-interactive outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+);
 
 function ShortcutBody({ icon, title, hint }: { icon: ReactNode; title: string; hint: string }) {
   return (
-    <span className="flex flex-col items-start gap-3 @[15rem]:flex-row @[15rem]:items-center @[15rem]:gap-3.5">
+    <span className={SHORTCUT_BODY}>
       <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-fill-hover ring-1 ring-edge ring-inset">
         {icon}
       </span>

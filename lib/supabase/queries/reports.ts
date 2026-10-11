@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { DailyReport } from "@/types/report";
@@ -10,9 +10,7 @@ const REPORT_SELECT =
 export const getTodayReport = cache(async (): Promise<DailyReport | null> => {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     return null;
@@ -37,9 +35,7 @@ export const getReportHistory = cache(
   ): Promise<{ reports: DailyReport[]; total: number }> => {
     const supabase = await createClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return { reports: [], total: 0 };
@@ -70,9 +66,7 @@ function escapeIlikePattern(value: string): string {
 export async function searchReports(query: string): Promise<DailyReport[]> {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     return [];
@@ -120,9 +114,7 @@ export const getMyReportById = cache(
   async (id: string): Promise<DailyReport | null> => {
     const supabase = await createClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return null;
@@ -146,9 +138,7 @@ export const getMyReportById = cache(
 export const getReportStatsData = cache(async () => {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     return [];

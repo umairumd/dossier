@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { daysBetweenDateStrings, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
@@ -9,9 +9,7 @@ export const getMissingReportsToday = cache(
   async (): Promise<MissingReportRow[]> => {
     const supabase = await createClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return [];
