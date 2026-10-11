@@ -50,3 +50,7 @@ supabase/.temp/
 # Local editor and agent settings (never committed)
 /.cursor/
 /.claude/
+
+# Local tooling
+.agents/
+skills-lock.json
