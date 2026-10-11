@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { requireSupervisorUser } from "@/lib/supabase/require-admin";
 import { daysBetweenDateStrings, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
@@ -18,9 +18,7 @@ export const getSupervisedMembers = cache(
 
     const supabase = await createClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return [];
@@ -67,9 +65,7 @@ export const getSupervisedReportsForDate = cache(
 
     const supabase = await createClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
 
     if (!user) {
       return [];

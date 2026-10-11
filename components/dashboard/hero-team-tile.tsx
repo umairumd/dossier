@@ -5,6 +5,7 @@ import { MemberAvatar } from "@/components/mascot/member-avatar";
 import { HeroViewHeader } from "@/components/dashboard/hero-view-header";
 import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
 import { useOrgNow } from "@/components/mascot/use-org-now";
+import { Meter } from "@/components/ui/meter";
 import { Tile, TileBody, TileFooterAction, TileHeader } from "@/components/ui/tile";
 import { deadlineWindow } from "@/lib/helpers/deadline-window";
 import { formatLocalTime } from "@/lib/helpers/time";
@@ -125,8 +126,29 @@ export function HeroTeamTile({
           }
         />
         <TileBody className="mt-3 min-h-0">
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-2 md:gap-0">
-            <div className="flex flex-col items-center justify-center gap-1 text-center md:pr-4">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 md:grid-cols-2 md:gap-0">
+            {/* Phone: a horizontal bar, so the summary takes one short row. */}
+            <div className="flex flex-col gap-2 md:hidden">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-2xl font-semibold tabular-nums">
+                  {completionPct(submitted.length, expected, everyoneIn)}%
+                </span>
+                <span className="min-w-0 truncate text-sm tabular-nums">
+                  {submitted.length} of {expected} in
+                  {summaryBits.length > 0 && (
+                    <span className="text-muted-foreground"> · {summaryBits.join(", ")}</span>
+                  )}
+                </span>
+              </div>
+              <Meter
+                value={everyoneIn ? 1 : submitted.length}
+                max={everyoneIn ? 1 : expected}
+                tone="success"
+                label={`${submitted.length} of ${expected} reports in`}
+                className="h-2"
+              />
+            </div>
+            <div className="hidden flex-col items-center justify-center gap-1 text-center md:flex md:pr-4">
               <CompletionRing
                 done={submitted.length}
                 total={expected}
@@ -428,6 +450,11 @@ function Person({
       </div>
     </div>
   );
+}
+
+function completionPct(done: number, total: number, full: boolean): number {
+  if (full) return 100;
+  return total === 0 ? 0 : Math.round((Math.min(done, total) / total) * 100);
 }
 
 function CompletionRing({

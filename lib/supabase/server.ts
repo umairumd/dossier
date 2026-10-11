@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -26,3 +27,15 @@ export async function createClient() {
     },
   );
 }
+
+// The signed-in user, checked with the auth server once per request. Every
+// query used to call auth.getUser() itself, a network round trip each time;
+// during a page render they now share this one. Outside a render (server
+// actions, route handlers) cache() does nothing and it checks every call.
+export const getAuthUser = cache(async () => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+});

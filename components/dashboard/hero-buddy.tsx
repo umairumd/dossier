@@ -24,6 +24,7 @@ import {
   type MascotController,
   type MomentId,
 } from "@/lib/mascot";
+import { syncMyUnlocks } from "@/lib/actions/avatar";
 import { cn } from "@/lib/utils";
 
 const LiveMascot = dynamic(
@@ -140,7 +141,6 @@ export function HeroBuddy({
   currentStreak = 0,
   teamComplete = false,
   unread,
-  freshUnlocks = [],
 }: {
   userId: string;
   avatar: unknown;
@@ -156,7 +156,6 @@ export function HeroBuddy({
   currentStreak?: number;
   teamComplete?: boolean;
   unread: HeroNotification[];
-  freshUnlocks?: AccessoryId[];
 }) {
   const { open: openBuddy, prefetch } = useBuddyDialog();
   const now = useOrgNow();
@@ -267,6 +266,21 @@ export function HeroBuddy({
     }, delay);
     return () => window.clearTimeout(timer);
   }, [ready, userId, isBirthday, orgDate, teamComplete, currentStreak, unread]);
+
+  // New unlocks are checked from the browser once the hero is on screen: the
+  // check writes to the database and used to hold up the whole hero render.
+  // The ref keeps it to one call per visit (strict mode mounts twice in dev).
+  const [freshUnlocks, setFreshUnlocks] = useState<AccessoryId[]>([]);
+  const unlockCheckRef = useRef(false);
+  useEffect(() => {
+    if (!userId || unlockCheckRef.current) return;
+    unlockCheckRef.current = true;
+    syncMyUnlocks()
+      .then((ids) => {
+        if (ids.length > 0) setFreshUnlocks(ids);
+      })
+      .catch(() => {});
+  }, [userId]);
 
   const unlockKey = freshUnlocks.join(",");
   useEffect(() => {

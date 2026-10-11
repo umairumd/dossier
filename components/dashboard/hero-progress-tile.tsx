@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { X } from "lucide-react";
+import { CalendarCheck, Clock, FileText, Flame, X, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { MascotStatic } from "@/components/mascot/mascot";
 import { useBuddyDialog } from "@/components/layout/buddy-dialog";
 import { Button } from "@/components/ui/button";
 import { Meter } from "@/components/ui/meter";
+import { cn } from "@/lib/utils";
 import { Tile, TileBody, TileFooterAction, TileHeader } from "@/components/ui/tile";
 import { markUnlockSeen, saveMyAvatar, type UnlockRow } from "@/lib/actions/avatar";
 import { unlockProgressLabel } from "@/lib/helpers/unlock-progress-label";
@@ -87,18 +88,79 @@ function closestLocked(stats: RewardStats, owned: Set<string>, limit: number): A
   return ranked.slice(0, limit).map((item) => item.id);
 }
 
+// The four figures beside the next unlocks: what the person does every day,
+// in the order they matter at a glance.
+function ProgressStats({
+  currentStreak,
+  submissionRate,
+  stats,
+}: {
+  currentStreak: number;
+  submissionRate: number;
+  stats: RewardStats;
+}) {
+  const onTimeRate =
+    stats.totalReports > 0 ? Math.round((stats.onTimeReports / stats.totalReports) * 100) : 0;
+  const items: { icon: LucideIcon; value: string; unit?: string; label: ReactNode }[] = [
+    { icon: Flame, value: String(currentStreak), unit: currentStreak === 1 ? "day" : "days", label: "Streak" },
+    {
+      icon: CalendarCheck,
+      value: `${submissionRate}%`,
+      label: (
+        <>
+          <span className="md:hidden">Submitted</span>
+          <span className="max-md:hidden">Submission rate</span>
+        </>
+      ),
+    },
+    { icon: Clock, value: `${onTimeRate}%`, label: "On time" },
+    { icon: FileText, value: String(stats.totalReports), label: "Reports" },
+  ];
+  // Four soft tiles, no border or hairlines; the icon sits in the same chip
+  // as the admin shortcut cards.
+  return (
+    <dl className="grid grid-cols-2 gap-2">
+      {items.map(({ icon: Icon, value, unit, label }, index) => (
+        <div key={index} className="flex min-w-0 items-center gap-2.5 rounded-lg bg-fill-hover px-3 py-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-fill-active">
+            <Icon aria-hidden className="size-4" />
+          </span>
+          {/* dt before dd for the list; the column is reversed so the value shows first. */}
+          <div className="flex min-w-0 flex-col-reverse">
+            <dt className="truncate text-xs text-muted-foreground">{label}</dt>
+            <dd className="text-lg leading-6 font-semibold tracking-tight tabular-nums">
+              {value}
+              {unit && (
+                <span className="ml-1 text-xs font-normal tracking-normal text-muted-foreground">{unit}</span>
+              )}
+            </dd>
+          </div>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 export function HeroProgressTile({
   userId,
   avatar,
   stats,
   unlocks,
   asOf,
+  currentStreak,
+  submissionRate,
+  wide = false,
 }: {
   userId: string;
   avatar: unknown;
   stats: RewardStats;
   unlocks: UnlockRow[];
   asOf: string;
+  currentStreak: number;
+  /** Share of working days with a report, last 30 days. */
+  submissionRate: number;
+  /** The tile spans the hero (no team tile): unlocks left, figures right. */
+  wide?: boolean;
 }) {
   const router = useRouter();
   const { open: openBuddy, prefetch } = useBuddyDialog();
@@ -108,8 +170,8 @@ export function HeroProgressTile({
   const fresh = unseenUnlock(unlocks, asOf);
   const showingFresh = fresh && fresh.itemId !== dismissed ? fresh : null;
   const nextIds = closestLocked(stats, owned, showingFresh ? 1 : 2);
+  const hasUnlockRows = Boolean(showingFresh) || nextIds.length > 0;
   const base = sanitizeAvatar(avatar, userId);
-  const streak = stats.currentStreak;
 
   function wear(id: AccessoryId) {
     const next = equipAccessory(base, ACCESSORIES[id].slot, id);
@@ -139,65 +201,79 @@ export function HeroProgressTile({
 
   return (
     <Tile className="h-full">
-      <TileHeader title="Your progress" aside={streak > 0 ? `${streak}-day streak` : undefined} />
-      <TileBody className="mt-3 gap-3">
-        {showingFresh && isAccessoryId(showingFresh.itemId) && (
-          <div className="flex items-center gap-3 rounded-lg bg-fill-hover p-2">
-            <MascotStatic
-              avatar={equipAccessory(base, ACCESSORIES[showingFresh.itemId].slot, showingFresh.itemId)}
-              size={48}
-              alt=""
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-ok">New unlock</p>
-              <p className="text-sm font-semibold">{ACCESSORIES[showingFresh.itemId].label}</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {rewardReason(showingFresh.itemId)} · {formatDistanceToNow(new Date(showingFresh.unlockedAt), { addSuffix: true })}
-              </p>
-            </div>
-            <Button
-              type="button"
-              className="max-md:h-11"
-              onClick={() => wear(showingFresh.itemId as AccessoryId)}
-              onPointerEnter={prefetch}
-              onFocus={prefetch}
-            >
-              Wear it
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Dismiss unlock"
-              className="max-md:size-11"
-              onClick={() => dismiss(showingFresh.itemId)}
-            >
-              <X className="size-4" />
-            </Button>
+      <TileHeader title="Your progress" />
+      <TileBody
+        className={cn(
+          "mt-3 gap-4",
+          wide && hasUnlockRows && "md:grid md:grid-cols-2 md:items-center md:gap-x-8",
+        )}
+      >
+        {hasUnlockRows && (
+          <div className="flex min-w-0 flex-col gap-3">
+            {showingFresh && isAccessoryId(showingFresh.itemId) && (
+              <div className="flex items-center gap-3 rounded-lg bg-fill-hover p-2">
+                <MascotStatic
+                  avatar={equipAccessory(base, ACCESSORIES[showingFresh.itemId].slot, showingFresh.itemId)}
+                  size={48}
+                  alt=""
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-ok">New unlock</p>
+                  <p className="text-sm font-semibold">{ACCESSORIES[showingFresh.itemId].label}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {rewardReason(showingFresh.itemId)} · {formatDistanceToNow(new Date(showingFresh.unlockedAt), { addSuffix: true })}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  className="max-md:h-11"
+                  onClick={() => wear(showingFresh.itemId as AccessoryId)}
+                  onPointerEnter={prefetch}
+                  onFocus={prefetch}
+                >
+                  Wear it
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Dismiss unlock"
+                  className="max-md:size-11"
+                  onClick={() => dismiss(showingFresh.itemId)}
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+            )}
+            {nextIds.map((id) => {
+              const prog = unlockProgress(id, stats);
+              const label = unlockProgressLabel(id, stats);
+              if (!prog || !label) return null;
+              return (
+                <div key={id} className="flex items-center gap-3">
+                  <span className="opacity-45">
+                    <MascotStatic avatar={equipAccessory(base, ACCESSORIES[id].slot, id)} size={48} alt="" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="truncate text-sm">
+                        {showingFresh ? "Next: " : ""}
+                        <span className="font-semibold">{ACCESSORIES[id].label}</span>
+                      </p>
+                      <p className="shrink-0 text-xs text-muted-foreground tabular-nums">{label.label}</p>
+                    </div>
+                    <Meter className="mt-1.5" value={prog.current} max={prog.target} label={label.label} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
-        {nextIds.map((id) => {
-          const prog = unlockProgress(id, stats);
-          const label = unlockProgressLabel(id, stats);
-          if (!prog || !label) return null;
-          return (
-            <div key={id} className="flex items-center gap-3">
-              <span className="opacity-45">
-                <MascotStatic avatar={equipAccessory(base, ACCESSORIES[id].slot, id)} size={48} alt="" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="truncate text-sm">
-                    {showingFresh ? "Next: " : ""}
-                    <span className="font-semibold">{ACCESSORIES[id].label}</span>
-                  </p>
-                  <p className="shrink-0 text-xs text-muted-foreground tabular-nums">{label.label}</p>
-                </div>
-                <Meter className="mt-1.5" value={prog.current} max={prog.target} label={label.label} />
-              </div>
-            </div>
-          );
-        })}
+        <ProgressStats
+          currentStreak={currentStreak}
+          submissionRate={submissionRate}
+          stats={stats}
+        />
       </TileBody>
       <TileFooterAction
         onClick={() => openBuddy()}

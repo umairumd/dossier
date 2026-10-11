@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getOrganizationSummary } from "@/lib/supabase/queries/admin/overview";
 import { getDeptCompletionToday } from "@/lib/supabase/queries/admin/dept-completion";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
@@ -7,104 +8,149 @@ import { getTodayReport, getReportStatsData } from "@/lib/supabase/queries/repor
 import { getAvatarsByProfileIds, getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
-import { getDeadlineContext, getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queries/notifications";
-import { getMyRewardStats, getMyUnlocks, syncMyUnlocks } from "@/lib/actions/avatar";
-import { dateNDaysAgo, formatHourLabel, hourInTimeZone, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
-import { getAttendanceSettings, getMyTodayAttendanceStatus } from "@/lib/supabase/queries/attendance";
+import { getMyRewardStats, getMyUnlocks } from "@/lib/actions/avatar";
+import { formatHourLabel } from "@/lib/helpers/dates";
+import { getAttendanceSettings } from "@/lib/supabase/queries/attendance";
 import { getOrgReportsForDate } from "@/lib/supabase/queries/admin/org-reports";
 import { getReportCommentCounts } from "@/lib/supabase/queries/report-comments";
-import { createClient } from "@/lib/supabase/server";
-import {
-  buildAttendanceStatusMap,
-  computeReportStats,
-} from "@/lib/helpers/report-stats";
-import type { AttendanceStatus } from "@/types/attendance";
+import { getHomeDay, getMyAttendanceHistory } from "@/lib/supabase/queries/home";
+import { buildAttendanceStatusMap, computeReportStats } from "@/lib/helpers/report-stats";
 import { Building2, FileText, UserPlus } from "lucide-react";
 import { HomeActivityCard } from "@/components/dashboard/home-activity-card";
 import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
 import { CreateDepartmentDialog } from "@/components/admin/create-department-dialog";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { ShortcutCard, ShortcutLink } from "@/components/dashboard/shortcut-card";
+import { SHORTCUT_GRID } from "@/components/dashboard/shortcut-styles";
 import type { HeroPanelId } from "@/components/dashboard/hero-controller";
 import { CompletionLineChart } from "@/components/analytics/completion-line-chart";
 import { getCompanyCompletion } from "@/lib/supabase/queries/admin/analytics";
 import { getLeaveUntilByProfile } from "@/lib/supabase/queries/leave-until";
 import { DeptCompletionCard } from "@/components/dashboard/dept-completion-card";
-import type { ReportTemplateWithFields } from "@/types/template";
+import {
+  CompletionChartSkeleton,
+  DeptCompletionSkeleton,
+  HomeActivitySkeleton,
+  HomeHeroSkeleton,
+  ShortcutGridSkeleton,
+} from "@/components/shared/skeletons";
 
 const HOME_ACTIVITY_LIMIT = 40;
 
 // Rendered at both "/" (Home, for the admin role) and "/admin" (kept
 // reachable directly in case it's bookmarked) — one component, not two
 // parallel implementations of the same org overview.
-export async function AdminDashboard({
-  initialPanel,
-}: {
-  initialPanel: HeroPanelId | null;
-}) {
-  const supabase = await createClient();
-  const [summary, deptCompletion, recentActivity, todayReport, settings, orgTemplates, allDepartments, employees, profile, orgName, notifications, forYou, rewardStats, unlocks, statsRows, attendanceResult, freshUnlocks, attendanceSettings] =
-    await Promise.all([
-      getOrganizationSummary(),
-      getDeptCompletionToday(),
-      getActivityLog(HOME_ACTIVITY_LIMIT),
-      getTodayReport(),
-      getOrganizationSettings(),
-      getOrgTemplatesWithFields(),
-      getAllDepartments(),
-      getAllEmployees(),
-      getCurrentProfile(),
-      getOrganizationName(),
-      getMyNotifications(),
-      getForYouNotifications(),
-      getMyRewardStats(),
-      getMyUnlocks(),
-      getReportStatsData(),
-      (async () => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return { data: [] };
-        return supabase
-          .from("attendance_records")
-          .select("date, status")
-          .eq("profile_id", user.id)
-          .gte("date", dateNDaysAgo(399));
-      })(),
-      syncMyUnlocks(),
-      getAttendanceSettings(),
-    ]);
-  const template: ReportTemplateWithFields | undefined = profile
-    ? ((await resolveTemplate(profile.id, profile.department_ids)) ?? undefined)
-    : undefined;
+//
+// Each card fetches its own data and streams in behind its own skeleton, so
+// the page fills in card by card instead of waiting for the slowest query.
+// Shared queries are cache()-wrapped and run once per request. The cards sit
+// inside the hero's boundary: they all start fetching at once, but none can
+// appear before the hero does.
+export function AdminDashboard({ initialPanel }: { initialPanel: HeroPanelId | null }) {
+  const chart = <CompletionChartSkeleton />;
+  const departments = <DeptCompletionSkeleton />;
+  const shortcuts = <ShortcutGridSkeleton />;
+  const activity = <HomeActivitySkeleton />;
 
-  const todayDate = todayInTimezone(settings.timezone);
-  const { members: company } = await getOrgReportsForDate(todayDate);
-  const leaveUntil = await getLeaveUntilByProfile(
-    company.filter((member) => member.attendanceStatus === "leave").map((member) => member.employeeId),
-    todayDate,
+  return (
+    <div className="flex flex-col gap-6">
+      <Suspense
+        fallback={
+          <>
+            <HomeHeroSkeleton />
+            {chart}
+            {departments}
+            {shortcuts}
+            {activity}
+          </>
+        }
+      >
+        <AdminHero initialPanel={initialPanel} />
+        <Suspense fallback={chart}>
+          <CompanyCompletionSection />
+        </Suspense>
+        <Suspense fallback={departments}>
+          <DepartmentsSection />
+        </Suspense>
+        <Suspense fallback={shortcuts}>
+          <ShortcutsSection />
+        </Suspense>
+        <Suspense fallback={activity}>
+          <CompanyActivitySection />
+        </Suspense>
+      </Suspense>
+    </div>
   );
-  const companyCompletion = await getCompanyCompletion();
-  const commentCounts = await getReportCommentCounts(
-    company.flatMap((member) => (member.report ? [member.report.id] : [])),
-  );
-  const todayAttendanceStatus = await getMyTodayAttendanceStatus(todayDate);
-  const isHoliday = todayAttendanceStatus === "holiday";
-  const isOffDay = !isWorkingDay(todayDate, settings.workingDays) || isHoliday;
-  const onFullDayLeave = todayAttendanceStatus === "leave";
+}
+
+async function AdminHero({ initialPanel }: { initialPanel: HeroPanelId | null }) {
+  // Dependent queries are chained inside one Promise.all, so each chain
+  // starts as soon as its input is ready instead of after every other query.
+  const dayP = getHomeDay();
+  const profileP = getCurrentProfile();
+  const forYouP = getForYouNotifications();
+  const companyP = dayP.then((day) => getOrgReportsForDate(day.todayDate)).then((r) => r.members);
+
+  const [
+    day,
+    profile,
+    forYou,
+    company,
+    summary,
+    todayReport,
+    orgTemplates,
+    notifications,
+    rewardStats,
+    unlocks,
+    statsRows,
+    attendanceRows,
+    attendanceSettings,
+    template,
+    leaveUntil,
+    commentCounts,
+    actorAvatars,
+  ] = await Promise.all([
+    dayP,
+    profileP,
+    forYouP,
+    companyP,
+    getOrganizationSummary(),
+    getTodayReport(),
+    getOrgTemplatesWithFields(),
+    getMyNotifications(),
+    getMyRewardStats(),
+    getMyUnlocks(),
+    getReportStatsData(),
+    getMyAttendanceHistory(),
+    getAttendanceSettings(),
+    profileP.then((p) => (p ? resolveTemplate(p.id, p.department_ids) : null)),
+    Promise.all([companyP, dayP]).then(([members, d]) =>
+      getLeaveUntilByProfile(
+        members.filter((member) => member.attendanceStatus === "leave").map((member) => member.employeeId),
+        d.todayDate,
+      ),
+    ),
+    companyP.then((members) =>
+      getReportCommentCounts(members.flatMap((member) => (member.report ? [member.report.id] : []))),
+    ),
+    forYouP.then((notes) =>
+      getAvatarsByProfileIds(
+        notes.flatMap((note) =>
+          note.entity_type === "employee" && note.entity_id ? [note.entity_id] : [],
+        ),
+      ),
+    ),
+  ]);
+
+  const { settings, todayDate, isOffDay, onFullDayLeave } = day;
   const isBirthday = profile?.date_of_birth?.slice(5, 10) === todayDate.slice(5, 10);
-  const currentStreak = computeReportStats(statsRows, settings.timezone, {
+  const reportStats = computeReportStats(statsRows, settings.timezone, {
     workingDays: settings.workingDays,
-    attendanceByDate: buildAttendanceStatusMap(
-      (attendanceResult.data as { date: string; status: AttendanceStatus }[]) ?? [],
-    ),
-  }).currentStreak;
-  const actorAvatars = await getAvatarsByProfileIds(
-    forYou.flatMap((note) =>
-      note.entity_type === "employee" && note.entity_id ? [note.entity_id] : [],
-    ),
-  );
+    attendanceByDate: buildAttendanceStatusMap(attendanceRows),
+  });
+  const currentStreak = reportStats.currentStreak;
   const unread = notifications
     .filter((note) => note.read_at == null)
     .map((note) => ({ type: note.type, created_at: note.created_at }));
@@ -125,16 +171,10 @@ export async function AdminDashboard({
   } else {
     contextLine = `Managing ${summary.totalMembers} member${summary.totalMembers === 1 ? "" : "s"} across ${summary.departments} department${summary.departments === 1 ? "" : "s"}`;
   }
-  const departmentOptions = allDepartments
-    .filter((department) => department.archived_at === null)
-    .map((department) => ({
-      id: department.id,
-      name: department.name,
-      manager_name: department.manager_name,
-    }));
 
+  // The hero reveals itself once its buddies are drawn (see DashboardHero).
   return (
-    <div className="flex flex-col gap-6">
+    <div>
       <DashboardHero
         userId={profile?.id ?? ""}
         name={profile?.full_name ?? "Admin"}
@@ -149,21 +189,19 @@ export async function AdminDashboard({
         timeZone={settings.timezone}
         deadlineHourLocal={settings.reportDeadlineHourLocal}
         currentStreak={currentStreak}
-        teamComplete={
-          summary.completionPercentageToday === 100 && summary.totalMembers > 0
-        }
+        submissionRate={reportStats.completionPercentage}
+        teamComplete={summary.completionPercentageToday === 100 && summary.totalMembers > 0}
         unread={unread}
         notifications={forYou}
         actorAvatars={actorAvatars}
         rewardStats={rewardStats}
         unlocks={unlocks}
         asOf={new Date().toISOString()}
-        freshUnlocks={freshUnlocks}
         contextLine={contextLine}
         isReporting={profile?.is_reporting ?? true}
         initialPanel={initialPanel}
         todayReport={todayReport}
-        template={template}
+        template={template ?? undefined}
         shiftFulltimeStart={attendanceSettings.shiftFulltimeStart}
         team={{
           label: "Company today",
@@ -183,107 +221,124 @@ export async function AdminDashboard({
           isOffDay
             ? [
                 { label: "Total members", value: String(summary.totalMembers) },
-                {
-                  label: "Submitted today",
-                  value: String(summary.submittedToday),
-                },
+                { label: "Submitted today", value: String(summary.submittedToday) },
               ]
             : [
                 { label: "Total members", value: String(summary.totalMembers) },
-                {
-                  label: "Submitted today",
-                  value: String(summary.submittedToday),
-                },
-                {
-                  label: "Missing today",
-                  value: String(summary.missingToday),
-                },
+                { label: "Submitted today", value: String(summary.submittedToday) },
+                { label: "Missing today", value: String(summary.missingToday) },
                 {
                   label: "Today's completion",
                   value:
-                    summary.totalMembers === 0
-                      ? "—"
-                      : `${summary.completionPercentageToday}%`,
+                    summary.totalMembers === 0 ? "—" : `${summary.completionPercentageToday}%`,
                 },
               ]
         }
       />
+    </div>
+  );
+}
 
-      <div
-        className="animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "0ms" }}
-      >
-        <CompletionLineChart
-          title="Company completion"
-          trend={companyCompletion.trend}
-          previousAverage={companyCompletion.previousAverage}
-          today={todayDate}
-        />
-      </div>
-
-      <div
-        className="animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "75ms" }}
-      >
-        <DeptCompletionCard
-          initialDepartments={deptCompletion}
-          timezone={settings.timezone}
-          initialDate={todayDate}
-          workingDays={settings.workingDays}
-          initialIsOffDay={isOffDay}
-          deadlinePassedToday={hourInTimeZone(settings.timezone) >= settings.reportDeadlineHourLocal}
-        />
-      </div>
-
-      <div
-        className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 [&>:last-child:nth-child(odd)]:col-span-2 sm:[&>:last-child:nth-child(odd)]:col-span-1 animate-in fade-in-0 duration-300 fill-mode-both"
-        style={{ animationDelay: "75ms" }}
-      >
-        <InviteEmployeeDialog
-          departments={departmentOptions}
-          candidates={employees}
-          orgName={orgName}
-          trigger={
-            <ShortcutCard
-              icon={<UserPlus className="size-4" />}
-              title="Invite employee"
-              hint="Send an invite by email"
-            />
-          }
-        />
-        <CreateDepartmentDialog
-          trigger={
-            <ShortcutCard
-              icon={<Building2 className="size-4" />}
-              title="New department"
-              hint="Group people and assign a template"
-            />
-          }
-        />
-        <ShortcutLink
-          href="/organization/templates/new"
-          icon={<FileText className="size-4" />}
-          title="New template"
-          hint="Set the questions for daily reports"
-        />
-      </div>
-
-      <HomeActivityCard
-        mode="company"
-        className="animate-in fade-in-0 duration-300 fill-mode-both"
-        items={recentActivity}
-        timeZone={settings.timezone}
-        today={{
-          date: todayDate,
-          submitted: summary.submittedToday,
-          expected: isOffDay ? 0 : summary.totalMembers,
-          deadlineLabel: formatHourLabel(settings.reportDeadlineHourLocal),
-          deadlinePassed:
-            hourInTimeZone(settings.timezone) >= settings.reportDeadlineHourLocal,
-        }}
-        days={companyCompletion.trend}
-        currentUserId={profile?.id}
+async function CompanyCompletionSection() {
+  const [companyCompletion, day] = await Promise.all([getCompanyCompletion(), getHomeDay()]);
+  return (
+    <div className="rise-in">
+      <CompletionLineChart
+        title="Company completion"
+        trend={companyCompletion.trend}
+        previousAverage={companyCompletion.previousAverage}
+        today={day.todayDate}
       />
     </div>
+  );
+}
+
+async function DepartmentsSection() {
+  const [deptCompletion, day] = await Promise.all([getDeptCompletionToday(), getHomeDay()]);
+  return (
+    <div className="rise-in">
+      <DeptCompletionCard
+        initialDepartments={deptCompletion}
+        timezone={day.settings.timezone}
+        initialDate={day.todayDate}
+        workingDays={day.settings.workingDays}
+        initialIsOffDay={day.isOffDay}
+        deadlinePassedToday={day.deadlinePassed}
+      />
+    </div>
+  );
+}
+
+async function ShortcutsSection() {
+  const [allDepartments, employees, orgName] = await Promise.all([
+    getAllDepartments(),
+    getAllEmployees(),
+    getOrganizationName(),
+  ]);
+  const departmentOptions = allDepartments
+    .filter((department) => department.archived_at === null)
+    .map((department) => ({
+      id: department.id,
+      name: department.name,
+      manager_name: department.manager_name,
+    }));
+
+  return (
+    <div className={`rise-in ${SHORTCUT_GRID}`}>
+      <InviteEmployeeDialog
+        departments={departmentOptions}
+        candidates={employees}
+        orgName={orgName}
+        trigger={
+          <ShortcutCard
+            icon={<UserPlus className="size-4" />}
+            title="Invite employee"
+            hint="Send an invite by email"
+          />
+        }
+      />
+      <CreateDepartmentDialog
+        trigger={
+          <ShortcutCard
+            icon={<Building2 className="size-4" />}
+            title="New department"
+            hint="Group people and assign a template"
+          />
+        }
+      />
+      <ShortcutLink
+        href="/organization/templates/new"
+        icon={<FileText className="size-4" />}
+        title="New template"
+        hint="Set the questions for daily reports"
+      />
+    </div>
+  );
+}
+
+async function CompanyActivitySection() {
+  const [recentActivity, summary, companyCompletion, day, profile] = await Promise.all([
+    getActivityLog(HOME_ACTIVITY_LIMIT),
+    getOrganizationSummary(),
+    getCompanyCompletion(),
+    getHomeDay(),
+    getCurrentProfile(),
+  ]);
+  return (
+    <HomeActivityCard
+      mode="company"
+      className="rise-in"
+      items={recentActivity}
+      timeZone={day.settings.timezone}
+      today={{
+        date: day.todayDate,
+        submitted: summary.submittedToday,
+        expected: day.isOffDay ? 0 : summary.totalMembers,
+        deadlineLabel: formatHourLabel(day.settings.reportDeadlineHourLocal),
+        deadlinePassed: day.deadlinePassed,
+      }}
+      days={companyCompletion.trend}
+      currentUserId={profile?.id}
+    />
   );
 }
