@@ -11,7 +11,7 @@ Branch `refactor/design-system`. Mockups: Claude Design canvas "Dossier Design",
 
 ## Scale
 
-- Type: page title 24/600; big figure 28/600 tabular; card title 16/500; body 14; meta 12 muted; eyebrow 11/500 caps (`label-eyebrow`). No 10px text.
+- Type: page title 24/600; big figure 28/600 tabular; card and tile title 14/500 (`card-title`); field label 13 muted (`field-label`); body 14; meta 12 muted; eyebrow 11/500 caps (`label-eyebrow`) for navigation, menu and table headings only. No 10px text.
 - Radius: card 14 (`rounded-xl`), inset 12, control 9, pill full. Dialogs 18 (`rounded-2xl`).
 - Spacing: 24 between page sections, 16 between cards, 20 card padding, 14 inset padding.
 - Dialog backdrop: black 40% (light) / 60% (dark) with a light blur. Dialog surface: `surface-overlay`.
@@ -43,3 +43,10 @@ Option D from the canvas page "Colour · surfaces". Dark mode uses one neutral r
 - Light mode: grey base (`--background` = shell), white cards and popovers, no card sheen; the hero gets a soft white wash.
 - Radii: buttons `md`/`lg`, cards `xl`; one-off pixel radii removed.
 - Home: shortcut cards moved to a client component (`shortcut-card.tsx`) so the dialog triggers render on the server.
+
+## Card titles (Oct 12, branch `refactor/card-titles`)
+
+Canvas page "Card titles". Cards and tiles name themselves in sentence case instead of a small uppercase label.
+- `CardTitleHeader` (was `CardLabelHeader`) and `TileHeader` take `title` and render `card-title`: 14px medium, full contrast. The aside stays 12px muted.
+- Labels above a value inside a card (Details, Assignments, report fields) and the hero's figure labels use `field-label`: 13px muted, sentence case. This matches `FigureStrip` and the leave balance figures.
+- `label-eyebrow` stays only for sidebar section headings, dropdown menu labels and attendance grid headings.

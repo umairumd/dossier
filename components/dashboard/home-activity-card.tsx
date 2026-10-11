@@ -24,7 +24,7 @@ import {
   Card,
   CardContent,
   CardFooterLink,
-  CardLabelHeader,
+  CardTitleHeader,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { ActivityLogEntry } from "@/types/activity";
@@ -201,7 +201,7 @@ export function HomeActivityCard({
 
   return (
     <Card className={className}>
-      <CardLabelHeader label={title} />
+      <CardTitleHeader title={title} />
       <CardContent>
         {groups.length === 0 ? (
           <EmptyState

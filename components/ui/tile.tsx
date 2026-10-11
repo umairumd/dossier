@@ -29,19 +29,17 @@ export function Tile({
 }
 
 export function TileHeader({
-  eyebrow,
+  title,
   aside,
   className,
 }: {
-  eyebrow: string;
+  title: string;
   aside?: ReactNode;
   className?: string;
 }) {
   return (
     <div className={cn("flex items-center justify-between gap-3", className)}>
-      <h2 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-        {eyebrow}
-      </h2>
+      <h2 className="card-title">{title}</h2>
       {aside != null && aside !== false && (
         <div className="shrink-0 text-xs text-muted-foreground">{aside}</div>
       )}

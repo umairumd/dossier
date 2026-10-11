@@ -5,7 +5,7 @@ import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ProfileHeader } from "@/components/shared/profile-header";
-import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
+import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import {
   getActiveLeaveBalance,
   getCurrentShift,
@@ -158,8 +158,8 @@ export async function TeamEmployeeProfile({
       </div>
 
       <Card>
-        <CardLabelHeader
-          label="Recent reports"
+        <CardTitleHeader
+          title="Recent reports"
           aside={`${overview.report_count} total`}
         />
         <CardContent>

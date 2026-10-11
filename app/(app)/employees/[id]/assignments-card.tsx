@@ -7,7 +7,7 @@ import { AssignShiftDialog } from "@/components/admin/assign-shift-dialog";
 import { AssignSupervisorsDialog } from "@/components/admin/assign-supervisors-dialog";
 import { AssignTemplateDialog } from "@/components/admin/assign-template-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
+import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { ShiftAssignment } from "@/types/attendance";
 import { SHIFT_TYPE_LABELS } from "@/types/attendance";
@@ -93,11 +93,11 @@ export function AssignmentsCard(
   return (
     <>
       <Card className="h-full">
-        <CardLabelHeader label="Assignments" />
+        <CardTitleHeader title="Assignments" />
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
-              <p className="label-eyebrow flex items-center gap-1.5">
+              <p className="field-label flex items-center gap-1.5">
                 <Building2 className="size-3.5" />
                 Departments
               </p>
@@ -127,9 +127,9 @@ export function AssignmentsCard(
 
               <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-1">
-                  <p className="label-eyebrow flex items-center gap-1.5">
+                  <p className="field-label flex items-center gap-1.5">
                     <UserCheck className="size-3.5" />
-                    Reports To
+                    Reports to
                   </p>
                   {supervisorNames.length > 0 ? (
                     <div className="flex flex-col gap-1">
@@ -154,9 +154,9 @@ export function AssignmentsCard(
 
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
-              <p className="label-eyebrow flex items-center gap-1.5">
+              <p className="field-label flex items-center gap-1.5">
                 <FileStack className="size-3.5" />
-                Report Template
+                Report template
               </p>
               <div className="flex flex-col gap-1">
                 <span className="text-sm font-medium">
@@ -176,7 +176,7 @@ export function AssignmentsCard(
 
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
-              <p className="label-eyebrow flex items-center gap-1.5">
+              <p className="field-label flex items-center gap-1.5">
                 <Clock className="size-3.5" />
                 Shift
               </p>

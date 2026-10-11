@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { RoleChip } from "@/components/shared/role-chip";
-import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
+import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import { formatDate } from "@/lib/helpers/dates";
 import type { UserRole } from "@/types/profile";
 
@@ -24,22 +24,22 @@ export function DetailsCard({
 }) {
   return (
     <Card className="h-full">
-      <CardLabelHeader label="Details" />
+      <CardTitleHeader title="Details" />
       <CardContent className="flex flex-col gap-3">
         {showAdminFields && (
           <div className="flex flex-col gap-1">
-            <p className="label-eyebrow">Email</p>
+            <p className="field-label">Email</p>
             <p className="break-all text-sm font-medium">
               {employee.email ?? "—"}
             </p>
           </div>
         )}
         <div className="flex flex-col gap-1">
-          <p className="label-eyebrow">Role</p>
+          <p className="field-label">Role</p>
           <RoleChip role={employee.role} />
         </div>
         <div className="flex flex-col gap-1">
-          <p className="label-eyebrow">Employment</p>
+          <p className="field-label">Employment</p>
           <p className="text-sm font-medium">
             {employee.employment_type === "part_time"
               ? "Part-time"
@@ -47,27 +47,27 @@ export function DetailsCard({
           </p>
         </div>
         <div className="flex flex-col gap-1">
-          <p className="label-eyebrow">Work Location</p>
+          <p className="field-label">Work location</p>
           <p className="text-sm font-medium">
             {employee.is_remote ? "Remote" : "On-site"}
           </p>
         </div>
         <div className="flex flex-col gap-1">
-          <p className="label-eyebrow">Member Since</p>
+          <p className="field-label">Member since</p>
           <p className="text-sm font-medium">
             {formatDate(employee.created_at.slice(0, 10))}
           </p>
         </div>
         {showAdminFields && employee.date_of_birth && (
           <div className="flex flex-col gap-1">
-            <p className="label-eyebrow">Date of Birth</p>
+            <p className="field-label">Date of birth</p>
             <p className="text-sm font-medium">
               {formatDate(employee.date_of_birth)}
             </p>
           </div>
         )}
         <div className="flex flex-col gap-1">
-          <p className="label-eyebrow">Last Seen</p>
+          <p className="field-label">Last seen</p>
           <p className="text-sm font-medium">
             {(() => {
               const lastSeen =

@@ -22,7 +22,7 @@ function Assignment({
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="flex flex-col gap-1">
-        <p className="label-eyebrow flex items-center gap-1.5 [&_svg]:size-3.5">
+        <p className="field-label flex items-center gap-1.5 [&_svg]:size-3.5">
           {icon}
           {label}
         </p>
@@ -36,7 +36,7 @@ function Assignment({
 function Detail({ label, width }: { label: string; width: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <p className="label-eyebrow">{label}</p>
+      <p className="field-label">{label}</p>
       <SkeletonLine className={width} />
     </div>
   );
@@ -73,11 +73,11 @@ export default function EmployeeProfileLoading() {
               <Skeleton className="h-[22px] w-24 rounded-full" />
             </Assignment>
             <Separator />
-            <Assignment icon={<UserCheck />} label="Reports To">
+            <Assignment icon={<UserCheck />} label="Reports to">
               <SkeletonLine className="w-28" />
             </Assignment>
             <Separator />
-            <Assignment icon={<FileStack />} label="Report Template">
+            <Assignment icon={<FileStack />} label="Report template">
               <div className="flex flex-col gap-1">
                 <SkeletonLine className="w-32" />
                 <SkeletonLine size="xs" className="w-20" />
@@ -101,9 +101,9 @@ export default function EmployeeProfileLoading() {
             <Detail label="Email" width="w-44" />
             <Detail label="Role" width="w-16" />
             <Detail label="Employment" width="w-20" />
-            <Detail label="Work Location" width="w-16" />
-            <Detail label="Member Since" width="w-24" />
-            <Detail label="Last Seen" width="w-24" />
+            <Detail label="Work location" width="w-16" />
+            <Detail label="Member since" width="w-24" />
+            <Detail label="Last seen" width="w-24" />
           </CardSkeleton>
         </div>
       </div>

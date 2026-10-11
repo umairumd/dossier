@@ -22,7 +22,7 @@ import { ReportHistoryPagination } from "@/components/reports/report-history-pag
 import { ReportSearch } from "@/components/reports/report-search";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
+import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 
 const PAGE_SIZE = 10;
 
@@ -77,7 +77,7 @@ export default async function DailyReportPage({
       )}
 
       <Card>
-        <CardLabelHeader label="Report history" />
+        <CardTitleHeader title="Report history" />
         <CardContent className="flex flex-col gap-4">
           <ReportSearch
             deadline={deadline}

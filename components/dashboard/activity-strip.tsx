@@ -1,4 +1,4 @@
-import { Card, CardContent, CardLabelHeader } from "@/components/ui/card";
+import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import {
   isWorkingDay,
   shiftReportDate,
@@ -90,8 +90,8 @@ export function ActivityStrip({
 
   return (
     <Card>
-      <CardLabelHeader
-        label="Last 30 days"
+      <CardTitleHeader
+        title="Last 30 days"
         aside={dueCount > 0 ? `${submittedCount} of ${dueCount} working days` : undefined}
       />
       <CardContent className="flex flex-col gap-3">

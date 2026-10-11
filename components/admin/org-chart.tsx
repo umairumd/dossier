@@ -89,7 +89,7 @@ function DeptCard({
       )}
     >
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <span className="label-eyebrow">{title}</span>
+        <span className="card-title">{title}</span>
         <span className="text-xs text-muted-foreground">
           ({members.length})
         </span>
