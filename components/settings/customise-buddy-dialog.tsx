@@ -456,7 +456,7 @@ export function CustomiseBuddyDialog({
                 <TabsTrigger value="look">Look</TabsTrigger>
                 <TabsTrigger value="wardrobe">Wardrobe</TabsTrigger>
               </TabsList>
-              <div className="-mx-3 min-h-0 flex-1 overflow-y-auto px-3 pt-2 pb-6 [scrollbar-gutter:stable]">
+              <div className="-mx-3 min-h-0 flex-1 overflow-y-auto scrollbar-visible px-3 pt-2 pb-6 [scrollbar-gutter:stable]">
                 <TabsContent value="look" className="mt-0 flex flex-col gap-6">
                   <OptionGroup label="Shape" className={LOOK_GRID}>
                     {ACTIVE_SHAPES.map((id) => (
