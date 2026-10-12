@@ -1,4 +1,5 @@
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
+import { ExportRecordDialog } from "@/components/admin/export-record-dialog";
 import { ProfileHeader } from "@/components/shared/profile-header";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem } from "@/types/employee";
@@ -17,6 +18,7 @@ export function EmployeeHeroClient({
   templates,
   currentTemplateSource,
   currentTemplateSourceName,
+  exportRecord,
 }: {
   name: string;
   designation?: string | null;
@@ -30,6 +32,8 @@ export function EmployeeHeroClient({
   templates: ReportTemplate[];
   currentTemplateSource: "individual" | "department" | "default" | "none";
   currentTemplateSourceName: string | null;
+  /** Owners and admins: the Export record button (join date and org today). */
+  exportRecord?: { joinedOn: string; today: string };
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -46,6 +50,16 @@ export function EmployeeHeroClient({
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        {exportRecord && (
+          <ExportRecordDialog
+            employeeId={employee.id}
+            name={name}
+            designation={designation}
+            avatar={avatar}
+            joinedOn={exportRecord.joinedOn}
+            today={exportRecord.today}
+          />
+        )}
         <EmployeeActionsMenu
           employee={employee}
           isSelf={isSelf}

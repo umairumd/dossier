@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   UserCheck,
   UserPen,
+  FileDown,
   UserX,
   type LucideIcon,
 } from "lucide-react";
@@ -53,6 +54,7 @@ export const EVENT_ICON: Record<ActivityEventType, LucideIcon> = {
   employee_invited: Send,
   employee_onboarded: UserCheck,
   employee_edited: UserPen,
+  record_exported: FileDown,
   employee_deactivated: UserX,
   employee_reactivated: UserCheck,
   employee_archived: Archive,
@@ -116,6 +118,8 @@ export function activityDetailLine(entry: ActivityLogEntry): string | null {
       const note = metaString(entry.metadata, "note");
       return note ? `“${note}”` : null;
     }
+    case "record_exported":
+      return metaString(entry.metadata, "period");
     default:
       return null;
   }
