@@ -219,23 +219,27 @@ export const getMyAttendance = cache(
   },
 );
 
-// Submitted daily reports for remote employees in a month (keys: "authorId_YYYY-MM-DD")
+// Submitted daily reports for remote employees in a month (keys: "authorId_YYYY-MM-DD").
+// Pass null to load every report the viewer can see that month, so the call
+// doesn't have to wait for the employee list; the caller filters by id.
 export async function getRemoteAttendanceDates(
-  employeeIds: string[],
+  employeeIds: string[] | null,
   monthStart: string,
   monthEnd: string,
 ): Promise<string[]> {
-  if (employeeIds.length === 0) {
+  if (employeeIds && employeeIds.length === 0) {
     return [];
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const query = supabase
     .from("daily_reports")
     .select("author_id, report_date")
-    .in("author_id", employeeIds)
     .gte("report_date", monthStart)
     .lte("report_date", monthEnd);
+  const { data, error } = await (employeeIds
+    ? query.in("author_id", employeeIds)
+    : query);
 
   if (error) {
     throw new Error("Failed to load remote attendance dates.");

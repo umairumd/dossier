@@ -52,6 +52,16 @@ number of round trips made *one after another*, not the total number.
 - Fetch a related row in the same round when possible (for example all
   `profile_departments` rows, filtered in code) instead of a second query that
   waits for the first.
+- Count the rounds, not the rows. Each trip to Supabase costs about 200 ms
+  from Pakistan, while the queries themselves are tiny. `getAllEmployees`
+  loads profiles, account status and department/supervisor links in one
+  round; Attendance loads the month's reports alongside it and picks out the
+  remote people afterwards.
+- Filter by `org_id` where a table has an `(org_id, created_at)` index
+  (activity log), so the newest rows come straight off the index.
+- In RLS policies wrap `auth.uid()` and the `current_profile_*()` helpers in
+  a sub-select, `(select auth.uid())`, so they run once per query rather
+  than once per row (`20261013000001_activity_log_rls_performance.sql`).
 - Data a click will need belongs with the list that shows it: a report list
   loads its reports' comments in the same round (`getCommentsForReports`),
   so opening a report needs no request.
