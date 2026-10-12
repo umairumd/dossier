@@ -664,7 +664,14 @@ export function AttendanceGrid({
           The full day-by-day grid is available on larger screens.
         </p>
       </div>
-      <div className="surface-card hidden overflow-x-auto rounded-xl bg-card md:block">
+      {/* The grid scrolls inside this box both ways, capped at the screen
+          height (minus the top bar and page padding). With overflow-x alone
+          the box was a scroll container that never scrolled vertically, so
+          the sticky header had nothing to stick to and the horizontal
+          scrollbar sat at the very bottom of the table. Now the header and
+          name column stay put and the scrollbar is always on screen
+          (scrollbar-visible keeps it drawn even where macOS hides them). */}
+      <div className="surface-card hidden max-h-[calc(100dvh-7rem)] overflow-auto scrollbar-visible rounded-xl bg-card md:block">
       {/* Day blocks are 4px apart on each side of the column (px-1), so the
           first day column gets 8px on its left to match the gap between
           blocks, and 4px more width (w-11 against w-10) so its block stays

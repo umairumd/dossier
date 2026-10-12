@@ -288,6 +288,34 @@
   }
 }
 
+/* A scrollbar that stays visible. macOS hides scrollbars until you scroll;
+ * styling them with ::-webkit-scrollbar makes Chrome and Safari draw a
+ * permanent one. Firefox gets the standard properties (set only there:
+ * Chrome ignores the ::-webkit styles when scrollbar-color is present). */
+@utility scrollbar-visible {
+  &::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  &::-webkit-scrollbar-track,
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklab, var(--foreground) 22%, transparent);
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: padding-box;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklab, var(--foreground) 38%, transparent);
+  }
+  @supports (-moz-appearance: none) {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--foreground) 22%, transparent) transparent;
+  }
+}
+
 @keyframes skeleton-breathe {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }
