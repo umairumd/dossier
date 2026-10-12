@@ -19,6 +19,7 @@ export const EVENT_CATEGORY: Record<ActivityEventType, ActivityCategory> = {
   employee_invited: "people",
   employee_onboarded: "people",
   employee_edited: "people",
+  record_exported: "people",
   employee_deactivated: "people",
   employee_reactivated: "people",
   employee_archived: "people",
