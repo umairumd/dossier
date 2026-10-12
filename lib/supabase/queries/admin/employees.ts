@@ -139,29 +139,33 @@ function toEmployeeListItem(
   };
 }
 
-async function attachMemberships(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  items: EmployeeListItem[],
-): Promise<EmployeeListItem[]> {
-  if (items.length === 0) {
-    return items;
-  }
+type MembershipLookups = {
+  departmentIdsByProfile: Map<string, string[]>;
+  supervisorIdsByMember: Map<string, string[]>;
+  nameByDepartmentId: Map<string, string>;
+};
 
-  const ids = items.map((item) => item.id);
+// Department and supervisor links. With ids, only those people's rows;
+// without, every row the viewer can see, so it can run alongside the
+// profiles query instead of after it.
+async function loadMembershipLookups(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids?: string[],
+): Promise<MembershipLookups> {
+  const membershipsQuery = supabase
+    .from("profile_departments")
+    .select("profile_id, department_id");
+  const supervisorsQuery = supabase
+    .from("member_supervisors")
+    .select("member_id, supervisor_id");
 
   const [
     { data: memberships, error: membershipError },
     { data: supervisors, error: supervisorError },
     { data: departments, error: departmentError },
   ] = await Promise.all([
-    supabase
-      .from("profile_departments")
-      .select("profile_id, department_id")
-      .in("profile_id", ids),
-    supabase
-      .from("member_supervisors")
-      .select("member_id, supervisor_id")
-      .in("member_id", ids),
+    ids ? membershipsQuery.in("profile_id", ids) : membershipsQuery,
+    ids ? supervisorsQuery.in("member_id", ids) : supervisorsQuery,
     supabase.from("departments").select("id, name"),
   ]);
 
@@ -187,17 +191,39 @@ async function attachMemberships(
     supervisorIdsByMember.set(row.member_id, list);
   }
 
+  return { departmentIdsByProfile, supervisorIdsByMember, nameByDepartmentId };
+}
+
+function withMemberships(
+  items: EmployeeListItem[],
+  lookups: MembershipLookups,
+): EmployeeListItem[] {
   return items.map((item) => {
-    const department_ids = departmentIdsByProfile.get(item.id) ?? [];
+    const department_ids = lookups.departmentIdsByProfile.get(item.id) ?? [];
     return {
       ...item,
       department_ids,
       department_names: department_ids
-        .map((id) => nameByDepartmentId.get(id))
+        .map((id) => lookups.nameByDepartmentId.get(id))
         .filter((name): name is string => Boolean(name)),
-      supervisor_ids: supervisorIdsByMember.get(item.id) ?? [],
+      supervisor_ids: lookups.supervisorIdsByMember.get(item.id) ?? [],
     };
   });
+}
+
+async function attachMemberships(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  items: EmployeeListItem[],
+): Promise<EmployeeListItem[]> {
+  if (items.length === 0) {
+    return items;
+  }
+
+  const lookups = await loadMembershipLookups(
+    supabase,
+    items.map((item) => item.id),
+  );
+  return withMemberships(items, lookups);
 }
 
 const PROFILE_SELECT =
@@ -211,24 +237,26 @@ export const getAllEmployees = cache(async (): Promise<EmployeeListItem[]> => {
 
   const supabase = await createClient();
 
-  const [{ data: profiles, error }, authUsersById] = await Promise.all([
+  // Profiles, account status and department/supervisor links in one round.
+  const [{ data: profiles, error }, authUsersById, lookups] = await Promise.all([
     supabase
       .from("profiles")
       .select(PROFILE_SELECT)
       .eq("exclude_from_attendance", false)
       .order("full_name", { ascending: true }),
     loadAuthUsersById(),
+    loadMembershipLookups(supabase),
   ]);
 
   if (error) {
     throw new Error("Failed to load employees.");
   }
 
-  const employees = await attachMemberships(
-    supabase,
+  const employees = withMemberships(
     ((profiles as unknown as ProfileRow[]) ?? []).map((profile) =>
       toEmployeeListItem(profile, authUsersById.get(profile.id)),
     ),
+    lookups,
   );
 
   const ROLE_ORDER = { owner: 0, admin: 1, manager: 2, member: 3 };

@@ -66,9 +66,12 @@ export async function AppShell({
         profile={profile}
       />
       <div className="flex min-w-0 flex-1 flex-col md:py-2 md:pr-2">
+        {/* relative: absolutely positioned bits inside the page (screen-reader
+            labels, for one) stay inside this scroll area instead of
+            stretching the window, which would let it scroll past the app. */}
         <div
           data-app-panel
-          className="flex min-h-0 flex-1 flex-col bg-background md:overflow-y-auto md:rounded-xl md:border md:border-edge"
+          className="relative flex min-h-0 flex-1 flex-col bg-background md:overflow-y-auto md:rounded-xl md:border md:border-edge"
         >
         <TopNav
           mainSections={mainSections}
