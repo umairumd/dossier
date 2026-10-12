@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import type { ActivityLogEntry } from "@/types/activity";
 
 export type ActivityQueryOptions = {
@@ -16,9 +17,20 @@ function escapeIlikePattern(value: string): string {
 
 // Postgrest filter builders are deeply generic; keep this helper loosely typed
 // so optional cursor/filter chaining does not blow up the type checker.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applyActivityQueryOptions(query: any, limit: number, options?: ActivityQueryOptions) {
+function applyActivityQueryOptions(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query: any,
+  orgId: string | null | undefined,
+  limit: number,
+  options?: ActivityQueryOptions,
+) {
   let next = query;
+
+  // Scoping to the organisation lets Postgres walk the (org_id, created_at)
+  // index newest-first instead of scanning and sorting the whole table.
+  if (orgId) {
+    next = next.eq("org_id", orgId);
+  }
 
   if (options?.cursor) {
     next = next.lt("created_at", options.cursor);
@@ -46,11 +58,15 @@ export const getActivityLog = cache(
     options?: ActivityQueryOptions,
   ): Promise<ActivityLogEntry[]> => {
     await requireAdminUser();
-    const supabase = await createClient();
+    const [supabase, profile] = await Promise.all([
+      createClient(),
+      getCurrentProfile(),
+    ]);
 
     try {
       const { data, error } = await applyActivityQueryOptions(
         supabase.from("activity_log").select("*"),
+        profile?.organization_id,
         limit,
         options,
       );
@@ -75,7 +91,10 @@ export const getMyActivityLog = cache(
     const supabase = await createClient();
 
     try {
-      const user = await getAuthUser();
+      const [user, profile] = await Promise.all([
+        getAuthUser(),
+        getCurrentProfile(),
+      ]);
       if (!user) return [];
 
       const { data, error } = await applyActivityQueryOptions(
@@ -83,6 +102,7 @@ export const getMyActivityLog = cache(
           .from("activity_log")
           .select("*")
           .or(`actor_id.eq.${user.id},target_id.eq.${user.id}`),
+        profile?.organization_id,
         limit,
         options,
       );
@@ -101,11 +121,15 @@ export const getTeamActivityLog = cache(
     limit: number,
     options?: ActivityQueryOptions,
   ): Promise<ActivityLogEntry[]> => {
-    const supabase = await createClient();
+    const [supabase, profile] = await Promise.all([
+      createClient(),
+      getCurrentProfile(),
+    ]);
 
     try {
       const { data, error } = await applyActivityQueryOptions(
         supabase.from("activity_log").select("*"),
+        profile?.organization_id,
         limit,
         options,
       );

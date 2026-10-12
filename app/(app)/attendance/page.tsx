@@ -203,24 +203,15 @@ export default async function AttendancePage({
   // ── Owner / admin: full org grid ────────────────────────────────
   const [yearNum, monthNum] = month.split("-").map(Number);
 
-  // Remote report dates need the remote ids, so they chain off the employee
-  // list inside the same Promise.all instead of waiting for everything.
-  const employeesP = getAllEmployees();
-  const [employees, attendanceSettings, records, accrualDone, remoteReportDates] =
+  // Every report this month loads alongside the employee list; the remote
+  // people's dates are picked out once the list is in.
+  const [employees, attendanceSettings, records, accrualDone, monthReportDates] =
     await Promise.all([
-      employeesP,
+      getAllEmployees(),
       getAttendanceSettings(),
       getMonthlyAttendance(month),
       getMonthAccrualStatus(yearNum, monthNum),
-      employeesP.then((list) =>
-        getRemoteAttendanceDates(
-          list
-            .filter((emp) => (emp.status === "active" || emp.status === "invited") && emp.is_remote)
-            .map((emp) => emp.id),
-          monthStart,
-          monthEnd,
-        ),
-      ),
+      getRemoteAttendanceDates(null, monthStart, monthEnd),
     ]);
 
   const activeEmployees = employees
@@ -244,6 +235,10 @@ export default async function AttendancePage({
 
   const onSiteEmployees = activeEmployees.filter((e) => !e.is_remote);
   const remoteEmployees = activeEmployees.filter((e) => e.is_remote);
+  const remoteIds = new Set(remoteEmployees.map((e) => e.id));
+  const remoteReportDates = monthReportDates.filter((key) =>
+    remoteIds.has(key.slice(0, key.indexOf("_"))),
+  );
 
   return (
     <div className="flex flex-col gap-6">

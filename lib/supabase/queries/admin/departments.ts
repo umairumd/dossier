@@ -38,20 +38,25 @@ export const getAllDepartments = cache(
 
     const supabase = await createClient();
 
-    const { data: departments, error: departmentsError } = await supabase
-      .from("departments")
-      .select(
-        "id, name, organization_id, manager_id, archived_at, created_at, template_id, manager:profiles!departments_manager_id_fkey(full_name, avatar)",
-      )
-      .order("name", { ascending: true });
+    // Departments and member counts don't depend on each other: fetch together.
+    const [
+      { data: departments, error: departmentsError },
+      { data: memberships, error: countsError },
+    ] = await Promise.all([
+      supabase
+        .from("departments")
+        .select(
+          "id, name, organization_id, manager_id, archived_at, created_at, template_id, manager:profiles!departments_manager_id_fkey(full_name, avatar)",
+        )
+        .order("name", { ascending: true }),
+      supabase
+        .from("profile_departments")
+        .select("department_id, profiles(archived_at, is_active)"),
+    ]);
 
     if (departmentsError) {
       logAndThrow("Failed to load departments.", departmentsError);
     }
-
-    const { data: memberships, error: countsError } = await supabase
-      .from("profile_departments")
-      .select("department_id, profiles(archived_at, is_active)");
 
     if (countsError) {
       logAndThrow("Failed to load department employee counts.", countsError);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { createContext, useContext, useMemo, useState, useTransition } from "react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import {
@@ -328,19 +328,11 @@ export function getEventLabel(entry: ActivityLogEntry): EventLabel {
   return labelFn ? labelFn(entry) : { lead: "", rest: entry.event_type };
 }
 
-// --- Day keys and grouping (local time) ---
-
-function subscribe() {
-  return () => {};
-}
-
-function useIsMounted() {
-  return useSyncExternalStore(
-    subscribe,
-    () => true,
-    () => false,
-  );
-}
+// --- Day keys and grouping (organisation time zone) ---
+//
+// Days and clock times use the organisation's time zone rather than the
+// browser's, so the server can render the grouped feed and the list arrives
+// filled in instead of waiting for the page's JavaScript.
 
 export function localDayKey(date: Date): string {
   const y = date.getFullYear();
@@ -349,25 +341,60 @@ export function localDayKey(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function formatDayLabel(date: Date, now: Date): string {
-  const todayKey = localDayKey(now);
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  const key = localDayKey(date);
-  if (key === todayKey) return "Today";
-  if (key === localDayKey(yesterday)) return "Yesterday";
+type FeedFormatters = {
+  dayKey: (date: Date) => string;
+  time: (iso: string) => string;
+  dayLabel: (dayKey: string) => string;
+};
 
-  const parts = new Intl.DateTimeFormat("en-GB", {
+function previousDayKey(dayKey: string): string {
+  const date = new Date(`${dayKey}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function makeFormatters(timeZone: string, todayKey: string): FeedFormatters {
+  const day = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const time = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  // Day keys are calendar dates already, so the label formats them as UTC.
+  const label = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "UTC",
     weekday: "short",
     day: "numeric",
     month: "short",
-  }).formatToParts(date);
-  const get = (type: string) =>
-    parts.find((p) => p.type === type)?.value ?? "";
-  const base = `${get("weekday")} ${get("day")} ${get("month")}`;
-  return date.getFullYear() === now.getFullYear()
-    ? base
-    : `${base} ${date.getFullYear()}`;
+  });
+  const yesterdayKey = previousDayKey(todayKey);
+  const thisYear = todayKey.slice(0, 4);
+
+  return {
+    dayKey: (date) => day.format(date),
+    time: (iso) => time.format(new Date(iso)),
+    dayLabel: (key) => {
+      if (key === todayKey) return "Today";
+      if (key === yesterdayKey) return "Yesterday";
+      const parts = label.formatToParts(new Date(`${key}T00:00:00Z`));
+      const get = (type: string) =>
+        parts.find((p) => p.type === type)?.value ?? "";
+      const base = `${get("weekday")} ${get("day")} ${get("month")}`;
+      return key.slice(0, 4) === thisYear ? base : `${base} ${key.slice(0, 4)}`;
+    },
+  };
+}
+
+const FeedFormattersContext = createContext<FeedFormatters | null>(null);
+
+function useFeedTime(iso: string): string {
+  const formatters = useContext(FeedFormattersContext);
+  return formatters ? formatters.time(iso) : formatLocalTime(iso);
 }
 
 // --- Attendance collapsing ---
@@ -474,11 +501,15 @@ type FeedRow =
     };
 
 /** Each day's report submissions become one expandable row. */
-function toFeedRows(items: DisplayItem[], fold: boolean): FeedRow[] {
+function toFeedRows(
+  items: DisplayItem[],
+  fold: boolean,
+  dayKeyOf: (date: Date) => string,
+): FeedRow[] {
   const rows: FeedRow[] = [];
   const digests = new Map<string, Extract<FeedRow, { kind: "digest" }>>();
   for (const item of items) {
-    const dayKey = localDayKey(new Date(item.created_at));
+    const dayKey = dayKeyOf(new Date(item.created_at));
     if (fold && !isCollapsed(item) && item.event_type === "report_submitted") {
       const existing = digests.get(dayKey);
       if (existing) {
@@ -507,18 +538,17 @@ function toFeedRows(items: DisplayItem[], fold: boolean): FeedRow[] {
 
 function groupRowsByDay(
   rows: FeedRow[],
+  dayLabel: (dayKey: string) => string,
 ): { key: string; label: string; rows: FeedRow[] }[] {
-  const now = new Date();
   const groups: { key: string; label: string; rows: FeedRow[] }[] = [];
   for (const row of rows) {
     const last = groups[groups.length - 1];
     if (last && last.key === row.dayKey) {
       last.rows.push(row);
     } else {
-      const at = row.kind === "digest" ? row.at : row.item.created_at;
       groups.push({
         key: row.dayKey,
-        label: formatDayLabel(new Date(at), now),
+        label: dayLabel(row.dayKey),
         rows: [row],
       });
     }
@@ -562,7 +592,7 @@ function DeleteSlot({
 }
 
 function EntryRow({ item, ...controls }: { item: DisplayItem } & RowControls) {
-  const time = formatLocalTime(item.created_at);
+  const time = useFeedTime(item.created_at);
   if (isCollapsed(item)) {
     const lead =
       controls.currentUserId && item.actor_id === controls.currentUserId
@@ -601,6 +631,7 @@ function DigestRow({
   ...controls
 }: { row: Extract<FeedRow, { kind: "digest" }> } & RowControls) {
   const [open, setOpen] = useState(false);
+  const time = useFeedTime(row.at);
   const count = row.entries.length;
   const names: string[] = [];
   for (const entry of row.entries) {
@@ -612,7 +643,7 @@ function DigestRow({
       <ActivityRowShell
         icon={Files}
         category="reports"
-        time={formatLocalTime(row.at)}
+        time={time}
         onClick={() => setOpen((value) => !value)}
         expanded={open}
         text={
@@ -655,6 +686,8 @@ export function ActivityFeed({
   currentUserId,
   foldReports = false,
   footer,
+  timeZone,
+  todayKey,
 }: {
   items: ActivityLogEntry[];
   emptyMessage?: string;
@@ -664,17 +697,30 @@ export function ActivityFeed({
   /** Fold each day's report submissions into one expandable row. */
   foldReports?: boolean;
   footer?: ReactNode;
+  /** The organisation's time zone; days and times are shown in it. */
+  timeZone: string;
+  /** Today in that time zone, YYYY-MM-DD. */
+  todayKey: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const mounted = useIsMounted();
+  const formatters = useMemo(
+    () => makeFormatters(timeZone, todayKey),
+    [timeZone, todayKey],
+  );
 
-  // Day keys and clock times depend on the viewer's time zone, so grouping
-  // runs after mount; the server render reserves the space.
-  const groups = useMemo(() => {
-    if (!mounted) return null;
-    return groupRowsByDay(toFeedRows(collapseAttendance(items), foldReports));
-  }, [items, mounted, foldReports]);
+  const groups = useMemo(
+    () =>
+      groupRowsByDay(
+        toFeedRows(
+          collapseAttendance(items, formatters.dayKey),
+          foldReports,
+          formatters.dayKey,
+        ),
+        formatters.dayLabel,
+      ),
+    [items, foldReports, formatters],
+  );
 
   const handleDelete = (id: string) => {
     startTransition(async () => {
@@ -704,42 +750,38 @@ export function ActivityFeed({
   };
 
   return (
-    <>
-      {groups ? (
-        <div className="flex flex-col">
-          {groups.map((group, index) => (
-            <section key={group.key} aria-label={group.label}>
-              <h3
-                className={cn(
-                  "pb-1 text-xs text-muted-foreground",
-                  index > 0 && "pt-4",
-                )}
-              >
-                {group.label}
-              </h3>
-              <ul className="flex flex-col divide-y divide-line">
-                {group.rows.map((row) => (
-                  <li
-                    key={
-                      row.kind === "digest"
-                        ? `digest-${row.dayKey}`
-                        : displayKey(row.item)
-                    }
-                  >
-                    {row.kind === "digest" ? (
-                      <DigestRow row={row} {...controls} />
-                    ) : (
-                      <EntryRow item={row.item} {...controls} />
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      ) : (
-        <div className="min-h-40" aria-busy />
-      )}
+    <FeedFormattersContext.Provider value={formatters}>
+      <div className="flex flex-col">
+        {groups.map((group, index) => (
+          <section key={group.key} aria-label={group.label}>
+            <h3
+              className={cn(
+                "pb-1 text-xs text-muted-foreground",
+                index > 0 && "pt-4",
+              )}
+            >
+              {group.label}
+            </h3>
+            <ul className="flex flex-col divide-y divide-line">
+              {group.rows.map((row) => (
+                <li
+                  key={
+                    row.kind === "digest"
+                      ? `digest-${row.dayKey}`
+                      : displayKey(row.item)
+                  }
+                >
+                  {row.kind === "digest" ? (
+                    <DigestRow row={row} {...controls} />
+                  ) : (
+                    <EntryRow item={row.item} {...controls} />
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
 
       {footer}
 
@@ -774,6 +816,6 @@ export function ActivityFeed({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </FeedFormattersContext.Provider>
   );
 }
