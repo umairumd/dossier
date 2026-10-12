@@ -62,7 +62,7 @@ create policy "activity_log_manager_select"
     and target_id in (
       select pd.profile_id
       from public.profile_departments pd
-      where pd.department_id = any((select public.current_profile_department_ids()))
+      where pd.department_id in (select unnest(public.current_profile_department_ids()))
     )
   );
 
