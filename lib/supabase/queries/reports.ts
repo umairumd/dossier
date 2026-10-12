@@ -170,3 +170,16 @@ export const getReportStatsData = cache(async () => {
 
   return data ?? [];
 });
+
+/** The date of one report the viewer can read (RLS), for deep links. */
+export const getReportDate = cache(
+  async (reportId: string): Promise<string | null> => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("daily_reports")
+      .select("report_date")
+      .eq("id", reportId)
+      .maybeSingle();
+    return data?.report_date ?? null;
+  },
+);
