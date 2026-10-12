@@ -1,4 +1,5 @@
 import { Check, ExternalLink, Link2, X } from "lucide-react";
+import { fieldResponse } from "@/lib/reports/field-response";
 import { cn } from "@/lib/utils";
 import type { DailyReport } from "@/types/report";
 import type { TemplateField } from "@/types/template";
@@ -240,7 +241,7 @@ export function ReportFields({
         key: field.key,
         label: field.label,
         field,
-        value: report.field_responses?.[field.key],
+        value: fieldResponse(report.field_responses, field),
       }))
       .filter((answer) => isAnswered(answer.field.fieldType, answer.value));
   } else if (report.field_responses) {

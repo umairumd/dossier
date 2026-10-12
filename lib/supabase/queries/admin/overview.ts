@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { REPORTING_MATCH } from "@/lib/supabase/queries/reporting-rule";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
@@ -25,10 +26,8 @@ export const getOrganizationSummary = cache(
       supabase
         .from("profiles")
         .select("id")
-        .eq("has_onboarded", true)
-        .eq("is_active", true)
-        .is("archived_at", null)
-        .neq("role", "owner"),
+        .match(REPORTING_MATCH)
+        .is("archived_at", null),
     ]);
     const { data: eligibleProfiles, error: eligibleError } = eligible;
 

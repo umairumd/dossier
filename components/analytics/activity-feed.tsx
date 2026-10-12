@@ -255,6 +255,16 @@ const EVENT_LABELS: Record<
   },
   leave_approved: (e) => leaveLabel(e, "approved"),
   leave_rejected: (e) => leaveLabel(e, "rejected"),
+  leave_balance_adjusted: (e) => {
+    const days = Number(e.metadata?.adjustment);
+    const amount = Number.isFinite(days)
+      ? ` by ${days > 0 ? "+" : ""}${days} day${Math.abs(days) === 1 ? "" : "s"}`
+      : "";
+    return {
+      lead: e.actor_name ?? "Admin",
+      rest: ` adjusted ${entityName(e.target_name, "someone")}'s leave balance${amount}`,
+    };
+  },
   accrual_run: (e) => {
     const count = e.metadata?.count;
     return {

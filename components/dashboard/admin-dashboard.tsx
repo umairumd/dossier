@@ -149,6 +149,7 @@ async function AdminHero({ initialPanel }: { initialPanel: HeroPanelId | null })
   const reportStats = computeReportStats(statsRows, settings.timezone, {
     workingDays: settings.workingDays,
     attendanceByDate: buildAttendanceStatusMap(attendanceRows),
+    joinedOn: profile?.created_at,
   });
   const currentStreak = reportStats.currentStreak;
   const unread = notifications

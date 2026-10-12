@@ -7,6 +7,7 @@ import { getAttendanceSettings } from "@/lib/supabase/queries/attendance";
 import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queries/notifications";
 import { getAvatarsByProfileIds, type ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { getHomeDay, getMyAttendanceHistory } from "@/lib/supabase/queries/home";
+import { getCommentsForReports } from "@/lib/supabase/queries/report-comments";
 import { getMyRewardStats, getMyUnlocks } from "@/lib/actions/avatar";
 import { buildAttendanceStatusMap, computeReportStats } from "@/lib/helpers/report-stats";
 import { HomeActivityCard } from "@/components/dashboard/home-activity-card";
@@ -110,6 +111,7 @@ async function EmployeeHero({
   const stats = computeReportStats(statsRows, settings.timezone, {
     workingDays: settings.workingDays,
     attendanceByDate: buildAttendanceStatusMap(attendanceRows),
+    joinedOn: profile.created_at,
   });
   const submittedToday = !!todayReport;
   const streak = stats.currentStreak;
@@ -202,15 +204,19 @@ async function ActivityStripSection() {
 }
 
 async function RecentReportsSection({ profile }: { profile: ProfileWithDepartment }) {
-  const [preview, templates, day] = await Promise.all([
-    getReportHistory(1, RECENT_PREVIEW_SIZE),
+  const previewP = getReportHistory(1, RECENT_PREVIEW_SIZE);
+  const [preview, templates, day, comments] = await Promise.all([
+    previewP,
     getOrgTemplatesWithFields(),
     getHomeDay(),
+    // Comments load with the card, so a report opens with them in place.
+    previewP.then((p) => getCommentsForReports(p.reports.map((r) => r.id))),
   ]);
   return (
     <div className="rise-in">
       <RecentReportsCard
         reports={preview.reports}
+        comments={comments}
         viewAllHref="/reports"
         deadline={getDeadlineContext(day.settings)}
         userName={profile.full_name}

@@ -1,29 +1,26 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { Calendar, FileText, Flame, TrendingUp } from "lucide-react";
-import { EmptyState } from "@/components/shared/empty-state";
+import { Calendar, Flame, TrendingUp } from "lucide-react";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import {
   getAllEmployees,
   getEmployeeDetail,
 } from "@/lib/supabase/queries/admin/employees";
-import {
-  getDeadlineContext,
-  getOrganizationSettings,
-} from "@/lib/supabase/queries/organization-settings";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import {
   getOrgTemplatesWithFields,
   getTemplateResolutionInfo,
 } from "@/lib/supabase/queries/templates";
-import { formatDate, formatDaysAgoLong } from "@/lib/helpers/dates";
+import { formatDate, formatDaysAgoLong, todayInTimezone } from "@/lib/helpers/dates";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { FigureStrip } from "@/components/shared/figure-strip";
-import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
-import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import { EmployeeHeroClient } from "@/components/admin/employee-hero-client";
 import { AssignmentsCard } from "./assignments-card";
 import { DetailsCard } from "./details-card";
+import { ProfileReportHistory, ProfileReportHistorySkeleton } from "./profile-report-history";
 import {
   getActiveLeaveBalance,
+  getLeaveBalanceAdjustments,
   getCurrentShift,
 } from "@/lib/supabase/queries/attendance";
 import { ensureLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
@@ -36,10 +33,13 @@ import type { Profile } from "@/types/profile";
 export async function AdminEmployeeProfile({
   id,
   profile,
+  reportPage,
 }: {
   id: string;
   profile: Profile | null;
+  reportPage: number;
 }) {
+  const employeeP = getEmployeeDetail(id);
   const [
     employee,
     allDepartments,
@@ -48,14 +48,23 @@ export async function AdminEmployeeProfile({
     templates,
     currentShift,
     leaveBalance,
+    leaveAdjustments,
+    resolution,
   ] = await Promise.all([
-    getEmployeeDetail(id),
+    employeeP,
     getAllDepartments(),
     getAllEmployees(),
     getOrganizationSettings(),
     getOrgTemplatesWithFields(),
     getCurrentShift(id),
     getActiveLeaveBalance(id),
+    getLeaveBalanceAdjustments(id),
+    // Starts as soon as the employee record arrives, not after everything.
+    employeeP.then((e) =>
+      e
+        ? getTemplateResolutionInfo(e.id, e.department_ids)
+        : { template: null, source: "none" as const, sourceName: null },
+    ),
   ]);
 
   if (!employee) {
@@ -104,10 +113,6 @@ export async function AdminEmployeeProfile({
     }));
   const candidates = employees.filter((item) => item.id !== employee.id);
 
-  const resolution = await getTemplateResolutionInfo(
-    employee.id,
-    employee.department_ids,
-  );
   const tenureRate = employee.tenure_rate;
 
   return (
@@ -163,7 +168,7 @@ export async function AdminEmployeeProfile({
             {
               icon: <Calendar />,
               label: "Last report",
-              value: formatDaysAgoLong(employee.stats.lastSubmittedDate),
+              value: formatDaysAgoLong(employee.stats.lastSubmittedDate, todayInTimezone(settings.timezone)),
               hint: employee.stats.lastSubmittedDate
                 ? formatDate(employee.stats.lastSubmittedDate)
                 : "No reports yet",
@@ -176,37 +181,24 @@ export async function AdminEmployeeProfile({
             profileId={employee.id}
             orgId={orgIdForLeave}
             joinDate={employee.created_at.slice(0, 10)}
+            adjustments={leaveAdjustments}
             canAdjust
           />
         )}
       </div>
 
-      <Card>
-        <CardTitleHeader
-          title="Report history"
-          aside={`${employee.report_count} total`}
+      <Suspense fallback={<ProfileReportHistorySkeleton />}>
+        <ProfileReportHistory
+          authorId={employee.id}
+          page={reportPage}
+          reportCount={employee.report_count}
+          userName={employee.full_name}
+          avatar={employee.avatar}
+          adminView
+          viewerRole={profile?.role}
+          currentUserId={profile?.id}
         />
-        <CardContent>
-          {employee.recent_reports.length === 0 ? (
-            <EmptyState
-              size="sm"
-              icon={<FileText className="size-4" />}
-              title="No reports submitted yet."
-            />
-          ) : (
-            <ReportHistoryBrowser
-              reports={employee.recent_reports}
-              userName={employee.full_name}
-              avatar={employee.avatar}
-              deadline={getDeadlineContext(settings)}
-              adminView
-              templates={templates}
-              viewerRole={profile?.role}
-              currentUserId={profile?.id}
-            />
-          )}
-        </CardContent>
-      </Card>
+      </Suspense>
     </div>
   );
 }

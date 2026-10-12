@@ -29,6 +29,9 @@ export async function AppShell({
         if (!item.roles.includes(profile.role)) {
           return false;
         }
+        if (item.requiresReporting && !profile.is_reporting) {
+          return false;
+        }
         if (item.requiresTeam) {
           const hasTeam =
             profile.role === "owner" ||

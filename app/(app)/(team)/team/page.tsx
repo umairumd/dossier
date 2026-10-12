@@ -10,7 +10,8 @@ import { TeamMemberCard } from "@/components/manager/team-member-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { GroupHeading } from "@/components/shared/person-card";
 import { PageHeader } from "@/components/shared/page-header";
-import { formatDaysAgoShort } from "@/lib/helpers/dates";
+import { formatDaysAgoShort, todayInTimezone } from "@/lib/helpers/dates";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 
 type MemberCardStats = {
   streak: number;
@@ -52,10 +53,11 @@ function MemberGrid({
 export default async function TeamMembersPage() {
   const profile = await getCurrentProfileWithDepartment();
 
-  const [deptMembers, supervisedMembers, insights] = await Promise.all([
+  const [deptMembers, supervisedMembers, insights, settings] = await Promise.all([
     profile?.role === "manager" ? getTeamRoster() : Promise.resolve([]),
     profile?.is_supervisor ? getSupervisedMembers() : Promise.resolve([]),
     getTeamInsights().catch(() => null),
+    getOrganizationSettings(),
   ]);
 
   const memberStatsMap = new Map(
@@ -65,7 +67,7 @@ export default async function TeamMembersPage() {
         streak: standing.streak,
         submissionRate: standing.submissionRate,
         submissionDetail: `${standing.reportsSubmitted} of ${standing.expectedWorkingDays} days`,
-        lastSubmittedDaysAgo: formatDaysAgoShort(standing.lastSubmittedDate),
+        lastSubmittedDaysAgo: formatDaysAgoShort(standing.lastSubmittedDate, todayInTimezone(settings.timezone)),
         lastSubmittedDate: standing.lastSubmittedDate,
       },
     ]),

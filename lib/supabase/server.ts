@@ -28,14 +28,19 @@ export async function createClient() {
   );
 }
 
-// The signed-in user, checked with the auth server once per request. Every
-// query used to call auth.getUser() itself, a network round trip each time;
-// during a page render they now share this one. Outside a render (server
-// actions, route handlers) cache() does nothing and it checks every call.
-export const getAuthUser = cache(async () => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
-});
+// The signed-in user, verified once per request and shared by every query
+// in the render (outside a render cache() does nothing). getClaims() checks
+// the session token's signature locally when the project signs tokens with
+// asymmetric keys, so it usually costs no network round trip; with a shared
+// secret it asks the auth server, like getUser(). Callers only need the id
+// (and the email in one place).
+export const getAuthUser = cache(
+  async (): Promise<{ id: string; email: string | null } | null> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getClaims();
+    const sub = data?.claims?.sub;
+    if (error || !sub) return null;
+    const email = data.claims.email;
+    return { id: sub, email: typeof email === "string" ? email : null };
+  },
+);

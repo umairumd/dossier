@@ -53,6 +53,10 @@ function shortTemplateName(name: string): string {
   return name.endsWith(" Template") ? name.slice(0, -" Template".length) : name;
 }
 
+// Comments already fetched in this session, so reopening a report (or moving
+// back to it with Previous) shows them at once.
+const commentCache = new Map<string, ReportComment[]>();
+
 // Controlled by the parent (Team Reports page): index is a position into
 // the *currently filtered/sorted* list of submitted reports, so
 // Previous/Next cycles through exactly what the manager is looking at,
@@ -68,7 +72,13 @@ export function ReportDetailSheet({
   isOwnReport = false,
   viewerRole,
   currentUserId,
+  initialComments,
+  commentCounts,
 }: {
+  /** Comments loaded with the list, keyed by report id (every id present). */
+  initialComments?: Record<string, ReportComment[]>;
+  /** Comment totals keyed by report id; a known zero needs no fetch. */
+  commentCounts?: Record<string, number>;
   members: SubmittedMember[];
   index: number | null;
   onIndexChange: (index: number | null) => void;
@@ -104,12 +114,25 @@ export function ReportDetailSheet({
   const [commentBody, setCommentBody] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  const comments =
-    activeReportId && commentsByReport?.reportId === activeReportId
-      ? commentsByReport.comments
-      : [];
-  const commentsLoading =
-    Boolean(activeReportId) && commentsByReport?.reportId !== activeReportId;
+  // What we already know about a report's comments without a request:
+  // fetched or edited here, loaded with the list, cached, or a zero count.
+  function knownComments(reportId: string): ReportComment[] | undefined {
+    if (commentsByReport?.reportId === reportId) return commentsByReport.comments;
+    return (
+      commentCache.get(reportId) ??
+      initialComments?.[reportId] ??
+      (commentCounts?.[reportId] === 0 ? [] : undefined)
+    );
+  }
+
+  function storeComments(reportId: string, list: ReportComment[]) {
+    commentCache.set(reportId, list);
+    setCommentsByReport({ reportId, comments: list });
+  }
+
+  const known = activeReportId ? knownComments(activeReportId) : undefined;
+  const comments = known ?? [];
+  const commentsLoading = Boolean(activeReportId) && known === undefined;
 
   const isMac =
     typeof navigator !== "undefined" &&
@@ -117,13 +140,14 @@ export function ReportDetailSheet({
   const shortcutLabel = isMac ? "⌘ Enter" : "Ctrl + Enter";
 
   useEffect(() => {
-    if (!activeReportId) {
+    if (!activeReportId || !commentsLoading) {
       return;
     }
 
     let cancelled = false;
     getReportComments(activeReportId)
       .then((data) => {
+        commentCache.set(activeReportId, data);
         if (!cancelled) {
           setCommentsByReport({ reportId: activeReportId, comments: data });
         }
@@ -138,7 +162,20 @@ export function ReportDetailSheet({
     return () => {
       cancelled = true;
     };
-  }, [activeReportId]);
+  }, [activeReportId, commentsLoading]);
+
+  // Load the neighbours' comments in the background, so Previous / Next
+  // land on a report whose comments are already here.
+  useEffect(() => {
+    if (index === null || !showComments) return;
+    for (const neighbour of [index - 1, index + 1]) {
+      const id = members[neighbour]?.report?.id;
+      if (!id || commentCache.has(id) || initialComments?.[id] || commentCounts?.[id] === 0) continue;
+      getReportComments(id)
+        .then((data) => commentCache.set(id, data))
+        .catch(() => {});
+    }
+  }, [index, members, showComments, initialComments, commentCounts]);
 
   async function handleSendComment() {
     if (!current?.report?.id || !commentBody.trim() || commentsReadOnly) return;
@@ -147,10 +184,7 @@ export function ReportDetailSheet({
     if (result.success) {
       setCommentBody("");
       const updated = await getReportComments(current.report.id);
-      setCommentsByReport({
-        reportId: current.report.id,
-        comments: updated,
-      });
+      storeComments(current.report.id, updated);
     } else {
       toast.error(result.error ?? "Failed to send comment.");
     }
@@ -367,17 +401,10 @@ export function ReportDetailSheet({
                             action={() => deleteReportComment(c.id)}
                             onSuccess={() => {
                               if (!activeReportId) return;
-                              setCommentsByReport((prev) => {
-                                if (!prev || prev.reportId !== activeReportId) {
-                                  return prev;
-                                }
-                                return {
-                                  reportId: activeReportId,
-                                  comments: prev.comments.filter(
-                                    (item) => item.id !== c.id,
-                                  ),
-                                };
-                              });
+                              storeComments(
+                                activeReportId,
+                                comments.filter((item) => item.id !== c.id),
+                              );
                             }}
                           />
                         )}

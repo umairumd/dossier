@@ -23,6 +23,7 @@ import {
 } from "@/lib/actions/admin/attendance";
 import { formatDate } from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
+import type { LeaveBalanceAdjustment } from "@/lib/supabase/queries/attendance";
 import type { LeaveBalance } from "@/types/attendance";
 
 export function LeaveBalanceCard({
@@ -30,12 +31,15 @@ export function LeaveBalanceCard({
   profileId,
   orgId,
   joinDate,
+  adjustments = [],
   canAdjust = false,
 }: {
   balance: LeaveBalance | null;
   profileId: string;
   orgId: string;
   joinDate: string;
+  /** Recent manual changes, newest first. */
+  adjustments?: LeaveBalanceAdjustment[];
   canAdjust?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -166,6 +170,33 @@ export function LeaveBalanceCard({
             </div>
           ))}
         </div>
+
+        {adjustments.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <p className="field-label">Adjustments</p>
+            <ul className="flex flex-col divide-y divide-line">
+              {adjustments.map((item) => (
+                <li key={item.id} className="flex items-start justify-between gap-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-sm break-words">{item.note}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.adjusted_by_name ?? "Admin"} · {formatDate(item.created_at.slice(0, 10))}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "shrink-0 text-sm font-medium tabular-nums",
+                      item.adjustment > 0 ? "text-ok" : "text-danger",
+                    )}
+                  >
+                    {item.adjustment > 0 ? "+" : ""}
+                    {item.adjustment} {Math.abs(item.adjustment) === 1 ? "day" : "days"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {canAdjust && (
           <Dialog
