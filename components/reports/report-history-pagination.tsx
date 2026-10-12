@@ -121,7 +121,8 @@ export function ReportHistoryPagination({
   const goToPage = (next: number) => {
     if (next < 1 || next > totalPages || next === page) return;
     startTransition(() => {
-      router.push(`${baseHref}?page=${next}`);
+      // Stay where the list is: on a profile it sits at the bottom of the page.
+      router.push(`${baseHref}?page=${next}`, { scroll: false });
     });
   };
 

@@ -19,6 +19,7 @@ import {
 } from "@/lib/actions/reports";
 import { ALREADY_SUBMITTED_ERROR } from "@/lib/reports/constants";
 import type { DailyReport } from "@/types/report";
+import { fieldResponse } from "@/lib/reports/field-response";
 import type { ReportTemplateWithFields } from "@/types/template";
 
 function emptyValues(template: ReportTemplateWithFields): Record<string, unknown> {
@@ -38,14 +39,9 @@ function valuesFromReport(
     responses != null && Object.keys(responses).length > 0;
 
   if (hasResponses) {
-    // Prefer field UUID id (update path); fall back to field.key
-    // (submit path stores key-keyed responses).
     for (const field of template.fields) {
-      if (Object.prototype.hasOwnProperty.call(responses, field.id)) {
-        next[field.key] = responses[field.id];
-      } else if (Object.prototype.hasOwnProperty.call(responses, field.key)) {
-        next[field.key] = responses[field.key];
-      }
+      const value = fieldResponse(responses, field);
+      if (value !== undefined) next[field.key] = value;
     }
     return next;
   }
@@ -116,15 +112,6 @@ function scrollHeroIntoView(): Promise<void> {
     };
     requestAnimationFrame(tick);
   });
-}
-
-function fieldResponsesById(
-  template: ReportTemplateWithFields,
-  values: Record<string, unknown>,
-): Record<string, unknown> {
-  return Object.fromEntries(
-    template.fields.map((field) => [field.id, values[field.key]]),
-  );
 }
 
 export function DynamicReportForm({
@@ -289,7 +276,8 @@ export function DynamicReportForm({
     startTransition(async () => {
       if (isEditMode && editingReportDate) {
         const result = await updateDailyReport(editingReportDate, {
-          fieldResponses: fieldResponsesById(template, values),
+          // Same shape as a new report: answers keyed by field key.
+          fieldResponses: values,
           content: (values.content as string) ?? "",
           blockers: (values.blockers as string) ?? "",
           additionalNotes: (values.additional_notes as string) ?? "",

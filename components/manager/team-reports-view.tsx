@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReportComment } from "@/types/report";
+
 import { useMemo, useState } from "react";
 import {
   EmptyState,
@@ -39,6 +41,7 @@ export function TeamReportsView({
   reportDate,
   viewerRole,
   currentUserId,
+  comments,
   isOffDay,
 }: {
   groups: TeamReportsGroup[];
@@ -49,6 +52,8 @@ export function TeamReportsView({
   reportDate?: string;
   viewerRole?: UserRole;
   currentUserId?: string;
+  /** Comments for the listed reports, loaded with the page. */
+  comments?: Record<string, ReportComment[]>;
   isOffDay?: boolean;
 }) {
   const [query, setQuery] = useState("");
@@ -126,6 +131,7 @@ export function TeamReportsView({
           adminView={adminView}
           viewerRole={viewerRole}
           currentUserId={currentUserId}
+          comments={comments}
         />
       )}
     </div>

@@ -1,5 +1,4 @@
 import type { UserRole } from "@/types/profile";
-import type { DailyReport } from "@/types/report";
 import type { TenureSubmissionRate } from "@/lib/helpers/report-stats";
 
 export interface TeamMemberOverview {
@@ -18,7 +17,6 @@ export interface TeamMemberOverview {
   department_ids: string[];
   department_names: string[];
   report_count: number;
-  recent_reports: DailyReport[];
   current_streak: number;
   completion_percentage: number;
   average_submission_time: string | null;

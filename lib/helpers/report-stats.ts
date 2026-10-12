@@ -44,6 +44,12 @@ export interface ReportStatsOptions {
   attendanceByDate?: Map<string, AttendanceStatus>;
   /** Fixture clock (YYYY-MM-DD). Defaults to org today. */
   today?: string;
+  /**
+   * When the person joined (YYYY-MM-DD or ISO). The 30-day rate counts only
+   * days since then, so someone who joined last week isn't marked down for
+   * the weeks before they started.
+   */
+  joinedOn?: string | null;
 }
 
 export interface TenureSubmissionRate {
@@ -252,7 +258,11 @@ export function computeReportStats(
   windowStartDate.setUTCDate(
     windowStartDate.getUTCDate() - (COMPLETION_WINDOW_DAYS - 1),
   );
-  const windowStartStr = windowStartDate.toISOString().slice(0, 10);
+  const joinStr = options?.joinedOn ? options.joinedOn.slice(0, 10) : null;
+  const windowStartStr =
+    joinStr && joinStr > windowStartDate.toISOString().slice(0, 10)
+      ? joinStr
+      : windowStartDate.toISOString().slice(0, 10);
 
   const reportsInWindow = reports.filter(
     (report) => report.report_date >= windowStartStr,

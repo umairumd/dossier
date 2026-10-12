@@ -49,8 +49,9 @@ function formatLeaveBalance(balance: number): string {
   return normalized.toFixed(1);
 }
 
+// No fines reads as 0, not a dash: a dash looked like missing data.
 function formatFineCompact(amount: number): string {
-  if (!(amount > 0)) return "—";
+  if (!(amount > 0)) return "0";
   if (amount < 1000) return String(amount);
   const scaled = Math.round((amount / 1000) * 10) / 10;
   return Number.isInteger(scaled) ? `${scaled}k` : `${scaled}k`;
@@ -308,7 +309,7 @@ export function AttendanceGrid({
                   PKR {fines}
                 </span>
               ) : (
-                <span className="text-muted-foreground">—</span>
+                <span className="text-muted-foreground">0</span>
               )}
             </td>
           </>
@@ -410,7 +411,7 @@ export function AttendanceGrid({
           <>
             {renderBalanceCell(emp.leave_balance)}
             <td className="bg-sunken px-3 py-2 text-center text-xs">
-              <span className="text-muted-foreground">—</span>
+              <span className="text-muted-foreground">0</span>
             </td>
           </>
         )}
@@ -664,7 +665,11 @@ export function AttendanceGrid({
         </p>
       </div>
       <div className="surface-card hidden overflow-x-auto rounded-xl bg-card md:block">
-      <table className="w-full min-w-max border-collapse text-sm [&_tr>*:nth-child(2)]:pl-2">
+      {/* Day blocks are 4px apart on each side of the column (px-1), so the
+          first day column gets 8px on its left to match the gap between
+          blocks, and 4px more width (w-11 against w-10) so its block stays
+          the same size as the others. */}
+      <table className="w-full min-w-max border-collapse text-sm [&_tr>*:nth-child(2)]:pl-2 [&_th:nth-child(2)]:w-11">
         <thead>
           <tr className="border-b border-border">
             <th className="sticky top-0 left-0 z-40 min-w-36 bg-card px-3 py-2 text-left label-eyebrow md:min-w-48 md:px-4">

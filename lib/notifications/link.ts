@@ -12,6 +12,7 @@ export function resolveNotificationUrl(
     case "leave_approved":
     case "leave_rejected":
     case "leave_request_submitted":
+    case "leave_balance_adjusted":
       return "/attendance";
     case "report_commented":
       return entityId ? `/reports?view=${entityId}` : "/reports";

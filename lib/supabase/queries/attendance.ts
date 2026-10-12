@@ -154,7 +154,12 @@ export const getMonthlyAttendance = cache(
 
     if (error) throw new Error("Failed to load monthly attendance.");
 
-    return (data ?? []).map((row: any) => ({
+    type Row = AttendanceRecord & {
+      profiles?: Partial<
+        Pick<AttendanceRecordWithEmployee, "full_name" | "is_remote" | "employment_type">
+      > | null;
+    };
+    return ((data ?? []) as Row[]).map((row) => ({
       ...row,
       full_name: row.profiles?.full_name ?? "",
       is_remote: row.profiles?.is_remote ?? false,
@@ -334,6 +339,40 @@ export const getLeaveBalanceHistory = cache(
   },
 );
 
+/** One manual change to a leave balance, newest first (who, how much, why). */
+export interface LeaveBalanceAdjustment {
+  id: string;
+  adjustment: number;
+  note: string;
+  created_at: string;
+  adjusted_by_name: string | null;
+}
+
+// RLS: admins read any in their org; everyone reads their own. Others get [].
+export const getLeaveBalanceAdjustments = cache(
+  async (profileId: string, limit = 5): Promise<LeaveBalanceAdjustment[]> => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("leave_balance_adjustments")
+      .select("id, adjustment, note, created_at, adjuster:profiles!adjusted_by(full_name)")
+      .eq("profile_id", profileId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    return (data ?? []).map((row) => {
+      const adjuster = row.adjuster as { full_name: string | null } | { full_name: string | null }[] | null;
+      const name = Array.isArray(adjuster) ? adjuster[0]?.full_name : adjuster?.full_name;
+      return {
+        id: row.id as string,
+        adjustment: Number(row.adjustment),
+        note: row.note as string,
+        created_at: row.created_at as string,
+        adjusted_by_name: name ?? null,
+      };
+    });
+  },
+);
+
 // Initialize a leave balance for a new employee
 // Called when an employee is first onboarded / HR initializes
 export async function initLeaveBalance(
@@ -366,7 +405,8 @@ export const getPendingLeaveRequests = cache(
 
     if (error) throw new Error("Failed to load leave requests.");
 
-    return (data ?? []).map((row: any) => ({
+    type Row = LeaveRequest & { profiles?: { full_name?: string | null } | null };
+    return ((data ?? []) as Row[]).map((row) => ({
       ...row,
       full_name: row.profiles?.full_name ?? "",
     }));

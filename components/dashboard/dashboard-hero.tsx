@@ -140,11 +140,19 @@ export function DashboardHero({
     startTransition(() => clearNotification(id));
   }
 
-  const forYou: ForYouItem[] = notifications
-    .filter((note) => note.cleared_at == null && !dismissed.includes(note.id))
-    .map((note) =>
-      notificationForYouItem(note, () => forgetNotification(note.id), actorAvatars),
-    );
+  // One row per notice: repeats of the same notice (same type, subject and
+  // title) collapse into the newest, and dismissing it clears them all.
+  const groups = new Map<string, { note: Notification; ids: string[] }>();
+  for (const note of notifications) {
+    if (note.cleared_at != null || dismissed.includes(note.id)) continue;
+    const key = `${note.type}|${note.entity_id ?? ""}|${note.title}`;
+    const group = groups.get(key);
+    if (group) group.ids.push(note.id);
+    else groups.set(key, { note, ids: [note.id] });
+  }
+  const forYou: ForYouItem[] = [...groups.values()].map(({ note, ids }) =>
+    notificationForYouItem(note, () => ids.forEach(forgetNotification), actorAvatars),
+  );
   const meta = [designation, departmentNames?.join(", ")].filter(Boolean).join(" · ");
   const statColumns = !stats || stats.length <= 2 ? 2 : stats.length === 3 ? 3 : 4;
   // The buddies are drawn on a canvas, which only exists in the browser; the
@@ -269,6 +277,7 @@ export function DashboardHero({
                       currentUserId={team.currentUserId}
                       onView={() => openPanel("team")}
                       triggerRef={setTrigger("team")}
+                      commentCounts={team.commentCounts}
                     />
                   </div>
                 )}

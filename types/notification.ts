@@ -12,7 +12,8 @@ export type NotificationType =
   | "employee_deactivated"
   | "employee_archived"
   | "birthday"
-  | "report_commented";
+  | "report_commented"
+  | "leave_balance_adjusted";
 
 export interface Notification {
   id: string;

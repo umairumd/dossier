@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { REPORTING_MATCH } from "@/lib/supabase/queries/reporting-rule";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { todayInTimezone } from "@/lib/helpers/dates";
@@ -32,11 +33,8 @@ export const getDeptCompletionForDate = cache(
       adminClient
         .from("profiles")
         .select("id")
-        .eq("has_onboarded", true)
-        .eq("is_reporting", true)
-        .eq("is_active", true)
-        .is("archived_at", null)
-        .neq("role", "owner"),
+        .match(REPORTING_MATCH)
+        .is("archived_at", null),
       adminClient.from("profile_departments").select("department_id, profile_id"),
     ]);
 

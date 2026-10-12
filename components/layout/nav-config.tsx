@@ -26,6 +26,8 @@ export interface NavItem {
   roles: UserRole[];
   // When true, AppShell requires manager role or is_supervisor.
   requiresTeam?: boolean;
+  // When true, hidden for people excluded from reporting (is_reporting off).
+  requiresReporting?: boolean;
 }
 
 export interface NavSection {
@@ -63,6 +65,7 @@ export const navSections: NavSection[] = [
         href: "/reports",
         icon: <FileText className="size-4" />,
         roles: ALL_ROLES,
+        requiresReporting: true,
       },
       {
         label: "Activity",

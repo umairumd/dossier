@@ -6,11 +6,11 @@ import {
   buildAttendanceStatusMap,
   computeReportStats,
   computeTenureSubmissionRate,
+  type ReportStatsInput,
 } from "@/lib/helpers/report-stats";
 import { dateNDaysAgo } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { AttendanceStatus } from "@/types/attendance";
-import type { DailyReport } from "@/types/report";
 import type {
   EmployeeDetail,
   EmployeeListItem,
@@ -279,11 +279,32 @@ export const getEmployeeDetail = cache(
 
     const supabase = await createClient();
 
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select(PROFILE_SELECT)
-      .eq("id", employeeId)
-      .maybeSingle();
+    // Independent reads run together. Reports load only the two columns the
+    // stats need; the report history card pages through full reports on its
+    // own (getReportsForAuthor). getUserById is one Admin API call, instead
+    // of walking every page of listUsers() to find one row.
+    const [
+      { data: profile, error },
+      { data: authUserData },
+      { data: reports, error: reportsError },
+      settings,
+      { data: attendanceRows },
+    ] = await Promise.all([
+      supabase.from("profiles").select(PROFILE_SELECT).eq("id", employeeId).maybeSingle(),
+      createAdminClient().auth.admin.getUserById(employeeId),
+      supabase
+        .from("daily_reports")
+        .select("report_date, submitted_at")
+        .eq("author_id", employeeId)
+        .order("report_date", { ascending: false })
+        .order("submitted_at", { ascending: false }),
+      getOrganizationSettings(),
+      supabase
+        .from("attendance_records")
+        .select("date, status")
+        .eq("profile_id", employeeId)
+        .gte("date", dateNDaysAgo(399)),
+    ]);
 
     if (error) {
       throw new Error("Failed to load employee.");
@@ -293,14 +314,10 @@ export const getEmployeeDetail = cache(
       return null;
     }
 
-    // Unlike getAllEmployees (which needs every user, so paginating
-    // listUsers() once is the efficient path), this needs exactly one —
-    // getUserById() is a single Admin API call regardless of how many
-    // accounts exist in the org, instead of walking every page of
-    // listUsers() just to find one row.
-    const { data: authUserData } = await createAdminClient().auth.admin.getUserById(
-      employeeId,
-    );
+    if (reportsError) {
+      throw new Error("Failed to load employee reports.");
+    }
+
     const authUser: AuthUserSummary | undefined = authUserData.user
       ? {
           email: authUserData.user.email ?? null,
@@ -310,27 +327,7 @@ export const getEmployeeDetail = cache(
         }
       : undefined;
 
-    const { data: reports, error: reportsError } = await supabase
-      .from("daily_reports")
-      .select(
-        "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at, template_id, field_responses",
-      )
-      .eq("author_id", employeeId)
-      .order("report_date", { ascending: false })
-      .order("submitted_at", { ascending: false });
-
-    if (reportsError) {
-      throw new Error("Failed to load employee reports.");
-    }
-
-    const allReports = (reports as DailyReport[]) ?? [];
-    const settings = await getOrganizationSettings();
-
-    const { data: attendanceRows } = await supabase
-      .from("attendance_records")
-      .select("date, status")
-      .eq("profile_id", employeeId)
-      .gte("date", dateNDaysAgo(399));
+    const allReports = (reports as ReportStatsInput[]) ?? [];
 
     const [item] = await attachMemberships(supabase, [
       toEmployeeListItem(profile as unknown as ProfileRow, authUser),
@@ -343,10 +340,10 @@ export const getEmployeeDetail = cache(
     return {
       ...item,
       report_count: allReports.length,
-      recent_reports: allReports,
       stats: computeReportStats(allReports, settings.timezone, {
         workingDays: settings.workingDays,
         attendanceByDate,
+        joinedOn: item.created_at,
       }),
       tenure_rate: computeTenureSubmissionRate(
         allReports,

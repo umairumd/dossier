@@ -40,12 +40,11 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Refreshes the auth token if expired. Required by the official Supabase
-  // SSR setup even before any auth UI exists — omitting this causes sessions
-  // to silently expire once auth is added in a later milestone.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Refreshes the auth token if expired (required by the Supabase SSR setup).
+  // getClaims() verifies the token locally when the project uses asymmetric
+  // signing keys, so most requests skip a round trip to the auth server.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const user = claimsData?.claims?.sub ? { id: claimsData.claims.sub } : null;
 
   const isLoginRoute = request.nextUrl.pathname.startsWith("/login");
   const isForgotPasswordRoute =

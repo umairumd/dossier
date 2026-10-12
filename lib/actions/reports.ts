@@ -3,6 +3,7 @@
 import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCommentsForReports } from "@/lib/supabase/queries/report-comments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/actions/notifications";
 import { todayInTimezone } from "@/lib/helpers/dates";
@@ -228,76 +229,10 @@ export async function searchMyReports(query: string): Promise<DailyReport[]> {
   return searchReports(query);
 }
 
-type CommentAuthor = NonNullable<ReportComment["profiles"]>;
-
-type CommentQueryRow = {
-  id: string;
-  body: string;
-  created_at: string;
-  author_id: string;
-  profiles: CommentAuthor | CommentAuthor[] | null;
-};
-
-function firstProfile(
-  profiles: CommentQueryRow["profiles"],
-): CommentAuthor | null {
-  if (Array.isArray(profiles)) return profiles[0] ?? null;
-  return profiles ?? null;
-}
-
 export const getReportComments = cache(
   async (reportId: string): Promise<ReportComment[]> => {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("report_comments")
-      .select(
-        "*, profiles!report_comments_author_id_fkey(id, full_name, avatar_url, avatar)",
-      )
-      .eq("report_id", reportId)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("getReportComments error:", error);
-      return [];
-    }
-
-    const rows = (data ?? []) as unknown as CommentQueryRow[];
-    const comments: ReportComment[] = rows.map((row) => ({
-      id: row.id,
-      body: row.body,
-      created_at: row.created_at,
-      profiles: firstProfile(row.profiles),
-    }));
-
-    const missingAuthorIds = [
-      ...new Set(
-        rows
-          .filter((row, index) => row.author_id && !comments[index]?.profiles)
-          .map((row) => row.author_id),
-      ),
-    ];
-
-    // The embed is null when profiles RLS hides the author. Fill display
-    // fields only for comments this caller can already read.
-    if (missingAuthorIds.length > 0) {
-      const admin = createAdminClient();
-      const { data: authors } = await admin
-        .from("profiles")
-        .select("id, full_name, avatar_url, avatar")
-        .in("id", missingAuthorIds);
-
-      const byId = new Map(
-        ((authors ?? []) as CommentAuthor[]).map((author) => [author.id, author]),
-      );
-
-      rows.forEach((row, index) => {
-        if (comments[index].profiles) return;
-        const author = byId.get(row.author_id);
-        if (author) comments[index].profiles = author;
-      });
-    }
-
-    return comments;
+    const byReport = await getCommentsForReports([reportId]);
+    return byReport[reportId] ?? [];
   },
 );
 

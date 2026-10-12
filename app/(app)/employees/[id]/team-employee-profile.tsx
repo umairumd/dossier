@@ -1,24 +1,17 @@
-import { Calendar, FileText, Flame, TrendingUp } from "lucide-react";
+import { Suspense } from "react";
+import { Calendar, Flame, TrendingUp } from "lucide-react";
 import { FigureStrip } from "@/components/shared/figure-strip";
 import { LeaveBalanceCard } from "@/components/attendance/leave-balance-card";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
-import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
-import { EmptyState } from "@/components/shared/empty-state";
 import { ProfileHeader } from "@/components/shared/profile-header";
-import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import {
   getActiveLeaveBalance,
+  getLeaveBalanceAdjustments,
   getCurrentShift,
 } from "@/lib/supabase/queries/attendance";
-import {
-  getDeadlineContext,
-  getOrganizationSettings,
-} from "@/lib/supabase/queries/organization-settings";
-import {
-  getOrgTemplatesWithFields,
-  getTemplateResolutionInfo,
-} from "@/lib/supabase/queries/templates";
-import { formatDate, formatDaysAgoLong } from "@/lib/helpers/dates";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { getTemplateResolutionInfo } from "@/lib/supabase/queries/templates";
+import { formatDate, formatDaysAgoLong, todayInTimezone } from "@/lib/helpers/dates";
 import { ensureLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -27,15 +20,18 @@ import type { Profile } from "@/types/profile";
 import type { TeamMemberOverview } from "@/types/team-member-overview";
 import { AssignmentsCard } from "./assignments-card";
 import { DetailsCard } from "./details-card";
+import { ProfileReportHistory, ProfileReportHistorySkeleton } from "./profile-report-history";
 
 // Everything here runs on the viewer's session, so RLS decides what comes
 // back. Admin-only loaders and the service-role client must stay out.
 export async function TeamEmployeeProfile({
   overview,
   viewer,
+  reportPage,
 }: {
   overview: TeamMemberOverview;
   viewer: Profile;
+  reportPage: number;
 }) {
   // profile_departments RLS only returns rows for departments the manager
   // shares with this person, so a non-empty list means same department.
@@ -43,15 +39,17 @@ export async function TeamEmployeeProfile({
   const inDepartment =
     viewer.role === "manager" && overview.department_ids.length > 0;
 
-  const [settings, templates, resolution, currentShift, leaveBalance] =
+  const [settings, resolution, currentShift, leaveBalance, leaveAdjustments] =
     await Promise.all([
       getOrganizationSettings(),
-      getOrgTemplatesWithFields(),
       inDepartment
         ? getTemplateResolutionInfo(overview.id, overview.department_ids)
         : Promise.resolve(null),
       inDepartment ? getCurrentShift(overview.id) : Promise.resolve(null),
       inDepartment ? getActiveLeaveBalance(overview.id) : Promise.resolve(null),
+      // RLS returns only the viewer's own adjustments: a manager sees none
+      // for a teammate (balances are private), a person sees their own.
+      getLeaveBalanceAdjustments(overview.id),
     ]);
 
   // Auto-init leave balance if none exists yet. Mirrors the admin branch so
@@ -139,7 +137,7 @@ export async function TeamEmployeeProfile({
             {
               icon: <Calendar />,
               label: "Last report",
-              value: formatDaysAgoLong(overview.last_submitted_date),
+              value: formatDaysAgoLong(overview.last_submitted_date, todayInTimezone(settings.timezone)),
               hint: overview.last_submitted_date
                 ? formatDate(overview.last_submitted_date)
                 : "No reports yet",
@@ -152,36 +150,23 @@ export async function TeamEmployeeProfile({
             profileId={overview.id}
             orgId={overview.organization_id ?? ""}
             joinDate={overview.created_at.slice(0, 10)}
+            adjustments={leaveAdjustments}
             canAdjust={false}
           />
         )}
       </div>
 
-      <Card>
-        <CardTitleHeader
-          title="Recent reports"
-          aside={`${overview.report_count} total`}
+      <Suspense fallback={<ProfileReportHistorySkeleton />}>
+        <ProfileReportHistory
+          authorId={overview.id}
+          page={reportPage}
+          reportCount={overview.report_count}
+          userName={overview.full_name}
+          avatar={overview.avatar}
+          viewerRole={viewer.role}
+          currentUserId={viewer.id}
         />
-        <CardContent>
-          {overview.recent_reports.length === 0 ? (
-            <EmptyState
-              size="sm"
-              icon={<FileText className="size-4" />}
-              title="No reports submitted yet."
-            />
-          ) : (
-            <ReportHistoryBrowser
-              reports={overview.recent_reports}
-              userName={overview.full_name}
-              avatar={overview.avatar}
-              deadline={getDeadlineContext(settings)}
-              templates={templates}
-              viewerRole={viewer.role}
-              currentUserId={viewer.id}
-            />
-          )}
-        </CardContent>
-      </Card>
+      </Suspense>
     </div>
   );
 }

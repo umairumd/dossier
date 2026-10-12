@@ -22,7 +22,7 @@ import {
   type DeadlineContext,
   type SubmissionStatus,
 } from "@/lib/reports/submission-status";
-import type { DailyReport } from "@/types/report";
+import type { DailyReport, ReportComment } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 import type { ReportTemplateWithFields } from "@/types/template";
 import type { UserRole } from "@/types/profile";
@@ -97,7 +97,10 @@ export function ReportRoster({
   adminView = false,
   viewerRole,
   currentUserId,
+  comments,
 }: {
+  /** Comments for the listed reports, loaded with the roster. */
+  comments?: Record<string, ReportComment[]>;
   sections: RosterSection[];
   deadline: DeadlineContext;
   reportDate?: string;
@@ -201,6 +204,7 @@ export function ReportRoster({
         templates={templates}
         viewerRole={viewerRole}
         currentUserId={currentUserId}
+        initialComments={comments}
       />
     </>
   );

@@ -7,7 +7,7 @@ import {
   CardTitleHeader,
 } from "@/components/ui/card";
 import { ReportHistoryBrowser } from "@/components/reports/report-history-browser";
-import type { DailyReport } from "@/types/report";
+import type { DailyReport, ReportComment } from "@/types/report";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
 import type { ReportTemplateWithFields } from "@/types/template";
 import type { UserRole } from "@/types/profile";
@@ -21,7 +21,10 @@ export function RecentReportsCard({
   templates,
   viewerRole,
   currentUserId,
+  comments,
 }: {
+  /** Comments for these reports, loaded with the card. */
+  comments?: Record<string, ReportComment[]>;
   reports: DailyReport[];
   viewAllHref?: string;
   deadline: DeadlineContext;
@@ -53,6 +56,7 @@ export function RecentReportsCard({
             isOwnReport
             viewerRole={viewerRole}
             currentUserId={currentUserId}
+            comments={comments}
           />
         )}
       </CardContent>

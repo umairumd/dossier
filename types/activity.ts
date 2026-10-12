@@ -19,6 +19,7 @@ export type ActivityEventType =
   | "leave_approved"
   | "leave_rejected"
   | "accrual_run"
+  | "leave_balance_adjusted"
   | "org_settings_changed"
   | "template_created"
   | "template_edited"

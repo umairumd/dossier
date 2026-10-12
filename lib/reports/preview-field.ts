@@ -1,3 +1,4 @@
+import { fieldResponse } from "@/lib/reports/field-response";
 import type { DailyReport } from "@/types/report";
 import type { ReportTemplateWithFields } from "@/types/template";
 
@@ -22,7 +23,7 @@ export function getPreviewValue(
     return null;
   }
 
-  const value = report.field_responses[previewField.key];
+  const value = fieldResponse(report.field_responses, previewField);
   if (!value) {
     return null;
   }
