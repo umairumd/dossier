@@ -139,8 +139,13 @@ development (404 in production).
   leave approved/rejected/requested, report commented, template / shift /
   supervisor assigned, invited/onboarded/deactivated/archived, attendance
   fine, birthday, leave balance adjusted. Destinations in
-  `lib/notifications/link.ts`. Not built yet: deadline reminders, admin
-  alerts for profile edits and manager comments (see backlog).
+  `lib/notifications/link.ts`. Not built yet: deadline reminders.
+- **Admin alerts, grouped** (`lib/notifications/grouped.ts`): owners and
+  admins hear about every report comment and every name or birthday change
+  someone makes in Settings. While unread, repeats update one row per report
+  (or per person) with a count ("3 new comments on Ali's report") instead of
+  adding rows. Comment alerts open the report in Track Reports
+  (`/track-reports?report=<id>`).
 - **Activity** (`activity_log`, `lib/helpers/activity-log.ts`): every server
   action logs an event. Admins see everything, managers see their
   departments' people (never org settings or other people's leave balances),

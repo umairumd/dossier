@@ -164,7 +164,7 @@ export function DashboardHero({
     <div className="grid">
       {!hydrated && (
         <div className="[grid-area:1/1]">
-          <HomeHeroSkeleton stats={stats?.length ?? 0} team={team != null} />
+          <HomeHeroSkeleton stats={stats?.length ?? 0} team={team != null} reporting={isReporting} />
         </div>
       )}
       <div
@@ -252,20 +252,24 @@ export function DashboardHero({
                     />
                   </div>
                 )}
-                <div className={cn("order-2 h-full md:order-1", !team && "md:col-span-2")}>
-                  <HeroProgressTile
-                    userId={userId}
-                    avatar={avatar}
-                    stats={rewardStats}
-                    unlocks={unlocks}
-                    asOf={asOf}
-                    currentStreak={currentStreak}
-                    submissionRate={submissionRate}
-                    wide={!team}
-                  />
-                </div>
+                {/* Progress is about your own reports: hidden for people
+                    excluded from reporting, and the team tile takes the row. */}
+                {isReporting && (
+                  <div className={cn("order-2 h-full md:order-1", !team && "md:col-span-2")}>
+                    <HeroProgressTile
+                      userId={userId}
+                      avatar={avatar}
+                      stats={rewardStats}
+                      unlocks={unlocks}
+                      asOf={asOf}
+                      currentStreak={currentStreak}
+                      submissionRate={submissionRate}
+                      wide={!team}
+                    />
+                  </div>
+                )}
                 {team && (
-                  <div className="order-1 h-full md:order-2">
+                  <div className={cn("order-1 h-full md:order-2", !isReporting && "md:col-span-2")}>
                     <HeroTeamTile
                       label={team.label}
                       members={team.members}
@@ -278,6 +282,7 @@ export function DashboardHero({
                       onView={() => openPanel("team")}
                       triggerRef={setTrigger("team")}
                       commentCounts={team.commentCounts}
+                      wide={!isReporting}
                     />
                   </div>
                 )}

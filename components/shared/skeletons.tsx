@@ -660,7 +660,17 @@ function CardFooterSkeleton({ label }: { label?: string }) {
 }
 
 /** The dashboard hero: buddy, greeting, figures, today's report and the tiles. */
-export function HomeHeroSkeleton({ stats = 4, team = true }: { stats?: number; team?: boolean }) {
+export function HomeHeroSkeleton({
+  stats = 4,
+  team = true,
+  reporting = true,
+}: {
+  stats?: number;
+  team?: boolean;
+  /** People excluded from reporting have no report box or progress tile. */
+  reporting?: boolean;
+}) {
+  const tiles = (reporting ? 1 : 0) + (team ? 1 : 0);
   return (
     <div className="surface-card flex flex-col gap-6 rounded-xl px-3 pt-6 pb-3 md:p-6">
       <div className="flex flex-col gap-6 px-3 md:flex-row md:px-0 md:items-center md:justify-between">
@@ -691,11 +701,13 @@ export function HomeHeroSkeleton({ stats = 4, team = true }: { stats?: number; t
       </div>
 
       <div className="grid grid-cols-1 items-stretch gap-3 md:grid-cols-2">
-        <div className="md:col-span-2">
-          <TodayReportSkeleton />
-        </div>
-        {Array.from({ length: team ? 2 : 1 }, (_, i) => (
-          <div key={i} className={cn(HOME_TILE, "h-[338px] gap-3", !team && "md:col-span-2")}>
+        {reporting && (
+          <div className="md:col-span-2">
+            <TodayReportSkeleton />
+          </div>
+        )}
+        {Array.from({ length: tiles }, (_, i) => (
+          <div key={i} className={cn(HOME_TILE, "h-[338px] gap-3", tiles === 1 && "md:col-span-2")}>
             <SkeletonLine size="sm" className="w-24" />
             <div className="flex flex-1 items-center justify-center">
               <Skeleton className="size-[104px] rounded-full" />

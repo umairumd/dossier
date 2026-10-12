@@ -19,6 +19,8 @@ import {
   UserX,
   X,
   XCircle,
+  MessagesSquare,
+  UserPen,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -56,6 +58,8 @@ export const TYPE_ICONS: Record<
   birthday: { Icon: Cake, className: "text-pink-500" },
   report_commented: { Icon: MessageSquare, className: "text-info" },
   leave_balance_adjusted: { Icon: Scale, className: "text-leave" },
+  team_report_commented: { Icon: MessagesSquare, className: "text-info" },
+  profile_updated: { Icon: UserPen, className: "text-info" },
 };
 
 export function NotificationBell({

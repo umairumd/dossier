@@ -134,6 +134,7 @@ export function OrgDailyReports({
   comments,
   isOffDay = false,
   focusDepartmentId,
+  openReportId,
 }: {
   members: OrgMemberReport[];
   departments: OrgDepartment[];
@@ -146,6 +147,8 @@ export function OrgDailyReports({
   comments?: Record<string, ReportComment[]>;
   isOffDay?: boolean;
   focusDepartmentId?: string;
+  /** Opens this report on load (links from notifications). */
+  openReportId?: string;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<RosterFilter>("all");
@@ -336,6 +339,7 @@ export function OrgDailyReports({
           viewerRole={viewerRole}
           currentUserId={currentUserId}
           comments={comments}
+          initialReportId={openReportId}
         />
       )}
     </div>
