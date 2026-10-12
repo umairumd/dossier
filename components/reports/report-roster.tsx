@@ -98,6 +98,7 @@ export function ReportRoster({
   viewerRole,
   currentUserId,
   comments,
+  initialReportId,
 }: {
   /** Comments for the listed reports, loaded with the roster. */
   comments?: Record<string, ReportComment[]>;
@@ -109,8 +110,9 @@ export function ReportRoster({
   adminView?: boolean;
   viewerRole?: UserRole;
   currentUserId?: string;
+  /** Report to open on first render, if it is in the list. */
+  initialReportId?: string;
 }) {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   // Everyone with a report, once, in list order: previous/next in the reader
   // follows the list.
@@ -127,6 +129,12 @@ export function ReportRoster({
     }
     return out;
   }, [sections]);
+
+  const [openIndex, setOpenIndex] = useState<number | null>(() => {
+    if (!initialReportId) return null;
+    const index = submitted.findIndex((member) => member.report.id === initialReportId);
+    return index === -1 ? null : index;
+  });
 
   const open = (employeeId: string) => {
     const index = submitted.findIndex((member) => member.employeeId === employeeId);
