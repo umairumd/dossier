@@ -44,6 +44,8 @@ export function ActivityPageClient({
   canDelete,
   currentUserId,
   foldReports = false,
+  timeZone,
+  todayKey,
 }: {
   initialItems: ActivityLogEntry[];
   initialHasMore: boolean;
@@ -51,6 +53,9 @@ export function ActivityPageClient({
   currentUserId?: string;
   /** Team and company views fold each day's submissions into one row. */
   foldReports?: boolean;
+  /** Organisation time zone and its today, for day groups and times. */
+  timeZone: string;
+  todayKey: string;
 }) {
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [query, setQuery] = useState("");
@@ -239,6 +244,8 @@ export function ActivityPageClient({
               canDelete={canDelete}
               currentUserId={currentUserId}
               foldReports={foldReports && query.trim() === ""}
+              timeZone={timeZone}
+              todayKey={todayKey}
               emptyMessage={
                 isFiltering
                   ? "No activity matches your filters."
