@@ -23,7 +23,8 @@ export type ActivityEventType =
   | "org_settings_changed"
   | "template_created"
   | "template_edited"
-  | "template_archived";
+  | "template_archived"
+  | "record_exported";
 
 export interface ActivityLogEntry {
   id: string;

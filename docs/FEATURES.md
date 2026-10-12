@@ -133,6 +133,19 @@ development (404 in production).
 - **Organization settings**: time zone, report deadline, working days,
   attendance rules (fines, shifts, leave).
 
+## Exports
+
+- **Employee record PDF** (owners and admins, Export button on the employee
+  profile): one person, a month, the last 7 or 30 days, or a custom range of
+  up to six months. Sections: summary (always), attendance by month, report
+  log with comments; options for missed days, fines and leave, and a review
+  page with notes and signatures. The dialog shows live counts and an
+  estimated page count (`getRecordPreview`).
+- Figures and facts come from `lib/exports/employee-record/build.ts` (pure),
+  data from `load.ts`, layout from `pdf.tsx` (React PDF, Geist from
+  `node_modules/geist`). The route is `app/api/exports/employee-record`.
+  Each export is logged as `record_exported` (hidden from managers).
+
 ## Notifications and activity
 
 - **Notifications** (`notifications` table, `components/layout/notification-bell.tsx`):

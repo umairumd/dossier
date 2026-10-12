@@ -131,6 +131,14 @@ export async function AdminEmployeeProfile({
         templates={templates}
         currentTemplateSource={resolution.source}
         currentTemplateSourceName={resolution.sourceName}
+        exportRecord={
+          isOwnerOrAdmin
+            ? {
+                joinedOn: employee.created_at.slice(0, 10),
+                today: todayInTimezone(settings.timezone),
+              }
+            : undefined
+        }
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

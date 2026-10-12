@@ -142,6 +142,10 @@ const EVENT_LABELS: Record<
     lead: e.actor_name ?? "Admin",
     rest: ` updated ${entityName(e.target_name, "someone")}'s profile`,
   }),
+  record_exported: (e) => ({
+    lead: e.actor_name ?? "Admin",
+    rest: ` exported ${entityName(e.target_name, "someone")}'s record`,
+  }),
   employee_deactivated: (e) => ({
     lead: e.actor_name ?? "Admin",
     rest: ` deactivated ${entityName(e.target_name, "someone")}`,
