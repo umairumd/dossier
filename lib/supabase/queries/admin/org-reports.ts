@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { REPORTING_MATCH } from "@/lib/supabase/queries/reporting-rule";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import type { AttendanceStatus } from "@/types/attendance";
@@ -26,10 +27,8 @@ export const getOrgRosterSize = cache(async (): Promise<number> => {
   const { count, error } = await adminClient
     .from("profiles")
     .select("id", { count: "exact", head: true })
-    .eq("has_onboarded", true)
-    .eq("is_reporting", true)
-    .is("archived_at", null)
-    .neq("role", "owner");
+    .match(REPORTING_MATCH)
+    .is("archived_at", null);
 
   if (error) {
     throw new Error("Failed to load organization roster size.");
@@ -56,11 +55,8 @@ export const getOrgReportsForDate = cache(
       adminClient
         .from("profiles")
         .select("id, full_name, designation, avatar_url, avatar, is_remote, employment_type")
-        .eq("has_onboarded", true)
-        .eq("is_reporting", true)
-        .eq("is_active", true)
+        .match(REPORTING_MATCH)
         .is("archived_at", null)
-        .neq("role", "owner")
         .order("full_name", { ascending: true }),
       adminClient
         .from("daily_reports")

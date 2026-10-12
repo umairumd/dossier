@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ReportDetailSheet } from "@/components/manager/report-detail-sheet";
 import { ReportHistoryList } from "@/components/reports/report-history-list";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
-import type { DailyReport } from "@/types/report";
+import type { DailyReport, ReportComment } from "@/types/report";
 import type { TeamMemberReport } from "@/types/team";
 import type { ReportTemplateWithFields } from "@/types/template";
 import type { UserRole } from "@/types/profile";
@@ -25,7 +25,10 @@ export function ReportHistoryBrowser({
   currentUserId,
   initialViewId,
   viewReport,
+  comments,
 }: {
+  /** Comments for these reports, loaded with the list (getCommentsForReports). */
+  comments?: Record<string, ReportComment[]>;
   reports: DailyReport[];
   userName: string;
   avatar?: unknown;
@@ -99,6 +102,7 @@ export function ReportHistoryBrowser({
         isOwnReport={isOwnReport}
         viewerRole={viewerRole}
         currentUserId={currentUserId}
+        initialComments={comments}
       />
     </>
   );

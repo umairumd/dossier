@@ -2,14 +2,31 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { updateLastSeen } from "@/lib/actions/profile";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
+import { getOrganizationName } from "@/lib/supabase/queries/organization";
+import {
+  getMyNotifications,
+  getUnreadNotificationCount,
+} from "@/lib/supabase/queries/notifications";
 
 const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
+
+/** Last seen is written at most every five minutes. */
+function lastSeenIsStale(lastSeenAt: string | null | undefined): boolean {
+  if (!lastSeenAt) return true;
+  return Date.now() - new Date(lastSeenAt).getTime() > LAST_SEEN_THROTTLE_MS;
+}
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Start the shell's own reads now, alongside the profile, instead of after
+  // it: they are cache()-wrapped, so AppShell picks up the same requests.
+  void getOrganizationName();
+  void getUnreadNotificationCount();
+  void getMyNotifications();
+
   const profile = await getCurrentProfile();
 
   if (!profile) {
@@ -29,10 +46,7 @@ export default async function AppLayout({
     redirect("/onboarding");
   }
 
-  const lastSeenMs = profile.last_seen_at
-    ? new Date(profile.last_seen_at).getTime()
-    : 0;
-  if (!lastSeenMs || Date.now() - lastSeenMs > LAST_SEEN_THROTTLE_MS) {
+  if (lastSeenIsStale(profile.last_seen_at)) {
     void updateLastSeen(profile.id);
   }
 

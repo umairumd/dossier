@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { REPORTING_MATCH } from "@/lib/supabase/queries/reporting-rule";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { requireSupervisorUser } from "@/lib/supabase/require-admin";
 import { daysBetweenDateStrings, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
@@ -90,8 +91,7 @@ export const getSupervisedReportsForDate = cache(
       .from("profiles")
       .select("id, full_name, designation, is_remote, employment_type, avatar_url, avatar")
       .in("id", memberIds)
-      .eq("has_onboarded", true)
-      .eq("is_reporting", true)
+      .match(REPORTING_MATCH)
       .is("archived_at", null)
       .order("full_name", { ascending: true });
 

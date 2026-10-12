@@ -308,6 +308,13 @@ export async function someAction(input: Input): Promise<Result> {
 
 ---
 
+## Data Loading
+
+How pages fetch and stream data (cached queries, one auth check per request,
+parallel reads, Suspense per card, skeletons) is in
+[PERFORMANCE.md](PERFORMANCE.md). What each area of the app does today is in
+[FEATURES.md](FEATURES.md).
+
 ## Queries
 
 All reads flow through cached query functions in `lib/supabase/queries/`. The pattern:

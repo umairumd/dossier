@@ -6,41 +6,29 @@ import {
 } from "@/lib/supabase/queries/profile";
 import { getReportStatsData } from "@/lib/supabase/queries/reports";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
-import { createClient } from "@/lib/supabase/server";
-import { dateNDaysAgo, formatDate } from "@/lib/helpers/dates";
+import { formatDate } from "@/lib/helpers/dates";
 import {
   buildAttendanceStatusMap,
   computeReportStats,
 } from "@/lib/helpers/report-stats";
 import { getRoleLabel } from "@/lib/helpers/role-labels";
-import type { AttendanceStatus } from "@/types/attendance";
 import { Button } from "@/components/ui/button";
 import { SettingsSection } from "@/components/shared/settings-section";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { SettingsProfileBuddy } from "@/components/settings/settings-profile-buddy";
 import { PageHeader } from "@/components/shared/page-header";
+import { getMyAttendanceHistory } from "@/lib/supabase/queries/home";
 import { FigureStrip } from "@/components/shared/figure-strip";
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const [profile, email, statsRows, settings, attendanceResult] =
+  const [profile, email, statsRows, settings, attendanceRows] =
     await Promise.all([
       getCurrentProfileWithDepartment(),
       getCurrentUserEmail(),
       getReportStatsData(),
       getOrganizationSettings(),
-      (async () => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return { data: [] };
-        return supabase
-          .from("attendance_records")
-          .select("date, status")
-          .eq("profile_id", user.id)
-          .gte("date", dateNDaysAgo(399));
-      })(),
+      getMyAttendanceHistory(),
     ]);
 
   if (!profile) {
@@ -49,10 +37,8 @@ export default async function SettingsPage() {
 
   const stats = computeReportStats(statsRows, settings.timezone, {
     workingDays: settings.workingDays,
-    attendanceByDate: buildAttendanceStatusMap(
-      (attendanceResult.data as { date: string; status: AttendanceStatus }[]) ??
-        [],
-    ),
+    attendanceByDate: buildAttendanceStatusMap(attendanceRows),
+    joinedOn: profile.created_at,
   });
 
   const figures = [

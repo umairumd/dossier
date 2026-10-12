@@ -534,7 +534,7 @@ export async function adjustLeaveBalance(
 
   const { data: profile, error: profileFetchError } = await adminClient
     .from("profiles")
-    .select("leave_balance")
+    .select("leave_balance, organization_id, full_name")
     .eq("id", profileId)
     .maybeSingle();
 
@@ -597,6 +597,39 @@ export async function adjustLeaveBalance(
       "[leave] Failed to insert leave_balance_adjustments audit row:",
       auditError,
     );
+  }
+
+  // Make the change visible: the employee is told, and it shows in activity
+  // with the reason (the dialog promises it is logged with name and reason).
+  if (profile.organization_id) {
+    const signed = `${adjustment > 0 ? "+" : ""}${adjustment}`;
+    const unit = Math.abs(adjustment) === 1 ? "day" : "days";
+    await createNotification({
+      orgId: profile.organization_id,
+      profileId,
+      type: "leave_balance_adjusted",
+      title: `Leave balance adjusted by ${signed} ${unit}`,
+      body: trimmedNote,
+      entityType: "leave_balance",
+      entityId: balance.id,
+    });
+
+    try {
+      const { actorName } = await getActorLogContext(user.id);
+      void logActivity({
+        orgId: profile.organization_id,
+        eventType: "leave_balance_adjusted",
+        actorId: user.id,
+        actorName: actorName ?? undefined,
+        targetId: profileId,
+        targetName: profile.full_name ?? undefined,
+        entityType: "leave_balance",
+        entityId: balance.id,
+        metadata: { adjustment, note: trimmedNote },
+      });
+    } catch (logError) {
+      console.error("[activity-log] Failed to log leave adjustment:", logError);
+    }
   }
 
   revalidatePath(`/employees/${profileId}`);

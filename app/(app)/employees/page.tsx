@@ -19,16 +19,17 @@ export default async function EmployeesPage() {
     redirect("/team");
   }
 
-  const [employees, allDepartments, orgName, templates] = await Promise.all([
-    getAllEmployees(),
-    getAllDepartments(),
-    getOrganizationName(),
-    getOrgTemplates(),
-  ]);
-
-  const lastSeenByEmployeeId = await getEmployeeLastSeen(
-    employees.map((employee) => employee.id),
-  );
+  // Last-seen needs the employee ids, so it chains off the list inside the
+  // same Promise.all instead of waiting for every other read.
+  const employeesP = getAllEmployees();
+  const [employees, allDepartments, orgName, templates, lastSeenByEmployeeId] =
+    await Promise.all([
+      employeesP,
+      getAllDepartments(),
+      getOrganizationName(),
+      getOrgTemplates(),
+      employeesP.then((list) => getEmployeeLastSeen(list.map((employee) => employee.id))),
+    ]);
 
   const departments = allDepartments
     .filter((department) => department.archived_at === null)

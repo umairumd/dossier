@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReportComment } from "@/types/report";
+
 import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FilterSearchInput } from "@/components/shared/filter-toolbar";
@@ -129,6 +131,7 @@ export function OrgDailyReports({
   reportDate,
   viewerRole,
   currentUserId,
+  comments,
   isOffDay = false,
   focusDepartmentId,
 }: {
@@ -139,6 +142,8 @@ export function OrgDailyReports({
   reportDate?: string;
   viewerRole?: UserRole;
   currentUserId?: string;
+  /** Comments for the listed reports, loaded with the page. */
+  comments?: Record<string, ReportComment[]>;
   isOffDay?: boolean;
   focusDepartmentId?: string;
 }) {
@@ -330,6 +335,7 @@ export function OrgDailyReports({
           adminView
           viewerRole={viewerRole}
           currentUserId={currentUserId}
+          comments={comments}
         />
       )}
     </div>

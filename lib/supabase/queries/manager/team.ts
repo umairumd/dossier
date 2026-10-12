@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { REPORTING_MATCH } from "@/lib/supabase/queries/reporting-rule";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
@@ -73,10 +74,8 @@ export const getTeamReportingRoster = cache(
       .select(
         "id, full_name, designation, is_remote, employment_type, avatar_url, avatar, template_id, leave_balance, created_at, date_of_birth",
       )
-      .eq("has_onboarded", true)
-      .eq("is_reporting", true)
+      .match(REPORTING_MATCH)
       .is("archived_at", null)
-      .neq("role", "owner")
       .order("full_name", { ascending: true });
 
     if (error) {
