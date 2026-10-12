@@ -115,9 +115,7 @@ export function HeroReportPanel({
         submitted_at: submittedAt,
         created_at: submittedAt,
         template_id: template?.id ?? null,
-        field_responses: template
-          ? Object.fromEntries(template.fields.map((field) => [field.id, info.values[field.key]]))
-          : info.values,
+        field_responses: info.values,
       });
     }
     onClose();

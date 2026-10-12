@@ -12,6 +12,7 @@ import {
   Clock,
   FileText,
   MessageSquare,
+  Scale,
   UserCheck,
   UserPlus,
   Users,
@@ -54,6 +55,7 @@ export const TYPE_ICONS: Record<
   employee_archived: { Icon: Archive, className: "text-warn" },
   birthday: { Icon: Cake, className: "text-pink-500" },
   report_commented: { Icon: MessageSquare, className: "text-info" },
+  leave_balance_adjusted: { Icon: Scale, className: "text-leave" },
 };
 
 export function NotificationBell({

@@ -28,16 +28,21 @@ export function formatDate(dateString: string): string {
   return DATE_FORMATTER.format(new Date(`${dateString}T00:00:00Z`));
 }
 
-function daysSinceReportDate(dateStr: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const submitted = new Date(`${dateStr}T00:00:00Z`);
-  return Math.floor((today.getTime() - submitted.getTime()) / 86400000);
+/**
+ * Whole days from a report date to today, comparing calendar dates only.
+ * Pass the org's today (todayInTimezone) so it is right whatever the
+ * server's time zone; without it, today is the UTC date. Never negative.
+ */
+function daysSinceReportDate(dateStr: string, today?: string): number {
+  const todayStr = today ?? new Date().toISOString().slice(0, 10);
+  const from = Date.parse(`${dateStr.slice(0, 10)}T00:00:00Z`);
+  const to = Date.parse(`${todayStr}T00:00:00Z`);
+  return Math.max(0, Math.round((to - from) / 86400000));
 }
 
-export function formatDaysAgoLong(dateStr: string | null): string {
+export function formatDaysAgoLong(dateStr: string | null, today?: string): string {
   if (!dateStr) return "Never";
-  const days = daysSinceReportDate(dateStr);
+  const days = daysSinceReportDate(dateStr, today);
   if (days === 0) return "Today";
   if (days === 1) return "Yesterday";
   return `${days} days ago`;
@@ -45,9 +50,10 @@ export function formatDaysAgoLong(dateStr: string | null): string {
 
 export function formatDaysAgoShort(
   dateStr: string | null | undefined,
+  today?: string,
 ): string | null {
   if (!dateStr) return null;
-  const days = daysSinceReportDate(dateStr);
+  const days = daysSinceReportDate(dateStr, today);
   if (days === 0) return "Today";
   if (days === 1) return "Yesterday";
   return `${days}d ago`;
@@ -55,9 +61,10 @@ export function formatDaysAgoShort(
 
 export function formatShortLastReport(
   dateStr: string | null | undefined,
+  today?: string,
 ): { label: string; title?: string } {
   if (!dateStr) return { label: "—" };
-  const diff = daysSinceReportDate(dateStr);
+  const diff = daysSinceReportDate(dateStr, today);
   const title = formatDate(dateStr);
   if (diff <= 0) return { label: "Today", title };
   if (diff < 7) return { label: `${diff}d`, title };

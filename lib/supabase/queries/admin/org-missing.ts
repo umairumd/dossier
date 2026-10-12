@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { REPORTING_MATCH } from "@/lib/supabase/queries/reporting-rule";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { daysBetweenDateStrings, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
@@ -26,9 +27,8 @@ export const getOrgMissingReportsToday = cache(
         adminClient
           .from("profiles")
           .select("id, full_name")
-          .eq("has_onboarded", true)
+          .match(REPORTING_MATCH)
           .is("archived_at", null)
-          .neq("role", "owner")
           .order("full_name", { ascending: true }),
         adminClient
           .from("daily_reports")

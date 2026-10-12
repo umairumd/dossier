@@ -11,6 +11,7 @@ import {
 } from "@/lib/helpers/dates";
 import { DateNav } from "@/components/shared/date-nav";
 import { PageHeader } from "@/components/shared/page-header";
+import { getCommentsForReports } from "@/lib/supabase/queries/report-comments";
 import { OrgDailyReports } from "@/components/admin/org-daily-reports";
 
 export default async function TrackReportsPage({
@@ -18,18 +19,26 @@ export default async function TrackReportsPage({
 }: {
   searchParams: Promise<{ date?: string; department?: string }>;
 }) {
-  const { date: dateParam, department: departmentParam } = await searchParams;
-  const settings = await getOrganizationSettings();
+  const [{ date: dateParam, department: departmentParam }, settings] = await Promise.all([
+    searchParams,
+    getOrganizationSettings(),
+  ]);
   const today = todayInTimezone(settings.timezone);
   const date = isValidDateString(dateParam) ? dateParam : today;
   const isOrgOffDay =
     settings.workingDays.length > 0 &&
     !isWorkingDay(date, settings.workingDays);
 
-  const [{ members, departments }, templates, profile] = await Promise.all([
-    getOrgReportsForDate(date),
+  // Comments for the day's reports load with the roster, so a report opens
+  // with its comments already there.
+  const orgReportsP = getOrgReportsForDate(date);
+  const [{ members, departments }, templates, profile, comments] = await Promise.all([
+    orgReportsP,
     getOrgTemplatesWithFields(),
     getCurrentProfile(),
+    orgReportsP.then((r) =>
+      getCommentsForReports(r.members.flatMap((m) => (m.report ? [m.report.id] : []))),
+    ),
   ]);
 
   // Off-day: today only (for historical dates the user navigated to, all
@@ -79,6 +88,7 @@ export default async function TrackReportsPage({
         currentUserId={profile?.id}
         isOffDay={isOffDay}
         focusDepartmentId={departmentParam}
+        comments={comments}
       />
     </div>
   );

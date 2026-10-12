@@ -8,14 +8,17 @@ import { TeamEmployeeProfile } from "./team-employee-profile";
 // throw for non-admins and uses the service-role client.
 export default async function EmployeeDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
-  const { id } = await params;
+  const [{ id }, { page: pageParam }] = await Promise.all([params, searchParams]);
+  const reportPage = Math.max(1, Number(pageParam ?? "1") || 1);
   const profile = await getCurrentProfile();
 
   if (profile?.role === "owner" || profile?.role === "admin") {
-    return <AdminEmployeeProfile id={id} profile={profile} />;
+    return <AdminEmployeeProfile id={id} profile={profile} reportPage={reportPage} />;
   }
 
   if (!profile || (profile.role !== "manager" && !profile.is_supervisor)) {
@@ -28,5 +31,5 @@ export default async function EmployeeDetailPage({
     notFound();
   }
 
-  return <TeamEmployeeProfile overview={overview} viewer={profile} />;
+  return <TeamEmployeeProfile overview={overview} viewer={profile} reportPage={reportPage} />;
 }

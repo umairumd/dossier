@@ -34,13 +34,9 @@ export function HeroForYou({ items }: { items: ForYouItem[] }) {
   return (
     <section aria-label="For you" className="flex flex-col gap-2">
       <h2 className="card-title">For you</h2>
-      <ul
-        className={cn(
-          "grid grid-cols-1 gap-2",
-          shown.length === 2 && "md:grid-cols-2",
-          shown.length >= 3 && "md:grid-cols-3",
-        )}
-      >
+      {/* One column: each row carries an icon, two lines of text, actions and
+          a dismiss button, which side-by-side columns are too narrow for. */}
+      <ul className="flex flex-col gap-2">
         {shown.map((item) => (
           <ForYouRow key={`${item.source}:${item.id}`} item={item} />
         ))}
@@ -83,7 +79,7 @@ function ForYouRow({ item }: { item: ForYouItem }) {
   return (
     <li
       className={cn(
-        "grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none",
+        "grid min-w-0 transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none",
         collapse ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
       )}
     >

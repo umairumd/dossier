@@ -1,5 +1,4 @@
 import type { UserRole } from "@/types/profile";
-import type { DailyReport } from "@/types/report";
 import type {
   ReportStats,
   TenureSubmissionRate,
@@ -47,7 +46,6 @@ export interface EmployeeListItem {
 
 export interface EmployeeDetail extends EmployeeListItem {
   report_count: number;
-  recent_reports: DailyReport[];
   stats: ReportStats;
   tenure_rate: TenureSubmissionRate;
 }

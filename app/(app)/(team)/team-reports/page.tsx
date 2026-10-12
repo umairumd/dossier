@@ -20,6 +20,7 @@ import { isAttendanceExempt } from "@/lib/helpers/report-stats";
 import type { TeamMemberReport } from "@/types/team";
 import { DateNav } from "@/components/shared/date-nav";
 import { PageHeader } from "@/components/shared/page-header";
+import { getCommentsForReports } from "@/lib/supabase/queries/report-comments";
 import { TeamReportsView } from "@/components/manager/team-reports-view";
 
 function countIn(members: TeamMemberReport[], reportDate: string, workingDays: number[]) {
@@ -43,23 +44,31 @@ export default async function TeamReportsPage({
 }: {
   searchParams: Promise<{ date?: string }>;
 }) {
-  const { date: dateParam } = await searchParams;
-  const profile = await getCurrentProfileWithDepartment();
-  const settings = await getOrganizationSettings();
+  const [{ date: dateParam }, profile, settings] = await Promise.all([
+    searchParams,
+    getCurrentProfileWithDepartment(),
+    getOrganizationSettings(),
+  ]);
   const today = todayInTimezone(settings.timezone);
   const date = isValidDateString(dateParam) ? dateParam : today;
 
-  const [deptMembers, supervised, templates] = await Promise.all([
-    profile?.role === "manager"
-      ? getTeamReportsForDate(date)
-      : Promise.resolve([]),
-    profile?.is_supervisor
-      ? Promise.all([
-          getSupervisedReportsForDate(date),
-          getSupervisedMembers(),
-        ])
-      : Promise.resolve([[], []] as [TeamMemberReport[], TeamRosterMember[]]),
+  const deptP: Promise<TeamMemberReport[]> =
+    profile?.role === "manager" ? getTeamReportsForDate(date) : Promise.resolve([]);
+  const supervisedP = profile?.is_supervisor
+    ? Promise.all([getSupervisedReportsForDate(date), getSupervisedMembers()])
+    : Promise.resolve([[], []] as [TeamMemberReport[], TeamRosterMember[]]);
+
+  // Comments for the day's reports chain off the reports, so a report opens
+  // with its comments already there.
+  const [deptMembers, supervised, templates, comments] = await Promise.all([
+    deptP,
+    supervisedP,
     getOrgTemplatesWithFields(),
+    Promise.all([deptP, supervisedP]).then(([dept, [supervisees]]) =>
+      getCommentsForReports([
+        ...new Set([...dept, ...supervisees].flatMap((m) => (m.report ? [m.report.id] : []))),
+      ]),
+    ),
   ]);
 
   const [superviseeReports] = supervised;
@@ -138,6 +147,7 @@ export default async function TeamReportsPage({
         viewerRole={profile?.role}
         currentUserId={profile?.id}
         isOffDay={isOffDay}
+        comments={comments}
       />
     </div>
   );

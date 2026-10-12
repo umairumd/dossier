@@ -4,11 +4,11 @@ import {
   buildAttendanceStatusMap,
   computeReportStats,
   computeTenureSubmissionRate,
+  type ReportStatsInput,
 } from "@/lib/helpers/report-stats";
 import { dateNDaysAgo } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { AttendanceStatus } from "@/types/attendance";
-import type { DailyReport } from "@/types/report";
 import type { TeamMemberOverview } from "@/types/team-member-overview";
 
 interface ProfileRow {
@@ -43,13 +43,40 @@ export const getTeamMemberOverview = cache(
       return null;
     }
 
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select(
-        "id, full_name, role, designation, is_remote, employment_type, avatar_url, avatar, last_seen_at, created_at, template_id, organization_id",
-      )
-      .eq("id", employeeId)
-      .maybeSingle();
+    // Independent reads run together. Reports load only the columns the
+    // stats need; the report history card pages through full reports on its
+    // own (getReportsForAuthor).
+    const [
+      { data: profile, error },
+      { data: reports, error: reportsError },
+      { data: memberships },
+      settings,
+      { data: attendanceRows },
+    ] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select(
+          "id, full_name, role, designation, is_remote, employment_type, avatar_url, avatar, last_seen_at, created_at, template_id, organization_id",
+        )
+        .eq("id", employeeId)
+        .maybeSingle(),
+      supabase
+        .from("daily_reports")
+        .select("report_date, submitted_at")
+        .eq("author_id", employeeId)
+        .order("report_date", { ascending: false })
+        .order("submitted_at", { ascending: false }),
+      supabase
+        .from("profile_departments")
+        .select("department_id, departments(name)")
+        .eq("profile_id", employeeId),
+      getOrganizationSettings(),
+      supabase
+        .from("attendance_records")
+        .select("date, status")
+        .eq("profile_id", employeeId)
+        .gte("date", dateNDaysAgo(399)),
+    ]);
 
     if (error) {
       throw new Error("Failed to load employee.");
@@ -59,23 +86,9 @@ export const getTeamMemberOverview = cache(
       return null;
     }
 
-    const { data: reports, error: reportsError } = await supabase
-      .from("daily_reports")
-      .select(
-        "id, author_id, report_date, content, blockers, additional_notes, submitted_at, created_at, template_id, field_responses",
-      )
-      .eq("author_id", employeeId)
-      .order("report_date", { ascending: false })
-      .order("submitted_at", { ascending: false });
-
     if (reportsError) {
       throw new Error("Failed to load employee reports.");
     }
-
-    const { data: memberships } = await supabase
-      .from("profile_departments")
-      .select("department_id, departments(name)")
-      .eq("profile_id", employeeId);
 
     const department_ids = (memberships ?? []).map(
       (row) => row.department_id as string,
@@ -91,28 +104,25 @@ export const getTeamMemberOverview = cache(
       })
       .filter((name): name is string => Boolean(name));
 
-    const allReports = (reports as DailyReport[]) ?? [];
-    const settings = await getOrganizationSettings();
-
-    const { data: attendanceRows } = await supabase
-      .from("attendance_records")
-      .select("date, status")
-      .eq("profile_id", employeeId)
-      .gte("date", dateNDaysAgo(399));
+    const allReports = (reports as ReportStatsInput[]) ?? [];
 
     const profileRow = profile as unknown as ProfileRow;
     const attendanceByDate = buildAttendanceStatusMap(
       (attendanceRows as { date: string; status: AttendanceStatus }[]) ?? [],
     );
+    // Same inputs as the admin view (getEmployeeDetail), so a profile shows
+    // the same numbers whoever is looking at it.
     const stats = computeReportStats(allReports, settings.timezone, {
       workingDays: settings.workingDays,
       attendanceByDate,
+      joinedOn: profileRow.created_at,
     });
     const tenureRate = computeTenureSubmissionRate(
       allReports,
       profileRow.created_at,
       settings.workingDays,
       settings.timezone,
+      attendanceByDate,
     );
 
     return {
@@ -131,7 +141,6 @@ export const getTeamMemberOverview = cache(
       department_ids,
       department_names,
       report_count: allReports.length,
-      recent_reports: allReports.slice(0, 10),
       current_streak: stats.currentStreak,
       completion_percentage: stats.completionPercentage,
       average_submission_time: stats.averageSubmissionTime,

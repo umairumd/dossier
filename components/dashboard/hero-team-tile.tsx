@@ -87,7 +87,10 @@ export function HeroTeamTile({
   currentUserId,
   onView,
   triggerRef,
+  commentCounts,
 }: {
+  /** Comment totals per report id: a report with none opens without a fetch. */
+  commentCounts?: Record<string, number>;
   label: "Team today" | "Company today";
   members: TeamMemberReport[];
   orgOffDay: boolean;
@@ -263,6 +266,7 @@ export function HeroTeamTile({
         currentUserId={currentUserId}
         showProfileLink
         adminView={viewerRole === "admin" || viewerRole === "owner"}
+        commentCounts={commentCounts}
       />
     </>
   );
@@ -406,6 +410,7 @@ export function HeroTeamView({
         currentUserId={currentUserId}
         showProfileLink
         adminView={viewerRole === "admin" || viewerRole === "owner"}
+        commentCounts={commentCounts}
       />
     </Tile>
   );

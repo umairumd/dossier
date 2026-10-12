@@ -185,6 +185,7 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
     const stats = computeReportStats(memberReports, settings.timezone, {
       workingDays: settings.workingDays,
       attendanceByDate: attendanceByAuthor.get(member.id),
+      joinedOn: member.created_at,
     });
     const tenure = computeTenureSubmissionRate(
       memberReports,

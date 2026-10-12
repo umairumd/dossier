@@ -11,6 +11,7 @@ import {
   CalendarPlus,
   CalendarX2,
   Clock,
+  Scale,
   FileCheck,
   LayoutTemplate,
   MessageSquare,
@@ -47,6 +48,7 @@ export const EVENT_ICON: Record<ActivityEventType, LucideIcon> = {
   leave_approved: CalendarCheck2,
   leave_rejected: CalendarX2,
   accrual_run: CalendarPlus,
+  leave_balance_adjusted: Scale,
   shift_assigned: Clock,
   employee_invited: Send,
   employee_onboarded: UserCheck,
@@ -109,6 +111,10 @@ export function activityDetailLine(entry: ActivityLogEntry): string | null {
       const type = leaveTypeLabel(metaString(entry.metadata, "type"));
       const date = formatMetaDate(metaString(entry.metadata, "date"));
       return [type, date].filter(Boolean).join(", ") || null;
+    }
+    case "leave_balance_adjusted": {
+      const note = metaString(entry.metadata, "note");
+      return note ? `“${note}”` : null;
     }
     default:
       return null;

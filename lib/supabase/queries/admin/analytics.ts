@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { REPORTING_MATCH } from "@/lib/supabase/queries/reporting-rule";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
@@ -86,11 +87,8 @@ export const getCompanyCompletion = cache(async (): Promise<CompanyCompletion> =
       admin
         .from("profiles")
         .select("id, full_name")
-        .eq("has_onboarded", true)
-        .eq("is_reporting", true)
-        .eq("is_active", true)
-        .is("archived_at", null)
-        .neq("role", "owner"),
+        .match(REPORTING_MATCH)
+        .is("archived_at", null),
       admin.from("daily_reports").select("author_id, report_date").gte("report_date", since),
       admin
         .from("attendance_records")
