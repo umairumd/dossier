@@ -88,7 +88,10 @@ export function HeroTeamTile({
   onView,
   triggerRef,
   commentCounts,
+  wide = false,
 }: {
+  /** Full hero width (no progress tile beside it): the list runs in two columns. */
+  wide?: boolean;
   /** Comment totals per report id: a report with none opens without a fetch. */
   commentCounts?: Record<string, number>;
   label: "Team today" | "Company today";
@@ -106,9 +109,17 @@ export function HeroTeamTile({
   const progress = deadlineWindow(now, deadline.timezone, shiftFulltimeStart, deadline.deadlineHourLocal);
   const [index, setIndex] = useState<number | null>(null);
   const { missing, submitted, away, expected } = splitTeam(members, orgOffDay);
-  const shownMissing = missing.slice(0, 4);
+  // Phones always show four; the wide desktop tile shows eight.
+  const shownMissing = missing.slice(0, wide ? 8 : 4);
   const more = missing.length - shownMissing.length;
-  const latest = submitted.slice(0, 3);
+  const morePhone = missing.length - Math.min(missing.length, 4);
+  const latest = submitted.slice(0, wide ? 6 : 3);
+  // Wide: two columns of people, filled down then across.
+  const listClass = wide
+    ? "mt-2 grid grid-cols-1 gap-2 md:grid-flow-col md:grid-cols-2 md:gap-x-6"
+    : "mt-2 flex flex-col gap-2";
+  const listRows = (count: number) =>
+    wide ? { gridTemplateRows: `repeat(${Math.ceil(count / 2)}, auto)` } : undefined;
   const everyoneIn = members.length > 0 && missing.length === 0 && expected > 0;
   const summaryBits = [
     missing.length > 0 ? `${missing.length} missing` : null,
@@ -129,7 +140,12 @@ export function HeroTeamTile({
           }
         />
         <TileBody className="mt-3 min-h-0">
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 md:grid-cols-2 md:gap-0">
+          <div
+            className={cn(
+              "grid min-h-0 flex-1 grid-cols-1 gap-5 md:gap-0",
+              wide ? "md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" : "md:grid-cols-2",
+            )}
+          >
             {/* Phone: a horizontal bar, so the summary takes one short row. */}
             <div className="flex flex-col gap-2 md:hidden">
               <div className="flex items-baseline justify-between gap-3">
@@ -174,9 +190,12 @@ export function HeroTeamTile({
                   {latest.length === 0 ? (
                     <p className="mt-2 text-sm text-muted-foreground">No reports yet today</p>
                   ) : (
-                    <ul className="mt-2 flex flex-col gap-2">
+                    <ul className={listClass} style={listRows(latest.length)}>
                       {latest.map((member, itemIndex) => (
-                        <li key={member.report.id}>
+                        <li
+                          key={member.report.id}
+                          className={itemIndex >= 3 ? "max-md:hidden" : undefined}
+                        >
                           <button
                             type="button"
                             className="flex w-full items-center gap-2 rounded-lg py-1 text-left outline-none hover:bg-fill-hover focus-visible:ring-2 focus-visible:ring-ring"
@@ -215,14 +234,20 @@ export function HeroTeamTile({
                   >
                     {progress.pastDue ? "Missing" : "Not in yet"}
                   </p>
-                  <ul className="mt-2 flex flex-col gap-2">
+                  <ul className={listClass} style={listRows(shownMissing.length)}>
                     {shownMissing.map((member) => {
                       const detail =
                         member.attendanceStatus === "half_leave"
                           ? [member.designation, "half day"].filter(Boolean).join(" · ")
                           : member.designation;
                       return (
-                        <li key={member.employeeId} className="flex items-center gap-2">
+                        <li
+                          key={member.employeeId}
+                          className={cn(
+                            "flex items-center gap-2",
+                            shownMissing.indexOf(member) >= 4 && "max-md:hidden",
+                          )}
+                        >
                           <MemberAvatar
                             name={member.fullName}
                             userId={member.employeeId}
@@ -237,13 +262,17 @@ export function HeroTeamTile({
                       );
                     })}
                   </ul>
-                  {more > 0 && (
+                  {morePhone > 0 && (
                     <button
                       type="button"
-                      className="mt-2 text-sm text-muted-foreground max-md:min-h-11"
+                      className={cn(
+                        "mt-2 text-sm text-muted-foreground max-md:min-h-11",
+                        more === 0 && "md:hidden",
+                      )}
                       onClick={onView}
                     >
-                      +{more} more
+                      <span className="md:hidden">+{morePhone} more</span>
+                      <span className="max-md:hidden">+{more} more</span>
                     </button>
                   )}
                 </div>

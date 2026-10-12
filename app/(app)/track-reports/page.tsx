@@ -12,19 +12,24 @@ import {
 import { DateNav } from "@/components/shared/date-nav";
 import { PageHeader } from "@/components/shared/page-header";
 import { getCommentsForReports } from "@/lib/supabase/queries/report-comments";
+import { getReportDate } from "@/lib/supabase/queries/reports";
 import { OrgDailyReports } from "@/components/admin/org-daily-reports";
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function TrackReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; department?: string }>;
+  searchParams: Promise<{ date?: string; department?: string; report?: string }>;
 }) {
-  const [{ date: dateParam, department: departmentParam }, settings] = await Promise.all([
-    searchParams,
-    getOrganizationSettings(),
-  ]);
+  const [{ date: dateParam, department: departmentParam, report: reportParam }, settings] =
+    await Promise.all([searchParams, getOrganizationSettings()]);
   const today = todayInTimezone(settings.timezone);
-  const date = isValidDateString(dateParam) ? dateParam : today;
+  // ?report=<id> (from a comment notification) opens that report on its day.
+  const openReportId = reportParam && UUID_PATTERN.test(reportParam) ? reportParam : undefined;
+  const reportDate = openReportId && !dateParam ? await getReportDate(openReportId) : null;
+  const date = isValidDateString(dateParam) ? dateParam : (reportDate ?? today);
   const isOrgOffDay =
     settings.workingDays.length > 0 &&
     !isWorkingDay(date, settings.workingDays);
@@ -89,6 +94,7 @@ export default async function TrackReportsPage({
         isOffDay={isOffDay}
         focusDepartmentId={departmentParam}
         comments={comments}
+        openReportId={openReportId}
       />
     </div>
   );

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCommentsForReports } from "@/lib/supabase/queries/report-comments";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getOrgAdminIds, notifyGrouped } from "@/lib/notifications/grouped";
 import { createNotification } from "@/lib/actions/notifications";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { logActivity } from "@/lib/helpers/activity-log";
@@ -313,6 +314,27 @@ export async function addReportComment(
           entityId: reportId,
         });
       }
+
+      // Admins follow every conversation, one grouped row per report so a
+      // busy thread doesn't flood the bell.
+      const authorFirst = author?.full_name?.split(" ")[0] ?? "someone";
+      const preview = trimmed.length > 100 ? `${trimmed.slice(0, 97)}...` : trimmed;
+      await notifyGrouped(adminClient, {
+        orgId,
+        recipientIds: await getOrgAdminIds(adminClient, orgId, [
+          user.id,
+          report.author_id,
+        ]),
+        type: "team_report_commented",
+        entityType: "team_report",
+        entityId: reportId,
+        title: (count) =>
+          count === 1
+            ? `${actorName} commented on ${authorFirst}'s report`
+            : `${count} new comments on ${authorFirst}'s report`,
+        body: (count) =>
+          count === 1 ? preview : `Latest from ${actorName}: ${preview}`,
+      });
 
       void logActivity({
         orgId,

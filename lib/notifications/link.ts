@@ -7,6 +7,9 @@ export function resolveNotificationUrl(
   if (entityType === "employee" && entityId) return `/employees/${entityId}`;
   if (entityType === "leave_request" && entityId) return `/attendance`;
   if (entityType === "report" && entityId) return `/reports?view=${entityId}`;
+  if (entityType === "team_report" && entityId) {
+    return `/track-reports?report=${entityId}`;
+  }
 
   switch (type) {
     case "leave_approved":
@@ -38,7 +41,9 @@ export function resolveNotificationUrl(
 
 /** Verb on the hero row. The bell itself has no verb; it uses the same URL. */
 export function notificationActionLabel(type: string): string {
-  if (type === "report_commented") return "Reply";
+  if (type === "report_commented" || type === "team_report_commented") {
+    return "Reply";
+  }
   if (
     type === "leave_approved" ||
     type === "leave_rejected" ||
