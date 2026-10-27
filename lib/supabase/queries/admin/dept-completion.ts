@@ -3,15 +3,45 @@ import { REPORTING_MATCH } from "@/lib/supabase/queries/reporting-rule";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { todayInTimezone } from "@/lib/helpers/dates";
+import {
+  partitionReporters,
+  type PartitionableReporter,
+} from "@/lib/helpers/report-stats";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import type { AttendanceStatus } from "@/types/attendance";
 
 export type DeptCompletionRow = {
   departmentId: string;
   departmentName: string;
   submitted: number;
+  /** Expected reporters (submitted + missing); excludes away. */
   total: number;
+  away: number;
   completionPct: number;
 };
+
+function summarizeDepartment(
+  memberIds: Iterable<string>,
+  submittedIds: Set<string>,
+  attendanceByProfile: Map<string, AttendanceStatus>,
+): { submitted: number; total: number; away: number; completionPct: number } {
+  const members: PartitionableReporter[] = [];
+  for (const id of memberIds) {
+    members.push({
+      id,
+      hasReport: submittedIds.has(id),
+      attendanceStatus: attendanceByProfile.get(id) ?? null,
+    });
+  }
+  const { submitted, away, expected } = partitionReporters(members);
+  return {
+    submitted: submitted.length,
+    total: expected,
+    away: away.length,
+    completionPct:
+      expected === 0 ? 0 : Math.round((submitted.length / expected) * 100),
+  };
+}
 
 // A person in multiple departments is counted in each row. Org-level
 // Home stats use distinct profiles instead (see getOrganizationSummary).
@@ -53,19 +83,36 @@ export const getDeptCompletionForDate = cache(
     const eligibleIds = new Set((eligible ?? []).map((profile) => profile.id));
 
     let submittedIds = new Set<string>();
+    const attendanceByProfile = new Map<string, AttendanceStatus>();
 
     if (eligibleIds.size > 0) {
-      const { data: reports, error: reportsError } = await adminClient
-        .from("daily_reports")
-        .select("author_id")
-        .eq("report_date", date)
-        .in("author_id", [...eligibleIds]);
+      const eligibleList = [...eligibleIds];
+      const [{ data: reports, error: reportsError }, { data: attendance, error: attendanceError }] =
+        await Promise.all([
+          adminClient
+            .from("daily_reports")
+            .select("author_id")
+            .eq("report_date", date)
+            .in("author_id", eligibleList),
+          adminClient
+            .from("attendance_records")
+            .select("profile_id, status")
+            .eq("date", date)
+            .in("profile_id", eligibleList)
+            .in("status", ["leave", "half_leave", "holiday", "weekly_off"]),
+        ]);
 
       if (reportsError) {
         throw new Error("Failed to load today's reports.");
       }
+      if (attendanceError) {
+        throw new Error("Failed to load attendance for department completion.");
+      }
 
       submittedIds = new Set((reports ?? []).map((report) => report.author_id));
+      for (const row of attendance ?? []) {
+        attendanceByProfile.set(row.profile_id, row.status as AttendanceStatus);
+      }
     }
 
     const membersByDepartment = new Map<string, Set<string>>();
@@ -83,51 +130,35 @@ export const getDeptCompletionForDate = cache(
     const rows = (departments ?? [])
       .map((department) => {
         const members = membersByDepartment.get(department.id) ?? new Set();
-        const total = members.size;
-        let submitted = 0;
-
-        for (const profileId of members) {
-          if (submittedIds.has(profileId)) {
-            submitted += 1;
-          }
-        }
-
+        const summary = summarizeDepartment(
+          members,
+          submittedIds,
+          attendanceByProfile,
+        );
         return {
           departmentId: department.id,
           departmentName: department.name,
-          submitted,
-          total,
-          completionPct:
-            total === 0 ? 0 : Math.round((submitted / total) * 100),
+          ...summary,
         };
       })
-      .filter((row) => row.total > 0)
+      .filter((row) => row.total + row.away > 0)
       .sort((a, b) => a.completionPct - b.completionPct);
 
     const assignedIds = new Set(
       (memberships ?? []).map((row) => row.profile_id),
     );
-    const unassignedIds = new Set(
-      [...eligibleIds].filter((id) => !assignedIds.has(id)),
-    );
+    const unassignedIds = [...eligibleIds].filter((id) => !assignedIds.has(id));
 
-    if (unassignedIds.size > 0) {
-      let unassignedSubmitted = 0;
-
-      for (const profileId of unassignedIds) {
-        if (submittedIds.has(profileId)) {
-          unassignedSubmitted += 1;
-        }
-      }
-
+    if (unassignedIds.length > 0) {
+      const summary = summarizeDepartment(
+        unassignedIds,
+        submittedIds,
+        attendanceByProfile,
+      );
       rows.push({
         departmentId: "__unassigned__",
         departmentName: "Other",
-        submitted: unassignedSubmitted,
-        total: unassignedIds.size,
-        completionPct: Math.round(
-          (unassignedSubmitted / unassignedIds.size) * 100,
-        ),
+        ...summary,
       });
     }
 

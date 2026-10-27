@@ -8,6 +8,7 @@ import {
   computeTenureSubmissionRate,
   type ReportStatsInput,
 } from "@/lib/helpers/report-stats";
+import { loadActiveLeaveRemainingByProfile } from "@/lib/helpers/leave-balance";
 import { dateNDaysAgo } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { AttendanceStatus } from "@/types/attendance";
@@ -35,7 +36,6 @@ interface ProfileRow {
   has_onboarded: boolean | null;
   exclude_from_attendance: boolean;
   is_reporting: boolean;
-  leave_balance: number;
   last_seen_at: string | null;
 }
 
@@ -134,7 +134,7 @@ function toEmployeeListItem(
     date_of_birth: profile.date_of_birth,
     exclude_from_attendance: profile.exclude_from_attendance,
     is_reporting: profile.is_reporting ?? true,
-    leave_balance: Number(profile.leave_balance ?? 0),
+    leave_balance: 0,
     created_at: profile.created_at,
   };
 }
@@ -227,7 +227,7 @@ async function attachMemberships(
 }
 
 const PROFILE_SELECT =
-  "id, full_name, role, organization_id, is_active, archived_at, created_at, designation, is_remote, employment_type, avatar_url, avatar, template_id, date_of_birth, has_onboarded, exclude_from_attendance, is_reporting, leave_balance, last_seen_at";
+  "id, full_name, role, organization_id, is_active, archived_at, created_at, designation, is_remote, employment_type, avatar_url, avatar, template_id, date_of_birth, has_onboarded, exclude_from_attendance, is_reporting, last_seen_at";
 
 // requireAdminUser() runs first specifically because this function is the
 // reason the service-role client exists in a read path (email/status come
@@ -237,25 +237,31 @@ export const getAllEmployees = cache(async (): Promise<EmployeeListItem[]> => {
 
   const supabase = await createClient();
 
-  // Profiles, account status and department/supervisor links in one round.
-  const [{ data: profiles, error }, authUsersById, lookups] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select(PROFILE_SELECT)
-      .eq("exclude_from_attendance", false)
-      .order("full_name", { ascending: true }),
-    loadAuthUsersById(),
-    loadMembershipLookups(supabase),
-  ]);
+  // Profiles, leave ledgers, account status and memberships in one round.
+  const [{ data: profiles, error }, remainingByProfile, authUsersById, lookups] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select(PROFILE_SELECT)
+        .eq("exclude_from_attendance", false)
+        .order("full_name", { ascending: true }),
+      loadActiveLeaveRemainingByProfile(supabase),
+      loadAuthUsersById(),
+      loadMembershipLookups(supabase),
+    ]);
 
   if (error) {
     throw new Error("Failed to load employees.");
   }
 
+  const profileRows = (profiles as unknown as ProfileRow[]) ?? [];
+
   const employees = withMemberships(
-    ((profiles as unknown as ProfileRow[]) ?? []).map((profile) =>
-      toEmployeeListItem(profile, authUsersById.get(profile.id)),
-    ),
+    profileRows.map((profile) => {
+      const item = toEmployeeListItem(profile, authUsersById.get(profile.id));
+      item.leave_balance = remainingByProfile.get(profile.id) ?? 0;
+      return item;
+    }),
     lookups,
   );
 
@@ -360,6 +366,10 @@ export const getEmployeeDetail = cache(
     const [item] = await attachMemberships(supabase, [
       toEmployeeListItem(profile as unknown as ProfileRow, authUser),
     ]);
+    const remainingByProfile = await loadActiveLeaveRemainingByProfile(supabase, [
+      employeeId,
+    ]);
+    item.leave_balance = remainingByProfile.get(employeeId) ?? 0;
 
     const attendanceByDate = buildAttendanceStatusMap(
       (attendanceRows as { date: string; status: AttendanceStatus }[]) ?? [],

@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { daysBetweenDateStrings, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { partitionReporters } from "@/lib/helpers/report-stats";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { MissingReportRow } from "@/types/missing-report";
@@ -23,9 +24,17 @@ export const getMissingReportsToday = cache(
     }
 
     const todayMembers = await getTeamReportsForDate(today);
-    const missing = todayMembers.filter(
-      (member) => !member.report && !member.isOnLeave,
+    const partition = partitionReporters(
+      todayMembers.map((member) => ({
+        id: member.employeeId,
+        hasReport: member.report != null,
+        attendanceStatus: member.attendanceStatus ?? null,
+      })),
     );
+    const missingMembers = todayMembers.filter((member) =>
+      partition.missing.some((row) => row.id === member.employeeId),
+    );
+    const missing = missingMembers;
 
     if (missing.length === 0) {
       return [];

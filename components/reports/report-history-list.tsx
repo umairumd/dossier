@@ -80,6 +80,7 @@ export function ReportHistoryList({
                     report.submitted_at,
                     deadline.deadlineHourUtc,
                     deadline,
+                    report.report_date,
                   )}
                 />
               ) : null}

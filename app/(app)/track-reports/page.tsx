@@ -9,6 +9,7 @@ import {
   isWorkingDay,
   todayInTimezone,
 } from "@/lib/helpers/dates";
+import { formatInCount, partitionReporters } from "@/lib/helpers/report-stats";
 import { DateNav } from "@/components/shared/date-nav";
 import { PageHeader } from "@/components/shared/page-header";
 import { getCommentsForReports } from "@/lib/supabase/queries/report-comments";
@@ -51,11 +52,25 @@ export default async function TrackReportsPage({
   const isOffDay =
     date === today && !isWorkingDay(today, settings.workingDays);
 
-  const submittedCount = members.filter((member) => member.report != null).length;
+  const partition = partitionReporters(
+    members.map((member) => ({
+      id: member.employeeId,
+      hasReport: member.report != null,
+      attendanceStatus: member.attendanceStatus ?? null,
+    })),
+    { orgOffDay: isOrgOffDay },
+  );
+  const inLabel = formatInCount(
+    partition.submitted.length,
+    partition.expected,
+    partition.away.length,
+  );
   // At most one middle dot: who, then today's numbers.
   const description = `${members.length} ${members.length === 1 ? "person" : "people"} in ${departments.length} ${departments.length === 1 ? "department" : "departments"} · ${[
-    `${submittedCount} in`,
-    isOrgOffDay ? null : `due ${formatHourLabel(settings.reportDeadlineHourLocal)}`,
+    inLabel,
+    isOrgOffDay || partition.expected === 0
+      ? null
+      : `due ${formatHourLabel(settings.reportDeadlineHourLocal)}`,
   ]
     .filter(Boolean)
     .join(", ")}`;

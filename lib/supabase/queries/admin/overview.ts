@@ -5,7 +5,9 @@ import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { getAllEmployees } from "@/lib/supabase/queries/admin/employees";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
 import { todayInTimezone } from "@/lib/helpers/dates";
+import { partitionReporters } from "@/lib/helpers/report-stats";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import type { AttendanceStatus } from "@/types/attendance";
 import type { OrganizationSummary } from "@/types/admin-overview";
 
 // Admin Home's data need: headcounts + today's completion, nothing more.
@@ -42,21 +44,55 @@ export const getOrganizationSummary = cache(
     }
 
     const eligibleIds = (eligibleProfiles ?? []).map((profile) => profile.id);
+    const today = todayInTimezone(settings.timezone);
 
     let submitted = 0;
+    let expected = eligibleIds.length;
+    let missing = eligibleIds.length;
+    let away = 0;
 
     if (eligibleIds.length > 0) {
-      const { count: submittedToday, error } = await supabase
-        .from("daily_reports")
-        .select("id", { count: "exact", head: true })
-        .eq("report_date", todayInTimezone(settings.timezone))
-        .in("author_id", eligibleIds);
+      const [{ data: reports, error }, { data: attendance, error: attendanceError }] =
+        await Promise.all([
+          supabase
+            .from("daily_reports")
+            .select("author_id")
+            .eq("report_date", today)
+            .in("author_id", eligibleIds),
+          supabase
+            .from("attendance_records")
+            .select("profile_id, status")
+            .eq("date", today)
+            .in("profile_id", eligibleIds)
+            .in("status", ["leave", "half_leave", "holiday", "weekly_off"]),
+        ]);
 
       if (error) {
         throw new Error("Failed to load today's submission count.");
       }
+      if (attendanceError) {
+        throw new Error("Failed to load today's attendance.");
+      }
 
-      submitted = submittedToday ?? 0;
+      const submittedIds = new Set(
+        (reports ?? []).map((report) => report.author_id),
+      );
+      const attendanceByProfile = new Map<string, AttendanceStatus>();
+      for (const row of attendance ?? []) {
+        attendanceByProfile.set(row.profile_id, row.status as AttendanceStatus);
+      }
+
+      const partition = partitionReporters(
+        eligibleIds.map((id) => ({
+          id,
+          hasReport: submittedIds.has(id),
+          attendanceStatus: attendanceByProfile.get(id) ?? null,
+        })),
+      );
+      submitted = partition.submitted.length;
+      expected = partition.expected;
+      missing = partition.missing.length;
+      away = partition.away.length;
     }
 
     return {
@@ -70,12 +106,11 @@ export const getOrganizationSummary = cache(
       archivedUsers: employees.filter((employee) => employee.status === "archived")
         .length,
       submittedToday: submitted,
-      missingToday: Math.max(eligibleIds.length - submitted, 0),
-      totalMembers: eligibleIds.length,
+      missingToday: missing,
+      totalMembers: expected,
+      awayToday: away,
       completionPercentageToday:
-        eligibleIds.length === 0
-          ? 0
-          : Math.round((submitted / eligibleIds.length) * 100),
+        expected === 0 ? 0 : Math.round((submitted / expected) * 100),
     };
   },
 );

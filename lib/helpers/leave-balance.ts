@@ -40,6 +40,7 @@ export async function insertLeaveBalanceRecord(
   const { contractYearStart, contractYearEnd, totalAccrued } =
     computeInitialLeaveBalance(joinDate);
 
+  // profiles.leave_balance is synced by the leave_balances trigger.
   const { error } = await client.from("leave_balances").insert({
     profile_id: profileId,
     org_id: orgId,
@@ -51,23 +52,6 @@ export async function insertLeaveBalanceRecord(
   });
 
   if (error) return { success: false, error: error.message };
-
-  // Keep the running bank in lockstep with the contract-year ledger.
-  const { error: bankError } = await client
-    .from("profiles")
-    .update({ leave_balance: totalAccrued })
-    .eq("id", profileId);
-
-  if (bankError) {
-    // Best-effort rollback so we don't leave an orphan ledger row.
-    await client
-      .from("leave_balances")
-      .delete()
-      .eq("profile_id", profileId)
-      .eq("contract_year_start", contractYearStart)
-      .eq("status", "active");
-    return { success: false, error: bankError.message };
-  }
 
   return { success: true };
 }
@@ -101,4 +85,49 @@ export async function ensureLeaveBalanceRecord(
     joinDate,
   );
   return { ...result, created: result.success };
+}
+
+/** Remaining days on the active ledger row (accrued − used). */
+export function ledgerRemaining(
+  totalAccrued: number,
+  totalUsed: number,
+): number {
+  return Number(totalAccrued) - Number(totalUsed);
+}
+
+/**
+ * Batch-load active leave remaining. When `profileIds` is omitted, loads
+ * every active row the caller can see (RLS). Pass ids when they are already
+ * known so the query stays narrow.
+ */
+export async function loadActiveLeaveRemainingByProfile(
+  client: SupabaseClient,
+  profileIds?: string[],
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (profileIds && profileIds.length === 0) return map;
+
+  let query = client
+    .from("leave_balances")
+    .select("profile_id, total_accrued, total_used")
+    .eq("status", "active");
+
+  if (profileIds) {
+    query = query.in("profile_id", profileIds);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  for (const row of data ?? []) {
+    map.set(
+      row.profile_id,
+      ledgerRemaining(Number(row.total_accrued), Number(row.total_used)),
+    );
+  }
+
+  return map;
 }

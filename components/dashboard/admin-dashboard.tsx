@@ -159,10 +159,16 @@ async function AdminHero({ initialPanel }: { initialPanel: HeroPanelId | null })
   // Context line is org status only — report/off-day actions live in
   // HeroReportStatus below the divider.
   let contextLine: string;
-  if (summary.totalMembers === 0 && summary.pendingInvites > 0) {
+  if (
+    summary.totalMembers === 0 &&
+    summary.awayToday === 0 &&
+    summary.pendingInvites > 0
+  ) {
     contextLine = `${summary.pendingInvites} invitation${summary.pendingInvites === 1 ? "" : "s"} pending. Waiting for your first employee to sign in`;
-  } else if (summary.totalMembers === 0) {
+  } else if (summary.totalMembers === 0 && summary.awayToday === 0) {
     contextLine = "Start by inviting your first employee";
+  } else if (summary.totalMembers === 0 && summary.awayToday > 0) {
+    contextLine = "Everyone expected today is on leave";
   } else if (summary.completionPercentageToday === 100) {
     contextLine = `All ${summary.totalMembers} employees have submitted today`;
   } else if (summary.pendingInvites > 0) {
@@ -335,6 +341,7 @@ async function CompanyActivitySection() {
         date: day.todayDate,
         submitted: summary.submittedToday,
         expected: day.isOffDay ? 0 : summary.totalMembers,
+        away: day.isOffDay ? 0 : summary.awayToday,
         deadlineLabel: formatHourLabel(day.settings.reportDeadlineHourLocal),
         deadlinePassed: day.deadlinePassed,
       }}

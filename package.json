@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check:mascot": "npx tsx scripts/check-mascot-rewards.ts",
+    "check:status": "npx tsx scripts/check-submission-status.ts",
     "seed-demo": "npx tsx scripts/seed-demo.ts",
     "seed-demo:reset": "npx tsx scripts/seed-demo.ts --reset",
     "recovery": "npx tsx scripts/recovery-cli.ts"

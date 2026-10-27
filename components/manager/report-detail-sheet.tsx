@@ -308,7 +308,7 @@ export function ReportDetailSheet({
                         current.report.submitted_at,
                         deadline.deadlineHourUtc,
                         deadline,
-                        undefined,
+                        current.report.report_date,
                         current.isOnLeave,
                       )}
                     />

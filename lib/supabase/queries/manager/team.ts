@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { REPORTING_MATCH } from "@/lib/supabase/queries/reporting-rule";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
+import { loadActiveLeaveRemainingByProfile } from "@/lib/helpers/leave-balance";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { AttendanceStatus } from "@/types/attendance";
@@ -36,14 +37,17 @@ export const getTeamRoster = cache(
       return [];
     }
 
-    const { data: employees, error } = await supabase
-      .from("profiles")
-      .select(
-        "id, full_name, designation, is_remote, employment_type, avatar_url, avatar, template_id, leave_balance, created_at",
-      )
-      .eq("is_active", true)
-      .is("archived_at", null)
-      .order("full_name", { ascending: true });
+    const [{ data: employees, error }, remainingByProfile] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select(
+          "id, full_name, designation, is_remote, employment_type, avatar_url, avatar, template_id, created_at",
+        )
+        .eq("is_active", true)
+        .is("archived_at", null)
+        .order("full_name", { ascending: true }),
+      loadActiveLeaveRemainingByProfile(supabase),
+    ]);
 
     if (error) {
       throw new Error("Failed to load department employees.");
@@ -51,7 +55,7 @@ export const getTeamRoster = cache(
 
     return (employees ?? []).map((row) => ({
       ...row,
-      leave_balance: Number(row.leave_balance ?? 0),
+      leave_balance: remainingByProfile.get(row.id) ?? 0,
     }));
   },
 );
@@ -69,14 +73,17 @@ export const getTeamReportingRoster = cache(
     // Archived employees are excluded — "not appear in active employee
     // lists" — their historical reports stay intact and remain visible
     // via report-history queries; only the live roster excludes them.
-    const { data: employees, error } = await supabase
-      .from("profiles")
-      .select(
-        "id, full_name, designation, is_remote, employment_type, avatar_url, avatar, template_id, leave_balance, created_at, date_of_birth",
-      )
-      .match(REPORTING_MATCH)
-      .is("archived_at", null)
-      .order("full_name", { ascending: true });
+    const [{ data: employees, error }, remainingByProfile] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select(
+          "id, full_name, designation, is_remote, employment_type, avatar_url, avatar, template_id, created_at, date_of_birth",
+        )
+        .match(REPORTING_MATCH)
+        .is("archived_at", null)
+        .order("full_name", { ascending: true }),
+      loadActiveLeaveRemainingByProfile(supabase),
+    ]);
 
     if (error) {
       throw new Error("Failed to load department employees.");
@@ -84,7 +91,8 @@ export const getTeamReportingRoster = cache(
 
     return (employees ?? []).map((row) => ({
       ...row,
-      leave_balance: Number(row.leave_balance ?? 0),
+      leave_balance: remainingByProfile.get(row.id) ?? 0,
+      date_of_birth: row.date_of_birth,
     }));
   },
 );

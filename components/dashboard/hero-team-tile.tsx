@@ -9,6 +9,7 @@ import { Meter } from "@/components/ui/meter";
 import { Tile, TileBody, TileFooterAction, TileHeader } from "@/components/ui/tile";
 import { deadlineWindow } from "@/lib/helpers/deadline-window";
 import { formatLocalTime } from "@/lib/helpers/time";
+import { formatInCount } from "@/lib/helpers/report-stats";
 import {
   getSubmissionStatus,
   SUBMISSION_STATUS_LABELS,
@@ -29,10 +30,19 @@ const LEAVE_DATE = new Intl.DateTimeFormat("en-US", {
 type Submitted = TeamMemberReport & { report: DailyReport };
 
 function bucket(member: TeamMemberReport, orgOffDay: boolean): "missing" | "submitted" | "away" {
-  const status = member.attendanceStatus;
-  if (status === "leave" || status === "holiday" || status === "weekly_off") return "away";
-  if (orgOffDay && !member.report) return "away";
+  // Mirrors partitionReporters: leave/half_leave/holiday/weekly_off without a
+  // report (or org off day without a report) are away; a filed report wins.
   if (member.report) return "submitted";
+  const status = member.attendanceStatus;
+  if (
+    status === "leave" ||
+    status === "half_leave" ||
+    status === "holiday" ||
+    status === "weekly_off" ||
+    orgOffDay
+  ) {
+    return "away";
+  }
   return "missing";
 }
 
@@ -42,7 +52,12 @@ function firstName(fullName: string): string {
 
 function statusLabel(member: Submitted, deadline: DeadlineContext): string {
   return SUBMISSION_STATUS_LABELS[
-    getSubmissionStatus(member.report.submitted_at, deadline.deadlineHourUtc, deadline)
+    getSubmissionStatus(
+      member.report.submitted_at,
+      deadline.deadlineHourUtc,
+      deadline,
+      member.report.report_date,
+    )
   ];
 }
 
@@ -56,7 +71,11 @@ function deadlineCopy(minutesLeft: number, pastDue: boolean): string {
 }
 
 function awayCopy(member: TeamMemberReport): string {
-  if (member.attendanceStatus === "leave") {
+  if (
+    member.attendanceStatus === "leave" ||
+    member.attendanceStatus === "half_leave"
+  ) {
+    if (member.attendanceStatus === "half_leave") return "Half day";
     if (!member.leaveUntil) return "On leave";
     return `On leave until ${LEAVE_DATE.format(new Date(`${member.leaveUntil}T00:00:00Z`))}`;
   }
@@ -121,6 +140,8 @@ export function HeroTeamTile({
   const listRows = (count: number) =>
     wide ? { gridTemplateRows: `repeat(${Math.ceil(count / 2)}, auto)` } : undefined;
   const everyoneIn = members.length > 0 && missing.length === 0 && expected > 0;
+  const allAway = expected === 0 && away.length > 0;
+  const inLabel = formatInCount(submitted.length, expected, away.length);
   const summaryBits = [
     missing.length > 0 ? `${missing.length} missing` : null,
     away.length > 0 ? `${away.length} away` : null,
@@ -150,34 +171,38 @@ export function HeroTeamTile({
             <div className="flex flex-col gap-2 md:hidden">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-2xl font-semibold tabular-nums">
-                  {completionPct(submitted.length, expected, everyoneIn)}%
+                  {allAway ? "—" : `${completionPct(submitted.length, expected, everyoneIn)}%`}
                 </span>
                 <span className="min-w-0 truncate text-sm tabular-nums">
-                  {submitted.length} of {expected} in
-                  {summaryBits.length > 0 && (
+                  {inLabel}
+                  {!allAway && summaryBits.length > 0 && (
                     <span className="text-muted-foreground"> · {summaryBits.join(", ")}</span>
                   )}
                 </span>
               </div>
-              <Meter
-                value={everyoneIn ? 1 : submitted.length}
-                max={everyoneIn ? 1 : expected}
-                tone="success"
-                label={`${submitted.length} of ${expected} reports in`}
-                className="h-2"
-              />
+              {!allAway && (
+                <Meter
+                  value={everyoneIn ? 1 : submitted.length}
+                  max={everyoneIn ? 1 : Math.max(expected, 1)}
+                  tone="success"
+                  label={inLabel}
+                  className="h-2"
+                />
+              )}
             </div>
             <div className="hidden flex-col items-center justify-center gap-1 text-center md:flex md:pr-4">
-              <CompletionRing
-                done={submitted.length}
-                total={expected}
-                full={everyoneIn}
-                size={104}
-              />
+              {!allAway ? (
+                <CompletionRing
+                  done={submitted.length}
+                  total={expected}
+                  full={everyoneIn}
+                  size={104}
+                />
+              ) : null}
               <p className="mt-2 text-[15px] font-medium tabular-nums">
-                {submitted.length} of {expected} in
+                {inLabel}
               </p>
-              {summaryBits.length > 0 && (
+              {!allAway && summaryBits.length > 0 && (
                 <p className="text-xs text-muted-foreground">{summaryBits.join(" · ")}</p>
               )}
             </div>
@@ -334,6 +359,8 @@ export function HeroTeamView({
   const shown = expanded ? submitted : submitted.slice(0, 5);
   const more = submitted.length - shown.length;
   const deadlineText = orgOffDay ? null : deadlineCopy(progress.minutesLeft, progress.pastDue);
+  const inLabel = formatInCount(submitted.length, expected, away.length);
+  const allAway = expected === 0 && away.length > 0;
 
   return (
     <Tile style={{ viewTransitionName: "hero-team" }}>
@@ -342,16 +369,18 @@ export function HeroTeamView({
         panelRef={panelRef}
         onClose={onClose}
         leading={
-          <CompletionRing
-            done={submitted.length}
-            total={expected}
-            full={expected > 0 && missing.length === 0}
-            size={28}
-          />
+          allAway ? undefined : (
+            <CompletionRing
+              done={submitted.length}
+              total={expected}
+              full={expected > 0 && missing.length === 0}
+              size={28}
+            />
+          )
         }
         meta={
           <>
-            {submitted.length} of {expected} in
+            {inLabel}
             {deadlineText ? (
               <>
                 {" · "}
@@ -384,7 +413,12 @@ export function HeroTeamView({
             {shown.map((member) => {
               const comments = commentCounts[member.report.id] ?? 0;
               const late =
-                getSubmissionStatus(member.report.submitted_at, deadline.deadlineHourLocal, deadline) === "late";
+                getSubmissionStatus(
+                  member.report.submitted_at,
+                  deadline.deadlineHourUtc,
+                  deadline,
+                  member.report.report_date,
+                ) === "late";
               const sheetIndex = submitted.findIndex((item) => item.report.id === member.report.id);
               const extras = [
                 comments > 0 ? `${comments} ${comments === 1 ? "comment" : "comments"}` : null,

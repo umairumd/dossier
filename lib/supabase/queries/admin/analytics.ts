@@ -12,6 +12,7 @@ import {
   completionWindows,
 } from "@/lib/helpers/completion-trend";
 import { deadlineWindow } from "@/lib/helpers/deadline-window";
+import { partitionReporters } from "@/lib/helpers/report-stats";
 import type { AttendanceStatus } from "@/types/attendance";
 import type { CompletionTrendPoint, OrganizationTrends } from "@/types/team-insights";
 
@@ -82,7 +83,7 @@ export const getCompanyCompletion = cache(async (): Promise<CompanyCompletion> =
   const admin = createAdminClient();
   const settings = await getOrganizationSettings();
   const since = dateNDaysAgo(59);
-  const [{ data: employees, error: employeesError }, { data: reports, error: reportsError }, { data: attendance, error: attendanceError }] =
+  const [{ data: employees, error: employeesError }, { data: reports, error: reportsError }] =
     await Promise.all([
       admin
         .from("profiles")
@@ -90,24 +91,38 @@ export const getCompanyCompletion = cache(async (): Promise<CompanyCompletion> =
         .match(REPORTING_MATCH)
         .is("archived_at", null),
       admin.from("daily_reports").select("author_id, report_date").gte("report_date", since),
-      admin
-        .from("attendance_records")
-        .select("profile_id, date, status")
-        .eq("status", "holiday")
-        .gte("date", since),
     ]);
-  if (employeesError || reportsError || attendanceError) {
+  if (employeesError || reportsError) {
     throw new Error("Failed to load company completion.");
   }
   const roster = employees ?? [];
   const ids = new Set(roster.map((person) => person.id));
+  const rosterIdList = [...ids];
+  const { data: attendance, error: attendanceError } =
+    rosterIdList.length === 0
+      ? { data: [] as { profile_id: string; date: string; status: AttendanceStatus }[], error: null }
+      : await admin
+          .from("attendance_records")
+          .select("profile_id, date, status")
+          .in("status", ["leave", "half_leave", "holiday", "weekly_off"])
+          .in("profile_id", rosterIdList)
+          .gte("date", since);
+  if (attendanceError) {
+    throw new Error("Failed to load company completion.");
+  }
   const submittersByDate = buildSubmittersByDate(
     (reports ?? []).filter((row) => ids.has(row.author_id)),
   );
+  const attendanceByDate = new Map<string, Map<string, AttendanceStatus>>();
   const holidayCounts = new Map<string, number>();
   for (const row of (attendance ?? []) as { profile_id: string; date: string; status: AttendanceStatus }[]) {
     if (!ids.has(row.profile_id)) continue;
-    holidayCounts.set(row.date, (holidayCounts.get(row.date) ?? 0) + 1);
+    const byProfile = attendanceByDate.get(row.date) ?? new Map();
+    byProfile.set(row.profile_id, row.status);
+    attendanceByDate.set(row.date, byProfile);
+    if (row.status === "holiday") {
+      holidayCounts.set(row.date, (holidayCounts.get(row.date) ?? 0) + 1);
+    }
   }
   const holidays = new Set<string>();
   for (const [date, count] of holidayCounts) {
@@ -122,11 +137,33 @@ export const getCompanyCompletion = cache(async (): Promise<CompanyCompletion> =
     holidays,
   ).map((point) => {
     const submitters = submittersByDate.get(point.date) ?? new Set();
-    const missingNames = roster
-      .filter((person) => !submitters.has(person.id))
-      .map((person) => person.full_name)
+    const dayAttendance = attendanceByDate.get(point.date) ?? new Map();
+    const partition = partitionReporters(
+      roster.map((person) => ({
+        id: person.id,
+        hasReport: submitters.has(person.id),
+        attendanceStatus: dayAttendance.get(person.id) ?? null,
+      })),
+    );
+    const nameById = new Map(roster.map((person) => [person.id, person.full_name]));
+    const missingNames = partition.missing
+      .map((member) => nameById.get(member.id) ?? "")
+      .filter(Boolean)
       .sort((a, b) => a.localeCompare(b));
-    return { ...point, missingNames };
+    return {
+      ...point,
+      submitted: partition.submitted.length,
+      expected: partition.expected,
+      away: partition.away.length,
+      completionPercentage:
+        partition.expected === 0
+          ? 0
+          : Math.min(
+              100,
+              Math.round((partition.submitted.length / partition.expected) * 100),
+            ),
+      missingNames,
+    };
   });
   const today = todayInTimezone(settings.timezone);
   const includeToday = deadlineWindow(

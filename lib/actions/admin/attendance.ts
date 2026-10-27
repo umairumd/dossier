@@ -42,13 +42,12 @@ async function fetchExistingLeaveDeducted(
 type AdminClient = ReturnType<typeof createAdminClient>;
 
 /**
- * Applies a leave delta to BOTH ledgers:
- *  - profiles.leave_balance          -= delta
- *  - leave_balances.total_used (active row) += delta
+ * Applies a leave delta to the active contract-year ledger:
+ *   leave_balances.total_used += delta
  *
  * `delta` is days consumed; negative values refund. No floor is applied —
- * negative balances are intentional. If the second write fails, the first is
- * reversed so the ledgers never silently diverge.
+ * negative balances are intentional. profiles.leave_balance is updated by
+ * the leave_balances sync trigger.
  */
 async function adjustLeaveLedgers(
   adminClient: AdminClient,
@@ -59,30 +58,6 @@ async function adjustLeaveLedgers(
     return { success: true };
   }
 
-  const { data: profile, error: fetchError } = await adminClient
-    .from("profiles")
-    .select("leave_balance")
-    .eq("id", profileId)
-    .maybeSingle();
-
-  if (fetchError) {
-    return { success: false, error: fetchError.message };
-  }
-
-  if (!profile) {
-    return { success: false, error: "Employee profile not found." };
-  }
-
-  const previousBalance = Number(profile.leave_balance);
-  const { error: profileError } = await adminClient
-    .from("profiles")
-    .update({ leave_balance: previousBalance - delta })
-    .eq("id", profileId);
-
-  if (profileError) {
-    return { success: false, error: profileError.message };
-  }
-
   const { data: ledger, error: ledgerFetchError } = await adminClient
     .from("leave_balances")
     .select("id, total_used")
@@ -90,38 +65,28 @@ async function adjustLeaveLedgers(
     .eq("status", "active")
     .maybeSingle();
 
-  let ledgerErrorMessage: string | null = ledgerFetchError?.message ?? null;
-
-  if (!ledgerErrorMessage) {
-    if (!ledger) {
-      ledgerErrorMessage =
-        "No active leave balance found for this employee.";
-    } else {
-      const { error: ledgerUpdateError } = await adminClient
-        .from("leave_balances")
-        .update({ total_used: Number(ledger.total_used) + delta })
-        .eq("id", ledger.id);
-      ledgerErrorMessage = ledgerUpdateError?.message ?? null;
-    }
+  if (ledgerFetchError) {
+    return { success: false, error: ledgerFetchError.message };
   }
 
-  if (ledgerErrorMessage) {
+  if (!ledger) {
+    return {
+      success: false,
+      error: "No active leave balance found for this employee.",
+    };
+  }
+
+  const { error: ledgerUpdateError } = await adminClient
+    .from("leave_balances")
+    .update({ total_used: Number(ledger.total_used) + delta })
+    .eq("id", ledger.id);
+
+  if (ledgerUpdateError) {
     console.error(
       `[leave] Failed to update leave_balances.total_used for ${profileId}:`,
-      ledgerErrorMessage,
+      ledgerUpdateError.message,
     );
-    const { error: undoError } = await adminClient
-      .from("profiles")
-      .update({ leave_balance: previousBalance })
-      .eq("id", profileId);
-
-    if (undoError) {
-      console.error(
-        `[leave] LEDGER MISMATCH: could not restore profiles.leave_balance for ${profileId} (expected ${previousBalance}):`,
-        undoError,
-      );
-    }
-    return { success: false, error: ledgerErrorMessage };
+    return { success: false, error: ledgerUpdateError.message };
   }
 
   return { success: true };
@@ -529,12 +494,14 @@ export async function adjustLeaveBalance(
   }
 
   const previousAccrued = Number(balance.total_accrued);
+  // Floor at 0: a large negative adjust cannot push accrued below zero.
+  // The applied delta may be smaller than the requested adjustment.
   const nextAccrued = Math.max(0, previousAccrued + adjustment);
-  const bankDelta = nextAccrued - previousAccrued;
+  const appliedAdjustment = nextAccrued - previousAccrued;
 
   const { data: profile, error: profileFetchError } = await adminClient
     .from("profiles")
-    .select("leave_balance, organization_id, full_name")
+    .select("organization_id, full_name")
     .eq("id", profileId)
     .maybeSingle();
 
@@ -546,7 +513,12 @@ export async function adjustLeaveBalance(
     return { success: false, error: "Employee profile not found." };
   }
 
-  const previousBank = Number(profile.leave_balance);
+  if (appliedAdjustment === 0 && adjustment !== 0) {
+    return {
+      success: false,
+      error: "Leave accrued is already at zero; cannot reduce further.",
+    };
+  }
 
   const { error: updateError } = await adminClient
     .from("leave_balances")
@@ -560,35 +532,13 @@ export async function adjustLeaveBalance(
     return { success: false, error: updateError.message };
   }
 
-  if (bankDelta !== 0) {
-    const { error: bankError } = await adminClient
-      .from("profiles")
-      .update({ leave_balance: previousBank + bankDelta })
-      .eq("id", profileId);
-
-    if (bankError) {
-      console.error(
-        `[leave] Failed to sync profiles.leave_balance after adjust for ${profileId}:`,
-        bankError,
-      );
-      await adminClient
-        .from("leave_balances")
-        .update({
-          total_accrued: previousAccrued,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", balance.id);
-      return { success: false, error: bankError.message };
-    }
-  }
-
   const { error: auditError } = await adminClient
     .from("leave_balance_adjustments")
     .insert({
       leave_balance_id: balance.id,
       profile_id: profileId,
       adjusted_by: user.id,
-      adjustment,
+      adjustment: appliedAdjustment,
       note: trimmedNote,
     });
 
@@ -602,8 +552,8 @@ export async function adjustLeaveBalance(
   // Make the change visible: the employee is told, and it shows in activity
   // with the reason (the dialog promises it is logged with name and reason).
   if (profile.organization_id) {
-    const signed = `${adjustment > 0 ? "+" : ""}${adjustment}`;
-    const unit = Math.abs(adjustment) === 1 ? "day" : "days";
+    const signed = `${appliedAdjustment > 0 ? "+" : ""}${appliedAdjustment}`;
+    const unit = Math.abs(appliedAdjustment) === 1 ? "day" : "days";
     await createNotification({
       orgId: profile.organization_id,
       profileId,
@@ -625,7 +575,7 @@ export async function adjustLeaveBalance(
         targetName: profile.full_name ?? undefined,
         entityType: "leave_balance",
         entityId: balance.id,
-        metadata: { adjustment, note: trimmedNote },
+        metadata: { adjustment: appliedAdjustment, note: trimmedNote },
       });
     } catch (logError) {
       console.error("[activity-log] Failed to log leave adjustment:", logError);
@@ -665,7 +615,7 @@ export async function runMonthlyAccrualAction(
 
   const { data: eligible, error: profilesError } = await adminClient
     .from("profiles")
-    .select("id, leave_balance")
+    .select("id")
     .eq("is_active", true)
     .is("archived_at", null)
     .eq("exclude_from_attendance", false);
@@ -720,71 +670,79 @@ export async function runMonthlyAccrualAction(
     return { success: false, count: 0, error: insertError.message };
   }
 
-  const balanceByProfile = new Map(
-    pending.map((profile) => [profile.id, Number(profile.leave_balance)]),
-  );
-  const creditedProfileIds: string[] = [];
-  const failed: string[] = [];
-
-  for (const { profile_id: profileId } of inserted ?? []) {
-    const { error: updateError } = await adminClient
-      .from("profiles")
-      .update({ leave_balance: (balanceByProfile.get(profileId) ?? 0) + 2 })
-      .eq("id", profileId);
-
-    if (updateError) {
-      failed.push(profileId);
-      // Remove the claim so a retry picks this profile up again.
-      const { error: rollbackError } = await adminClient
-        .from("leave_accruals")
-        .delete()
-        .eq("profile_id", profileId)
-        .eq("year", year)
-        .eq("month", month);
-
-      if (rollbackError) {
-        console.error(
-          "[accrual] Failed to roll back accrual row:",
-          profileId,
-          rollbackError,
-        );
-      }
-      continue;
-    }
-
-    creditedProfileIds.push(profileId);
-  }
-
+  const creditedProfileIds = (inserted ?? []).map((row) => row.profile_id);
   const count = creditedProfileIds.length;
+  const failed: string[] = [];
 
   if (count > 0) {
     const { data: balances, error: fetchError } = await adminClient
       .from("leave_balances")
-      .select("id, total_accrued")
+      .select("id, profile_id, total_accrued")
       .eq("status", "active")
       .in("profile_id", creditedProfileIds);
 
     if (fetchError) {
       console.error("[accrual] Failed to load leave_balances:", fetchError);
-    }
-
-    for (const balance of balances ?? []) {
-      const nextAccrued = Math.min(Number(balance.total_accrued) + 2, 24);
-      if (nextAccrued === Number(balance.total_accrued)) {
-        continue;
+      for (const profileId of creditedProfileIds) {
+        failed.push(profileId);
+        const { error: rollbackError } = await adminClient
+          .from("leave_accruals")
+          .delete()
+          .eq("profile_id", profileId)
+          .eq("year", year)
+          .eq("month", month);
+        if (rollbackError) {
+          console.error(
+            "[accrual] Failed to roll back accrual row:",
+            profileId,
+            rollbackError,
+          );
+        }
       }
+    } else {
+      const balanceByProfile = new Map(
+        (balances ?? []).map((row) => [row.profile_id, row]),
+      );
 
-      const { error: balanceError } = await adminClient
-        .from("leave_balances")
-        .update({ total_accrued: nextAccrued })
-        .eq("id", balance.id);
+      for (const profileId of creditedProfileIds) {
+        const balance = balanceByProfile.get(profileId);
+        if (!balance) {
+          // No active ledger — leave the accrual claim so we don't retry
+          // every month forever; remaining is still zero until init.
+          continue;
+        }
 
-      if (balanceError) {
-        console.error(
-          "[accrual] Failed to update leave_balances:",
-          balance.id,
-          balanceError,
-        );
+        const nextAccrued = Math.min(Number(balance.total_accrued) + 2, 24);
+        if (nextAccrued === Number(balance.total_accrued)) {
+          continue;
+        }
+
+        const { error: balanceError } = await adminClient
+          .from("leave_balances")
+          .update({ total_accrued: nextAccrued })
+          .eq("id", balance.id);
+
+        if (balanceError) {
+          console.error(
+            "[accrual] Failed to update leave_balances:",
+            balance.id,
+            balanceError,
+          );
+          failed.push(profileId);
+          const { error: rollbackError } = await adminClient
+            .from("leave_accruals")
+            .delete()
+            .eq("profile_id", profileId)
+            .eq("year", year)
+            .eq("month", month);
+          if (rollbackError) {
+            console.error(
+              "[accrual] Failed to roll back accrual row:",
+              profileId,
+              rollbackError,
+            );
+          }
+        }
       }
     }
   }
@@ -798,7 +756,7 @@ export async function runMonthlyAccrualAction(
         actorId: admin.id,
         actorName: actorName ?? undefined,
         entityType: "leave_balance",
-        metadata: { count, year, month },
+        metadata: { count: count - failed.length, year, month },
       });
     }
   } catch (logError) {
@@ -810,7 +768,7 @@ export async function runMonthlyAccrualAction(
   if (failed.length > 0) {
     return {
       success: false,
-      count,
+      count: count - failed.length,
       error: `Accrual failed for ${failed.length} employee${failed.length === 1 ? "" : "s"}. Run it again to retry.`,
     };
   }

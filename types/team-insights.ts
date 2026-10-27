@@ -7,6 +7,7 @@ export interface CompletionTrendPoint {
   missingNames?: string[];
   submitted?: number;
   expected?: number;
+  away?: number;
 }
 
 export interface TeamMemberStanding {
