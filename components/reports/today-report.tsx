@@ -288,12 +288,17 @@ function SubmittedRest({
   onEdit: () => void;
   triggerRef: (node: HTMLButtonElement | null) => void;
 }) {
-  const status = getSubmissionStatus(report.submitted_at, deadlineHourLocal, {
+  const status = getSubmissionStatus(
+    report.submitted_at,
     deadlineHourLocal,
-    deadlineHourUtc: deadlineHourLocal,
-    timezone: timeZone,
-    workingDays: [],
-  });
+    {
+      deadlineHourLocal,
+      deadlineHourUtc: deadlineHourLocal,
+      timezone: timeZone,
+      workingDays: [],
+    },
+    report.report_date,
+  );
   const late = status === "late";
   const time = formatLocalTime(report.submitted_at);
   return (

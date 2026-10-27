@@ -12,6 +12,7 @@ import {
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { completionWindows } from "@/lib/helpers/completion-trend";
+import { formatInCount, partitionReporters } from "@/lib/helpers/report-stats";
 import { CompletionLineChart } from "@/components/analytics/completion-line-chart";
 import { DataList, DataListRow, PersonCell } from "@/components/shared/data-list";
 import { GroupHeading } from "@/components/shared/person-card";
@@ -83,19 +84,22 @@ export default async function DepartmentDetailPage({
   const reportingMembers = detail.members.filter(
     (member) => member.has_onboarded && member.is_reporting,
   );
-  const reportingIds = new Set(reportingMembers.map((member) => member.id));
   const onLeaveIds = new Set(detail.onLeaveMemberIds);
-  const submittedToday = Object.keys(detail.submittedAtByMemberId).filter(
-    (id) => reportingIds.has(id),
-  ).length;
+  const partition = partitionReporters(
+    reportingMembers.map((member) => ({
+      id: member.id,
+      hasReport: detail.submittedAtByMemberId[member.id] != null,
+      attendanceStatus: onLeaveIds.has(member.id) ? ("leave" as const) : null,
+    })),
+  );
+  const submittedToday = partition.submitted.length;
   const totalCount = reportingMembers.length;
   // With no reporting members there is nothing to measure; show "—" rather
   // than a misleading 0/0 and 0%.
   const hasReportingMembers = totalCount > 0;
-  const expectedToday = reportingMembers.filter(
-    (member) => !onLeaveIds.has(member.id),
-  ).length;
-  const missingToday = Math.max(expectedToday - submittedToday, 0);
+  const expectedToday = partition.expected;
+  const missingToday = partition.missing.length;
+  const awayToday = partition.away.length;
   const today = todayInTimezone(settings.timezone);
 
   const currentTemplate = detail.template_id
@@ -116,7 +120,11 @@ export default async function DepartmentDetailPage({
   // At most one middle dot: the department, then today.
   const who = `${detail.members.length} ${detail.members.length === 1 ? "person" : "people"}, ${detail.manager ? `managed by ${detail.manager.full_name}` : "no manager"}`;
   const description = hasReportingMembers
-    ? `${who} · ${submittedToday} of ${totalCount} in today${missingToday > 0 && deadlinePassed ? `, ${missingToday} missing` : ""}`
+    ? `${who} · ${formatInCount(submittedToday, expectedToday, awayToday)}${
+        missingToday > 0 && deadlinePassed && expectedToday > 0
+          ? `, ${missingToday} missing`
+          : ""
+      }`
     : who;
 
   return (

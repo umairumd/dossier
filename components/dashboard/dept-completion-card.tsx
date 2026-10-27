@@ -14,6 +14,7 @@ import { Meter } from "@/components/ui/meter";
 import { DateStepper } from "@/components/shared/date-nav";
 import { fetchDeptCompletion } from "@/lib/actions/admin/dept-completion";
 import { isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { formatInCount } from "@/lib/helpers/report-stats";
 import { cn } from "@/lib/utils";
 import type { DeptCompletionRow } from "@/lib/supabase/queries/admin/dept-completion";
 
@@ -23,15 +24,19 @@ function DeptRow({
   name,
   submitted,
   total,
+  away,
   deadlinePassed,
 }: {
   name: string;
   submitted: number;
   total: number;
+  away: number;
   deadlinePassed: boolean;
 }) {
+  const label = formatInCount(submitted, total, away);
+  const allAway = total === 0 && away > 0;
   const allIn = total > 0 && submitted >= total;
-  const behind = deadlinePassed && !allIn;
+  const behind = deadlinePassed && !allIn && !allAway;
 
   return (
     <div className="flex flex-col gap-2">
@@ -44,15 +49,17 @@ function DeptRow({
             allIn && "text-ok",
           )}
         >
-          {allIn ? "All in" : `${submitted} of ${total} in`}
+          {allIn ? "All in" : label}
         </span>
       </div>
-      <Meter
-        value={submitted}
-        max={total}
-        tone={allIn ? "success" : behind ? "warning" : "neutral"}
-        label={`${name}: ${submitted} of ${total} reports in`}
-      />
+      {!allAway && (
+        <Meter
+          value={submitted}
+          max={Math.max(total, 1)}
+          tone={allIn ? "success" : behind ? "warning" : "neutral"}
+          label={`${name}: ${label}`}
+        />
+      )}
     </div>
   );
 }
@@ -155,17 +162,26 @@ export function DeptCompletionCard({
               const isUnassigned = dept.departmentId === "__unassigned__";
               const name = isUnassigned ? "No Department" : dept.departmentName;
 
-              if (isUnassigned && dept.submitted <= 0 && dept.total <= 0) {
+              if (
+                isUnassigned &&
+                dept.submitted <= 0 &&
+                dept.total <= 0 &&
+                (dept.away ?? 0) <= 0
+              ) {
                 return null;
               }
 
               const row = isOffDay ? (
-                <DeptDirectoryRow name={name} total={dept.total} />
+                <DeptDirectoryRow
+                  name={name}
+                  total={dept.total + (dept.away ?? 0)}
+                />
               ) : (
                 <DeptRow
                   name={name}
                   submitted={dept.submitted}
                   total={dept.total}
+                  away={dept.away ?? 0}
                   deadlinePassed={deadlinePassed}
                 />
               );

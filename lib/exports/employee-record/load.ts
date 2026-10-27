@@ -6,6 +6,7 @@ import { getAttendanceSettings } from "@/lib/supabase/queries/attendance";
 import { getOrgTemplatesWithFields } from "@/lib/supabase/queries/templates";
 import { getCommentsForReports } from "@/lib/supabase/queries/report-comments";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
+import { ledgerRemaining } from "@/lib/helpers/leave-balance";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { addDays, type RecordAttendanceRow, type RecordComment, type RecordRaw } from "./build";
 import type { DailyReport } from "@/types/report";
@@ -45,11 +46,12 @@ export async function loadEmployeeRecordRaw(
     templates,
     { data: accruals },
     { data: adjustments },
+    { data: activeBalance },
     orgName,
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, designation, created_at, leave_balance")
+      .select("id, full_name, designation, created_at")
       .eq("id", employeeId)
       .maybeSingle(),
     supabase
@@ -88,6 +90,12 @@ export async function loadEmployeeRecordRaw(
       .eq("profile_id", employeeId)
       .gte("created_at", `${addDays(from, -1)}T00:00:00Z`)
       .lte("created_at", `${addDays(to, 1)}T23:59:59Z`),
+    supabase
+      .from("leave_balances")
+      .select("total_accrued, total_used")
+      .eq("profile_id", employeeId)
+      .eq("status", "active")
+      .maybeSingle(),
     getOrganizationName(),
   ]);
 
@@ -127,7 +135,12 @@ export async function loadEmployeeRecordRaw(
       departments,
       managerName: managers.length > 0 ? managers.join(", ") : null,
       joinedOn: (profile.created_at as string).slice(0, 10),
-      leaveBalanceNow: Number(profile.leave_balance ?? 0),
+      leaveBalanceNow: activeBalance
+        ? ledgerRemaining(
+            Number(activeBalance.total_accrued),
+            Number(activeBalance.total_used),
+          )
+        : 0,
     },
     orgName: settings.orgName ?? orgName,
     timezone: settings.timezone,

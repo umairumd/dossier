@@ -6,6 +6,9 @@ export interface OrganizationSummary {
   archivedUsers: number;
   submittedToday: number;
   missingToday: number;
+  /** Expected reporters today (reporting roster minus away). */
   totalMembers: number;
+  /** On leave / holiday / weekly_off with no report. */
+  awayToday: number;
   completionPercentageToday: number;
 }

@@ -269,7 +269,7 @@ export const getDepartmentDetail = cache(
             .from("attendance_records")
             .select("profile_id")
             .eq("date", today)
-            .in("status", ["leave", "half_leave"])
+            .in("status", ["leave", "half_leave", "holiday", "weekly_off"])
             .in("profile_id", memberIds),
         ]);
 

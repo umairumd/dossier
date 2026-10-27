@@ -329,7 +329,7 @@ assert.equal(isWearable("snowman", new Set(), inSeason, TZ), true);
 assert.equal(isWearable("snowman", new Set(), january, TZ), true);
 assert.equal(isWearable("snowman", new Set(), outSeason, TZ), false);
 assert.equal(earned({ ...zero, totalReports: 100 }).has("snowman"), false, "seasonal items are never owned");
-assert.equal(seasonWindowLabel("snowman"), "Dec 1 – Jan 31");
+assert.equal(seasonWindowLabel("snowman"), "Dec 1 - Jan 31");
 
 assert.deepEqual(
   [...SET_ASIDE.accessories].sort(),

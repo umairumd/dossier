@@ -2,7 +2,9 @@ import { cache } from "react";
 import { REPORTING_MATCH } from "@/lib/supabase/queries/reporting-rule";
 import { createClient, getAuthUser } from "@/lib/supabase/server";
 import { requireSupervisorUser } from "@/lib/supabase/require-admin";
+import { loadActiveLeaveRemainingByProfile } from "@/lib/helpers/leave-balance";
 import { daysBetweenDateStrings, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { partitionReporters } from "@/lib/helpers/report-stats";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { TeamRosterMember } from "@/lib/supabase/queries/manager/team";
 import type { AttendanceStatus } from "@/types/attendance";
@@ -40,14 +42,18 @@ export const getSupervisedMembers = cache(
       return [];
     }
 
-    const { data: employees, error: employeesError } = await supabase
-      .from("profiles")
-      .select(
-        "id, full_name, designation, is_remote, employment_type, avatar_url, avatar, template_id, leave_balance, created_at",
-      )
-      .in("id", memberIds)
-      .is("archived_at", null)
-      .order("full_name", { ascending: true });
+    const [{ data: employees, error: employeesError }, remainingByProfile] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select(
+            "id, full_name, designation, is_remote, employment_type, avatar_url, avatar, template_id, created_at",
+          )
+          .in("id", memberIds)
+          .is("archived_at", null)
+          .order("full_name", { ascending: true }),
+        loadActiveLeaveRemainingByProfile(supabase, memberIds),
+      ]);
 
     if (employeesError) {
       throw new Error("Failed to load supervised members.");
@@ -55,7 +61,7 @@ export const getSupervisedMembers = cache(
 
     return (employees ?? []).map((row) => ({
       ...row,
-      leave_balance: Number(row.leave_balance ?? 0),
+      leave_balance: remainingByProfile.get(row.id) ?? 0,
     }));
   },
 );
@@ -176,8 +182,15 @@ export const getSupervisedMissingToday = cache(
     }
 
     const todayMembers = await getSupervisedReportsForDate(today);
-    const missing = todayMembers.filter(
-      (member) => !member.report && !member.isOnLeave,
+    const partition = partitionReporters(
+      todayMembers.map((member) => ({
+        id: member.employeeId,
+        hasReport: member.report != null,
+        attendanceStatus: member.attendanceStatus ?? null,
+      })),
+    );
+    const missing = todayMembers.filter((member) =>
+      partition.missing.some((row) => row.id === member.employeeId),
     );
 
     if (missing.length === 0) {

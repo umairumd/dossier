@@ -26,6 +26,7 @@ import {
   CardFooterLink,
   CardTitleHeader,
 } from "@/components/ui/card";
+import { formatInCount } from "@/lib/helpers/report-stats";
 import { cn } from "@/lib/utils";
 import type { ActivityLogEntry } from "@/types/activity";
 
@@ -44,6 +45,7 @@ export interface ActivityDayTotals {
   date: string;
   submitted?: number;
   expected?: number;
+  away?: number;
   missingNames?: string[];
 }
 
@@ -52,6 +54,7 @@ export interface ActivityToday {
   date: string;
   submitted: number;
   expected: number;
+  away?: number;
   deadlineLabel: string;
   deadlinePassed: boolean;
 }
@@ -177,14 +180,22 @@ export function HomeActivityCard({
   function digestText(row: Extract<Row, { kind: "digest" }>) {
     const isToday = row.dayKey === today.date;
     const totals = isToday
-      ? { submitted: today.submitted, expected: today.expected, missingNames: undefined }
+      ? {
+          submitted: today.submitted,
+          expected: today.expected,
+          away: today.away,
+          missingNames: undefined,
+        }
       : totalsByDay.get(row.dayKey);
     const submitted = totals?.submitted ?? row.count;
     const expected = totals?.expected ?? 0;
+    const away = totals?.away ?? 0;
     const headline =
-      expected > 0 && (!isToday || today.deadlinePassed || submitted >= expected)
-        ? `${submitted} of ${expected} reports in`
-        : `${submitted} ${submitted === 1 ? "report" : "reports"} in`;
+      expected === 0 && away > 0
+        ? "On leave"
+        : expected > 0 && (!isToday || today.deadlinePassed || submitted >= expected)
+          ? `${formatInCount(submitted, expected, away).replace(/ in$/, "")} reports in`
+          : `${submitted} ${submitted === 1 ? "report" : "reports"} in`;
     const names = listNames(row.firstNames, Math.max(submitted, row.firstNames.length));
 
     let detail: string | null = null;

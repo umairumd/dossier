@@ -79,6 +79,70 @@ export function isAttendanceExempt(
   );
 }
 
+/** Minimal shape for day-of expected / missing / away partitioning. */
+export interface PartitionableReporter {
+  id: string;
+  hasReport: boolean;
+  attendanceStatus?: AttendanceStatus | null;
+}
+
+export interface ReporterPartition<T extends PartitionableReporter> {
+  submitted: T[];
+  missing: T[];
+  away: T[];
+  /** People who should file a report today: submitted + missing. */
+  expected: number;
+}
+
+/**
+ * Split a reporting roster for one day.
+ * Away = leave / half_leave / holiday / weekly_off with no report, or an org
+ * off day with no report. A person who is away on attendance but still filed
+ * counts as submitted (and therefore expected).
+ */
+export function partitionReporters<T extends PartitionableReporter>(
+  members: T[],
+  options?: { orgOffDay?: boolean },
+): ReporterPartition<T> {
+  const orgOffDay = options?.orgOffDay ?? false;
+  const submitted: T[] = [];
+  const missing: T[] = [];
+  const away: T[] = [];
+
+  for (const member of members) {
+    if (member.hasReport) {
+      submitted.push(member);
+      continue;
+    }
+
+    if (isAttendanceExempt(member.attendanceStatus) || orgOffDay) {
+      away.push(member);
+      continue;
+    }
+
+    missing.push(member);
+  }
+
+  return {
+    submitted,
+    missing,
+    away,
+    expected: submitted.length + missing.length,
+  };
+}
+
+/** "3 of 5 in", or "On leave" when nobody is expected and someone is away. */
+export function formatInCount(
+  submitted: number,
+  expected: number,
+  awayCount: number,
+): string {
+  if (expected === 0 && awayCount > 0) {
+    return "On leave";
+  }
+  return `${submitted} of ${expected} in`;
+}
+
 /** Inclusive working-day count between two YYYY-MM-DD dates. */
 export function countWorkingDaysBetween(
   startDate: string,

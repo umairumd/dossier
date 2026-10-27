@@ -11,7 +11,13 @@ import { getAvatarsByProfileIds, type ProfileWithDepartment } from "@/lib/supaba
 import { getHomeDay, getMyAttendanceHistory } from "@/lib/supabase/queries/home";
 import { getMyRewardStats, getMyUnlocks } from "@/lib/actions/avatar";
 import { formatHourLabel } from "@/lib/helpers/dates";
-import { buildAttendanceStatusMap, computeReportStats } from "@/lib/helpers/report-stats";
+import {
+  buildAttendanceStatusMap,
+  computeReportStats,
+  formatInCount,
+  partitionReporters,
+} from "@/lib/helpers/report-stats";
+import type { AttendanceStatus } from "@/types/attendance";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import type { HeroPanelId } from "@/components/dashboard/hero-controller";
 import { HomeActivityCard } from "@/components/dashboard/home-activity-card";
@@ -67,10 +73,27 @@ export function ManagerDashboard({
   );
 }
 
-function teamCounts(members: { report: unknown }[]) {
-  const teamSize = members.length;
-  const submittedToday = members.filter((member) => member.report).length;
-  return { teamSize, submittedToday, missingToday: teamSize - submittedToday };
+function teamCounts(
+  members: {
+    report: unknown;
+    attendanceStatus?: AttendanceStatus | null;
+  }[],
+  orgOffDay = false,
+) {
+  const partition = partitionReporters(
+    members.map((member, index) => ({
+      id: String(index),
+      hasReport: member.report != null,
+      attendanceStatus: member.attendanceStatus ?? null,
+    })),
+    { orgOffDay },
+  );
+  return {
+    teamSize: partition.expected,
+    submittedToday: partition.submitted.length,
+    missingToday: partition.missing.length,
+    awayToday: partition.away.length,
+  };
 }
 
 async function ManagerHero({
@@ -134,8 +157,12 @@ async function ManagerHero({
   ]);
 
   const { settings, todayDate, isOffDay, onFullDayLeave } = day;
-  const { teamSize, submittedToday, missingToday } = teamCounts(members);
-  const completionPercentage = teamSize === 0 ? 0 : Math.round((submittedToday / teamSize) * 100);
+  const { teamSize, submittedToday, missingToday, awayToday } = teamCounts(
+    members,
+    isOffDay,
+  );
+  const completionPercentage =
+    teamSize === 0 ? 0 : Math.round((submittedToday / teamSize) * 100);
   const isBirthday = profile.date_of_birth?.slice(5, 10) === todayDate.slice(5, 10);
   const reportStats = computeReportStats(statsRows, settings.timezone, {
     workingDays: settings.workingDays,
@@ -150,12 +177,14 @@ async function ManagerHero({
   // Context line is team status only — report/off-day actions live in
   // HeroReportStatus below the divider.
   let contextLine: string;
-  if (teamSize === 0) {
+  if (members.length === 0) {
     contextLine = "No team members assigned yet";
+  } else if (teamSize === 0 && awayToday > 0) {
+    contextLine = "Your team is on leave today";
   } else if (missingToday === 0) {
     contextLine = `Your entire team has submitted today`;
   } else {
-    contextLine = `${submittedToday} of ${teamSize} team members have submitted today`;
+    contextLine = `${formatInCount(submittedToday, teamSize, awayToday)} today`;
   }
 
   // The hero reveals itself once its buddies are drawn (see DashboardHero).
@@ -253,7 +282,10 @@ async function TeamActivitySection({ profileId }: { profileId: string }) {
     getTeamReportsForDate(),
     getHomeDay(),
   ]);
-  const { teamSize, submittedToday } = teamCounts(members);
+  const { teamSize, submittedToday, awayToday } = teamCounts(
+    members,
+    day.isOffDay,
+  );
   return (
     <HomeActivityCard
       mode="team"
@@ -264,6 +296,7 @@ async function TeamActivitySection({ profileId }: { profileId: string }) {
         date: day.todayDate,
         submitted: submittedToday,
         expected: day.isOffDay ? 0 : teamSize,
+        away: day.isOffDay ? 0 : awayToday,
         deadlineLabel: formatHourLabel(day.settings.reportDeadlineHourLocal),
         deadlinePassed: day.deadlinePassed,
       }}

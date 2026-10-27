@@ -11,11 +11,16 @@ function monthDay(isoDate: string): string {
   return isoDate.slice(5, 10); // "MM-DD"
 }
 
+function firstName(fullName: string | null): string {
+  const trimmed = fullName?.trim() || "there";
+  return trimmed.split(/\s+/)[0] || trimmed;
+}
+
 /**
  * Send once-per-org-day birthday notifications for profiles whose DOB
- * month-day matches "today" in the org timezone. Idempotent within that
- * org-local day. Called from the hourly cron — not from profile DOB
- * saves or the /birthdays page.
+ * month-day matches "today" in the org timezone. Idempotent per recipient
+ * within that org-local day. Called from the daily Vercel cron — not from
+ * profile DOB saves or the /birthdays page.
  */
 export async function sendBirthdayNotifications(
   orgId: string,
@@ -41,15 +46,15 @@ export async function sendBirthdayNotifications(
     .select("id, full_name, date_of_birth")
     .eq("organization_id", orgId)
     .eq("is_active", true)
-    .is("archived_at", null)
-    .not("date_of_birth", "is", null);
+    .is("archived_at", null);
 
   if (error) {
     console.error("[birthdays] Failed to load profiles:", error);
     return;
   }
 
-  const celebrating = (people ?? []).filter(
+  const roster = people ?? [];
+  const celebrating = roster.filter(
     (person) =>
       person.date_of_birth != null &&
       monthDay(person.date_of_birth) === todayMonthDay,
@@ -59,37 +64,64 @@ export async function sendBirthdayNotifications(
     return;
   }
 
-  // Idempotency: birthday notifications already created for these profiles
-  // during the org-local calendar day (not UTC midnight–midnight).
+  // Idempotency: any birthday notification already created for a recipient
+  // during the org-local calendar day (self or teammate notice).
   const { data: existing } = await adminClient
     .from("notifications")
-    .select("profile_id")
+    .select("profile_id, entity_id")
     .eq("org_id", orgId)
     .eq("type", "birthday")
     .in(
       "profile_id",
-      celebrating.map((person) => person.id),
+      roster.map((person) => person.id),
     )
     .gte("created_at", startIso)
     .lt("created_at", endIso);
 
   const alreadySent = new Set(
-    (existing ?? []).map((row) => row.profile_id as string),
+    (existing ?? []).map(
+      (row) => `${row.profile_id}:${row.entity_id ?? ""}`,
+    ),
   );
 
-  await Promise.all(
-    celebrating
-      .filter((person) => !alreadySent.has(person.id))
-      .map((person) => {
-        const name = person.full_name?.trim() || "a teammate";
-        return createNotification({
+  const tasks: Promise<unknown>[] = [];
+
+  for (const celebrant of celebrating) {
+    const fullName = celebrant.full_name?.trim() || "a teammate";
+    const selfKey = `${celebrant.id}:${celebrant.id}`;
+    if (!alreadySent.has(selfKey)) {
+      tasks.push(
+        createNotification({
           orgId,
-          profileId: person.id,
+          profileId: celebrant.id,
           type: "birthday",
-          title: `Today is ${name}'s birthday`,
+          title: `Happy birthday, ${firstName(celebrant.full_name)}!`,
+          body: "Have a wonderful day — your team is cheering for you.",
           entityType: "employee",
-          entityId: person.id,
-        });
-      }),
-  );
+          entityId: celebrant.id,
+        }),
+      );
+      alreadySent.add(selfKey);
+    }
+
+    for (const peer of roster) {
+      if (peer.id === celebrant.id) continue;
+      const peerKey = `${peer.id}:${celebrant.id}`;
+      if (alreadySent.has(peerKey)) continue;
+      tasks.push(
+        createNotification({
+          orgId,
+          profileId: peer.id,
+          type: "birthday",
+          title: `Today is ${fullName}'s birthday`,
+          body: "Say hi",
+          entityType: "employee",
+          entityId: celebrant.id,
+        }),
+      );
+      alreadySent.add(peerKey);
+    }
+  }
+
+  await Promise.all(tasks);
 }

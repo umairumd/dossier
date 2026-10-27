@@ -3,8 +3,10 @@ import { REPORTING_MATCH } from "@/lib/supabase/queries/reporting-rule";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { daysBetweenDateStrings, isWorkingDay, todayInTimezone } from "@/lib/helpers/dates";
+import { partitionReporters } from "@/lib/helpers/report-stats";
 import { getOrgRosterSize } from "@/lib/supabase/queries/admin/org-reports";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import type { AttendanceStatus } from "@/types/attendance";
 import type { MissingReportRow } from "@/types/missing-report";
 
 export { getOrgRosterSize as getOrgTeamSize };
@@ -44,18 +46,47 @@ export const getOrgMissingReportsToday = cache(
       throw new Error("Failed to load today's reports.");
     }
 
+    const roster = employees ?? [];
     const submittedIds = new Set(
       (reports ?? []).map((report) => report.author_id),
     );
-    const missing = (employees ?? []).filter(
-      (employee) => !submittedIds.has(employee.id),
+
+    const attendanceByProfile = new Map<string, AttendanceStatus>();
+    if (roster.length > 0) {
+      const { data: attendance, error: attendanceError } = await adminClient
+        .from("attendance_records")
+        .select("profile_id, status")
+        .eq("date", today)
+        .in(
+          "profile_id",
+          roster.map((employee) => employee.id),
+        )
+        .in("status", ["leave", "half_leave", "holiday", "weekly_off"]);
+
+      if (attendanceError) {
+        throw new Error("Failed to load today's attendance.");
+      }
+
+      for (const row of attendance ?? []) {
+        attendanceByProfile.set(row.profile_id, row.status as AttendanceStatus);
+      }
+    }
+
+    const partition = partitionReporters(
+      roster.map((employee) => ({
+        id: employee.id,
+        hasReport: submittedIds.has(employee.id),
+        attendanceStatus: attendanceByProfile.get(employee.id) ?? null,
+      })),
     );
 
+    const missing = partition.missing;
     if (missing.length === 0) {
       return [];
     }
 
-    const missingIds = missing.map((employee) => employee.id);
+    const nameById = new Map(roster.map((employee) => [employee.id, employee.full_name]));
+    const missingIds = missing.map((member) => member.id);
 
     const { data: priorReports, error: priorError } = await adminClient
       .from("daily_reports")
@@ -74,13 +105,13 @@ export const getOrgMissingReportsToday = cache(
       }
     }
 
-    return missing.map((employee) => {
+    return missing.map((member) => {
       const lastSubmittedDate =
-        lastSubmittedByAuthor.get(employee.id) ?? null;
+        lastSubmittedByAuthor.get(member.id) ?? null;
 
       return {
-        employeeId: employee.id,
-        fullName: employee.full_name,
+        employeeId: member.id,
+        fullName: nameById.get(member.id) ?? "",
         lastSubmittedDate,
         daysMissed: lastSubmittedDate
           ? daysBetweenDateStrings(lastSubmittedDate, today)

@@ -32,6 +32,16 @@ function localHourInTimezone(isoString: string, timezone: string): number {
   return parseInt(hour ?? "0", 10);
 }
 
+/** Local calendar date (YYYY-MM-DD) of an ISO timestamp in a timezone. */
+function localDateInTimezone(isoString: string, timezone: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(isoString));
+}
+
 // Pure function — the deadline is a parameter, not a hardcoded constant,
 // sourced from the organization_settings table. When ctx is provided,
 // lateness is evaluated in the org timezone against the local deadline
@@ -75,6 +85,16 @@ export function getSubmissionStatus(
       : new Date().getUTCHours();
     const deadlineHour = ctx ? ctx.deadlineHourLocal : deadlineHourUtc;
     return hourNow < deadlineHour ? "pending" : "missed";
+  }
+
+  // Sent on a later local day (after midnight) counts as late, whatever the hour.
+  if (reportDate) {
+    const sentOn = ctx
+      ? localDateInTimezone(submittedAt, ctx.timezone)
+      : submittedAt.slice(0, 10);
+    if (sentOn > reportDate) {
+      return "late";
+    }
   }
 
   if (ctx) {

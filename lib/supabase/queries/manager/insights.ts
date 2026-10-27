@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   computeReportStats,
   computeTenureSubmissionRate,
+  partitionReporters,
   type ReportStatsInput,
 } from "@/lib/helpers/report-stats";
 import { dateNDaysAgo, todayInTimezone } from "@/lib/helpers/dates";
@@ -144,11 +145,32 @@ export const getTeamInsights = cache(async (): Promise<TeamInsights> => {
     holidayDates,
   ).map((point) => {
     const submitters = submittersByDate.get(point.date) ?? new Set();
-    const missingNames = roster
-      .filter((member) => !submitters.has(member.id))
-      .map((member) => member.full_name)
+    const partition = partitionReporters(
+      roster.map((member) => ({
+        id: member.id,
+        hasReport: submitters.has(member.id),
+        attendanceStatus: attendanceByAuthor.get(member.id)?.get(point.date) ?? null,
+      })),
+    );
+    const nameById = new Map(roster.map((member) => [member.id, member.full_name]));
+    const missingNames = partition.missing
+      .map((member) => nameById.get(member.id) ?? "")
+      .filter(Boolean)
       .sort((a, b) => a.localeCompare(b));
-    return { ...point, missingNames };
+    return {
+      ...point,
+      submitted: partition.submitted.length,
+      expected: partition.expected,
+      away: partition.away.length,
+      completionPercentage:
+        partition.expected === 0
+          ? 0
+          : Math.min(
+              100,
+              Math.round((partition.submitted.length / partition.expected) * 100),
+            ),
+      missingNames,
+    };
   });
   const today = todayInTimezone(settings.timezone);
   const includeToday = deadlineWindow(
