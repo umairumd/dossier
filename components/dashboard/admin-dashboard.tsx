@@ -12,13 +12,17 @@ import { getDeadlineContext } from "@/lib/supabase/queries/organization-settings
 import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queries/notifications";
 import { getMyRewardStats, getMyUnlocks } from "@/lib/actions/avatar";
 import { formatHourLabel } from "@/lib/helpers/dates";
-import { getAttendanceSettings } from "@/lib/supabase/queries/attendance";
+import {
+  getActiveLeaveBalance,
+  getAttendanceSettings,
+} from "@/lib/supabase/queries/attendance";
 import { getOrgReportsForDate } from "@/lib/supabase/queries/admin/org-reports";
 import { getReportCommentCounts } from "@/lib/supabase/queries/report-comments";
 import { getHomeDay, getMyAttendanceHistory } from "@/lib/supabase/queries/home";
 import { buildAttendanceStatusMap, computeReportStats } from "@/lib/helpers/report-stats";
 import { Building2, FileText, UserPlus } from "lucide-react";
 import { HomeActivityCard } from "@/components/dashboard/home-activity-card";
+import { HomeLeaveBalance } from "@/components/dashboard/home-leave-balance";
 import { InviteEmployeeDialog } from "@/components/admin/invite-employee-dialog";
 import { CreateDepartmentDialog } from "@/components/admin/create-department-dialog";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
@@ -110,6 +114,7 @@ async function AdminHero({ initialPanel }: { initialPanel: HeroPanelId | null })
     template,
     leaveUntil,
     commentCounts,
+    leaveBalance,
     actorAvatars,
   ] = await Promise.all([
     dayP,
@@ -135,6 +140,7 @@ async function AdminHero({ initialPanel }: { initialPanel: HeroPanelId | null })
     companyP.then((members) =>
       getReportCommentCounts(members.flatMap((member) => (member.report ? [member.report.id] : []))),
     ),
+    profileP.then((p) => (p ? getActiveLeaveBalance(p.id) : null)),
     forYouP.then((notes) =>
       getAvatarsByProfileIds(
         notes.flatMap((note) =>
@@ -181,7 +187,7 @@ async function AdminHero({ initialPanel }: { initialPanel: HeroPanelId | null })
 
   // The hero reveals itself once its buddies are drawn (see DashboardHero).
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <DashboardHero
         userId={profile?.id ?? ""}
         name={profile?.full_name ?? "Admin"}
@@ -242,6 +248,14 @@ async function AdminHero({ initialPanel }: { initialPanel: HeroPanelId | null })
               ]
         }
       />
+      {profile ? (
+        <HomeLeaveBalance
+          balance={leaveBalance}
+          profileId={profile.id}
+          orgId={profile.organization_id ?? ""}
+          joinDate={profile.created_at.slice(0, 10)}
+        />
+      ) : null}
     </div>
   );
 }

@@ -319,6 +319,8 @@ assert.equal(has({ ...zero, tenureDays: 364 }, "gradCap"), false);
 assert.equal(has({ ...zero, tenureDays: 365 }, "gradCap"), true, "tenure");
 assert.equal(has({ ...zero, isBirthdayToday: false }, "partyHat"), false);
 assert.equal(has({ ...zero, isBirthdayToday: true }, "partyHat"), true, "birthday");
+assert.equal(has({ ...zero, longestStreak: 24 }, "crown"), false);
+assert.equal(has({ ...zero, longestStreak: 25 }, "crown"), true, "25-day streak");
 assert.equal(has({ ...zero, teamCompleteDays: 9 }, "crown"), false);
 assert.equal(has({ ...zero, teamCompleteDays: 10 }, "crown"), true, "team 100% days");
 

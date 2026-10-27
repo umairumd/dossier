@@ -5,7 +5,10 @@ import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
 import { getTeamInsights } from "@/lib/supabase/queries/manager/insights";
 import { getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getReportCommentCounts } from "@/lib/supabase/queries/report-comments";
-import { getAttendanceSettings } from "@/lib/supabase/queries/attendance";
+import {
+  getActiveLeaveBalance,
+  getAttendanceSettings,
+} from "@/lib/supabase/queries/attendance";
 import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queries/notifications";
 import { getAvatarsByProfileIds, type ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { getHomeDay, getMyAttendanceHistory } from "@/lib/supabase/queries/home";
@@ -21,6 +24,7 @@ import type { AttendanceStatus } from "@/types/attendance";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import type { HeroPanelId } from "@/components/dashboard/hero-controller";
 import { HomeActivityCard } from "@/components/dashboard/home-activity-card";
+import { HomeLeaveBalance } from "@/components/dashboard/home-leave-balance";
 import { CompletionLineChart } from "@/components/analytics/completion-line-chart";
 import { getLeaveUntilByProfile } from "@/lib/supabase/queries/leave-until";
 import { TeamHighlights } from "@/components/manager/team-highlights";
@@ -124,6 +128,7 @@ async function ManagerHero({
     attendanceSettings,
     commentCounts,
     leaveUntil,
+    leaveBalance,
     actorAvatars,
   ] = await Promise.all([
     dayP,
@@ -147,6 +152,7 @@ async function ManagerHero({
         d.todayDate,
       ),
     ),
+    getActiveLeaveBalance(profile.id),
     forYouP.then((notes) =>
       getAvatarsByProfileIds(
         notes.flatMap((note) =>
@@ -189,7 +195,7 @@ async function ManagerHero({
 
   // The hero reveals itself once its buddies are drawn (see DashboardHero).
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <DashboardHero
         userId={profile.id}
         name={profile.full_name}
@@ -245,6 +251,12 @@ async function ManagerHero({
                 { label: "Completion", value: `${completionPercentage}%` },
               ]
         }
+      />
+      <HomeLeaveBalance
+        balance={leaveBalance}
+        profileId={profile.id}
+        orgId={profile.organization_id ?? ""}
+        joinDate={profile.created_at.slice(0, 10)}
       />
     </div>
   );

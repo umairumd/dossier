@@ -144,7 +144,7 @@ plays at most once per cooldown.
 | Shades | face | Rare | 10-day streak |
 | Focus headphones | head | Rare | 25 reports on time |
 | Bowtie | neck | Rare | 50 reports submitted |
-| Crown | head | Epic | 30-day streak, or manager: team 100% on 10 days |
+| Crown | head | Epic | 25-day streak, or manager: team 100% on 10 days |
 | Graduation cap | head | Epic | 1 year at the company |
 | Halo | head | Legendary | a perfect month (every working day on time) |
 | Party hat | head | Special | auto-worn on your birthday, kept after |

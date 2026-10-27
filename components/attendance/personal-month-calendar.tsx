@@ -60,12 +60,14 @@ export function PersonalMonthCalendar({
   workingDays,
   today,
   shift,
+  title = "Your attendance",
 }: {
   records: AttendanceRecord[];
   yearMonth: string;
   workingDays: number[];
   today: string;
   shift: ShiftAssignment | null;
+  title?: string;
 }) {
   const [year, month] = yearMonth.split("-").map(Number);
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
@@ -177,7 +179,7 @@ export function PersonalMonthCalendar({
   return (
     <Card>
       <CardTitleHeader
-        title="Your attendance"
+        title={title}
         aside={
           <span className="-my-2 -mr-2 flex items-center gap-1">
             {shift ? <span>{shiftLabel}</span> : null}

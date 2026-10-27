@@ -3,14 +3,20 @@ import { getReportHistory, getReportStatsData, getTodayReport } from "@/lib/supa
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
 import { getMyActivityLog } from "@/lib/supabase/queries/admin/activity";
-import { getAttendanceSettings } from "@/lib/supabase/queries/attendance";
+import {
+  getActiveLeaveBalance,
+  getAttendanceSettings,
+} from "@/lib/supabase/queries/attendance";
 import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queries/notifications";
 import { getAvatarsByProfileIds, type ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { getHomeDay, getMyAttendanceHistory } from "@/lib/supabase/queries/home";
 import { getCommentsForReports } from "@/lib/supabase/queries/report-comments";
+import { getMyPeopleDirectory } from "@/lib/supabase/queries/member/people";
 import { getMyRewardStats, getMyUnlocks } from "@/lib/actions/avatar";
 import { buildAttendanceStatusMap, computeReportStats } from "@/lib/helpers/report-stats";
 import { HomeActivityCard } from "@/components/dashboard/home-activity-card";
+import { HomeLeaveBalance } from "@/components/dashboard/home-leave-balance";
+import { YourPeopleCard } from "@/components/dashboard/your-people-card";
 import { ActivityStrip } from "@/components/dashboard/activity-strip";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import type { HeroPanelId } from "@/components/dashboard/hero-controller";
@@ -86,6 +92,8 @@ async function EmployeeHero({
     rewardStats,
     unlocks,
     attendanceSettings,
+    leaveBalance,
+    peopleDirectory,
     actorAvatars,
   ] = await Promise.all([
     getHomeDay(),
@@ -98,6 +106,8 @@ async function EmployeeHero({
     getMyRewardStats(),
     getMyUnlocks(),
     getAttendanceSettings(),
+    getActiveLeaveBalance(profile.id),
+    getMyPeopleDirectory(),
     forYouP.then((notes) =>
       getAvatarsByProfileIds(
         notes.flatMap((note) =>
@@ -147,7 +157,7 @@ async function EmployeeHero({
 
   // The hero reveals itself once its buddies are drawn (see DashboardHero).
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <DashboardHero
         userId={profile.id}
         name={profile.full_name}
@@ -181,6 +191,13 @@ async function EmployeeHero({
           { label: "30-day rate", value: `${stats.completionPercentage}%` },
         ]}
       />
+      <HomeLeaveBalance
+        balance={leaveBalance}
+        profileId={profile.id}
+        orgId={profile.organization_id ?? ""}
+        joinDate={profile.created_at.slice(0, 10)}
+      />
+      <YourPeopleCard directory={peopleDirectory} />
     </div>
   );
 }

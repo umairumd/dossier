@@ -53,7 +53,7 @@ export const ACCESSORIES: Record<AccessoryId, AccessoryDef> = {
   headphones: { id: "headphones", label: "Focus headphones", slot: "head", rarity: "rare", unlock: [{ kind: "onTimeReports", count: 25 }], hint: "25 reports on time." },
   bowtie: { id: "bowtie", label: "Bowtie", slot: "neck", rarity: "rare", unlock: [{ kind: "totalReports", count: 50 }], hint: "50 reports submitted." },
   partyHat: { id: "partyHat", label: "Party hat", slot: "head", rarity: "special", unlock: [{ kind: "birthday" }], hint: "Worn automatically on your birthday — keep it after." },
-  crown: { id: "crown", label: "Crown", slot: "head", rarity: "epic", unlock: [{ kind: "streak", days: 30 }, { kind: "teamCompleteDays", days: 10 }], hint: "30-day streak — or lead your team to 100% on 10 days." },
+  crown: { id: "crown", label: "Crown", slot: "head", rarity: "epic", unlock: [{ kind: "streak", days: 25 }, { kind: "teamCompleteDays", days: 10 }], hint: "25-day streak — or lead your team to 100% on 10 days." },
   gradCap: { id: "gradCap", label: "Graduation cap", slot: "head", rarity: "epic", unlock: [{ kind: "tenureDays", days: 365 }], hint: "One year at the company." },
   halo: { id: "halo", label: "Halo", slot: "head", rarity: "legendary", unlock: [{ kind: "onTimeStreak", days: 30 }], hint: "30 working days in a row, every report on time." },
   santaHat: { id: "santaHat", label: "Santa hat", slot: "head", rarity: "seasonal", unlock: [{ kind: "season", from: "12-01", to: "12-31" }], hint: "Available in December." },

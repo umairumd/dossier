@@ -15,11 +15,14 @@ import { formatDate, formatDaysAgoLong, todayInTimezone } from "@/lib/helpers/da
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { FigureStrip } from "@/components/shared/figure-strip";
 import { EmployeeHeroClient } from "@/components/admin/employee-hero-client";
+import { MonthNav } from "@/components/attendance/month-nav";
+import { PersonalMonthCalendar } from "@/components/attendance/personal-month-calendar";
 import { AssignmentsCard } from "./assignments-card";
 import { DetailsCard } from "./details-card";
 import { ProfileReportHistory, ProfileReportHistorySkeleton } from "./profile-report-history";
 import {
   getActiveLeaveBalance,
+  getEmployeeAttendance,
   getLeaveBalanceAdjustments,
   getCurrentShift,
 } from "@/lib/supabase/queries/attendance";
@@ -34,10 +37,12 @@ export async function AdminEmployeeProfile({
   id,
   profile,
   reportPage,
+  month,
 }: {
   id: string;
   profile: Profile | null;
   reportPage: number;
+  month: string;
 }) {
   const employeeP = getEmployeeDetail(id);
   const [
@@ -49,6 +54,7 @@ export async function AdminEmployeeProfile({
     currentShift,
     leaveBalance,
     leaveAdjustments,
+    attendanceRecords,
     resolution,
   ] = await Promise.all([
     employeeP,
@@ -59,6 +65,7 @@ export async function AdminEmployeeProfile({
     getCurrentShift(id),
     getActiveLeaveBalance(id),
     getLeaveBalanceAdjustments(id),
+    getEmployeeAttendance(id, month),
     // Starts as soon as the employee record arrives, not after everything.
     employeeP.then((e) =>
       e
@@ -114,6 +121,10 @@ export async function AdminEmployeeProfile({
   const candidates = employees.filter((item) => item.id !== employee.id);
 
   const tenureRate = employee.tenure_rate;
+  const today = todayInTimezone(settings.timezone);
+  const currentMonth = today.slice(0, 7);
+  const firstName =
+    employee.full_name.trim().split(/\s+/)[0] || employee.full_name;
 
   return (
     <div className="flex flex-col gap-6">
@@ -135,7 +146,7 @@ export async function AdminEmployeeProfile({
           isOwnerOrAdmin
             ? {
                 joinedOn: employee.created_at.slice(0, 10),
-                today: todayInTimezone(settings.timezone),
+                today,
               }
             : undefined
         }
@@ -176,7 +187,7 @@ export async function AdminEmployeeProfile({
             {
               icon: <Calendar />,
               label: "Last report",
-              value: formatDaysAgoLong(employee.stats.lastSubmittedDate, todayInTimezone(settings.timezone)),
+              value: formatDaysAgoLong(employee.stats.lastSubmittedDate, today),
               hint: employee.stats.lastSubmittedDate
                 ? formatDate(employee.stats.lastSubmittedDate)
                 : "No reports yet",
@@ -192,6 +203,25 @@ export async function AdminEmployeeProfile({
             adjustments={leaveAdjustments}
             canAdjust
           />
+        )}
+        {isOwnerOrAdmin && (
+          <div className="flex flex-col gap-3">
+            <div className="flex justify-end">
+              <MonthNav
+                month={month}
+                baseHref={`/employees/${id}`}
+                currentMonth={currentMonth}
+              />
+            </div>
+            <PersonalMonthCalendar
+              records={attendanceRecords}
+              yearMonth={month}
+              workingDays={settings.workingDays}
+              today={today}
+              shift={currentShift}
+              title={`${firstName}'s attendance`}
+            />
+          </div>
         )}
       </div>
 
