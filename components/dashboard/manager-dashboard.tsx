@@ -256,7 +256,7 @@ async function ManagerHero({
         balance={leaveBalance}
         profileId={profile.id}
         orgId={profile.organization_id ?? ""}
-        joinDate={profile.created_at.slice(0, 10)}
+        contractStart={profile.contract_start}
       />
     </div>
   );

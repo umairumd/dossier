@@ -42,6 +42,8 @@ export interface EmployeeListItem {
   is_reporting: boolean;
   leave_balance: number;
   created_at: string;
+  /** First day of leave-contract anniversary month (YYYY-MM-DD). */
+  contract_start: string;
 }
 
 export interface EmployeeDetail extends EmployeeListItem {

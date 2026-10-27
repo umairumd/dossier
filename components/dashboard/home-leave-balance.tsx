@@ -6,12 +6,12 @@ export function HomeLeaveBalance({
   balance,
   profileId,
   orgId,
-  joinDate,
+  contractStart,
 }: {
   balance: LeaveBalance | null;
   profileId: string;
   orgId: string;
-  joinDate: string;
+  contractStart: string;
 }) {
   if (!balance) return null;
 
@@ -21,7 +21,7 @@ export function HomeLeaveBalance({
         balance={balance}
         profileId={profileId}
         orgId={orgId}
-        joinDate={joinDate}
+        contractStart={contractStart}
         canAdjust={false}
       />
     </div>

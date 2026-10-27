@@ -50,6 +50,7 @@ export const EVENT_ICON: Record<ActivityEventType, LucideIcon> = {
   leave_rejected: CalendarX2,
   accrual_run: CalendarPlus,
   leave_balance_adjusted: Scale,
+  leave_year_encashed: Scale,
   shift_assigned: Clock,
   employee_invited: Send,
   employee_onboarded: UserCheck,

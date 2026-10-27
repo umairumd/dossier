@@ -5,11 +5,18 @@ import { createNotification } from "@/lib/actions/notifications";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { insertLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
+import {
+  computeAccruedForWindow,
+  contractYearWindow,
+  insertLeaveBalanceRecord,
+  ledgerRemaining,
+  toContractStartFirst,
+} from "@/lib/helpers/leave-balance";
 import {
   getActorLogContext,
   logActivity,
 } from "@/lib/helpers/activity-log";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getReportByAuthorAndDate } from "@/lib/supabase/queries/reports";
 import type { AttendanceStatus, ShiftType } from "@/types/attendance";
 import { SHIFT_TYPE_LABELS } from "@/types/attendance";
@@ -613,22 +620,33 @@ export async function runMonthlyAccrualAction(
 
   const adminClient = createAdminClient();
 
-  const { data: eligible, error: profilesError } = await adminClient
-    .from("profiles")
-    .select("id")
-    .eq("is_active", true)
-    .is("archived_at", null)
-    .eq("exclude_from_attendance", false);
+  const { error: rolloverError } = await adminClient.rpc(
+    "rollover_expired_leave_balances",
+  );
+  if (rolloverError) {
+    return { success: false, count: 0, error: rolloverError.message };
+  }
+
+  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
+
+  const [{ data: eligible, error: profilesError }, { data: existingAccruals, error: existingError }] =
+    await Promise.all([
+      adminClient
+        .from("profiles")
+        .select("id")
+        .eq("is_active", true)
+        .is("archived_at", null)
+        .eq("exclude_from_attendance", false),
+      adminClient
+        .from("leave_accruals")
+        .select("profile_id")
+        .eq("year", year)
+        .eq("month", month),
+    ]);
 
   if (profilesError) {
     return { success: false, count: 0, error: profilesError.message };
   }
-
-  const { data: existingAccruals, error: existingError } = await adminClient
-    .from("leave_accruals")
-    .select("profile_id")
-    .eq("year", year)
-    .eq("month", month);
 
   if (existingError) {
     return { success: false, count: 0, error: existingError.message };
@@ -677,7 +695,9 @@ export async function runMonthlyAccrualAction(
   if (count > 0) {
     const { data: balances, error: fetchError } = await adminClient
       .from("leave_balances")
-      .select("id, profile_id, total_accrued")
+      .select(
+        "id, profile_id, total_accrued, contract_year_start, contract_year_end",
+      )
       .eq("status", "active")
       .in("profile_id", creditedProfileIds);
 
@@ -709,6 +729,13 @@ export async function runMonthlyAccrualAction(
         if (!balance) {
           // No active ledger — leave the accrual claim so we don't retry
           // every month forever; remaining is still zero until init.
+          continue;
+        }
+
+        if (
+          monthStart < balance.contract_year_start ||
+          monthStart > balance.contract_year_end
+        ) {
           continue;
         }
 
@@ -946,4 +973,281 @@ export async function fetchReportForAttendance(
       error: error instanceof Error ? error.message : "Failed to load report.",
     };
   }
+}
+
+export type ContractStartSnapshot = {
+  windowStart: string;
+  windowEnd: string;
+  accrued: number;
+  used: number;
+  remaining: number;
+};
+
+export type ContractStartPreview = {
+  contractStart: string;
+  before: ContractStartSnapshot | null;
+  after: ContractStartSnapshot;
+};
+
+async function sumActiveLeaveAdjustments(
+  adminClient: ReturnType<typeof createAdminClient>,
+  profileId: string,
+): Promise<number> {
+  const { data } = await adminClient
+    .from("leave_balance_adjustments")
+    .select("adjustment, leave_balances!inner(status)")
+    .eq("profile_id", profileId)
+    .eq("leave_balances.status", "active");
+  return (data ?? []).reduce(
+    (sum, row) => sum + Number(row.adjustment ?? 0),
+    0,
+  );
+}
+
+async function loadContractStartPreview(
+  adminClient: ReturnType<typeof createAdminClient>,
+  profileId: string,
+  orgId: string,
+  currentContractStart: string,
+  nextContractStart: string,
+): Promise<ContractStartPreview> {
+  const afterWindow = contractYearWindow(nextContractStart);
+
+  const [
+    { data: activeBalance },
+    { data: afterLeaveRows },
+    activeAdjustments,
+  ] = await Promise.all([
+    adminClient
+      .from("leave_balances")
+      .select(
+        "id, contract_year_start, contract_year_end, total_accrued, total_used",
+      )
+      .eq("profile_id", profileId)
+      .eq("status", "active")
+      .maybeSingle(),
+    adminClient
+      .from("attendance_records")
+      .select("leave_deducted")
+      .eq("profile_id", profileId)
+      .eq("org_id", orgId)
+      .gte("date", afterWindow.start)
+      .lte("date", afterWindow.end),
+    sumActiveLeaveAdjustments(adminClient, profileId),
+  ]);
+
+  const afterUsed = (afterLeaveRows ?? []).reduce(
+    (sum, row) => sum + Number(row.leave_deducted ?? 0),
+    0,
+  );
+  // Manual adjustments on the active year carry over to the new window.
+  const afterAccrued =
+    computeAccruedForWindow(afterWindow.start, afterWindow.end) +
+    (activeBalance ? activeAdjustments : 0);
+
+  let before: ContractStartSnapshot | null = null;
+  if (activeBalance) {
+    before = {
+      windowStart: activeBalance.contract_year_start,
+      windowEnd: activeBalance.contract_year_end,
+      accrued: Number(activeBalance.total_accrued),
+      used: Number(activeBalance.total_used),
+      remaining: ledgerRemaining(
+        Number(activeBalance.total_accrued),
+        Number(activeBalance.total_used),
+      ),
+    };
+  } else {
+    const currentWindow = contractYearWindow(currentContractStart);
+    const currentAccrued = computeAccruedForWindow(
+      currentWindow.start,
+      currentWindow.end,
+    );
+    before = {
+      windowStart: currentWindow.start,
+      windowEnd: currentWindow.end,
+      accrued: currentAccrued,
+      used: 0,
+      remaining: currentAccrued,
+    };
+  }
+
+  return {
+    contractStart: nextContractStart,
+    before,
+    after: {
+      windowStart: afterWindow.start,
+      windowEnd: afterWindow.end,
+      accrued: afterAccrued,
+      used: afterUsed,
+      remaining: ledgerRemaining(afterAccrued, afterUsed),
+    },
+  };
+}
+
+export async function previewContractStartChangeAction(
+  profileId: string,
+  yyyyMm: string,
+): Promise<
+  | { success: true; preview: ContractStartPreview }
+  | { success: false; error: string }
+> {
+  await requireAdminUser();
+  const actor = await getCurrentProfile();
+  if (!actor?.organization_id) {
+    return { success: false, error: "Not authorized." };
+  }
+
+  let nextContractStart: string;
+  try {
+    nextContractStart = toContractStartFirst(yyyyMm);
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Invalid contract start.",
+    };
+  }
+
+  const adminClient = createAdminClient();
+  const { data: target, error } = await adminClient
+    .from("profiles")
+    .select("id, organization_id, contract_start")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+  if (!target || target.organization_id !== actor.organization_id) {
+    return { success: false, error: "Employee not found in your organization." };
+  }
+
+  const preview = await loadContractStartPreview(
+    adminClient,
+    profileId,
+    actor.organization_id,
+    target.contract_start ?? nextContractStart,
+    nextContractStart,
+  );
+  return { success: true, preview };
+}
+
+export async function updateContractStartAction(
+  profileId: string,
+  yyyyMm: string,
+): Promise<AttendanceActionResult> {
+  await requireAdminUser();
+  const actor = await getCurrentProfile();
+  if (!actor?.organization_id) {
+    return { success: false, error: "Not authorized." };
+  }
+
+  let nextContractStart: string;
+  try {
+    nextContractStart = toContractStartFirst(yyyyMm);
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Invalid contract start.",
+    };
+  }
+
+  const adminClient = createAdminClient();
+  const { data: target, error: targetError } = await adminClient
+    .from("profiles")
+    .select("id, organization_id, full_name, contract_start")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  if (targetError) {
+    return { success: false, error: targetError.message };
+  }
+  if (!target || target.organization_id !== actor.organization_id) {
+    return { success: false, error: "Employee not found in your organization." };
+  }
+
+  const previousStart = target.contract_start;
+  const afterWindow = contractYearWindow(nextContractStart);
+
+  const [
+    { error: profileUpdateError },
+    { data: activeBalance },
+    { data: leaveRows },
+    activeAdjustments,
+  ] = await Promise.all([
+    adminClient
+      .from("profiles")
+      .update({ contract_start: nextContractStart })
+      .eq("id", profileId)
+      .eq("organization_id", actor.organization_id),
+    adminClient
+      .from("leave_balances")
+      .select("id")
+      .eq("profile_id", profileId)
+      .eq("status", "active")
+      .maybeSingle(),
+    adminClient
+      .from("attendance_records")
+      .select("leave_deducted")
+      .eq("profile_id", profileId)
+      .eq("org_id", actor.organization_id)
+      .gte("date", afterWindow.start)
+      .lte("date", afterWindow.end),
+    sumActiveLeaveAdjustments(adminClient, profileId),
+  ]);
+
+  // Manual adjustments on the active year carry over to the new window.
+  const afterAccrued =
+    computeAccruedForWindow(afterWindow.start, afterWindow.end) +
+    activeAdjustments;
+
+  if (profileUpdateError) {
+    return { success: false, error: profileUpdateError.message };
+  }
+
+  if (activeBalance) {
+    const afterUsed = (leaveRows ?? []).reduce(
+      (sum, row) => sum + Number(row.leave_deducted ?? 0),
+      0,
+    );
+    const { error: balanceError } = await adminClient
+      .from("leave_balances")
+      .update({
+        contract_year_start: afterWindow.start,
+        contract_year_end: afterWindow.end,
+        total_accrued: afterAccrued,
+        total_used: afterUsed,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", activeBalance.id);
+
+    if (balanceError) {
+      return { success: false, error: balanceError.message };
+    }
+  }
+
+  try {
+    const { actorName } = await getActorLogContext(actor.id);
+    void logActivity({
+      orgId: actor.organization_id,
+      eventType: "employee_edited",
+      actorId: actor.id,
+      actorName: actorName ?? undefined,
+      targetId: profileId,
+      targetName: target.full_name ?? undefined,
+      entityType: "profile",
+      entityId: profileId,
+      metadata: {
+        field: "contract_start",
+        previous: previousStart,
+        next: nextContractStart,
+      },
+    });
+  } catch (logError) {
+    console.error("[activity-log] Failed to log contract start change:", logError);
+  }
+
+  revalidatePath(`/employees/${profileId}`);
+  revalidatePath("/attendance");
+  return { success: true };
 }

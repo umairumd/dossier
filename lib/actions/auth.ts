@@ -6,7 +6,10 @@ import { createNotification } from "@/lib/actions/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyAuthErrorMessage } from "@/lib/helpers/auth-error-messages";
-import { ensureLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
+import {
+  ensureLeaveBalanceRecord,
+  firstOfMonthContaining,
+} from "@/lib/helpers/leave-balance";
 import { logActivity } from "@/lib/helpers/activity-log";
 
 export async function login(
@@ -57,17 +60,26 @@ export async function markOnboarded(): Promise<{
   try {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("organization_id, created_at, full_name")
+      .select("organization_id, created_at, contract_start, full_name")
       .eq("id", user.id)
       .maybeSingle();
 
     if (profile?.organization_id) {
       const adminClient = createAdminClient();
+      const contractStart =
+        profile.contract_start?.slice(0, 10) ??
+        firstOfMonthContaining(profile.created_at);
+      if (!profile.contract_start) {
+        await adminClient
+          .from("profiles")
+          .update({ contract_start: contractStart })
+          .eq("id", user.id);
+      }
       const result = await ensureLeaveBalanceRecord(
         adminClient,
         user.id,
         profile.organization_id,
-        profile.created_at.slice(0, 10),
+        contractStart,
       );
       if (!result.success) {
         console.error("Failed to initialize leave balance:", result.error);

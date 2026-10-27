@@ -14,7 +14,10 @@ import {
   getActorLogContext,
   logActivity,
 } from "@/lib/helpers/activity-log";
-import { ensureLeaveBalanceRecord } from "@/lib/helpers/leave-balance";
+import {
+  ensureLeaveBalanceRecord,
+  firstOfMonthContaining,
+} from "@/lib/helpers/leave-balance";
 import {
   validateEditEmployeeInput,
   validateInviteEmployeeInput,
@@ -135,10 +138,16 @@ export async function inviteEmployee(
     };
   }
 
+  const createdDay =
+    data.user.created_at?.slice(0, 10) ??
+    new Date().toISOString().slice(0, 10);
+  const contractStart = firstOfMonthContaining(createdDay);
+
   const profileUpdate: Record<string, unknown> = {
     is_remote: isRemote ?? false,
     employment_type: employmentType ?? "full_time",
     organization_id: orgId,
+    contract_start: contractStart,
   };
   if (designation) {
     profileUpdate.designation = designation;
@@ -153,16 +162,13 @@ export async function inviteEmployee(
     console.error("Failed to set invite profile extensions.", extensionError);
   }
 
-  // Auto-init leave balance (idempotent). Prefer auth user created_at.
+  // Auto-init leave balance (idempotent) from profiles.contract_start.
   try {
-    const joinDate =
-      data.user.created_at?.slice(0, 10) ??
-      new Date().toISOString().slice(0, 10);
     const leaveResult = await ensureLeaveBalanceRecord(
       adminClient,
       userId,
       orgId,
-      joinDate,
+      contractStart,
     );
     if (!leaveResult.success) {
       console.error(

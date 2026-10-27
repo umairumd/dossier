@@ -22,6 +22,7 @@ interface ProfileRow {
   avatar: unknown | null;
   last_seen_at: string | null;
   created_at: string;
+  contract_start: string;
   template_id: string | null;
   organization_id: string | null;
 }
@@ -56,7 +57,7 @@ export const getTeamMemberOverview = cache(
       supabase
         .from("profiles")
         .select(
-          "id, full_name, role, designation, is_remote, employment_type, avatar_url, avatar, last_seen_at, created_at, template_id, organization_id",
+          "id, full_name, role, designation, is_remote, employment_type, avatar_url, avatar, last_seen_at, created_at, contract_start, template_id, organization_id",
         )
         .eq("id", employeeId)
         .maybeSingle(),
@@ -136,6 +137,7 @@ export const getTeamMemberOverview = cache(
       avatar: profileRow.avatar,
       last_seen_at: profileRow.last_seen_at,
       created_at: profileRow.created_at,
+      contract_start: profileRow.contract_start,
       template_id: profileRow.template_id,
       organization_id: profileRow.organization_id,
       department_ids,

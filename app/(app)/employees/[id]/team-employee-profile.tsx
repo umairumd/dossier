@@ -63,7 +63,7 @@ export async function TeamEmployeeProfile({
       adminClient,
       overview.id,
       overview.organization_id,
-      overview.created_at.slice(0, 10),
+      overview.contract_start,
     );
     // Bypass React cache() from getActiveLeaveBalance for this request.
     const supabase = await createClient();
@@ -149,7 +149,7 @@ export async function TeamEmployeeProfile({
             balance={resolvedLeaveBalance}
             profileId={overview.id}
             orgId={overview.organization_id ?? ""}
-            joinDate={overview.created_at.slice(0, 10)}
+            contractStart={overview.contract_start}
             adjustments={leaveAdjustments}
             canAdjust={false}
           />

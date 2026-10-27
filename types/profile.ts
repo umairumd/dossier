@@ -21,4 +21,6 @@ export interface Profile {
   date_of_birth?: string | null;
   last_seen_at?: string | null;
   created_at: string;
+  /** First day of leave-contract anniversary month (YYYY-MM-DD). */
+  contract_start: string;
 }

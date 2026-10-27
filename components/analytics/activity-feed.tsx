@@ -138,10 +138,18 @@ const EVENT_LABELS: Record<
     lead: entityName(e.target_name, "Someone"),
     rest: " completed onboarding",
   }),
-  employee_edited: (e) => ({
-    lead: e.actor_name ?? "Admin",
-    rest: ` updated ${entityName(e.target_name, "someone")}'s profile`,
-  }),
+  employee_edited: (e) => {
+    if (metaString(e.metadata, "field") === "contract_start") {
+      return {
+        lead: e.actor_name ?? "Admin",
+        rest: ` updated ${entityName(e.target_name, "someone")}'s contract start`,
+      };
+    }
+    return {
+      lead: e.actor_name ?? "Admin",
+      rest: ` updated ${entityName(e.target_name, "someone")}'s profile`,
+    };
+  },
   record_exported: (e) => ({
     lead: e.actor_name ?? "Admin",
     rest: ` exported ${entityName(e.target_name, "someone")}'s record`,
@@ -267,6 +275,16 @@ const EVENT_LABELS: Record<
     return {
       lead: e.actor_name ?? "Admin",
       rest: ` adjusted ${entityName(e.target_name, "someone")}'s leave balance${amount}`,
+    };
+  },
+  leave_year_encashed: (e) => {
+    const days = Number(e.metadata?.encashed_days);
+    const amount = Number.isFinite(days)
+      ? ` (${days} day${days === 1 ? "" : "s"})`
+      : "";
+    return {
+      lead: entityName(e.target_name, "Someone"),
+      rest: `'s leave year ended${amount}`,
     };
   },
   accrual_run: (e) => {

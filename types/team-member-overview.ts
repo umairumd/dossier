@@ -12,6 +12,7 @@ export interface TeamMemberOverview {
   avatar: unknown | null;
   last_seen_at: string | null;
   created_at: string;
+  contract_start: string;
   template_id: string | null;
   organization_id: string | null;
   department_ids: string[];

@@ -37,6 +37,7 @@ interface ProfileRow {
   exclude_from_attendance: boolean;
   is_reporting: boolean;
   last_seen_at: string | null;
+  contract_start: string;
 }
 
 interface AuthUserSummary {
@@ -136,6 +137,7 @@ function toEmployeeListItem(
     is_reporting: profile.is_reporting ?? true,
     leave_balance: 0,
     created_at: profile.created_at,
+    contract_start: profile.contract_start,
   };
 }
 
@@ -227,7 +229,7 @@ async function attachMemberships(
 }
 
 const PROFILE_SELECT =
-  "id, full_name, role, organization_id, is_active, archived_at, created_at, designation, is_remote, employment_type, avatar_url, avatar, template_id, date_of_birth, has_onboarded, exclude_from_attendance, is_reporting, last_seen_at";
+  "id, full_name, role, organization_id, is_active, archived_at, created_at, contract_start, designation, is_remote, employment_type, avatar_url, avatar, template_id, date_of_birth, has_onboarded, exclude_from_attendance, is_reporting, last_seen_at";
 
 // requireAdminUser() runs first specifically because this function is the
 // reason the service-role client exists in a read path (email/status come
