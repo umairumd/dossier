@@ -118,6 +118,7 @@ const RARITY_RANK: Record<Rarity, number> = {
   legendary: 4,
   special: 5,
   seasonal: 6,
+  awarded: 7,
 };
 
 function byWardrobeOrder(a: AccessoryId, b: AccessoryId) {

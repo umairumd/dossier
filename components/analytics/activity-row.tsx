@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
+  Award,
   Archive,
   ArchiveRestore,
   BookOpen,
@@ -72,6 +73,8 @@ export const EVENT_ICON: Record<ActivityEventType, LucideIcon> = {
   department_archived: Archive,
   org_settings_changed: Settings2,
   handbook_published: BookOpen,
+  item_awarded: Award,
+  item_revoked: Award,
 };
 
 export function eventCategory(type: ActivityEventType): ActivityCategory {
@@ -123,6 +126,10 @@ export function activityDetailLine(entry: ActivityLogEntry): string | null {
     }
     case "record_exported":
       return metaString(entry.metadata, "period");
+    case "item_awarded": {
+      const reason = metaString(entry.metadata, "reason");
+      return reason ? `“${reason}”` : null;
+    }
     case "handbook_published": {
       const note = metaString(entry.metadata, "change_note");
       return note ? `“${note}”` : null;

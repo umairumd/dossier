@@ -124,12 +124,7 @@ export default async function EmployeeProfileLoading() {
         />
         <LeaveBalanceCardSkeleton />
         {isAdmin ? (
-          <div className="flex flex-col gap-4">
-            <div className="flex justify-end">
-              <Skeleton className="h-9 w-52 rounded-lg" />
-            </div>
-            <PersonalCalendarSkeleton title="Attendance" />
-          </div>
+          <PersonalCalendarSkeleton title="Attendance" />
         ) : null}
       </div>
 

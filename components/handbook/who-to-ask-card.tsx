@@ -29,17 +29,17 @@ export function WhoToAskCard({
     ...directory.managers.map((person) => ({
       person,
       relation: "Your manager",
-      fallback: "your work and priorities",
+      fallback: "Your work and priorities",
     })),
     ...directory.supervisors.map((person) => ({
       person,
       relation: "Your supervisor",
-      fallback: "reviews your daily reports",
+      fallback: "Reviews your daily reports",
     })),
     ...directory.leadership.map((person) => ({
       person,
       relation: getRoleLabel(person.role),
-      fallback: "anything else",
+      fallback: "Anything else",
     })),
   ];
 
@@ -63,7 +63,7 @@ export function WhoToAskCard({
                     id={person.id}
                     name={person.full_name}
                     avatar={person.avatar}
-                    detail={person.ask_me_about ?? `${relation} · ${fallback}`}
+                    detail={[relation, person.designation?.trim() || fallback].join(" · ")}
                   />
                   {presence ? (
                     <Badge variant={presence.variant} className="shrink-0">

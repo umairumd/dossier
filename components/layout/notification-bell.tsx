@@ -3,6 +3,7 @@
 import { useState, useTransition, type ComponentType } from "react";
 import Link from "next/link";
 import {
+  Award,
   AlertTriangle,
   Archive,
   Bell,
@@ -64,6 +65,7 @@ export const TYPE_ICONS: Record<
   profile_updated: { Icon: UserPen, className: "text-info" },
   handbook_published: { Icon: BookOpen, className: "text-info" },
   handbook_reminder: { Icon: BookOpenCheck, className: "text-warn" },
+  item_awarded: { Icon: Award, className: "text-holiday" },
 };
 
 export function NotificationBell({

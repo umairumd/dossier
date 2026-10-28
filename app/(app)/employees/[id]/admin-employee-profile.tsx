@@ -15,8 +15,8 @@ import { formatDate, formatDaysAgoLong, todayInTimezone } from "@/lib/helpers/da
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
 import { FigureStrip } from "@/components/shared/figure-strip";
 import { EmployeeHeroClient } from "@/components/admin/employee-hero-client";
-import { MonthNav } from "@/components/attendance/month-nav";
-import { PersonalMonthCalendar } from "@/components/attendance/personal-month-calendar";
+import { getAwardedItems } from "@/lib/supabase/queries/admin/awards";
+import { EmployeeMonthCalendar } from "@/components/attendance/employee-month-calendar";
 import { AssignmentsCard } from "./assignments-card";
 import { DetailsCard } from "./details-card";
 import { ProfileReportHistory, ProfileReportHistorySkeleton } from "./profile-report-history";
@@ -56,6 +56,7 @@ export async function AdminEmployeeProfile({
     leaveAdjustments,
     attendanceRecords,
     resolution,
+    awarded,
   ] = await Promise.all([
     employeeP,
     getAllDepartments(),
@@ -72,6 +73,7 @@ export async function AdminEmployeeProfile({
         ? getTemplateResolutionInfo(e.id, e.department_ids)
         : { template: null, source: "none" as const, sourceName: null },
     ),
+    getAwardedItems(id),
   ]);
 
   if (!employee) {
@@ -142,6 +144,7 @@ export async function AdminEmployeeProfile({
         templates={templates}
         currentTemplateSource={resolution.source}
         currentTemplateSourceName={resolution.sourceName}
+        awarded={isOwnerOrAdmin ? awarded : undefined}
         exportRecord={
           isOwnerOrAdmin
             ? {
@@ -206,23 +209,17 @@ export async function AdminEmployeeProfile({
           />
         )}
         {isOwnerOrAdmin && (
-          <div className="flex flex-col gap-3">
-            <div className="flex justify-end">
-              <MonthNav
-                month={month}
-                baseHref={`/employees/${id}`}
-                currentMonth={currentMonth}
-              />
-            </div>
-            <PersonalMonthCalendar
-              records={attendanceRecords}
-              yearMonth={month}
-              workingDays={settings.workingDays}
-              today={today}
-              shift={currentShift}
-              title={`${firstName}'s attendance`}
-            />
-          </div>
+          <EmployeeMonthCalendar
+            key={employee.id}
+            profileId={employee.id}
+            initialMonth={month}
+            initialRecords={attendanceRecords}
+            currentMonth={currentMonth}
+            workingDays={settings.workingDays}
+            today={today}
+            shift={currentShift}
+            title={`${firstName}'s attendance`}
+          />
         )}
       </div>
 

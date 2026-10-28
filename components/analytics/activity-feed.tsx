@@ -150,10 +150,16 @@ const EVENT_LABELS: Record<
       rest: ` updated ${entityName(e.target_name, "someone")}'s profile`,
     };
   },
-  record_exported: (e) => ({
-    lead: e.actor_name ?? "Admin",
-    rest: ` exported ${entityName(e.target_name, "someone")}'s record`,
-  }),
+  record_exported: (e) =>
+    e.metadata?.kind === "attendance_sheet"
+      ? {
+          lead: e.actor_name ?? "Admin",
+          rest: ` exported the attendance sheet for ${entityName(e.entity_name, "a month")}`,
+        }
+      : {
+          lead: e.actor_name ?? "Admin",
+          rest: ` exported ${entityName(e.target_name, "someone")}'s record`,
+        },
   employee_deactivated: (e) => ({
     lead: e.actor_name ?? "Admin",
     rest: ` deactivated ${entityName(e.target_name, "someone")}`,
@@ -329,6 +335,14 @@ const EVENT_LABELS: Record<
       rest: name ? ` archived template ${name}` : " archived a template",
     };
   },
+  item_awarded: (e) => ({
+    lead: e.actor_name ?? "Admin",
+    rest: ` awarded ${entityName(e.target_name, "someone")} the ${entityName(e.entity_name, "an item")}`,
+  }),
+  item_revoked: (e) => ({
+    lead: e.actor_name ?? "Admin",
+    rest: ` took back ${entityName(e.target_name, "someone")}'s ${entityName(e.entity_name, "item")}`,
+  }),
   handbook_published: (e) => {
     if (e.metadata?.launch) {
       return { lead: e.actor_name ?? "Admin", rest: " launched the handbook for everyone" };
@@ -354,6 +368,13 @@ export function getHref(entry: ActivityLogEntry): string | undefined {
   }
   if (entry.entity_type === "template" && entry.entity_id) {
     return `/organization/templates/${entry.entity_id}`;
+  }
+  if (entry.entity_type === "attendance_sheet") {
+    const month = typeof entry.metadata?.month === "string" ? entry.metadata.month : "";
+    return month ? `/attendance?month=${month}` : "/attendance";
+  }
+  if (entry.entity_type === "handbook") {
+    return "/handbook";
   }
   if (entry.entity_type === "handbook_doc" && entry.entity_id) {
     return `/organization/handbook/${entry.entity_id}`;

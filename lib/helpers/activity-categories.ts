@@ -43,6 +43,8 @@ export const EVENT_CATEGORY: Record<ActivityEventType, ActivityCategory> = {
   template_archived: "organization",
   template_assigned: "organization",
   handbook_published: "organization",
+  item_awarded: "people",
+  item_revoked: "people",
   org_settings_changed: "settings",
 };
 

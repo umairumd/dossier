@@ -17,7 +17,8 @@ export type NotificationType =
   | "team_report_commented"
   | "profile_updated"
   | "handbook_published"
-  | "handbook_reminder";
+  | "handbook_reminder"
+  | "item_awarded";
 
 export interface Notification {
   id: string;

@@ -1,5 +1,7 @@
 import { EmployeeActionsMenu } from "@/components/admin/employee-actions-menu";
+import { AwardItemDialog } from "@/components/admin/award-item-dialog";
 import { ExportRecordDialog } from "@/components/admin/export-record-dialog";
+import type { AwardedItem } from "@/lib/supabase/queries/admin/awards";
 import { ProfileHeader } from "@/components/shared/profile-header";
 import type { DepartmentOption } from "@/types/department";
 import type { EmployeeListItem } from "@/types/employee";
@@ -19,6 +21,7 @@ export function EmployeeHeroClient({
   currentTemplateSource,
   currentTemplateSourceName,
   exportRecord,
+  awarded,
 }: {
   name: string;
   designation?: string | null;
@@ -34,6 +37,8 @@ export function EmployeeHeroClient({
   currentTemplateSourceName: string | null;
   /** Owners and admins: the Export record button (join date and org today). */
   exportRecord?: { joinedOn: string; today: string };
+  /** Owners and admins: award-only items this person holds. Omit to hide Award. */
+  awarded?: AwardedItem[];
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -50,6 +55,9 @@ export function EmployeeHeroClient({
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        {awarded && !isSelf && (
+          <AwardItemDialog employeeId={employee.id} name={name} avatar={avatar} awarded={awarded} />
+        )}
         {exportRecord && (
           <ExportRecordDialog
             employeeId={employee.id}

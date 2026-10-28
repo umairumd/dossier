@@ -1,5 +1,7 @@
 "use client";
 
+import type React from "react";
+
 import {
   ATTENDANCE_STATUS_LABELS,
   ATTENDANCE_STATUS_SHORT,
@@ -66,6 +68,7 @@ export function PersonalMonthCalendar({
   today,
   shift,
   title = "Your attendance",
+  headerAction,
 }: {
   records: AttendanceRecord[];
   yearMonth: string;
@@ -73,6 +76,8 @@ export function PersonalMonthCalendar({
   today: string;
   shift: ShiftAssignment | null;
   title?: string;
+  /** Rendered at the right of the card title, e.g. a month switcher. */
+  headerAction?: React.ReactNode;
 }) {
   const [year, month] = yearMonth.split("-").map(Number);
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
@@ -138,9 +143,10 @@ export function PersonalMonthCalendar({
     const date = `${yearMonth}-${String(day).padStart(2, "0")}`;
     if (date > today) break;
     const record = recordsByDate.get(date);
-    // Today only counts once it has been marked.
-    if (date === today && !record) continue;
-    if (record && NON_WORKING_STATUSES.has(record.status)) continue;
+    // Only marked days count: unmarked days (before attendance was kept, or
+    // today before it's marked) say nothing about attendance.
+    if (!record) continue;
+    if (NON_WORKING_STATUSES.has(record.status)) continue;
     if (!isWorkingDay(date, workingDays)) continue;
     workingDaysSoFar++;
   }
@@ -191,6 +197,7 @@ export function PersonalMonthCalendar({
           <span className="-my-2 -mr-2 flex items-center gap-1">
             {shift ? <span>{shiftLabel}</span> : null}
             <AttendanceLegend variant="calendar" />
+            {headerAction ? <span className="ml-2">{headerAction}</span> : null}
           </span>
         }
       />
@@ -313,7 +320,7 @@ export function PersonalMonthCalendar({
             </div>
             <span className="text-xs text-muted-foreground">
               {workingDaysSoFar === 0
-                ? "No working days yet"
+                ? "No attendance marked this month"
                 : `Present ${presentDays} of ${workingDaysSoFar} working days${leaveCount > 0 ? " · leave not counted" : ""}`}
             </span>
           </div>

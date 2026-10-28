@@ -22,6 +22,8 @@ import {
   todayInTimezone,
 } from "@/lib/helpers/dates";
 import { MonthNav } from "@/components/attendance/month-nav";
+import { ExportSheetMenu } from "@/components/attendance/export-sheet-menu";
+import { monthLabel } from "@/lib/exports/attendance-sheet/build";
 import { AttendanceGrid } from "@/components/attendance/attendance-grid";
 import { AttendanceLegend } from "@/components/attendance/attendance-legend";
 import { PersonalMonthCalendar } from "@/components/attendance/personal-month-calendar";
@@ -251,6 +253,7 @@ export default async function AttendancePage({
               <RunAccrualButton yearMonth={month} accrualDone={accrualDone} />
             )}
             <AttendanceLegend showHolidayHint />
+            <ExportSheetMenu month={month} monthLabel={monthLabel(month)} />
             <MonthNav
               month={month}
               baseHref="/attendance"

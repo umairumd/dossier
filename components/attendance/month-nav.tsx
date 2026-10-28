@@ -45,14 +45,22 @@ export function MonthNav({
   month,
   baseHref,
   currentMonth: currentMonthProp,
+  onMonthChange,
+  pending = false,
 }: {
   month: string; // "YYYY-MM"
-  baseHref: string;
+  /** Navigates to `${baseHref}?month=` unless onMonthChange is given. */
+  baseHref?: string;
+  /** Switch months in place (no page navigation). */
+  onMonthChange?: (yearMonth: string) => void;
+  /** Loading state when the caller fetches the month itself. */
+  pending?: boolean;
   /** Org-timezone current month (YYYY-MM). Caps forward navigation. */
   currentMonth?: string;
 }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [navPending, startTransition] = useTransition();
+  const isPending = navPending || pending;
   const now = new Date();
   const browserCurrentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const currentMonth = currentMonthProp ?? browserCurrentMonth;
@@ -78,8 +86,12 @@ export function MonthNav({
   const goToMonth = (yearMonth: string) => {
     if (yearMonth > currentMonth) return;
     setOpen(false);
+    if (onMonthChange) {
+      onMonthChange(yearMonth);
+      return;
+    }
     startTransition(() => {
-      router.push(`${baseHref}?month=${yearMonth}`);
+      router.push(`${baseHref ?? ""}?month=${yearMonth}`);
     });
   };
 

@@ -343,11 +343,29 @@ for (const id of ["panda", "frog", "watermelon", "snowman"] as const) {
 
 const catalogSrc = readFileSync(new URL("../lib/mascot/catalog.ts", import.meta.url), "utf8");
 assert.match(catalogSrc, /case "grant": return false/);
-assert.equal(
-  ACCESSORY_IDS.some((id) => ACCESSORIES[id].unlock.some((rule) => rule.kind === "grant")),
-  false,
-  "grant never unlocks a catalog item",
-);
+// Award-only items: never earned from stats, wearable only once granted.
+const maxed = {
+  ...zero,
+  totalReports: 10_000,
+  onTimeReports: 10_000,
+  currentStreak: 10_000,
+  longestStreak: 10_000,
+  onTimeStreak: 10_000,
+  longestOnTimeStreak: 10_000,
+  perfectWeeks: 1_000,
+  perfectMonths: 1_000,
+  tenureDays: 10_000,
+  isBirthdayToday: true,
+  teamCompleteDays: 1_000,
+};
+assert.equal(ACCESSORIES.nightWitchHat.unlock.every((rule) => rule.kind === "grant"), true);
+for (const id of ACCESSORY_IDS.filter((item) =>
+  ACCESSORIES[item].unlock.every((rule) => rule.kind === "grant"),
+)) {
+  assert.equal(earned(maxed).has(id), false, `${id} is never earned from stats`);
+  assert.equal(isWearable(id, new Set(), inSeason, TZ), false, `${id} needs a grant`);
+  assert.equal(isWearable(id, new Set([id]), inSeason, TZ), true, `${id} is wearable once granted`);
+}
 
 const avatarSrc = readFileSync(new URL("../lib/actions/avatar.ts", import.meta.url), "utf8");
 assert.match(avatarSrc, /SET_ASIDE\.accessories\.includes/);

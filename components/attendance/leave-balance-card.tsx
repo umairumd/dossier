@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { CalendarRange, ChevronDown, Scale } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import {
@@ -363,15 +362,19 @@ export function LeaveBalanceCard({
   return (
     <Card>
       <CardTitleHeader
-        title="Leave balance"
-        aside={
-          <div className="flex items-center gap-1.5">
-            <Badge variant="neutral" className="font-normal tabular-nums">
+        title={
+          <span className="flex flex-wrap items-baseline gap-x-2">
+            Leave balance
+            <span className="text-[13px] font-normal text-muted-foreground tabular-nums">
               {formatContractYearPill(
                 balance.contract_year_start,
                 balance.contract_year_end,
               )}
-            </Badge>
+            </span>
+          </span>
+        }
+        aside={
+          <div className="flex items-center gap-1.5">
             {canManage && (
               <ManageMenu
                 showAdjust={canAdjust}
@@ -406,7 +409,7 @@ export function LeaveBalanceCard({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 sm:max-w-[14rem] sm:justify-end">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 self-start sm:min-w-[16rem]">
             <LegendItem
               color={BAR_COLORS.available}
               value={math.available}
@@ -496,7 +499,7 @@ export function LeaveBalanceCard({
         </div>
 
         {adjustments.length > 0 && (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 border-t border-line pt-4">
             <p className="field-label">Changes this year</p>
             <ul className="flex flex-col divide-y divide-line">
               {adjustments.map((item) => (

@@ -425,64 +425,107 @@ function witchBrimPts(H: Head): (Q & { a: number })[] {
 function brimPath(H: Head): Path2D {
   const p = new Path2D(); witchBrimPts(H).forEach((q, i) => i ? p.lineTo(q.x, q.y) : p.moveTo(q.x, q.y)); p.closePath(); return p;
 }
-OUTFITS.witchHat = {
-  slot: 'head',
-  fit: 'crown',
-  viewMax: WITCH.view,
-  brimY: (H) => witchBrimPts(H).filter((q) => q.z >= 0).reduce((m, q) => Math.max(m, q.y), -Infinity) + H.R * 0.04,
-  back(ctx: Ctx, H: Head) {
-    ctx.fillStyle = '#3B1478'; ctx.fill(brimPath(H));
-  },
-  front(ctx: Ctx, H: Head) {
-    const { baseR } = WITCH; const by = WITCH.y + 0.03;
-    // brim (whole ellipse: it covers the crown of the head around the cone)
-    const brim = brimPath(H);
-    ctx.fillStyle = '#4C1D95'; ctx.fill(brim);
-    // cone base = visible front of the base ring; its ends are the cone's true silhouette,
-    // so the cone keeps its width as the head turns
-    const base = frontArc(H, by, baseR / ringR(by), 40);
-    const bl = base[0], br = base[base.length - 1];
-    const cx = (bl.x + br.x) / 2, cy = (bl.y + br.y) / 2;
-    const w = (br.x - bl.x) / 2;
-    const sway = H.phys.dx * 0.18;
-    const top = { x: cx + w * (0.22 + sway), y: cy - H.ry * 1.18 };
-    const tip = { x: top.x + w * (0.78 + sway * 1.5), y: top.y + H.ry * (0.2 + H.phys.dy * 0.08) };
-    const cone = new Path2D();
-    cone.moveTo(bl.x, bl.y);
-    cone.bezierCurveTo(bl.x - w * 0.02, bl.y - H.ry * 0.36, top.x - w * 0.42, top.y + H.ry * 0.34, top.x - w * 0.1, top.y + H.ry * 0.04);
-    // curl over the top and down to a rounded point
-    cone.bezierCurveTo(top.x + w * 0.08, top.y - H.ry * 0.12, tip.x - w * 0.12, tip.y - H.ry * 0.16, tip.x, tip.y);
-    cone.bezierCurveTo(tip.x - w * 0.22, tip.y - H.ry * 0.06, top.x + w * 0.3, top.y + H.ry * 0.02, top.x + w * 0.24, top.y + H.ry * 0.26);
-    cone.bezierCurveTo(top.x + w * 0.22, cy - H.ry * 0.52, br.x + w * 0.02, br.y - H.ry * 0.3, br.x, br.y);
-    for (let i = base.length - 1; i >= 0; i--) cone.lineTo(base[i].x, base[i].y);
-    cone.closePath();
-    ctx.save();
-    ctx.fillStyle = '#5B21B6'; ctx.fill(cone);
-    // same-colour stroke with round joins rounds off the tip and the corners
-    ctx.lineJoin = 'round'; ctx.strokeStyle = '#5B21B6'; ctx.lineWidth = H.R * 0.05; ctx.stroke(cone);
-    // band: follows the front of the cone (a lifted copy of the base curve)
-    const lift = H.ry * 0.12;
-    ctx.clip(cone);
-    // a filled strip between two lifted copies of the base curve, extended sideways and cut by
-    // the cone — no stroke caps, so nothing pokes out at the cone's edges
-    const lo = lift - H.ry * 0.08, hi = lift + H.ry * 0.08, far = H.rx * 2, n = base.length - 1;
-    ctx.beginPath();
-    ctx.moveTo(base[0].x - far, base[0].y - lo); base.forEach((q) => ctx.lineTo(q.x, q.y - lo)); ctx.lineTo(base[n].x + far, base[n].y - lo);
-    ctx.lineTo(base[n].x + far, base[n].y - hi); for (let i = n; i >= 0; i--) ctx.lineTo(base[i].x, base[i].y - hi); ctx.lineTo(base[0].x - far, base[0].y - hi);
-    ctx.closePath(); ctx.fillStyle = '#F97316'; ctx.fill();
-    ctx.restore();
-    // buckle on the front of the band, turning with the head
-    const f = proj(H, [0, by, baseR]);
-    const face = Math.cos(H.yaw);
-    if (f.z > 0 && face > 0.2) {
-      const bw = H.R * 0.2 * face, bh = H.R * 0.16;
-      ctx.save(); ctx.translate(f.x, f.y - lift);
-      roundRect(ctx, -bw / 2, -bh / 2, bw, bh, Math.min(bw, bh) * 0.25); ctx.fillStyle = '#FCD34D'; ctx.fill();
-      roundRect(ctx, -bw / 2 + bw * 0.24, -bh / 2 + bh * 0.28, bw * 0.52, bh * 0.44, bh * 0.1); ctx.fillStyle = '#C2410C'; ctx.fill();
-      ctx.restore();
-    }
+interface WitchColors {
+  brimBack: string;
+  brim: string;
+  cone: string;
+  /** Outline for brim and cone; the cone colour gives the classic soft edge. */
+  edge: string;
+  band: string;
+  /** Gold buckle (seasonal hat) or a small silver star (night hat). */
+  emblem: 'buckle' | 'star';
+}
+
+function fivePointStar(ctx: Ctx, x: number, y: number, r: number, sx: number): void {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rr = i % 2 === 0 ? r : r * 0.45;
+    const px = x + Math.cos(a) * rr * sx, py = y + Math.sin(a) * rr;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
   }
-};
+  ctx.closePath();
+}
+
+function witchHatOutfit(c: WitchColors): OutfitDef {
+  return {
+    slot: 'head',
+    fit: 'crown',
+    viewMax: WITCH.view,
+    brimY: (H) => witchBrimPts(H).filter((q) => q.z >= 0).reduce((m, q) => Math.max(m, q.y), -Infinity) + H.R * 0.04,
+    back(ctx: Ctx, H: Head) {
+      ctx.fillStyle = c.brimBack; ctx.fill(brimPath(H));
+    },
+    front(ctx: Ctx, H: Head) {
+      const { baseR } = WITCH; const by = WITCH.y + 0.03;
+      // brim (whole ellipse: it covers the crown of the head around the cone)
+      const brim = brimPath(H);
+      ctx.fillStyle = c.brim; ctx.fill(brim);
+      if (c.edge !== c.brim) {
+        ctx.save(); ctx.lineJoin = 'round'; ctx.strokeStyle = c.edge; ctx.lineWidth = H.R * 0.03; ctx.stroke(brim); ctx.restore();
+      }
+      // cone base = visible front of the base ring; its ends are the cone's true silhouette,
+      // so the cone keeps its width as the head turns
+      const base = frontArc(H, by, baseR / ringR(by), 40);
+      const bl = base[0], br = base[base.length - 1];
+      const cx = (bl.x + br.x) / 2, cy = (bl.y + br.y) / 2;
+      const w = (br.x - bl.x) / 2;
+      const sway = H.phys.dx * 0.18;
+      const top = { x: cx + w * (0.22 + sway), y: cy - H.ry * 1.18 };
+      const tip = { x: top.x + w * (0.78 + sway * 1.5), y: top.y + H.ry * (0.2 + H.phys.dy * 0.08) };
+      const cone = new Path2D();
+      cone.moveTo(bl.x, bl.y);
+      cone.bezierCurveTo(bl.x - w * 0.02, bl.y - H.ry * 0.36, top.x - w * 0.42, top.y + H.ry * 0.34, top.x - w * 0.1, top.y + H.ry * 0.04);
+      // curl over the top and down to a rounded point
+      cone.bezierCurveTo(top.x + w * 0.08, top.y - H.ry * 0.12, tip.x - w * 0.12, tip.y - H.ry * 0.16, tip.x, tip.y);
+      cone.bezierCurveTo(tip.x - w * 0.22, tip.y - H.ry * 0.06, top.x + w * 0.3, top.y + H.ry * 0.02, top.x + w * 0.24, top.y + H.ry * 0.26);
+      cone.bezierCurveTo(top.x + w * 0.22, cy - H.ry * 0.52, br.x + w * 0.02, br.y - H.ry * 0.3, br.x, br.y);
+      for (let i = base.length - 1; i >= 0; i--) cone.lineTo(base[i].x, base[i].y);
+      cone.closePath();
+      ctx.save();
+      ctx.fillStyle = c.cone; ctx.fill(cone);
+      // a round-joined stroke rounds off the tip and the corners (and draws the edge)
+      ctx.lineJoin = 'round'; ctx.strokeStyle = c.edge; ctx.lineWidth = H.R * 0.05; ctx.stroke(cone);
+      // band: follows the front of the cone (a lifted copy of the base curve)
+      const lift = H.ry * 0.12;
+      ctx.clip(cone);
+      // a filled strip between two lifted copies of the base curve, extended sideways and cut by
+      // the cone — no stroke caps, so nothing pokes out at the cone's edges or below the cone
+      const lo = lift - H.ry * 0.08, hi = lift + H.ry * 0.08, far = H.rx * 2, n = base.length - 1;
+      ctx.beginPath();
+      ctx.moveTo(base[0].x - far, base[0].y - lo); base.forEach((q) => ctx.lineTo(q.x, q.y - lo)); ctx.lineTo(base[n].x + far, base[n].y - lo);
+      ctx.lineTo(base[n].x + far, base[n].y - hi); for (let i = n; i >= 0; i--) ctx.lineTo(base[i].x, base[i].y - hi); ctx.lineTo(base[0].x - far, base[0].y - hi);
+      ctx.closePath(); ctx.fillStyle = c.band; ctx.fill();
+      ctx.restore();
+      // emblem on the front of the band, turning with the head
+      const f = proj(H, [0, by, baseR]);
+      const face = Math.cos(H.yaw);
+      if (f.z > 0 && face > 0.2) {
+        ctx.save(); ctx.translate(f.x, f.y - lift);
+        if (c.emblem === 'buckle') {
+          const bw = H.R * 0.2 * face, bh = H.R * 0.16;
+          roundRect(ctx, -bw / 2, -bh / 2, bw, bh, Math.min(bw, bh) * 0.25); ctx.fillStyle = '#FCD34D'; ctx.fill();
+          roundRect(ctx, -bw / 2 + bw * 0.24, -bh / 2 + bh * 0.28, bw * 0.52, bh * 0.44, bh * 0.1); ctx.fillStyle = '#C2410C'; ctx.fill();
+        } else {
+          fivePointStar(ctx, 0, 0, H.R * 0.085, face);
+          ctx.fillStyle = '#E4E7EC'; ctx.fill();
+          ctx.lineJoin = 'round'; ctx.strokeStyle = '#B8BEC8'; ctx.lineWidth = H.R * 0.012; ctx.stroke();
+        }
+        ctx.restore();
+      }
+    },
+  };
+}
+
+// Seasonal: purple, orange band, gold buckle.
+OUTFITS.witchHat = witchHatOutfit({
+  brimBack: '#3B1478', brim: '#4C1D95', cone: '#5B21B6', edge: '#5B21B6', band: '#F97316', emblem: 'buckle',
+});
+// Awarded: the same hat at night. Near-black with a slightly lighter edge so it reads on the
+// dark app, a deep teal band and a small silver star. No shine.
+OUTFITS.nightWitchHat = witchHatOutfit({
+  brimBack: '#0B0A0F', brim: '#16141C', cone: '#1B1922', edge: '#3A3644', band: '#1F5F5B', emblem: 'star',
+});
 
 // --- Glasses pinned to the real eye positions
 // Lens size follows the eye spacing so the two lenses never merge when the eyes sit close:

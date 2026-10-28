@@ -7,12 +7,12 @@ import type { AccessorySlot } from "./shapes";
 export const ACCESSORY_IDS = [
   "roundGlasses", "sunglasses", "bow", "flower", "scarf", "bowtie",
   "sprout", "beanie", "headphones", "partyHat", "crown", "gradCap", "halo",
-  "santaHat", "witchHat", "pumpkin",
+  "santaHat", "witchHat", "nightWitchHat", "pumpkin",
   "panda", "frog", "strawberry", "cow", "watermelon", "tiger", "snowman",
 ] as const;
 export type AccessoryId = (typeof ACCESSORY_IDS)[number];
 
-export type Rarity = "starter" | "common" | "rare" | "epic" | "legendary" | "seasonal" | "special";
+export type Rarity = "starter" | "common" | "rare" | "epic" | "legendary" | "seasonal" | "special" | "awarded";
 
 export type UnlockRule =
   | { kind: "starter" }
@@ -29,6 +29,7 @@ export type UnlockRule =
   | { kind: "teamCompleteDays"; days: number }
   /** Wearable only inside the window (MM-DD, inclusive, wraps across new year). */
   | { kind: "season"; from: string; to: string }
+  /** Given by an owner or admin (Award an item); never earned from stats. */
   | { kind: "grant" };
 
 export interface AccessoryDef {
@@ -58,6 +59,7 @@ export const ACCESSORIES: Record<AccessoryId, AccessoryDef> = {
   halo: { id: "halo", label: "Halo", slot: "head", rarity: "legendary", unlock: [{ kind: "onTimeStreak", days: 30 }], hint: "30 working days in a row, every report on time." },
   santaHat: { id: "santaHat", label: "Santa hat", slot: "head", rarity: "seasonal", unlock: [{ kind: "season", from: "12-01", to: "12-31" }], hint: "Available in December." },
   witchHat: { id: "witchHat", label: "Witch hat", slot: "head", rarity: "seasonal", unlock: [{ kind: "season", from: "10-20", to: "11-02" }], hint: "Available around Halloween." },
+  nightWitchHat: { id: "nightWitchHat", label: "Night witch hat", slot: "head", rarity: "awarded", unlock: [{ kind: "grant" }], hint: "Awarded by the team, not earned." },
   pumpkin: { id: "pumpkin", label: "Pumpkin", slot: "body", rarity: "seasonal", unlock: [{ kind: "season", from: "10-20", to: "11-02" }], hint: "Available around Halloween." },
   panda: { id: "panda", label: "Panda", slot: "body", rarity: "starter", unlock: [{ kind: "starter" }], hint: "Yours from day one." },
   frog: { id: "frog", label: "Frog", slot: "body", rarity: "starter", unlock: [{ kind: "starter" }], hint: "Yours from day one." },
@@ -76,7 +78,13 @@ export const RARITY_STYLE: Record<Rarity, { label: string; color: string }> = {
   legendary: { label: "Legendary", color: "#FBBF24" },
   seasonal: { label: "Seasonal", color: "#F97316" },
   special: { label: "Special", color: "#F472B6" },
+  awarded: { label: "Awarded", color: "#35C7B8" },
 };
+
+/** Items owners and admins can award (unlock rule "grant"). */
+export const GRANTABLE_IDS: AccessoryId[] = ACCESSORY_IDS.filter((id) =>
+  ACCESSORIES[id].unlock.some((rule) => rule.kind === "grant"),
+);
 
 /** Stats the server already computes (reports, streaks, tenure…). */
 export interface RewardStats {

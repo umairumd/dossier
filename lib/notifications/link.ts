@@ -9,6 +9,7 @@ export function resolveNotificationUrl(
   if (entityType === "report" && entityId) return `/reports?view=${entityId}`;
   if (entityType === "handbook_doc" && entityId) return `/handbook/${entityId}`;
   if (entityType === "handbook") return "/handbook";
+  if (type === "item_awarded" && entityId) return `/settings?buddy=open&wear=${entityId}`;
   if (entityType === "team_report" && entityId) {
     return `/track-reports?report=${entityId}`;
   }
@@ -54,6 +55,7 @@ export function notificationActionLabel(type: string): string {
     return "View";
   }
   if (type === "birthday") return "Say hi";
+  if (type === "item_awarded") return "Try it on";
   if (type === "handbook_published" || type === "handbook_reminder") return "Read";
   return "Open";
 }
