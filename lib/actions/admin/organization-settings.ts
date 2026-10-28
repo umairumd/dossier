@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import {
   getActorLogContext,
   logActivity,
@@ -114,10 +115,20 @@ export async function updateOrgName(
   return { success: true };
 }
 
+/** Time zone and working days change how past days are counted: owner only. */
+async function ownerOnlyError(): Promise<string | null> {
+  const profile = await getCurrentProfile();
+  return profile?.role === "owner"
+    ? null
+    : "Only the owner can change the time zone and working days.";
+}
+
 export async function updateTimezone(
   timezone: string,
 ): Promise<UpdateOrganizationSettingsResult> {
   const admin = await requireAdminUser();
+  const notOwner = await ownerOnlyError();
+  if (notOwner) return { success: false, error: notOwner };
 
   try {
     Intl.DateTimeFormat(undefined, { timeZone: timezone });
@@ -145,6 +156,8 @@ export async function updateWorkingDays(
   days: number[],
 ): Promise<UpdateOrganizationSettingsResult> {
   const admin = await requireAdminUser();
+  const notOwner = await ownerOnlyError();
+  if (notOwner) return { success: false, error: notOwner };
 
   if (days.length === 0) {
     return { success: false, error: "At least one working day is required." };

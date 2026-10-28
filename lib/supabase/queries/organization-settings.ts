@@ -11,6 +11,8 @@ export interface OrganizationSettings {
   timezone: string;
   workingDays: number[];
   reportDeadlineHourLocal: number;
+  /** When the handbook was opened to everyone; null = owners and admins only. */
+  handbookLaunchedAt: string | null;
 }
 
 const DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5];
@@ -27,7 +29,7 @@ export const getOrganizationSettings = cache(
     const { data } = await supabase
       .from("organization_settings")
       .select(
-        "report_deadline_hour_utc, org_name, timezone, working_days, report_deadline_hour_local",
+        "report_deadline_hour_utc, org_name, timezone, working_days, report_deadline_hour_local, handbook_launched_at",
       )
       .eq("id", true)
       .maybeSingle();
@@ -39,6 +41,7 @@ export const getOrganizationSettings = cache(
       timezone: data?.timezone ?? "UTC",
       workingDays: data?.working_days ?? DEFAULT_WORKING_DAYS,
       reportDeadlineHourLocal: data?.report_deadline_hour_local ?? 17,
+      handbookLaunchedAt: data?.handbook_launched_at ?? null,
     };
   },
 );

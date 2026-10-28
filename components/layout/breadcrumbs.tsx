@@ -12,6 +12,7 @@ const ROUTE_LABELS: Record<string, string> = {
   activity: "Activity",
   organization: "Organization",
   templates: "Report Templates",
+  handbook: "Handbook",
   reports: "My Reports",
   settings: "Settings",
   profile: "Profile",
@@ -35,7 +36,7 @@ function labelForDynamicSegment(parent: string | undefined): string | null {
   if (parent === "departments") {
     return "Department";
   }
-  if (parent === "templates") {
+  if (parent === "templates" || parent === "handbook") {
     return "Edit";
   }
   return null;
@@ -77,6 +78,13 @@ export function Breadcrumbs() {
 
     if (ROUTE_LABELS[part]) {
       crumbs.push({ href, label: ROUTE_LABELS[part] });
+      previousPart = part;
+      continue;
+    }
+
+    // Handbook docs are addressed by slug; the page sets the title.
+    if (previousPart === "handbook" && dynamicLabel) {
+      crumbs.push({ href, label: dynamicLabel });
       previousPart = part;
       continue;
     }

@@ -98,6 +98,28 @@ export default function OrganizationLoading() {
           <span className="text-[13px] text-muted-foreground">Manage all templates</span>
         </div>
       </SettingsSectionSkeleton>
+
+      <SettingsSectionSkeleton
+        title="Handbook"
+        description="Policies, SOPs, job descriptions and guides. Choose who can see each one and who must confirm they've read it."
+        saveBar={false}
+        aside={<Skeleton className="h-8 w-32 rounded-lg" />}
+      >
+        <div className="flex flex-col gap-3">
+          <ul className="flex flex-col divide-y divide-line overflow-hidden rounded-xl ring-1 ring-inset ring-edge">
+            {["w-36", "w-28", "w-44"].map((width) => (
+              <li
+                key={width}
+                className="flex min-h-12 items-center justify-between gap-3 px-4 py-2.5"
+              >
+                <SkeletonLine className={width} />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </li>
+            ))}
+          </ul>
+          <span className="text-[13px] text-muted-foreground">Manage the handbook</span>
+        </div>
+      </SettingsSectionSkeleton>
     </div>
   );
 }

@@ -3,13 +3,16 @@ import { RoleChip } from "@/components/shared/role-chip";
 import { Card, CardContent, CardTitleHeader } from "@/components/ui/card";
 import { formatDate } from "@/lib/helpers/dates";
 import type { UserRole } from "@/types/profile";
+import { AskMeAboutField } from "./ask-me-about-field";
 
 export function DetailsCard({
   employee,
   showAdminFields = true,
 }: {
   employee: {
+    id?: string;
     email?: string | null;
+    ask_me_about?: string | null;
     role: UserRole;
     employment_type: "full_time" | "part_time";
     is_remote: boolean;
@@ -34,6 +37,12 @@ export function DetailsCard({
             </p>
           </div>
         )}
+        {showAdminFields && employee.id ? (
+          <AskMeAboutField
+            profileId={employee.id}
+            initialValue={employee.ask_me_about ?? null}
+          />
+        ) : null}
         <div className="flex flex-col gap-1">
           <p className="field-label">Role</p>
           <RoleChip role={employee.role} />

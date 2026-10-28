@@ -165,17 +165,25 @@ export const getDefaultTemplate = cache(
   },
 );
 
-export const resolveTemplate = cache(
-  async (
-    profileId: string,
-    departmentIds: string[],
-  ): Promise<ReportTemplateWithFields | null> => {
+type TemplateSource = "individual" | "department" | "default" | "none";
+
+interface TemplateResolution {
+  template: ReportTemplateWithFields | null;
+  source: TemplateSource;
+  sourceName: string | null;
+}
+
+// Keyed by a string so resolveTemplate and getTemplateResolutionInfo share
+// one lookup per request (cache() compares arrays by identity).
+const resolveTemplateByKey = cache(
+  async (profileId: string, departmentKey: string): Promise<TemplateResolution> => {
     const supabase = await createClient();
+    const departmentIds = departmentKey ? departmentKey.split(",") : [];
 
     // Look up the individual and department assignments and the org default
     // together, then load both candidate templates together: two rounds
-    // instead of up to five. Priority is unchanged: individual, then the
-    // first department (by name) with a template, then the default.
+    // instead of up to five. Priority: individual, then the first department
+    // (by name) with a template, then the default.
     const [{ data: profile }, depts, defaultTmplP] = await Promise.all([
       supabase.from("profiles").select("template_id").eq("id", profileId).single(),
       departmentIds.length > 0
@@ -188,90 +196,46 @@ export const resolveTemplate = cache(
             .limit(1)
             .then((result) => result.data)
         : Promise.resolve(null),
-      Promise.resolve(getDefaultTemplate()),
+      getDefaultTemplate(),
     ]);
 
-    const deptTemplateId = depts?.[0]?.template_id as string | undefined;
+    const dept = depts?.[0] as { template_id: string; name: string } | undefined;
     const [individual, department] = await Promise.all([
       profile?.template_id ? getTemplateWithFields(profile.template_id) : null,
-      deptTemplateId ? getTemplateWithFields(deptTemplateId) : null,
+      dept?.template_id ? getTemplateWithFields(dept.template_id) : null,
     ]);
 
     if (individual && !individual.archivedAt) {
-      return individual;
+      return { template: individual, source: "individual", sourceName: null };
     }
     if (department && !department.archivedAt) {
-      return department;
+      return { template: department, source: "department", sourceName: dept?.name ?? null };
     }
 
     const defaultTmpl = await defaultTmplP;
     if (defaultTmpl) {
-      return defaultTmpl;
+      return { template: defaultTmpl, source: "default", sourceName: null };
     }
 
     // No individual, department, or default template is available. Callers
     // render a "template not configured" state instead of crashing.
-    return null;
+    return { template: null, source: "none", sourceName: null };
+  },
+);
+
+export const resolveTemplate = cache(
+  async (
+    profileId: string,
+    departmentIds: string[],
+  ): Promise<ReportTemplateWithFields | null> => {
+    const resolution = await resolveTemplateByKey(profileId, departmentIds.join(","));
+    return resolution.template;
   },
 );
 
 export async function getTemplateResolutionInfo(
   profileId: string,
   departmentIds: string[],
-): Promise<{
-  template: ReportTemplateWithFields | null;
-  source: "individual" | "department" | "default" | "none";
-  sourceName: string | null;
-}> {
-  const supabase = await createClient();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("template_id")
-    .eq("id", profileId)
-    .single();
-
-  if (profile?.template_id) {
-    const tmpl = await getTemplateWithFields(profile.template_id);
-    if (tmpl && !tmpl.archivedAt) {
-      return {
-        template: tmpl,
-        source: "individual",
-        sourceName: null,
-      };
-    }
-  }
-
-  if (departmentIds.length > 0) {
-    const { data: depts } = await supabase
-      .from("departments")
-      .select("template_id, name")
-      .in("id", departmentIds)
-      .not("template_id", "is", null)
-      .order("name", { ascending: true })
-      .limit(1);
-
-    const dept = depts?.[0];
-    if (dept?.template_id) {
-      const tmpl = await getTemplateWithFields(dept.template_id);
-      if (tmpl && !tmpl.archivedAt) {
-        return {
-          template: tmpl,
-          source: "department",
-          sourceName: dept.name,
-        };
-      }
-    }
-  }
-
-  const defaultTmpl = await getDefaultTemplate();
-  if (defaultTmpl) {
-    return {
-      template: defaultTmpl,
-      source: "default",
-      sourceName: null,
-    };
-  }
-
-  return { template: null, source: "none", sourceName: null };
+): Promise<TemplateResolution> {
+  return resolveTemplateByKey(profileId, departmentIds.join(","));
 }

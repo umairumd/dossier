@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { LeaveBalanceCardSkeleton } from "@/components/attendance/skeletons";
 import { getOrganizationSummary } from "@/lib/supabase/queries/admin/overview";
 import { getDeptCompletionToday } from "@/lib/supabase/queries/admin/dept-completion";
 import { getAllDepartments } from "@/lib/supabase/queries/admin/departments";
@@ -64,6 +65,7 @@ export function AdminDashboard({ initialPanel }: { initialPanel: HeroPanelId | n
         fallback={
           <>
             <HomeHeroSkeleton />
+            <LeaveBalanceCardSkeleton />
             {chart}
             {departments}
             {shortcuts}

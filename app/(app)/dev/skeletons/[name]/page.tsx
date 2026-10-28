@@ -11,7 +11,11 @@ import DepartmentsLoading from "../../../departments/loading";
 import EmployeeLoading from "../../../employees/[id]/loading";
 import EmployeesLoading from "../../../employees/loading";
 import InvitationsLoading from "../../../invitations/loading";
+import HandbookLoading from "../../../handbook/loading";
+import HandbookDocLoading from "../../../handbook/[slug]/loading";
 import OrganizationLoading from "../../../organization/loading";
+import HandbookAdminLoading from "../../../organization/handbook/loading";
+import HandbookEditorLoading from "../../../organization/handbook/[id]/loading";
 import TemplateLoading from "../../../organization/templates/[id]/loading";
 import TemplatesLoading from "../../../organization/templates/loading";
 import ReportsLoading from "../../../reports/loading";
@@ -33,7 +37,11 @@ const LOADERS: Record<string, ComponentType> = {
   employee: EmployeeLoading,
   employees: EmployeesLoading,
   invitations: InvitationsLoading,
+  handbook: HandbookLoading,
+  "handbook-doc": HandbookDocLoading,
   organization: OrganizationLoading,
+  "org-handbook": HandbookAdminLoading,
+  "org-handbook-editor": HandbookEditorLoading,
   template: TemplateLoading,
   templates: TemplatesLoading,
   reports: ReportsLoading,

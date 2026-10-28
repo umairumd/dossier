@@ -15,7 +15,9 @@ export type NotificationType =
   | "report_commented"
   | "leave_balance_adjusted"
   | "team_report_commented"
-  | "profile_updated";
+  | "profile_updated"
+  | "handbook_published"
+  | "handbook_reminder";
 
 export interface Notification {
   id: string;

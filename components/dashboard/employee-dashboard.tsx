@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { LeaveBalanceCardSkeleton } from "@/components/attendance/skeletons";
 import { getReportHistory, getReportStatsData, getTodayReport } from "@/lib/supabase/queries/reports";
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
@@ -11,12 +12,11 @@ import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queri
 import { getAvatarsByProfileIds, type ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { getHomeDay, getMyAttendanceHistory } from "@/lib/supabase/queries/home";
 import { getCommentsForReports } from "@/lib/supabase/queries/report-comments";
-import { getMyPeopleDirectory } from "@/lib/supabase/queries/member/people";
 import { getMyRewardStats, getMyUnlocks } from "@/lib/actions/avatar";
 import { buildAttendanceStatusMap, computeReportStats } from "@/lib/helpers/report-stats";
 import { HomeActivityCard } from "@/components/dashboard/home-activity-card";
 import { HomeLeaveBalance } from "@/components/dashboard/home-leave-balance";
-import { YourPeopleCard } from "@/components/dashboard/your-people-card";
+import { HandbookLinkRow } from "@/components/dashboard/handbook-link-row";
 import { ActivityStrip } from "@/components/dashboard/activity-strip";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import type { HeroPanelId } from "@/components/dashboard/hero-controller";
@@ -52,6 +52,7 @@ export function EmployeeDashboard({
         fallback={
           <>
             <HomeHeroSkeleton stats={3} team={false} />
+            <LeaveBalanceCardSkeleton />
             {strip}
             {recent}
             {activity}
@@ -93,7 +94,6 @@ async function EmployeeHero({
     unlocks,
     attendanceSettings,
     leaveBalance,
-    peopleDirectory,
     actorAvatars,
   ] = await Promise.all([
     getHomeDay(),
@@ -107,7 +107,6 @@ async function EmployeeHero({
     getMyUnlocks(),
     getAttendanceSettings(),
     getActiveLeaveBalance(profile.id),
-    getMyPeopleDirectory(),
     forYouP.then((notes) =>
       getAvatarsByProfileIds(
         notes.flatMap((note) =>
@@ -197,7 +196,7 @@ async function EmployeeHero({
         orgId={profile.organization_id ?? ""}
         contractStart={profile.contract_start}
       />
-      <YourPeopleCard directory={peopleDirectory} />
+      {settings.handbookLaunchedAt ? <HandbookLinkRow /> : null}
     </div>
   );
 }

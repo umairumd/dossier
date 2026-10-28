@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import {
   Archive,
   ArchiveRestore,
+  BookOpen,
   Building2,
   CalendarCheck,
   CalendarCheck2,
@@ -70,6 +71,7 @@ export const EVENT_ICON: Record<ActivityEventType, LucideIcon> = {
   department_edited: Building2,
   department_archived: Archive,
   org_settings_changed: Settings2,
+  handbook_published: BookOpen,
 };
 
 export function eventCategory(type: ActivityEventType): ActivityCategory {
@@ -121,6 +123,10 @@ export function activityDetailLine(entry: ActivityLogEntry): string | null {
     }
     case "record_exported":
       return metaString(entry.metadata, "period");
+    case "handbook_published": {
+      const note = metaString(entry.metadata, "change_note");
+      return note ? `“${note}”` : null;
+    }
     default:
       return null;
   }

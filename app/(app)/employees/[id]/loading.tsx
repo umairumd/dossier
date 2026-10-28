@@ -1,6 +1,11 @@
 import { Building2, Clock, FileStack, UserCheck } from "lucide-react";
 import type { ReactNode } from "react";
+import {
+  LeaveBalanceCardSkeleton,
+  PersonalCalendarSkeleton,
+} from "@/components/attendance/skeletons";
 import { Separator } from "@/components/ui/separator";
+import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   CardSkeleton,
@@ -42,7 +47,11 @@ function Detail({ label, width }: { label: string; width: string }) {
   );
 }
 
-export default function EmployeeProfileLoading() {
+// Owners and admins also get the month calendar on someone's profile.
+export default async function EmployeeProfileLoading() {
+  const profile = await getCurrentProfile();
+  const isAdmin = profile?.role === "owner" || profile?.role === "admin";
+
   return (
     <div className="flex flex-col gap-6">
       <LoadingNote label="Loading profile" />
@@ -113,26 +122,15 @@ export default function EmployeeProfileLoading() {
           labels={["Current streak", "Submission rate", "Last report"]}
           hints
         />
-        <CardSkeleton label="Leave balance" contentClassName="flex flex-col gap-3">
-          <SkeletonLine size="13" className="w-56" />
-          <div className="grid grid-cols-3 overflow-hidden rounded-lg ring-1 ring-inset ring-edge">
-            {["Accrued", "Used", "Remaining"].map((label, index) => (
-              <div
-                key={label}
-                className={
-                  index > 0
-                    ? "flex min-w-0 flex-col gap-1 border-l border-line px-3 py-3 sm:px-4"
-                    : "flex min-w-0 flex-col gap-1 px-3 py-3 sm:px-4"
-                }
-              >
-                <span className="text-[13px] text-muted-foreground">{label}</span>
-                <span className="flex h-8 items-center">
-                  <Skeleton className="h-6 w-10" />
-                </span>
-              </div>
-            ))}
+        <LeaveBalanceCardSkeleton />
+        {isAdmin ? (
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-end">
+              <Skeleton className="h-9 w-52 rounded-lg" />
+            </div>
+            <PersonalCalendarSkeleton title="Attendance" />
           </div>
-        </CardSkeleton>
+        ) : null}
       </div>
 
       <CardSkeleton label="Report history">

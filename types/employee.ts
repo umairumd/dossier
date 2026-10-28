@@ -32,6 +32,8 @@ export interface EmployeeListItem {
   last_seen_at: string | null;
   status: EmployeeStatus;
   designation: string | null;
+  /** Shown in the handbook's Who to ask card. */
+  ask_me_about?: string | null;
   is_remote: boolean;
   employment_type: "full_time" | "part_time";
   avatar_url: string | null;

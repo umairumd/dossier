@@ -21,15 +21,20 @@ import {
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+// Worked that day: on time, late, from home, or the working half of a half day.
 const PRESENT_STATUSES: ReadonlySet<AttendanceStatus> = new Set([
   "present",
   "late_minor",
   "late_major",
+  "work_from_home",
+  "half_leave",
 ]);
 
+// Not counted as working days for the rate: days off and approved full-day leave.
 const NON_WORKING_STATUSES: ReadonlySet<AttendanceStatus> = new Set([
   "weekly_off",
   "holiday",
+  "leave",
 ]);
 
 function isoWeekday(dateStr: string): number {
@@ -133,6 +138,8 @@ export function PersonalMonthCalendar({
     const date = `${yearMonth}-${String(day).padStart(2, "0")}`;
     if (date > today) break;
     const record = recordsByDate.get(date);
+    // Today only counts once it has been marked.
+    if (date === today && !record) continue;
     if (record && NON_WORKING_STATUSES.has(record.status)) continue;
     if (!isWorkingDay(date, workingDays)) continue;
     workingDaysSoFar++;
@@ -187,8 +194,8 @@ export function PersonalMonthCalendar({
           </span>
         }
       />
-      <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-0">
-        <div className="flex min-w-0 flex-col gap-1.5 lg:pr-6">
+      <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-0">
+        <div className="flex w-full max-w-[26rem] min-w-0 flex-col gap-1.5 justify-self-center lg:justify-self-start lg:pr-8">
           <div className="grid grid-cols-7 gap-1.5">
             {WEEKDAY_LABELS.map((label) => (
               <div
@@ -290,7 +297,7 @@ export function PersonalMonthCalendar({
           ))}
         </div>
 
-        <aside className="flex flex-col gap-5 border-t border-line pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+        <aside className="flex flex-col gap-6 border-t border-line pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
           <div className="flex flex-col gap-1.5">
             <span className="text-[13px] text-muted-foreground">
               Attendance rate
@@ -298,7 +305,7 @@ export function PersonalMonthCalendar({
             <span className="text-[28px] font-semibold leading-none tracking-tight tabular-nums">
               {attendanceRate === null ? "—" : `${attendanceRate}%`}
             </span>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-fill-active">
+            <div className="mt-2 h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-fill-active">
               <div
                 className="h-full rounded-full bg-ok transition-[width]"
                 style={{ width: `${attendanceRate ?? 0}%` }}
@@ -307,24 +314,24 @@ export function PersonalMonthCalendar({
             <span className="text-xs text-muted-foreground">
               {workingDaysSoFar === 0
                 ? "No working days yet"
-                : `Present ${presentDays} of ${workingDaysSoFar} working days`}
+                : `Present ${presentDays} of ${workingDaysSoFar} working days${leaveCount > 0 ? " · leave not counted" : ""}`}
             </span>
           </div>
 
-          <dl className="flex flex-col divide-y divide-line">
+          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {summary.map((item) => (
               <div
                 key={item.key}
-                className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                className="flex flex-col gap-1 rounded-lg bg-fill-subtle px-3 py-2.5 ring-1 ring-inset ring-edge"
               >
-                <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                <dt className="flex items-center gap-2 text-[13px] text-muted-foreground">
                   <span
                     aria-hidden
                     className={cn("size-2 rounded-full", SUMMARY_DOT[item.key])}
                   />
                   {item.label}
                 </dt>
-                <dd className="text-sm font-medium tabular-nums">
+                <dd className="text-lg font-semibold leading-none tabular-nums">
                   {item.value}
                 </dd>
               </div>

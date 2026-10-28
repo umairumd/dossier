@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   Building2,
   Cake,
   CalendarCheck,
@@ -28,6 +29,8 @@ export interface NavItem {
   requiresTeam?: boolean;
   // When true, hidden for people excluded from reporting (is_reporting off).
   requiresReporting?: boolean;
+  // Small label after the name, e.g. "Soon". Set by AppShell.
+  tag?: string;
 }
 
 export interface NavSection {
@@ -71,6 +74,12 @@ export const navSections: NavSection[] = [
         label: "Activity",
         href: "/activity",
         icon: <Zap className="size-4" />,
+        roles: ALL_ROLES,
+      },
+      {
+        label: "Handbook",
+        href: "/handbook",
+        icon: <BookOpen className="size-4" />,
         roles: ALL_ROLES,
       },
     ],

@@ -33,6 +33,10 @@ const badgeVariants = cva(
           "border-transparent bg-fill-active text-neutral-700 ring-1 ring-inset ring-line-strong dark:text-neutral-300",
         leave:
           "border-transparent bg-leave/12 text-leave ring-1 ring-inset ring-leave/30",
+        info:
+          "border-transparent bg-info/12 text-info ring-1 ring-inset ring-info/30",
+        teal:
+          "border-transparent bg-holiday/12 text-holiday ring-1 ring-inset ring-holiday/30",
         // Day off: the same amber as the day-off date control, with its icon.
         off: "border-transparent bg-warn/12 text-warn ring-1 ring-inset ring-warn/30",
       },

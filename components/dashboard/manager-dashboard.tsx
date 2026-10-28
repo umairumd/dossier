@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { LeaveBalanceCardSkeleton } from "@/components/attendance/skeletons";
 import { getTodayReport, getReportStatsData } from "@/lib/supabase/queries/reports";
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getTeamReportsForDate } from "@/lib/supabase/queries/manager/team";
@@ -56,6 +57,7 @@ export function ManagerDashboard({
         fallback={
           <>
             <HomeHeroSkeleton />
+            <LeaveBalanceCardSkeleton />
             {chart}
             {highlights}
             {activity}

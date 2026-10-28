@@ -66,6 +66,11 @@ export function NavLinks({
                   {item.icon}
                 </span>
                 {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && item.tag ? (
+                  <span className="ml-auto rounded-md bg-fill-active px-1.5 py-0.5 text-[10.5px] font-medium text-muted-foreground">
+                    {item.tag}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

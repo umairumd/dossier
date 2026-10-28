@@ -110,10 +110,13 @@ export function OrgScheduleForm({
   initialTimezone,
   initialWorkingDays,
   initialDeadlineHour,
+  canEditCalendar = true,
 }: {
   initialTimezone: string;
   initialWorkingDays: number[];
   initialDeadlineHour: number;
+  /** Time zone and working days: owner only. */
+  canEditCalendar?: boolean;
 }) {
   const initial = {
     timezone: initialTimezone,
@@ -156,22 +159,28 @@ export function OrgScheduleForm({
     }
 
     startTransition(async () => {
-      const timezoneResult = await updateTimezone(timezone);
-      if (!timezoneResult.success) {
-        toast.error(timezoneResult.error ?? "Couldn't update the timezone.");
-        return;
+      if (timezone !== saved.timezone) {
+        const timezoneResult = await updateTimezone(timezone);
+        if (!timezoneResult.success) {
+          toast.error(timezoneResult.error ?? "Couldn't update the timezone.");
+          return;
+        }
       }
 
-      const daysResult = await updateWorkingDays(workingDays);
-      if (!daysResult.success) {
-        toast.error(daysResult.error ?? "Couldn't update working days.");
-        return;
+      if (workingDays.join(",") !== saved.workingDays.join(",")) {
+        const daysResult = await updateWorkingDays(workingDays);
+        if (!daysResult.success) {
+          toast.error(daysResult.error ?? "Couldn't update working days.");
+          return;
+        }
       }
 
-      const deadlineResult = await updateReportDeadlineLocal(parsed);
-      if (!deadlineResult.success) {
-        toast.error(deadlineResult.error ?? "Couldn't update the report deadline.");
-        return;
+      if (deadlineHour !== saved.deadlineHour) {
+        const deadlineResult = await updateReportDeadlineLocal(parsed);
+        if (!deadlineResult.success) {
+          toast.error(deadlineResult.error ?? "Couldn't update the report deadline.");
+          return;
+        }
       }
 
       setSaved({ timezone, workingDays, deadlineHour });
@@ -186,12 +195,17 @@ export function OrgScheduleForm({
       onSubmit={handleSubmit}
       footer={<SaveBar dirty={dirty} pending={isPending} onReset={reset} />}
     >
-      <Field label="Time zone" htmlFor="timezone">
+      <Field
+        label="Time zone"
+        htmlFor="timezone"
+        hint={canEditCalendar ? undefined : "Only the owner can change this."}
+      >
         <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
           <PopoverTrigger asChild>
             <Button
               id="timezone"
               type="button"
+              disabled={!canEditCalendar}
               variant="outline"
               role="combobox"
               aria-expanded={timezoneOpen}
@@ -235,7 +249,14 @@ export function OrgScheduleForm({
         </Popover>
       </Field>
 
-      <Field label="Working days" hint="Reports are expected on these days.">
+      <Field
+        label="Working days"
+        hint={
+          canEditCalendar
+            ? "Reports are expected on these days."
+            : "Reports are expected on these days. Only the owner can change this."
+        }
+      >
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Working days">
           {DAYS.map((day) => {
             const on = workingDays.includes(day.value);
@@ -243,10 +264,11 @@ export function OrgScheduleForm({
               <button
                 key={day.value}
                 type="button"
+                disabled={!canEditCalendar}
                 onClick={() => toggleDay(day.value)}
                 aria-pressed={on}
                 className={cn(
-                  "h-9 w-12 rounded-lg text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                  "h-9 w-12 rounded-lg text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60",
                   on
                     ? "bg-fill-active text-foreground ring-1 ring-inset ring-line-strong"
                     : "text-muted-foreground ring-1 ring-inset ring-edge hover:text-foreground",

@@ -1,3 +1,4 @@
+import { LeaveBalanceCardSkeleton } from "@/components/attendance/skeletons";
 import {
   HomeActivitySkeleton,
   HomeChartSkeleton,
@@ -15,6 +16,7 @@ export default function HomeLoading() {
     <div className="flex flex-col gap-6">
       <LoadingNote label="Loading home" />
       <HomeHeroSkeleton />
+      <LeaveBalanceCardSkeleton />
       <HomeChartSkeleton />
       <HomeListCardSkeleton />
       <HomeActivitySkeleton />

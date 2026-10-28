@@ -329,6 +329,20 @@ const EVENT_LABELS: Record<
       rest: name ? ` archived template ${name}` : " archived a template",
     };
   },
+  handbook_published: (e) => {
+    if (e.metadata?.launch) {
+      return { lead: e.actor_name ?? "Admin", rest: " launched the handbook for everyone" };
+    }
+    const name = entityName(e.entity_name, "a handbook document");
+    const version = Number(e.metadata?.version);
+    return {
+      lead: e.actor_name ?? "Admin",
+      rest:
+        Number.isFinite(version) && version > 1
+          ? ` published version ${version} of ${name}`
+          : ` published ${name}`,
+    };
+  },
 };
 
 export function getHref(entry: ActivityLogEntry): string | undefined {
@@ -340,6 +354,9 @@ export function getHref(entry: ActivityLogEntry): string | undefined {
   }
   if (entry.entity_type === "template" && entry.entity_id) {
     return `/organization/templates/${entry.entity_id}`;
+  }
+  if (entry.entity_type === "handbook_doc" && entry.entity_id) {
+    return `/organization/handbook/${entry.entity_id}`;
   }
   return undefined;
 }

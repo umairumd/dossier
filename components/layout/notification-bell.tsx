@@ -6,6 +6,8 @@ import {
   AlertTriangle,
   Archive,
   Bell,
+  BookOpen,
+  BookOpenCheck,
   Cake,
   CalendarClock,
   CheckCircle,
@@ -60,6 +62,8 @@ export const TYPE_ICONS: Record<
   leave_balance_adjusted: { Icon: Scale, className: "text-leave" },
   team_report_commented: { Icon: MessagesSquare, className: "text-info" },
   profile_updated: { Icon: UserPen, className: "text-info" },
+  handbook_published: { Icon: BookOpen, className: "text-info" },
+  handbook_reminder: { Icon: BookOpenCheck, className: "text-warn" },
 };
 
 export function NotificationBell({

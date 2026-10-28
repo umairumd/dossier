@@ -8,6 +8,7 @@ import {
   getUnreadNotificationCount,
 } from "@/lib/supabase/queries/notifications";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
+import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
 import type { Profile } from "@/types/profile";
 
 export async function AppShell({
@@ -47,13 +48,27 @@ export async function AppShell({
     }))
     .filter((section) => section.items.length > 0);
 
-  const mainSections = sections.filter((section) => !section.pinToBottom);
-  const accountSections = sections.filter((section) => section.pinToBottom);
-  const [orgName, unreadCount, notifications] = await Promise.all([
+  const [orgName, unreadCount, notifications, settings] = await Promise.all([
     getOrganizationName(),
     getUnreadNotificationCount(),
     getMyNotifications(),
+    getOrganizationSettings(),
   ]);
+
+  // Before launch, the handbook is "Soon" for everyone but owners and admins.
+  const handbookSoon =
+    !settings.handbookLaunchedAt && profile.role !== "owner" && profile.role !== "admin";
+  const tagged = handbookSoon
+    ? sections.map((section) => ({
+        ...section,
+        items: section.items.map((item) =>
+          item.href === "/handbook" ? { ...item, tag: "Soon" } : item,
+        ),
+      }))
+    : sections;
+
+  const mainSections = tagged.filter((section) => !section.pinToBottom);
+  const accountSections = tagged.filter((section) => section.pinToBottom);
 
   return (
     // Desktop: the sidebar sits on the app frame and the page sits on a

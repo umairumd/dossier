@@ -7,6 +7,8 @@ export function resolveNotificationUrl(
   if (entityType === "employee" && entityId) return `/employees/${entityId}`;
   if (entityType === "leave_request" && entityId) return `/attendance`;
   if (entityType === "report" && entityId) return `/reports?view=${entityId}`;
+  if (entityType === "handbook_doc" && entityId) return `/handbook/${entityId}`;
+  if (entityType === "handbook") return "/handbook";
   if (entityType === "team_report" && entityId) {
     return `/track-reports?report=${entityId}`;
   }
@@ -52,5 +54,6 @@ export function notificationActionLabel(type: string): string {
     return "View";
   }
   if (type === "birthday") return "Say hi";
+  if (type === "handbook_published" || type === "handbook_reminder") return "Read";
   return "Open";
 }

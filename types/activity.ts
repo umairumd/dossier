@@ -25,7 +25,8 @@ export type ActivityEventType =
   | "template_created"
   | "template_edited"
   | "template_archived"
-  | "record_exported";
+  | "record_exported"
+  | "handbook_published";
 
 export interface ActivityLogEntry {
   id: string;
