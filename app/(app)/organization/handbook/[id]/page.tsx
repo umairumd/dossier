@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { HandbookEditor } from "@/components/admin/handbook-editor";
 import { HandbookReadProgress } from "@/components/admin/handbook-read-progress";
 import { BreadcrumbLabel } from "@/components/layout/breadcrumb-label";
-import { matchesHandbookAudience } from "@/lib/handbook/audience";
 import { UUID_PATTERN } from "@/lib/handbook/format";
 import { computeReadProgress } from "@/lib/handbook/progress";
 import { orgDayUtcBounds, todayInTimezone } from "@/lib/helpers/dates";
@@ -48,7 +47,6 @@ export default async function EditHandbookDocPage({
         departments={departments.filter((department) => !department.archived)}
         people={pickerPeople(people)}
         designations={designationOptions(people)}
-        initialCount={people.filter((person) => matchesHandbookAudience(person, doc)).length}
         aside={
           progress ? (
             <HandbookReadProgress

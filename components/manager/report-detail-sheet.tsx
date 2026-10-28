@@ -25,6 +25,7 @@ import { SubmissionStatusBadge } from "@/components/manager/submission-status-ba
 import { ConfirmActionDialog } from "@/components/admin/confirm-action-dialog";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { ReportFields } from "@/components/reports/report-fields";
+import { RichText } from "@/components/shared/rich-text";
 import {
   addReportComment,
   deleteReportComment,
@@ -375,9 +376,7 @@ export function ReportDetailSheet({
                               })}
                             </span>
                           </div>
-                          <p className="mt-0.5 text-sm whitespace-pre-wrap text-foreground">
-                            {c.body}
-                          </p>
+                          <RichText text={c.body} className="mt-0.5" />
                         </div>
                         {canDeleteComment(c) && (
                           <ConfirmActionDialog

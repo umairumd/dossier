@@ -1,4 +1,5 @@
 import { Check, ExternalLink, Link2, X } from "lucide-react";
+import { RichText } from "@/components/shared/rich-text";
 import { fieldResponse } from "@/lib/reports/field-response";
 import { cn } from "@/lib/utils";
 import type { DailyReport } from "@/types/report";
@@ -145,9 +146,7 @@ function BlockView({ block }: { block: Block }) {
       return (
         <div className="flex flex-col gap-1.5">
           <Label>{block.label}</Label>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words text-foreground">
-            {block.text}
-          </p>
+          <RichText text={block.text} />
         </div>
       );
     case "link": {

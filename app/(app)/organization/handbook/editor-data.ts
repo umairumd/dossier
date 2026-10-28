@@ -7,6 +7,11 @@ export function pickerPeople(people: HandbookPoolPerson[]): PickerPerson[] {
     id: person.id,
     full_name: person.full_name,
     designation: person.designation,
+    role: person.role,
+    employment_type: person.employment_type,
+    is_remote: person.is_remote,
+    department_ids: person.department_ids,
+    is_supervisor: person.is_supervisor,
   }));
 }
 

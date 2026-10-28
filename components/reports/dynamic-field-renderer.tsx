@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { RichText } from "@/components/shared/rich-text";
 import { cn } from "@/lib/utils";
 import type { TemplateField } from "@/types/template";
 
@@ -430,9 +431,7 @@ export function DynamicFieldRenderer({
         <div className="flex flex-col gap-1">
           <DisplayLabel>{field.label}</DisplayLabel>
           {text ? (
-            <DisplayValue className="max-h-48 overflow-y-auto whitespace-pre-wrap break-words">
-              {text}
-            </DisplayValue>
+            <RichText text={text} className="max-h-48 overflow-y-auto" />
           ) : (
             <DisplayValue empty>None reported</DisplayValue>
           )}

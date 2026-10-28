@@ -30,12 +30,11 @@ import {
   normaliseAudiences,
   normaliseDesignation,
 } from "@/lib/handbook/audience";
+import type { AudiencePerson } from "@/lib/handbook/audience";
 import type { HandbookAudience, HandbookAudienceKind } from "@/types/handbook";
 
-export interface PickerPerson {
-  id: string;
+export interface PickerPerson extends AudiencePerson {
   full_name: string;
-  designation: string | null;
 }
 
 function MenuAdd({

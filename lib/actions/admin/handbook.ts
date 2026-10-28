@@ -474,23 +474,6 @@ export async function archiveHandbookDoc(docId: string): Promise<ActionResult> {
 }
 
 /** How many people the rules reach (owners and admins are not added on top). */
-export async function countHandbookAudience(input: {
-  kind: HandbookKind;
-  jdDesignation: string;
-  audiences: HandbookAudience[];
-}): Promise<{ count: number }> {
-  await requireAdminUser();
-  const people = await getHandbookPeoplePool();
-  const doc = {
-    kind: input.kind,
-    jdDesignation: input.kind === "jd" ? input.jdDesignation : null,
-    audiences: normaliseAudiences(input.audiences),
-  };
-  return {
-    count: people.filter((person) => matchesHandbookAudience(person, doc)).length,
-  };
-}
-
 export async function updateAskMeAbout(
   profileId: string,
   value: string,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, HelpCircle, MoreHorizontal, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -45,18 +45,17 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   archiveHandbookDoc,
-  countHandbookAudience,
   publishHandbookDoc,
   saveHandbookDraft,
   type HandbookDraftInput,
 } from "@/lib/actions/admin/handbook";
-import { normaliseAudiences } from "@/lib/handbook/audience";
+import { matchesHandbookAudience, normaliseAudiences } from "@/lib/handbook/audience";
 import {
   HANDBOOK_KINDS,
   HANDBOOK_KIND_LABELS,
   docStatus,
 } from "@/lib/handbook/format";
-import type { HandbookAudience, HandbookDoc, HandbookKind } from "@/types/handbook";
+import type { HandbookDoc, HandbookKind } from "@/types/handbook";
 
 type Draft = Omit<HandbookDraftInput, "id">;
 
@@ -116,14 +115,12 @@ export function HandbookEditor({
   departments,
   people,
   designations,
-  initialCount,
   aside,
 }: {
   doc?: HandbookDoc;
   departments: { id: string; name: string }[];
   people: PickerPerson[];
   designations: string[];
-  initialCount: number;
   /** Read progress, rendered on the server. */
   aside?: ReactNode;
 }) {
@@ -132,7 +129,6 @@ export function HandbookEditor({
   const [savedSnapshot, setSavedSnapshot] = useState(() =>
     JSON.stringify(initialDraft(doc)),
   );
-  const [count, setCount] = useState<number | null>(initialCount);
   const [saving, startSaving] = useTransition();
   const [publishOpen, setPublishOpen] = useState(false);
   const [changeNote, setChangeNote] = useState("");
@@ -180,32 +176,19 @@ export function HandbookEditor({
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
 
-  const audienceKey = JSON.stringify([draft.kind, draft.jdDesignation, draft.audiences]);
-  const firstCount = useRef(true);
-  useEffect(() => {
-    if (firstCount.current) {
-      firstCount.current = false;
-      return;
-    }
-    let cancelled = false;
-    const [kind, jdDesignation, audiences] = JSON.parse(audienceKey) as [
-      HandbookKind,
-      string,
-      HandbookAudience[],
-    ];
-    const timer = window.setTimeout(async () => {
-      try {
-        const result = await countHandbookAudience({ kind, jdDesignation, audiences });
-        if (!cancelled) setCount(result.count);
-      } catch {
-        if (!cancelled) setCount(null);
-      }
-    }, 300);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [audienceKey]);
+  // Counted in the browser from the people already on the page, so it
+  // updates the moment a rule changes.
+  const count = useMemo(
+    () =>
+      people.filter((person) =>
+        matchesHandbookAudience(person, {
+          kind: draft.kind,
+          jdDesignation: draft.kind === "jd" ? draft.jdDesignation : null,
+          audiences: draft.audiences,
+        }),
+      ).length,
+    [people, draft.kind, draft.jdDesignation, draft.audiences],
+  );
 
   const validate = (): boolean => {
     if (!draft.title.trim()) {
@@ -287,10 +270,7 @@ export function HandbookEditor({
     toast.success(`Imported ${file.name}.`);
   };
 
-  const countLabel =
-    count === null
-      ? "Couldn't count who can see this."
-      : `${count} ${count === 1 ? "person" : "people"} can see this`;
+  const countLabel = `${count} ${count === 1 ? "person" : "people"} can see this`;
 
   const kindPicker = (
     <div role="radiogroup" aria-label="Type" className="grid grid-cols-2 gap-1.5">
@@ -579,9 +559,7 @@ export function HandbookEditor({
           <DialogHeader>
             <DialogTitle>Publish version {version + 1}</DialogTitle>
             <DialogDescription>
-              {count === null
-                ? "Everyone who can see it will be notified."
-                : `${count} ${count === 1 ? "person" : "people"} will be notified.`}
+              {`${count} ${count === 1 ? "person" : "people"} will be notified.`}
               {draft.requiresAck ? " They'll be asked to confirm they've read it." : ""}
             </DialogDescription>
           </DialogHeader>

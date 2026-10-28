@@ -16,8 +16,6 @@ export default async function NewHandbookDocPage() {
       departments={departments.filter((department) => !department.archived)}
       people={pickerPeople(people)}
       designations={designationOptions(people)}
-      // New documents start out visible to everyone.
-      initialCount={people.length}
     />
   );
 }
