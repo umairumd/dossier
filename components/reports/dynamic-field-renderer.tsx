@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Check, Link2, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { ListTextarea } from "@/components/shared/list-textarea";
 import { RichText } from "@/components/shared/rich-text";
 import { cn } from "@/lib/utils";
 import type { TemplateField } from "@/types/template";
@@ -54,52 +54,6 @@ function FieldError({ error }: { error?: string }) {
   return <p className="text-xs text-destructive">{error}</p>;
 }
 
-function fitTextarea(el: HTMLTextAreaElement) {
-  el.style.height = "auto";
-  const style = getComputedStyle(el);
-  const line = Number.parseFloat(style.lineHeight) || 20;
-  const pad =
-    Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
-  const border =
-    Number.parseFloat(style.borderTopWidth) +
-    Number.parseFloat(style.borderBottomWidth);
-  const min = line * 3 + pad + border;
-  const max = line * 12 + pad + border;
-  const next = Math.min(max, Math.max(min, el.scrollHeight));
-  el.style.height = `${next}px`;
-  el.style.overflowY = el.scrollHeight > max + 1 ? "auto" : "hidden";
-}
-
-function AutoTextarea({
-  value,
-  onChange,
-  placeholder,
-  invalid,
-}: {
-  value: string;
-  onChange?: (value: string) => void;
-  placeholder?: string;
-  invalid?: boolean;
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    if (ref.current) fitTextarea(ref.current);
-  }, [value]);
-  return (
-    <Textarea
-      ref={ref}
-      value={value}
-      rows={3}
-      placeholder={placeholder}
-      aria-invalid={invalid || undefined}
-      className="field-sizing-fixed min-h-20 resize-none"
-      onChange={(event) => {
-        fitTextarea(event.currentTarget);
-        onChange?.(event.target.value);
-      }}
-    />
-  );
-}
 
 function DisplayLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -155,7 +109,7 @@ function InlineInput({
     return (
       <div className="flex flex-col gap-1.5">
         {label}
-        <AutoTextarea
+        <ListTextarea
           value={(value as string) ?? ""}
           onChange={(next) => onChange?.(next)}
           placeholder={field.placeholder ?? undefined}
@@ -431,7 +385,7 @@ export function DynamicFieldRenderer({
         <div className="flex flex-col gap-1">
           <DisplayLabel>{field.label}</DisplayLabel>
           {text ? (
-            <RichText text={text} className="max-h-48 overflow-y-auto" />
+            <RichText text={text} variant="points" className="max-h-64 overflow-y-auto" />
           ) : (
             <DisplayValue empty>None reported</DisplayValue>
           )}
@@ -489,11 +443,11 @@ export function DynamicFieldRenderer({
           {field.label}
           <RequiredStar required={field.isRequired} />
         </Label>
-        <Textarea
+        <ListTextarea
           value={(value as string) ?? ""}
-          onChange={(event) => onChange?.(event.target.value)}
+          onChange={(next) => onChange?.(next)}
           placeholder={field.placeholder ?? undefined}
-          rows={3}
+          invalid={Boolean(error)}
         />
         {error && <p className="text-xs text-destructive">{error}</p>}
       </div>

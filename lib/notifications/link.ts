@@ -54,7 +54,7 @@ export function notificationActionLabel(type: string): string {
   ) {
     return "View";
   }
-  if (type === "birthday") return "Say hi";
+  if (type === "birthday") return "Send wishes";
   if (type === "item_awarded") return "Try it on";
   if (type === "handbook_published" || type === "handbook_reminder") return "Read";
   return "Open";

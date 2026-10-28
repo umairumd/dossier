@@ -3,9 +3,9 @@
 import { useState, useTransition, type ComponentType } from "react";
 import Link from "next/link";
 import {
-  Award,
   AlertTriangle,
   Archive,
+  Award,
   Bell,
   BookOpen,
   BookOpenCheck,
@@ -15,15 +15,16 @@ import {
   Clock,
   FileText,
   MessageSquare,
+  MessagesSquare,
+  PartyPopper,
   Scale,
   UserCheck,
+  UserPen,
   UserPlus,
-  Users,
   UserX,
+  Users,
   X,
   XCircle,
-  MessagesSquare,
-  UserPen,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -66,6 +67,7 @@ export const TYPE_ICONS: Record<
   handbook_published: { Icon: BookOpen, className: "text-info" },
   handbook_reminder: { Icon: BookOpenCheck, className: "text-warn" },
   item_awarded: { Icon: Award, className: "text-holiday" },
+  birthday_wish: { Icon: PartyPopper, className: "text-pink-500" },
 };
 
 export function NotificationBell({

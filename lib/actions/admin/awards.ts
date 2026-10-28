@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminUser } from "@/lib/supabase/require-admin";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
-import { createNotification } from "@/lib/actions/notifications";
+import { createNotification } from "@/lib/notifications/create";
 import { logActivity } from "@/lib/helpers/activity-log";
 import { ACCESSORIES, GRANTABLE_IDS, type AccessoryId } from "@/lib/mascot/catalog";
 

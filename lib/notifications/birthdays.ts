@@ -1,6 +1,4 @@
-"use server";
-
-import { createNotification } from "@/lib/actions/notifications";
+import { createNotification } from "@/lib/notifications/create";
 import {
   orgDayUtcBounds,
   todayInTimezone,
@@ -43,7 +41,7 @@ export async function sendBirthdayNotifications(
 
   const { data: people, error } = await adminClient
     .from("profiles")
-    .select("id, full_name, date_of_birth")
+    .select("id, full_name, date_of_birth, designation")
     .eq("organization_id", orgId)
     .eq("is_active", true)
     .is("archived_at", null);
@@ -113,8 +111,8 @@ export async function sendBirthdayNotifications(
           orgId,
           profileId: peer.id,
           type: "birthday",
-          title: `Today is ${fullName}'s birthday`,
-          body: "Say hi",
+          title: `${fullName}'s birthday is today`,
+          body: celebrant.designation?.trim() || undefined,
           entityType: "employee",
           entityId: celebrant.id,
         }),

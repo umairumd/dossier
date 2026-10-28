@@ -146,7 +146,7 @@ function BlockView({ block }: { block: Block }) {
       return (
         <div className="flex flex-col gap-1.5">
           <Label>{block.label}</Label>
-          <RichText text={block.text} />
+          <RichText text={block.text} variant="points" />
         </div>
       );
     case "link": {

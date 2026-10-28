@@ -203,12 +203,14 @@ async function loadPeopleDirectory(
 /**
  * The people someone goes to with questions: org owners/admins, their
  * department manager(s) and their supervisors, with today's attendance.
- * Relies on profiles_select_directory_as_member + my_directory_profile_ids().
+ * Read with the service role so no profile policy has to open up: every
+ * lookup is scoped to the signed-in person's own org, departments and
+ * supervisors, and only directory columns are returned.
  */
 export const getMyPeopleDirectory = cache(async (): Promise<MyPeopleDirectory> => {
   const user = await getAuthUser();
   if (!user) return { leadership: [], managers: [], supervisors: [] };
-  return loadPeopleDirectory(await createClient(), user.id);
+  return loadPeopleDirectory(createAdminClient(), user.id);
 });
 
 /**

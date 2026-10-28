@@ -9,7 +9,7 @@ import {
   getActorLogContext,
   logActivity,
 } from "@/lib/helpers/activity-log";
-import { createNotification } from "@/lib/actions/notifications";
+import { createNotification } from "@/lib/notifications/create";
 import type { FieldType } from "@/types/template";
 
 export type TemplateFieldInput = {

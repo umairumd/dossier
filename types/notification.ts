@@ -18,7 +18,8 @@ export type NotificationType =
   | "profile_updated"
   | "handbook_published"
   | "handbook_reminder"
-  | "item_awarded";
+  | "item_awarded"
+  | "birthday_wish";
 
 export interface Notification {
   id: string;
@@ -33,4 +34,6 @@ export interface Notification {
   /** Set when the person follows or dismisses the For you row. Null means it still shows. */
   cleared_at: string | null;
   created_at: string;
+  /** For you only: a birthday row this person already sent wishes for. */
+  wished?: boolean;
 }

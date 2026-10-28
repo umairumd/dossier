@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sendBirthdayNotifications } from "@/lib/actions/admin/birthdays";
+import { sendBirthdayNotifications } from "@/lib/notifications/birthdays";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 function authorize(request: Request): boolean {

@@ -2,40 +2,57 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tile, TileActions } from "@/components/ui/tile";
+import { FOR_YOU_GROUP_RANK, type ForYouGroup } from "@/lib/notifications/for-you";
 import { cn } from "@/lib/utils";
 
 export type ForYouAction = {
   label: string;
   href?: string;
-  onClick?: () => void;
+  /** Return a promise to show progress; resolve true to switch to `doneLabel`. */
+  onClick?: () => void | Promise<boolean | void>;
+  doneLabel?: string;
+  done?: boolean;
 };
 
-/** A row any source can push. `source` is "notification" for now. */
+/**
+ * One row in For you. Every source (notifications today; notices and tasks
+ * next) fills the same parts: a 32 px picture, what happened, who or why,
+ * one action, and a dismiss button only when the row can be dismissed.
+ */
 export type ForYouItem = {
   id: string;
   source: string;
+  group: ForYouGroup;
   icon: ReactNode;
   title: string;
-  body?: string;
-  time: string;
+  meta?: string;
+  /** Newest first within a group. */
+  at: string;
   actions: ForYouAction[];
-  onDismiss: () => void;
+  /** Missing means the row leaves on its own. */
+  onDismiss?: () => void;
 };
+
+const VISIBLE = 3;
 
 export function HeroForYou({ items }: { items: ForYouItem[] }) {
   const [expanded, setExpanded] = useState(false);
   if (items.length === 0) return null;
-  const shown = expanded ? items : items.slice(0, 3);
-  const more = items.length - shown.length;
+
+  const sorted = [...items].sort(
+    (a, b) =>
+      FOR_YOU_GROUP_RANK[a.group] - FOR_YOU_GROUP_RANK[b.group] || b.at.localeCompare(a.at),
+  );
+  // Rows that need the person are never hidden behind "more".
+  const pinned = sorted.filter((item) => item.group === "action").length;
+  const shown = expanded ? sorted : sorted.slice(0, Math.max(VISIBLE, pinned));
+  const more = sorted.length - shown.length;
 
   return (
     <section aria-label="For you" className="flex flex-col gap-2">
       <h2 className="card-title">For you</h2>
-      {/* One column: each row carries an icon, two lines of text, actions and
-          a dismiss button, which side-by-side columns are too narrow for. */}
       <ul className="flex flex-col gap-2">
         {shown.map((item) => (
           <ForYouRow key={`${item.source}:${item.id}`} item={item} />
@@ -54,6 +71,80 @@ export function HeroForYou({ items }: { items: ForYouItem[] }) {
   );
 }
 
+const ROW_TONE: Record<ForYouGroup, string> = {
+  action: "border-danger/35 bg-danger/[0.07]",
+  warning: "border-warn/30 bg-warn/[0.06]",
+  news: "border-edge bg-fill-subtle",
+  other: "border-edge bg-fill-subtle",
+};
+
+/** The square behind an icon; avatars bring their own shape. */
+export const FOR_YOU_ICON_TONE: Record<ForYouGroup, string> = {
+  action: "bg-danger/15 text-danger",
+  warning: "bg-warn/15 text-warn",
+  news: "bg-info/15 text-info",
+  other: "bg-fill-active text-muted-foreground",
+};
+
+export function ForYouIcon({ group, children }: { group: ForYouGroup; children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        "flex size-8 shrink-0 items-center justify-center rounded-lg [&_svg]:size-4",
+        FOR_YOU_ICON_TONE[group],
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+function ActionButton({ action }: { action: ForYouAction }) {
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(Boolean(action.done));
+  const className = "max-md:min-h-11";
+
+  if (done && action.doneLabel) {
+    return (
+      <span className="inline-flex h-8 items-center gap-1.5 px-2 text-sm text-muted-foreground">
+        <Check className="size-3.5 text-ok" />
+        {action.doneLabel}
+      </span>
+    );
+  }
+  if (action.href) {
+    return (
+      <Button asChild variant="outline" size="sm" className={className}>
+        <Link href={action.href} onClick={() => void action.onClick?.()}>
+          {action.label}
+        </Link>
+      </Button>
+    );
+  }
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className={className}
+      disabled={busy}
+      onClick={async () => {
+        const result = action.onClick?.();
+        if (!(result instanceof Promise)) return;
+        setBusy(true);
+        try {
+          if ((await result) === true) setDone(true);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
+      {action.label}
+    </Button>
+  );
+}
+
 function ForYouRow({ item }: { item: ForYouItem }) {
   const [collapse, setCollapse] = useState(false);
   const dismissTimer = useRef<number | null>(null);
@@ -69,11 +160,11 @@ function ForYouRow({ item }: { item: ForYouItem }) {
 
   function dismiss() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      dismissRef.current();
+      dismissRef.current?.();
       return;
     }
     setCollapse(true);
-    dismissTimer.current = window.setTimeout(() => dismissRef.current(), 200);
+    dismissTimer.current = window.setTimeout(() => dismissRef.current?.(), 200);
   }
 
   return (
@@ -84,53 +175,39 @@ function ForYouRow({ item }: { item: ForYouItem }) {
       )}
     >
       <div className={cn("min-h-0", collapse && "overflow-hidden")}>
-        <Tile className="flex-row items-center gap-3 p-4 md:p-4">
-          <span className="shrink-0">{item.icon}</span>
+        <div
+          className={cn(
+            "flex min-w-0 items-center gap-3 rounded-xl border p-3.5 max-md:flex-wrap md:p-4",
+            ROW_TONE[item.group],
+          )}
+        >
+          <span className="flex size-8 shrink-0 items-center justify-center">{item.icon}</span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{item.title}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {item.body ? `${item.body} · ${item.time}` : item.time}
-            </p>
+            {item.meta ? (
+              <p className="truncate text-xs text-muted-foreground">{item.meta}</p>
+            ) : null}
           </div>
-          <TileActions align="end" className="mt-0 shrink-0 pt-0">
-            {item.actions.map((action) =>
-              action.href ? (
+          {item.actions.length > 0 || item.onDismiss ? (
+            <div className="flex shrink-0 items-center gap-1.5 max-md:ml-11">
+              {item.actions.map((action) => (
+                <ActionButton key={action.label} action={action} />
+              ))}
+              {item.onDismiss ? (
                 <Button
-                  key={action.label}
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="max-md:min-h-11"
-                >
-                  <Link href={action.href} onClick={action.onClick}>
-                    {action.label}
-                  </Link>
-                </Button>
-              ) : (
-                <Button
-                  key={action.label}
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  className="max-md:min-h-11"
-                  onClick={action.onClick}
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Dismiss"
+                  className="max-md:size-11"
+                  onClick={dismiss}
                 >
-                  {action.label}
+                  <X className="size-4" />
                 </Button>
-              ),
-            )}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Dismiss"
-              className="max-md:size-11"
-              onClick={dismiss}
-            >
-              <X className="size-4" />
-            </Button>
-          </TileActions>
-        </Tile>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
     </li>
   );

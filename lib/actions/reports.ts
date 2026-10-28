@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCommentsForReports } from "@/lib/supabase/queries/report-comments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOrgAdminIds, notifyGrouped } from "@/lib/notifications/grouped";
-import { createNotification } from "@/lib/actions/notifications";
+import { createNotification } from "@/lib/notifications/create";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { logActivity } from "@/lib/helpers/activity-log";
 import { getDeadlineContext, getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createNotification } from "@/lib/actions/notifications";
+import { createNotification } from "@/lib/notifications/create";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyAuthErrorMessage } from "@/lib/helpers/auth-error-messages";

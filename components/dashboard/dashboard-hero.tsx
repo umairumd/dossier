@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Bell } from "lucide-react";
+import { toast } from "sonner";
 import {
   HeroBuddy,
   type HeroNotification,
 } from "@/components/dashboard/hero-buddy";
-import { HeroForYou, type ForYouItem } from "@/components/dashboard/hero-for-you";
+import { ForYouIcon, HeroForYou, type ForYouItem } from "@/components/dashboard/hero-for-you";
 import { HeroProgressTile } from "@/components/dashboard/hero-progress-tile";
 import { HeroReportPanel } from "@/components/reports/today-report";
 import { HeroDeck } from "@/components/dashboard/hero-deck";
@@ -19,7 +20,13 @@ import type { HeroPanelId } from "@/components/dashboard/hero-controller";
 import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
 import type { UnlockRow } from "@/lib/actions/avatar";
 import type { RewardStats } from "@/lib/mascot";
+import { sendBirthdayWish } from "@/lib/actions/birthdays";
 import { clearNotification } from "@/lib/actions/notifications";
+import {
+  forYouDismissible,
+  forYouGroup,
+  forYouShowsTime,
+} from "@/lib/notifications/for-you";
 import type { DeadlineContext } from "@/lib/reports/submission-status";
 import {
   notificationActionLabel,
@@ -142,16 +149,22 @@ export function DashboardHero({
 
   // One row per notice: repeats of the same notice (same type, subject and
   // title) collapse into the newest, and dismissing it clears them all.
-  const groups = new Map<string, { note: Notification; ids: string[] }>();
+  // Birthday wishes to you collapse into one row whoever sent them.
+  const groups = new Map<string, { note: Notification; ids: string[]; notes: Notification[] }>();
   for (const note of notifications) {
     if (note.cleared_at != null || dismissed.includes(note.id)) continue;
-    const key = `${note.type}|${note.entity_id ?? ""}|${note.title}`;
+    // The report reminder is done once today's report is in.
+    if (note.type === "report_deadline" && hasReport) continue;
+    const key =
+      note.type === "birthday_wish" ? "birthday_wish" : `${note.type}|${note.entity_id ?? ""}|${note.title}`;
     const group = groups.get(key);
-    if (group) group.ids.push(note.id);
-    else groups.set(key, { note, ids: [note.id] });
+    if (group) {
+      group.ids.push(note.id);
+      group.notes.push(note);
+    } else groups.set(key, { note, ids: [note.id], notes: [note] });
   }
-  const forYou: ForYouItem[] = [...groups.values()].map(({ note, ids }) =>
-    notificationForYouItem(note, () => ids.forEach(forgetNotification), actorAvatars),
+  const forYou: ForYouItem[] = [...groups.values()].map(({ note, ids, notes }) =>
+    notificationForYouItem(note, notes, () => ids.forEach(forgetNotification), actorAvatars, userId),
   );
   const meta = [designation, departmentNames?.join(", ")].filter(Boolean).join(" · ");
   const statColumns = !stats || stats.length <= 2 ? 2 : stats.length === 3 ? 3 : 4;
@@ -331,34 +344,113 @@ export function DashboardHero({
   );
 }
 
+function wisherName(note: Notification): string {
+  return note.title.replace(/ wished you a happy birthday$/, "");
+}
+
 function notificationForYouItem(
   note: Notification,
+  all: Notification[],
   forget: () => void,
   actorAvatars: Record<string, unknown>,
+  userId: string,
 ): ForYouItem {
+  const group = forYouGroup(note.type);
+  const dismissible = forYouDismissible(note.type);
+  const time = formatDistanceToNow(new Date(note.created_at), { addSuffix: true });
+  const base = {
+    id: note.id,
+    source: "notification",
+    group,
+    at: note.created_at,
+    onDismiss: dismissible ? forget : undefined,
+  };
+
+  if (note.type === "birthday_wish") {
+    const wishers = all.flatMap((item) =>
+      item.entity_type === "employee" && item.entity_id ? [{ id: item.entity_id, item }] : [],
+    );
+    const names = all.map(wisherName);
+    return {
+      ...base,
+      icon: (
+        <span className="flex -space-x-2.5">
+          {wishers.slice(0, 3).map(({ id, item }) => (
+            <MemberAvatar
+              key={id}
+              name={wisherName(item)}
+              userId={id}
+              avatar={actorAvatars[id]}
+              size="sm"
+              className="rounded-full ring-2 ring-card"
+            />
+          ))}
+        </span>
+      ),
+      title:
+        all.length === 1
+          ? note.title
+          : `${all.length} people wished you a happy birthday`,
+      meta:
+        all.length === 1
+          ? undefined
+          : names.length > 3
+            ? `${names.slice(0, 3).join(", ")} and ${names.length - 3} more`
+            : names.join(", "),
+      actions: [],
+    };
+  }
+
   const icon = TYPE_ICONS[note.type];
   const Icon = icon?.Icon ?? Bell;
   const actorId = note.entity_type === "employee" ? note.entity_id : null;
   const href = resolveNotificationUrl(note.type, note.entity_type, note.entity_id);
+  // Older birthday rows were sent with "Say hi" as their second line.
+  const body = note.body && note.body !== "Say hi" ? note.body : null;
+  const meta = [body, forYouShowsTime(note.type) ? time : null].filter(Boolean).join(" · ");
+
+  let actions: ForYouItem["actions"] = [];
+  if (note.type === "birthday") {
+    if (actorId && actorId !== userId) {
+      actions = [
+        {
+          label: "Send wishes",
+          doneLabel: "Wished",
+          done: Boolean(note.wished),
+          onClick: async () => {
+            const result = await sendBirthdayWish(actorId);
+            if (!result.success) toast.error(result.error);
+            return result.success;
+          },
+        },
+      ];
+    }
+  } else if (href) {
+    actions = [
+      {
+        label: notificationActionLabel(note.type),
+        href,
+        onClick: dismissible ? forget : undefined,
+      },
+    ];
+  }
+
   return {
-    id: note.id,
-    source: "notification",
+    ...base,
     icon: actorId ? (
       <MemberAvatar
         name={note.title}
         userId={actorId}
         avatar={actorAvatars[actorId]}
-        size="xs"
+        size="md"
       />
     ) : (
-      <Icon className={`size-4 ${icon?.className ?? "text-muted-foreground"}`} />
+      <ForYouIcon group={group}>
+        <Icon className={group === "other" ? (icon?.className ?? "") : undefined} />
+      </ForYouIcon>
     ),
     title: note.title,
-    body: note.body ?? undefined,
-    time: formatDistanceToNow(new Date(note.created_at), { addSuffix: true }),
-    actions: href
-      ? [{ label: notificationActionLabel(note.type), href, onClick: forget }]
-      : [],
-    onDismiss: forget,
+    meta: meta || undefined,
+    actions,
   };
 }
