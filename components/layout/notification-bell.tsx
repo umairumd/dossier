@@ -14,6 +14,8 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  ListTodo,
+  Megaphone,
   MessageSquare,
   MessagesSquare,
   PartyPopper,
@@ -68,6 +70,12 @@ export const TYPE_ICONS: Record<
   handbook_reminder: { Icon: BookOpenCheck, className: "text-warn" },
   item_awarded: { Icon: Award, className: "text-holiday" },
   birthday_wish: { Icon: PartyPopper, className: "text-pink-500" },
+  notice_posted: { Icon: Megaphone, className: "text-info" },
+  notice_acknowledged: { Icon: CheckCircle, className: "text-ok" },
+  task_assigned: { Icon: ListTodo, className: "text-info" },
+  task_commented: { Icon: MessageSquare, className: "text-info" },
+  task_done: { Icon: CheckCircle, className: "text-ok" },
+  task_due: { Icon: Clock, className: "text-warn" },
 };
 
 export function NotificationBell({

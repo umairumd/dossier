@@ -8,6 +8,9 @@ import {
   getActiveLeaveBalance,
   getAttendanceSettings,
 } from "@/lib/supabase/queries/attendance";
+import { getMyForYouNotices } from "@/lib/supabase/queries/notices";
+import { getAutoNotices } from "@/lib/notices/auto";
+import { getMyOpenTasks } from "@/lib/supabase/queries/tasks";
 import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queries/notifications";
 import { getAvatarsByProfileIds, type ProfileWithDepartment } from "@/lib/supabase/queries/profile";
 import { getHomeDay, getMyAttendanceHistory } from "@/lib/supabase/queries/home";
@@ -82,6 +85,9 @@ async function EmployeeHero({
   initialPanel: HeroPanelId | null;
 }) {
   const forYouP = getForYouNotifications();
+  const noticesP = getMyForYouNotices();
+  const autoNoticesP = getAutoNotices();
+  const tasksP = getMyOpenTasks();
   const [
     day,
     forYou,
@@ -115,6 +121,7 @@ async function EmployeeHero({
       ),
     ),
   ]);
+  const [notices, autoNotices, openTasks] = await Promise.all([noticesP, autoNoticesP, tasksP]);
 
   const { settings, todayDate, isOffDay, onFullDayLeave } = day;
   const stats = computeReportStats(statsRows, settings.timezone, {
@@ -174,6 +181,9 @@ async function EmployeeHero({
         submissionRate={stats.completionPercentage}
         unread={unread}
         notifications={forYou}
+        notices={notices}
+        autoNotices={autoNotices}
+        openTasks={openTasks}
         actorAvatars={actorAvatars}
         rewardStats={rewardStats}
         unlocks={unlocks}

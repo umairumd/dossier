@@ -7,6 +7,9 @@ import {
   Archive,
   ArchiveRestore,
   BookOpen,
+  Megaphone,
+  ListTodo,
+  CircleCheck,
   Building2,
   CalendarCheck,
   CalendarCheck2,
@@ -75,6 +78,10 @@ export const EVENT_ICON: Record<ActivityEventType, LucideIcon> = {
   handbook_published: BookOpen,
   item_awarded: Award,
   item_revoked: Award,
+  notice_posted: Megaphone,
+  notice_acknowledged: Megaphone,
+  task_created: ListTodo,
+  task_completed: CircleCheck,
 };
 
 export function eventCategory(type: ActivityEventType): ActivityCategory {

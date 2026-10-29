@@ -8,6 +8,8 @@ export function resolveNotificationUrl(
   if (entityType === "leave_request" && entityId) return `/attendance`;
   if (entityType === "report" && entityId) return `/reports?view=${entityId}`;
   if (entityType === "handbook_doc" && entityId) return `/handbook/${entityId}`;
+  if (entityType === "notice" && entityId) return `/announcements#notice-${entityId}`;
+  if (entityType === "task" && entityId) return `/tasks?task=${entityId}`;
   if (entityType === "handbook") return "/handbook";
   if (type === "item_awarded" && entityId) return `/settings?buddy=open&wear=${entityId}`;
   if (entityType === "team_report" && entityId) {
@@ -56,6 +58,9 @@ export function notificationActionLabel(type: string): string {
   }
   if (type === "birthday") return "Send wishes";
   if (type === "item_awarded") return "Try it on";
+  if (type === "notice_posted") return "Read";
+  if (type === "task_commented") return "Reply";
+  if (type.startsWith("task_")) return "Open task";
   if (type === "handbook_published" || type === "handbook_reminder") return "Read";
   return "Open";
 }

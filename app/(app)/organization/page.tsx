@@ -17,9 +17,11 @@ import { PageHeader } from "@/components/shared/page-header";
 import { OrgIdentityForm } from "@/components/admin/org-identity-form";
 import { OrgScheduleForm } from "@/components/admin/org-schedule-form";
 import { OrgAttendanceForm } from "@/components/admin/org-attendance-form";
+import { OrgNoticesForm } from "@/components/admin/org-notices-form";
+import { getNoticeRules } from "@/lib/supabase/queries/notices";
 
 export default async function OrganizationSettingsPage() {
-  const [profile, settings, orgName, templates, attendanceSettings, handbookDocs] =
+  const [profile, settings, orgName, templates, attendanceSettings, handbookDocs, noticeRules] =
     await Promise.all([
       getCurrentProfile(),
       getOrganizationSettings(),
@@ -27,6 +29,7 @@ export default async function OrganizationSettingsPage() {
       getOrgTemplates(),
       getAttendanceSettings(),
       getOrgHandbookDocs(),
+      getNoticeRules(),
     ]);
 
   if (profile?.role !== "owner" && profile?.role !== "admin") {
@@ -64,6 +67,8 @@ export default async function OrganizationSettingsPage() {
         initialShiftEveningStart={attendanceSettings.shiftEveningStart}
         initialShiftEveningEnd={attendanceSettings.shiftEveningEnd}
       />
+
+      <OrgNoticesForm initial={noticeRules} />
 
       <SettingsSection
         title="Report templates"

@@ -357,6 +357,28 @@ const EVENT_LABELS: Record<
           : ` published ${name}`,
     };
   },
+  notice_posted: (e) =>
+    e.target_id
+      ? { lead: e.actor_name ?? "Someone", rest: ` sent ${entityName(e.target_name, "someone")} a personal notice` }
+      : {
+          lead: e.actor_name ?? "Someone",
+          rest: ` posted the announcement ${entityName(e.entity_name, "an announcement")}`,
+        },
+  notice_acknowledged: (e) => ({
+    lead: e.actor_name ?? "Someone",
+    rest: " acknowledged a personal notice",
+  }),
+  task_created: (e) =>
+    e.target_id
+      ? {
+          lead: e.actor_name ?? "Someone",
+          rest: ` gave ${entityName(e.target_name, "someone")} the task ${entityName(e.entity_name, "a task")}`,
+        }
+      : { lead: e.actor_name ?? "Someone", rest: ` added the task ${entityName(e.entity_name, "a task")}` },
+  task_completed: (e) => ({
+    lead: e.actor_name ?? "Someone",
+    rest: ` finished ${entityName(e.entity_name, "a task")}`,
+  }),
 };
 
 export function getHref(entry: ActivityLogEntry): string | undefined {
@@ -375,6 +397,12 @@ export function getHref(entry: ActivityLogEntry): string | undefined {
   }
   if (entry.entity_type === "handbook") {
     return "/handbook";
+  }
+  if (entry.entity_type === "notice") {
+    return "/announcements";
+  }
+  if (entry.entity_type === "task" && entry.entity_id) {
+    return `/tasks?task=${entry.entity_id}`;
   }
   if (entry.entity_type === "handbook_doc" && entry.entity_id) {
     return `/organization/handbook/${entry.entity_id}`;

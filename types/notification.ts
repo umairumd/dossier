@@ -19,7 +19,13 @@ export type NotificationType =
   | "handbook_published"
   | "handbook_reminder"
   | "item_awarded"
-  | "birthday_wish";
+  | "birthday_wish"
+  | "notice_posted"
+  | "notice_acknowledged"
+  | "task_assigned"
+  | "task_commented"
+  | "task_done"
+  | "task_due";
 
 export interface Notification {
   id: string;

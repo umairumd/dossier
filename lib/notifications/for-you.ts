@@ -18,6 +18,7 @@ const GROUPS: Partial<Record<NotificationType, ForYouGroup>> = {
   attendance_fine: "warning",
   handbook_reminder: "warning",
   handbook_published: "news",
+  task_due: "warning",
 };
 
 /** Rows that leave on their own (when handled, or at the end of the day). */

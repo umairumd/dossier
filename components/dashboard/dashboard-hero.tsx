@@ -9,6 +9,8 @@ import {
   type HeroNotification,
 } from "@/components/dashboard/hero-buddy";
 import { ForYouIcon, HeroForYou, type ForYouItem } from "@/components/dashboard/hero-for-you";
+import { NoticeBand, noticeForYouItems, splitNotices } from "@/components/dashboard/hero-notices";
+import { taskForYouItems } from "@/components/dashboard/hero-tasks";
 import { HeroProgressTile } from "@/components/dashboard/hero-progress-tile";
 import { HeroReportPanel } from "@/components/reports/today-report";
 import { HeroDeck } from "@/components/dashboard/hero-deck";
@@ -32,6 +34,8 @@ import {
   notificationActionLabel,
   resolveNotificationUrl,
 } from "@/lib/notifications/link";
+import type { AutoNotice, Notice } from "@/types/notice";
+import type { TaskSummary } from "@/types/task";
 import type { Notification } from "@/types/notification";
 import type { UserRole } from "@/types/profile";
 import type { DailyReport } from "@/types/report";
@@ -82,6 +86,12 @@ interface DashboardHeroProps {
   teamComplete?: boolean;
   unread: HeroNotification[];
   notifications: Notification[];
+  /** Posted notices for this person (announcements and personal notices). */
+  notices?: Notice[];
+  /** Automatic notices worked out on the server. */
+  autoNotices?: AutoNotice[];
+  /** Open tasks this person owns. */
+  openTasks?: TaskSummary[];
   actorAvatars?: Record<string, unknown>;
   rewardStats: RewardStats;
   unlocks: UnlockRow[];
@@ -114,6 +124,9 @@ export function DashboardHero({
   teamComplete,
   unread,
   notifications,
+  notices = [],
+  autoNotices = [],
+  openTasks = [],
   actorAvatars = {},
   rewardStats,
   unlocks,
@@ -155,6 +168,8 @@ export function DashboardHero({
     if (note.cleared_at != null || dismissed.includes(note.id)) continue;
     // The report reminder is done once today's report is in.
     if (note.type === "report_deadline" && hasReport) continue;
+    // The notice itself shows in For you; its bell notification would repeat it.
+    if (note.type === "notice_posted") continue;
     const key =
       note.type === "birthday_wish" ? "birthday_wish" : `${note.type}|${note.entity_id ?? ""}|${note.title}`;
     const group = groups.get(key);
@@ -163,9 +178,20 @@ export function DashboardHero({
       group.notes.push(note);
     } else groups.set(key, { note, ids: [note.id], notes: [note] });
   }
-  const forYou: ForYouItem[] = [...groups.values()].map(({ note, ids, notes }) =>
-    notificationForYouItem(note, notes, () => ids.forEach(forgetNotification), actorAvatars, userId),
-  );
+  const hide = (key: string) => setDismissed((prev) => (prev.includes(key) ? prev : [...prev, key]));
+  const liveNotices = notices.filter((notice) => !dismissed.includes(`notice:${notice.id}`));
+  const { band, rest: rowNotices } = splitNotices(liveNotices);
+  const forYou: ForYouItem[] = [
+    ...[...groups.values()].map(({ note, ids, notes }) =>
+      notificationForYouItem(note, notes, () => ids.forEach(forgetNotification), actorAvatars, userId),
+    ),
+    ...noticeForYouItems(
+      rowNotices,
+      autoNotices.filter((auto) => !dismissed.includes(`auto:${auto.key}`)),
+      hide,
+    ),
+    ...taskForYouItems(openTasks, orgDate),
+  ];
   const meta = [designation, departmentNames?.join(", ")].filter(Boolean).join(" · ");
   const statColumns = !stats || stats.length <= 2 ? 2 : stats.length === 3 ? 3 : 4;
   // The buddies are drawn on a canvas, which only exists in the browser; the
@@ -188,6 +214,11 @@ export function DashboardHero({
           hydrated ? "rise-in" : "invisible",
         )}
       >
+        {band ? (
+          <div className="md:-mt-1">
+            <NoticeBand notice={band} onDone={() => hide(`notice:${band.id}`)} />
+          </div>
+        ) : null}
         {/* On a phone the tiles sit 12px from the hero's sides and bottom, the
             same as the gap between them; the greeting and figures keep their
             24px inset. Desktop keeps 24px all round. */}
@@ -374,7 +405,7 @@ function notificationForYouItem(
     return {
       ...base,
       icon: (
-        <span className="flex -space-x-2.5">
+        <span className="flex -space-x-1.5">
           {wishers.slice(0, 3).map(({ id, item }) => (
             <MemberAvatar
               key={id}
@@ -382,7 +413,6 @@ function notificationForYouItem(
               userId={id}
               avatar={actorAvatars[id]}
               size="sm"
-              className="rounded-full ring-2 ring-card"
             />
           ))}
         </span>

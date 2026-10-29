@@ -140,13 +140,17 @@ export function HandbookAudiencePicker({
   departments,
   people,
   designations,
+  allow,
 }: {
   value: HandbookAudience[];
   onChange: (next: HandbookAudience[]) => void;
   departments: { id: string; name: string }[];
   people: PickerPerson[];
   designations: string[];
+  /** Which kinds of rule can be added. All when left out. */
+  allow?: HandbookAudienceKind[];
 }) {
+  const can = (kind: HandbookAudienceKind) => !allow || allow.includes(kind);
   const has = (kind: HandbookAudienceKind, ruleValue: string | null = null) =>
     value.some(
       (rule) =>
@@ -201,68 +205,82 @@ export function HandbookAudiencePicker({
         </p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
-          <Button type="button" variant="outline" size="sm" onClick={() => add("everyone")}>
-            <Plus className="size-3.5" />
-            Everyone
-          </Button>
-          <MenuAdd
-            label="Department"
-            options={unused(
-              "department",
-              departments.map((department) => ({ value: department.id, label: department.name })),
-            )}
-            onPick={(id) => add("department", id)}
-          />
-          <MenuAdd
-            label="Role"
-            options={unused(
-              "role",
-              Object.entries(ROLE_AUDIENCE_LABELS).map(([role, label]) => ({ value: role, label })),
-            )}
-            onPick={(role) => add("role", role)}
-          />
-          <SearchAdd
-            label="Designation"
-            placeholder="Search or type a designation…"
-            allowFreeText
-            options={unused(
-              "designation",
-              designations.map((designation) => ({ value: designation, label: designation })),
-            )}
-            onPick={(designation) => add("designation", designation)}
-          />
-          <MenuAdd
-            label="Full-time / Part-time"
-            options={unused(
-              "employment_type",
-              Object.entries(EMPLOYMENT_LABELS).map(([type, label]) => ({ value: type, label })),
-            )}
-            onPick={(type) => add("employment_type", type)}
-          />
-          <MenuAdd
-            label="Remote / On-site"
-            options={unused(
-              "work_location",
-              Object.entries(LOCATION_LABELS).map(([location, label]) => ({
-                value: location,
-                label,
-              })),
-            )}
-            onPick={(location) => add("work_location", location)}
-          />
-          <SearchAdd
-            label="Person"
-            placeholder="Search people…"
-            options={unused(
-              "profile",
-              people.map((person) => ({
-                value: person.id,
-                label: person.full_name,
-                hint: person.designation,
-              })),
-            )}
-            onPick={(id) => add("profile", id)}
-          />
+          {can("everyone") ? (
+            <Button type="button" variant="outline" size="sm" onClick={() => add("everyone")}>
+              <Plus className="size-3.5" />
+              Everyone
+            </Button>
+          ) : null}
+          {can("department") ? (
+            <MenuAdd
+              label="Department"
+              options={unused(
+                "department",
+                departments.map((department) => ({ value: department.id, label: department.name })),
+              )}
+              onPick={(id) => add("department", id)}
+            />
+          ) : null}
+          {can("role") ? (
+            <MenuAdd
+              label="Role"
+              options={unused(
+                "role",
+                Object.entries(ROLE_AUDIENCE_LABELS).map(([role, label]) => ({ value: role, label })),
+              )}
+              onPick={(role) => add("role", role)}
+            />
+          ) : null}
+          {can("designation") ? (
+            <SearchAdd
+              label="Designation"
+              placeholder="Search or type a designation…"
+              allowFreeText
+              options={unused(
+                "designation",
+                designations.map((designation) => ({ value: designation, label: designation })),
+              )}
+              onPick={(designation) => add("designation", designation)}
+            />
+          ) : null}
+          {can("employment_type") ? (
+            <MenuAdd
+              label="Full-time / Part-time"
+              options={unused(
+                "employment_type",
+                Object.entries(EMPLOYMENT_LABELS).map(([type, label]) => ({ value: type, label })),
+              )}
+              onPick={(type) => add("employment_type", type)}
+            />
+          ) : null}
+          {can("work_location") ? (
+            <MenuAdd
+              label="Remote / On-site"
+              options={unused(
+                "work_location",
+                Object.entries(LOCATION_LABELS).map(([location, label]) => ({
+                  value: location,
+                  label,
+                })),
+              )}
+              onPick={(location) => add("work_location", location)}
+            />
+          ) : null}
+          {can("profile") ? (
+            <SearchAdd
+              label="Person"
+              placeholder="Search people…"
+              options={unused(
+                "profile",
+                people.map((person) => ({
+                  value: person.id,
+                  label: person.full_name,
+                  hint: person.designation,
+                })),
+              )}
+              onPick={(id) => add("profile", id)}
+            />
+          ) : null}
         </div>
       )}
     </div>

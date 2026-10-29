@@ -45,6 +45,10 @@ export const EVENT_CATEGORY: Record<ActivityEventType, ActivityCategory> = {
   handbook_published: "organization",
   item_awarded: "people",
   item_revoked: "people",
+  notice_posted: "organization",
+  notice_acknowledged: "people",
+  task_created: "reports",
+  task_completed: "reports",
   org_settings_changed: "settings",
 };
 

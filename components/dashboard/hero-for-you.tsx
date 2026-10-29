@@ -49,13 +49,15 @@ export function HeroForYou({ items }: { items: ForYouItem[] }) {
   const pinned = sorted.filter((item) => item.group === "action").length;
   const shown = expanded ? sorted : sorted.slice(0, Math.max(VISIBLE, pinned));
   const more = sorted.length - shown.length;
+  // Keep action buttons in one column whether or not a row can be dismissed.
+  const reserveDismiss = shown.some((item) => item.onDismiss);
 
   return (
     <section aria-label="For you" className="flex flex-col gap-2">
       <h2 className="card-title">For you</h2>
       <ul className="flex flex-col gap-2">
         {shown.map((item) => (
-          <ForYouRow key={`${item.source}:${item.id}`} item={item} />
+          <ForYouRow key={`${item.source}:${item.id}`} item={item} reserveDismiss={reserveDismiss} />
         ))}
       </ul>
       {more > 0 && (
@@ -145,7 +147,7 @@ function ActionButton({ action }: { action: ForYouAction }) {
   );
 }
 
-function ForYouRow({ item }: { item: ForYouItem }) {
+function ForYouRow({ item, reserveDismiss }: { item: ForYouItem; reserveDismiss: boolean }) {
   const [collapse, setCollapse] = useState(false);
   const dismissTimer = useRef<number | null>(null);
   const dismissRef = useRef(item.onDismiss);
@@ -188,7 +190,7 @@ function ForYouRow({ item }: { item: ForYouItem }) {
               <p className="truncate text-xs text-muted-foreground">{item.meta}</p>
             ) : null}
           </div>
-          {item.actions.length > 0 || item.onDismiss ? (
+          {item.actions.length > 0 || item.onDismiss || reserveDismiss ? (
             <div className="flex shrink-0 items-center gap-1.5 max-md:ml-11">
               {item.actions.map((action) => (
                 <ActionButton key={action.label} action={action} />
@@ -204,6 +206,8 @@ function ForYouRow({ item }: { item: ForYouItem }) {
                 >
                   <X className="size-4" />
                 </Button>
+              ) : reserveDismiss ? (
+                <span aria-hidden className="size-9 shrink-0 max-md:size-11" />
               ) : null}
             </div>
           ) : null}

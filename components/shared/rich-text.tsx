@@ -200,12 +200,14 @@ const components: Components = {
 const LONE_LINK = /^(https?:\/\/\S+|file:\/\/\S+)$/i;
 const NUMBERED = /^(\d{1,3})\s*[.),:-]\s*(.+)$/;
 const BULLET = /^[-*•–]\s+(.+)$/;
+const CHECK = /^[-*]\s+\[( |x|X)\]\s+(.+)$/;
 const HEADING = /^#{1,6}\s+(.+)$/;
 
 export type ReportLine =
   | { kind: "heading"; text: string }
   | { kind: "number"; marker: string; text: string }
   | { kind: "bullet"; text: string }
+  | { kind: "check"; done: boolean; text: string }
   | { kind: "text"; text: string };
 
 /**
@@ -245,13 +247,15 @@ export function splitPoints(
     if (heading) return { kind: "heading", text: heading[1] };
     const numbered = line.match(NUMBERED);
     if (numbered) return { kind: "number", marker: numbered[1], text: numbered[2] };
+    const check = line.match(CHECK);
+    if (check) return { kind: "check", done: check[1].toLowerCase() === "x", text: check[2] };
     const bullet = line.match(BULLET);
     if (bullet) return { kind: "bullet", text: bullet[1] };
     return { kind: "text", text: line };
   });
 
   const isList = (line: ReportLine | undefined) =>
-    line?.kind === "number" || line?.kind === "bullet";
+    line?.kind === "number" || line?.kind === "bullet" || line?.kind === "check";
   const plainCount = typed.filter((line) => line.kind === "text").length;
   const lines = typed.map((line, index): ReportLine => {
     if (line.kind !== "text") return line;
@@ -294,6 +298,24 @@ function ReportLines({ lines }: { lines: ReportLine[] }) {
             <p key={index} className="mt-2 font-medium first:mt-0">
               <InlineMarkdown text={line.text} />
             </p>
+          );
+        }
+        if (line.kind === "check") {
+          return (
+            <div key={index} className="flex gap-2">
+              <span
+                aria-hidden
+                className={cn(
+                  "mt-1 flex size-4 shrink-0 items-center justify-center rounded border text-[10px]",
+                  line.done ? "border-ok bg-ok text-background" : "border-line-strong",
+                )}
+              >
+                {line.done ? "✓" : null}
+              </span>
+              <span className={cn("min-w-0 flex-1", line.done && "text-muted-foreground line-through")}>
+                <InlineMarkdown text={line.text} />
+              </span>
+            </div>
           );
         }
         if (line.kind === "text") {

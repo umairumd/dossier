@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ListTextarea } from "@/components/shared/list-textarea";
+import { RichEditor } from "@/components/shared/rich-editor";
 import { RichText } from "@/components/shared/rich-text";
 import { cn } from "@/lib/utils";
 import type { TemplateField } from "@/types/template";
@@ -109,11 +109,12 @@ function InlineInput({
     return (
       <div className="flex flex-col gap-1.5">
         {label}
-        <ListTextarea
+        <RichEditor
           value={(value as string) ?? ""}
           onChange={(next) => onChange?.(next)}
           placeholder={field.placeholder ?? undefined}
           invalid={invalid}
+          ariaLabel={field.label}
         />
         <FieldError error={error} />
       </div>
@@ -443,11 +444,12 @@ export function DynamicFieldRenderer({
           {field.label}
           <RequiredStar required={field.isRequired} />
         </Label>
-        <ListTextarea
+        <RichEditor
           value={(value as string) ?? ""}
           onChange={(next) => onChange?.(next)}
           placeholder={field.placeholder ?? undefined}
           invalid={Boolean(error)}
+          ariaLabel={field.label}
         />
         {error && <p className="text-xs text-destructive">{error}</p>}
       </div>

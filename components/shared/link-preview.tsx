@@ -192,17 +192,21 @@ export function LinkChip({ href, children }: { href: string; children?: ReactNod
   );
 }
 
+const FILE_HINT =
+  "This points to a file on the writer's own computer, so nobody else can open it. Upload it to Drive and share the link instead.";
+
 function FileLinkCard({ name }: { name: string }) {
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-xl px-3.5 py-3 ring-1 ring-inset ring-warn/35 [border-style:dashed]">
+    <div
+      title={FILE_HINT}
+      className="flex min-w-0 items-center gap-3 rounded-xl bg-warn/[0.06] px-3.5 py-3 ring-1 ring-inset ring-warn/30"
+    >
       <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-warn/15 text-warn">
         <TriangleAlert className="size-4" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-[13.5px] font-medium">{name}</span>
-        <span className="text-xs text-warn">
-          {"A file on the writer's computer. Nobody else can open it; upload it to Drive and share the link."}
-        </span>
+        <span className="truncate text-xs text-warn">Local file · only they can open it</span>
       </span>
     </div>
   );
@@ -211,7 +215,7 @@ function FileLinkCard({ name }: { name: string }) {
 function FileLinkChip({ name }: { name: string }) {
   return (
     <span
-      title="A file on the writer's computer. Nobody else can open it."
+      title={FILE_HINT}
       className="mx-0.5 inline-flex max-w-full items-center gap-1.5 rounded-md bg-warn/10 px-1.5 align-middle text-[13px] leading-6 text-warn"
     >
       <TriangleAlert className="size-3" />

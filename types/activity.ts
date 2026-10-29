@@ -28,7 +28,11 @@ export type ActivityEventType =
   | "record_exported"
   | "handbook_published"
   | "item_awarded"
-  | "item_revoked";
+  | "item_revoked"
+  | "notice_posted"
+  | "notice_acknowledged"
+  | "task_created"
+  | "task_completed";
 
 export interface ActivityLogEntry {
   id: string;

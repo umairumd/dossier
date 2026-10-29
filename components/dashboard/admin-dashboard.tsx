@@ -10,6 +10,9 @@ import { getAvatarsByProfileIds, getCurrentProfile } from "@/lib/supabase/querie
 import { getOrgTemplatesWithFields, resolveTemplate } from "@/lib/supabase/queries/templates";
 import { getOrganizationName } from "@/lib/supabase/queries/organization";
 import { getDeadlineContext } from "@/lib/supabase/queries/organization-settings";
+import { getMyForYouNotices } from "@/lib/supabase/queries/notices";
+import { getAutoNotices } from "@/lib/notices/auto";
+import { getMyOpenTasks } from "@/lib/supabase/queries/tasks";
 import { getForYouNotifications, getMyNotifications } from "@/lib/supabase/queries/notifications";
 import { getMyRewardStats, getMyUnlocks } from "@/lib/actions/avatar";
 import { formatHourLabel } from "@/lib/helpers/dates";
@@ -97,6 +100,9 @@ async function AdminHero({ initialPanel }: { initialPanel: HeroPanelId | null })
   const dayP = getHomeDay();
   const profileP = getCurrentProfile();
   const forYouP = getForYouNotifications();
+  const noticesP = getMyForYouNotices();
+  const autoNoticesP = getAutoNotices();
+  const tasksP = getMyOpenTasks();
   const companyP = dayP.then((day) => getOrgReportsForDate(day.todayDate)).then((r) => r.members);
 
   const [
@@ -151,6 +157,7 @@ async function AdminHero({ initialPanel }: { initialPanel: HeroPanelId | null })
       ),
     ),
   ]);
+  const [notices, autoNotices, openTasks] = await Promise.all([noticesP, autoNoticesP, tasksP]);
 
   const { settings, todayDate, isOffDay, onFullDayLeave } = day;
   const isBirthday = profile?.date_of_birth?.slice(5, 10) === todayDate.slice(5, 10);
@@ -208,6 +215,9 @@ async function AdminHero({ initialPanel }: { initialPanel: HeroPanelId | null })
         teamComplete={summary.completionPercentageToday === 100 && summary.totalMembers > 0}
         unread={unread}
         notifications={forYou}
+        notices={notices}
+        autoNotices={autoNotices}
+        openTasks={openTasks}
         actorAvatars={actorAvatars}
         rewardStats={rewardStats}
         unlocks={unlocks}

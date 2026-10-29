@@ -25,6 +25,7 @@ import { SubmissionStatusBadge } from "@/components/manager/submission-status-ba
 import { ConfirmActionDialog } from "@/components/admin/confirm-action-dialog";
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { ReportFields } from "@/components/reports/report-fields";
+import { ReportTaskNotes } from "@/components/reports/report-task-notes";
 import { RichText } from "@/components/shared/rich-text";
 import {
   addReportComment,
@@ -334,6 +335,10 @@ export function ReportDetailSheet({
               <ReportFields
                 report={current.report}
                 fields={templateForReport?.fields}
+              />
+              <ReportTaskNotes
+                authorId={current.report.author_id}
+                reportDate={current.report.report_date}
               />
 
               {showComments && (

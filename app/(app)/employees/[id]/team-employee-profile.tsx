@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { LeaveBalance } from "@/types/attendance";
 import type { Profile } from "@/types/profile";
 import type { TeamMemberOverview } from "@/types/team-member-overview";
+import { ProfileNotices } from "@/components/notices/profile-notices";
 import { AssignmentsCard } from "./assignments-card";
 import { DetailsCard } from "./details-card";
 import { ProfileReportHistory, ProfileReportHistorySkeleton } from "./profile-report-history";
@@ -155,6 +156,15 @@ export async function TeamEmployeeProfile({
           />
         )}
       </div>
+
+      {viewer ? (
+        <Suspense fallback={null}>
+          <ProfileNotices
+            viewer={viewer}
+            person={{ id: overview.id, full_name: overview.full_name, designation: overview.designation }}
+          />
+        </Suspense>
+      ) : null}
 
       <Suspense fallback={<ProfileReportHistorySkeleton />}>
         <ProfileReportHistory

@@ -17,6 +17,7 @@ import { FigureStrip } from "@/components/shared/figure-strip";
 import { EmployeeHeroClient } from "@/components/admin/employee-hero-client";
 import { getAwardedItems } from "@/lib/supabase/queries/admin/awards";
 import { EmployeeMonthCalendar } from "@/components/attendance/employee-month-calendar";
+import { ProfileNotices } from "@/components/notices/profile-notices";
 import { AssignmentsCard } from "./assignments-card";
 import { DetailsCard } from "./details-card";
 import { ProfileReportHistory, ProfileReportHistorySkeleton } from "./profile-report-history";
@@ -222,6 +223,15 @@ export async function AdminEmployeeProfile({
           />
         )}
       </div>
+
+      {profile ? (
+        <Suspense fallback={null}>
+          <ProfileNotices
+            viewer={profile}
+            person={{ id: employee.id, full_name: employee.full_name, designation: employee.designation }}
+          />
+        </Suspense>
+      ) : null}
 
       <Suspense fallback={<ProfileReportHistorySkeleton />}>
         <ProfileReportHistory

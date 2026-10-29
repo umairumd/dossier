@@ -6,7 +6,9 @@ import {
   FileText,
   Home,
   LayoutList,
+  ListTodo,
   Mail,
+  Megaphone,
   Settings,
   Users,
   Zap,
@@ -74,6 +76,18 @@ export const navSections: NavSection[] = [
         label: "Activity",
         href: "/activity",
         icon: <Zap className="size-4" />,
+        roles: ALL_ROLES,
+      },
+      {
+        label: "Tasks",
+        href: "/tasks",
+        icon: <ListTodo className="size-4" />,
+        roles: ALL_ROLES,
+      },
+      {
+        label: "Announcements",
+        href: "/announcements",
+        icon: <Megaphone className="size-4" />,
         roles: ALL_ROLES,
       },
       {

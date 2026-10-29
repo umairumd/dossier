@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { mascotBus } from "@/components/mascot/mascot-bus";
@@ -17,6 +17,8 @@ import {
   submitDailyReport,
   updateDailyReport,
 } from "@/lib/actions/reports";
+import { ReportTasksSection } from "@/components/reports/report-tasks-section";
+import { saveReportTaskUpdates, type ReportTaskUpdate } from "@/lib/actions/tasks";
 import { ALREADY_SUBMITTED_ERROR } from "@/lib/reports/constants";
 import type { DailyReport } from "@/types/report";
 import { fieldResponse } from "@/lib/reports/field-response";
@@ -130,6 +132,16 @@ export function DynamicReportForm({
   orgDate?: string;
 }) {
   const storageKey = userId && orgDate ? draftStorageKey(userId, orgDate) : null;
+  const taskUpdatesRef = useRef<ReportTaskUpdate[]>([]);
+  const onTaskUpdates = useCallback((updates: ReportTaskUpdate[]) => {
+    taskUpdatesRef.current = updates;
+  }, []);
+  const saveTaskUpdates = async (reportDate: string | null | undefined) => {
+    const updates = taskUpdatesRef.current;
+    if (!reportDate || updates.length === 0) return;
+    const result = await saveReportTaskUpdates(reportDate, updates);
+    if (!result.success) toast.error("Your report is in, but the task updates didn't save.");
+  };
   const isNewReport = !initialReport;
   const [isEditMode, setIsEditMode] = useState(Boolean(initialReport));
   const draftKey = isNewReport && !isEditMode ? storageKey : null;
@@ -288,6 +300,7 @@ export function DynamicReportForm({
           return;
         }
 
+        await saveTaskUpdates(editingReportDate);
         clearDraft(storageKey);
         toast.success("Report updated.");
         onSubmitted({ mode: "update", values });
@@ -312,6 +325,7 @@ export function DynamicReportForm({
         return;
       }
 
+      await saveTaskUpdates(orgDate);
       ateRef.current = true;
       skipNextHeroResting();
       clearDraft(storageKey);
@@ -411,6 +425,7 @@ export function DynamicReportForm({
             />
           </div>
         ))}
+        {orgDate ? <ReportTasksSection today={orgDate} onChange={onTaskUpdates} /> : null}
       </div>
 
       {showEditPrompt && !isEditMode ? (

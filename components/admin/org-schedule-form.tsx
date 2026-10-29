@@ -288,7 +288,9 @@ export function OrgScheduleForm({
       >
         <Select value={deadlineHour} onValueChange={setDeadlineHour}>
           <SelectTrigger id="deadline-hour" className="w-36">
-            <SelectValue />
+            {/* Shown directly: the item labels come from Intl, which can
+                differ between server and browser and left this blank. */}
+            <SelectValue>{formatHourLabel(Number(deadlineHour))}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {Array.from({ length: 24 }, (_, hour) => (
