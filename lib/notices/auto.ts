@@ -34,26 +34,6 @@ type Person = {
 const PERSON_SELECT =
   "id, full_name, role, designation, date_of_birth, created_at, is_reporting, has_onboarded";
 
-function firstName(name: string): string {
-  return name.trim().split(/\s+/)[0] || name;
-}
-
-/** First names, or first two words where two people share a first name. */
-function shortNames(people: { id: string; full_name: string }[]): Map<string, string> {
-  const counts = new Map<string, number>();
-  for (const person of people) {
-    const first = firstName(person.full_name);
-    counts.set(first, (counts.get(first) ?? 0) + 1);
-  }
-  return new Map(
-    people.map((person) => {
-      const first = firstName(person.full_name);
-      const words = person.full_name.trim().split(/\s+/);
-      return [person.id, (counts.get(first) ?? 0) > 1 && words.length > 1 ? `${words[0]} ${words[1]}` : first];
-    }),
-  );
-}
-
 function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;
 }
@@ -162,8 +142,7 @@ export const getAutoNotices = cache(async (): Promise<AutoNotice[]> => {
     return person && person.role !== "owner" && person.role !== "admin" ? [person] : [];
   });
   const reporting = (person: Person) => person.is_reporting && person.has_onboarded;
-  const names = shortNames(people);
-  const nameOf = (person: Person) => names.get(person.id) ?? firstName(person.full_name);
+  const nameOf = (person: Person) => person.full_name.trim();
 
   const meAsPerson = byId.get(me.id);
   const selfReports = Boolean(meAsPerson && reporting(meAsPerson));
@@ -277,8 +256,8 @@ export const getAutoNotices = cache(async (): Promise<AutoNotice[]> => {
         title: `${plural(behind.length, "person has", "people have")} not sent a report for ${n + 1}+ working days`,
         meta: behind
           .slice(0, 4)
-          .map(({ person, missed }) => `${nameOf(person)} ${missed.length}`)
-          .join(" · "),
+          .map(({ person, missed }) => `${nameOf(person)} (${plural(missed.length, "day")})`)
+          .join(", "),
         href: "/track-reports",
         actionLabel: "Review",
         dismissible: true,
@@ -313,8 +292,8 @@ export const getAutoNotices = cache(async (): Promise<AutoNotice[]> => {
           title: `${plural(over.length, "person is", "people are")} over their leave balance`,
           meta: over
             .slice(0, 4)
-            .map((p) => `${nameOf(p)} −${formatDays(leaveLeft.get(p.id) ?? 0).replace(/ days?$/, "")}`)
-            .join(" · "),
+            .map((p) => `${nameOf(p)} (${formatDays(leaveLeft.get(p.id) ?? 0)} over)`)
+            .join(", "),
           href: "/attendance",
           actionLabel: "Review",
           dismissible: true,
@@ -372,7 +351,7 @@ export const getAutoNotices = cache(async (): Promise<AutoNotice[]> => {
             late.length === 1
               ? `${nameOf(late[0].person)} was late ${plural(late[0].count, "time")} this month`
               : `${late.length} people were late ${n}+ times this month`,
-          meta: late.length === 1 ? undefined : late.map(({ person, count }) => `${nameOf(person)} ${count}`).join(" · "),
+          meta: late.length === 1 ? undefined : late.map(({ person, count }) => `${nameOf(person)} (${plural(count, "time")})`).join(", "),
           href: "/attendance",
           actionLabel: "See attendance",
           personId: late.length === 1 ? late[0].person.id : undefined,
