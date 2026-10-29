@@ -28,7 +28,8 @@ import { cn } from "@/lib/utils";
 // text opens unchanged (single line breaks are kept).
 //
 // Typing "- ", "1. " or "[ ] " starts a list; Cmd/Ctrl+B, I and K format;
-// the toolbar appears while the box has focus and acts on the current line,
+// in focus mode the toolbar fades in under the text of the box you are in and
+// acts on the current line,
 // so nothing has to be selected first.
 
 type MarkdownStorage = { markdown?: { getMarkdown: () => string } };
@@ -137,7 +138,21 @@ function LinkBar({ editor, onDone }: { editor: Editor; onDone: () => void }) {
   );
 }
 
-function Toolbar({ editor, onLink, dim }: { editor: Editor; onLink: () => void; dim?: boolean }) {
+function Toolbar({
+  editor,
+  onLink,
+  dim,
+  hidden,
+  bottom,
+}: {
+  editor: Editor;
+  onLink: () => void;
+  dim?: boolean;
+  /** Keeps its space but shows nothing (focus mode, while not writing). */
+  hidden?: boolean;
+  /** Sits under the text instead of above it. */
+  bottom?: boolean;
+}) {
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -156,9 +171,13 @@ function Toolbar({ editor, onLink, dim }: { editor: Editor; onLink: () => void; 
     // Always takes its space so the box never jumps; it only fades in while
     // you write.
     <div
+      aria-hidden={hidden || undefined}
       className={cn(
-        "flex items-center gap-0.5 overflow-x-auto border-b border-line px-1.5 py-1 transition-opacity duration-150 [scrollbar-width:none]",
+        "flex items-center gap-0.5 overflow-x-auto px-1.5 py-1 transition-opacity duration-150 [scrollbar-width:none]",
+        bottom ? "border-t border-transparent" : "border-b border-line",
+        bottom && !hidden && "border-line",
         dim && "opacity-40",
+        hidden && "pointer-events-none opacity-0",
       )}
     >
       <ToolButton label="Bold (Cmd+B)" active={state.bold} onClick={() => editor.chain().focus().toggleBold().run()}>
@@ -314,7 +333,10 @@ export function RichEditor({
 
   const bare = variant === "bare";
   const showTools = Boolean(editor) && !bare && toolbar !== "none";
-  const dimTools = toolbar === "focus" && !(focused || linking);
+  // "focus": one quiet box per field; the tools fade in under the text of the
+  // field you are writing in, so a long form doesn't repeat a toolbar per box.
+  const focusMode = toolbar === "focus";
+  const hideTools = focusMode && !(focused || linking);
 
   return (
     <div
@@ -330,7 +352,7 @@ export function RichEditor({
         if (event.target === event.currentTarget) editor?.commands.focus("end");
       }}
     >
-      {showTools && editor ? <Toolbar editor={editor} onLink={() => setLinking(true)} dim={dimTools} /> : null}
+      {showTools && editor && !focusMode ? <Toolbar editor={editor} onLink={() => setLinking(true)} /> : null}
       {editor && linking ? <LinkBar editor={editor} onDone={() => setLinking(false)} /> : null}
       {editor ? (
         <BubbleMenu
@@ -363,6 +385,9 @@ export function RichEditor({
           <p className="text-muted-foreground">{value || placeholder}</p>
         )}
       </div>
+      {showTools && editor && focusMode ? (
+        <Toolbar editor={editor} onLink={() => setLinking(true)} hidden={hideTools} bottom />
+      ) : null}
     </div>
   );
 }
