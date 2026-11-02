@@ -16,11 +16,6 @@ const NEUTRAL_ATTENDANCE: ReadonlySet<AttendanceStatus> = new Set([
   "half_leave",
 ]);
 
-const BREAK_ATTENDANCE: ReadonlySet<AttendanceStatus> = new Set([
-  "absent",
-  "late_major",
-]);
-
 const EXEMPT_FROM_EXPECTED: ReadonlySet<AttendanceStatus> = new Set([
   "leave",
   "half_leave",
@@ -258,8 +253,11 @@ export function computeReportStats(
   const workingDays = options?.workingDays;
   const attendanceByDate = options?.attendanceByDate;
 
-  // Current streak: consecutive report days ending on org-local today,
-  // skipping neutral attendance / non-working days (transparent).
+  // Current streak: consecutive report days ending on org-local today. A
+  // streak is about reporting: any day with a report counts, whatever the
+  // attendance says (late, very late, half leave). Days without a report are
+  // skipped when the person was away or it was a day off, and break the
+  // streak on any other working day.
   let currentStreak = 0;
   let cursor = new Date(`${todayStr}T00:00:00Z`);
 
@@ -267,6 +265,12 @@ export function computeReportStats(
   for (let i = 0; i < 400; i++) {
     const dateStr = cursor.toISOString().slice(0, 10);
     const status = attendanceByDate?.get(dateStr);
+
+    if (reportDates.has(dateStr)) {
+      currentStreak += 1;
+      cursor = new Date(cursor.getTime() - 86_400_000);
+      continue;
+    }
 
     if (status && NEUTRAL_ATTENDANCE.has(status)) {
       cursor = new Date(cursor.getTime() - 86_400_000);
@@ -279,16 +283,6 @@ export function computeReportStats(
       workingDays.length > 0 &&
       !isWorkingDay(dateStr, workingDays)
     ) {
-      cursor = new Date(cursor.getTime() - 86_400_000);
-      continue;
-    }
-
-    if (status && BREAK_ATTENDANCE.has(status)) {
-      break;
-    }
-
-    if (reportDates.has(dateStr)) {
-      currentStreak += 1;
       cursor = new Date(cursor.getTime() - 86_400_000);
       continue;
     }

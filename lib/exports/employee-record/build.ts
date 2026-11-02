@@ -268,7 +268,6 @@ const ATTENDANCE_LABEL: Record<AttendanceStatus, { label: string; tone: Tone }> 
 };
 
 const EXEMPT: ReadonlySet<AttendanceStatus> = new Set(["leave", "half_leave", "holiday", "weekly_off"]);
-const STREAK_BREAK: ReadonlySet<AttendanceStatus> = new Set(["absent", "late_major"]);
 
 function isAnswered(type: TemplateField["fieldType"], value: unknown): boolean {
   if (value === null || value === undefined) return false;
@@ -521,13 +520,12 @@ export function buildEmployeeRecord(raw: RecordRaw, from: string, to: string): E
   let runTo = "";
   for (const day of days) {
     const s = day.attendance.status;
+    // Same rule as the app: a day with a report always counts (late, very
+    // late or half leave included); days off and leave without one are
+    // skipped; any other working day without one breaks the run.
     const transparent =
-      (s && EXEMPT.has(s)) || (!s && !day.working) || day.reportStatus === "pending";
+      !day.report && ((s && EXEMPT.has(s)) || (!s && !day.working) || day.reportStatus === "pending");
     if (transparent) continue;
-    if (s && STREAK_BREAK.has(s)) {
-      run = 0;
-      continue;
-    }
     if (day.report) {
       if (run === 0) runFrom = day.date;
       run += 1;

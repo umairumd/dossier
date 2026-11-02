@@ -1,5 +1,5 @@
 // Reward math for the buddy wardrobe. The dashboard streak in
-// computeReportStats stays as it is; this walks the same skip and break
+// computeReportStats stays as it is; this walks the same count, skip and break
 // rules for the longest streak and adds the counts that helper does not
 // return. A holiday with no attendance row is a working day and can break
 // a streak — the same limit as the dashboard.
@@ -18,11 +18,6 @@ import {
 import { getSubmissionStatus, type DeadlineContext } from "@/lib/reports/submission-status";
 import type { AttendanceStatus } from "@/types/attendance";
 import type { RewardStats } from "@/lib/mascot";
-
-const BREAK_ATTENDANCE: ReadonlySet<AttendanceStatus> = new Set([
-  "absent",
-  "late_major",
-]);
 
 export interface RewardTeamMember {
   id: string;
@@ -70,6 +65,10 @@ function streakStep(
 ): StreakStep {
   const status = attendanceByDate.get(date);
 
+  // A streak is about reporting: a day with a report always counts, whatever
+  // the attendance (late, very late, half leave).
+  if (reportDates.has(date)) return "hit";
+
   if (isAttendanceExempt(status)) return "skip";
 
   if (
@@ -79,10 +78,6 @@ function streakStep(
   ) {
     return "skip";
   }
-
-  if (status && BREAK_ATTENDANCE.has(status)) return "break";
-
-  if (reportDates.has(date)) return "hit";
 
   // An unsubmitted working day today does not break the streak.
   if (
@@ -300,7 +295,7 @@ export function computeRewardStats(input: RewardStatsInput): RewardStats {
           run += 1;
           if (run > longestStreak) longestStreak = run;
           // A late report on a counted day breaks the on-time run.
-          // Exempt days never reach here; streakStep skips them first.
+          // Days off with no report never reach here; streakStep skips them.
           if (onTime.has(date)) {
             onTimeRun += 1;
             if (onTimeRun > longestOnTimeStreak) longestOnTimeStreak = onTimeRun;
