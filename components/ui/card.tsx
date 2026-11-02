@@ -109,7 +109,9 @@ function CardTitleHeader({
     <div
       data-slot="card-title-header"
       className={cn(
-        "-mb-1.5 flex min-h-7 items-center justify-between gap-3 px-(--card-spacing)",
+        // Wraps when the controls on the right don't fit next to the title
+        // (phones), instead of running past the card edge.
+        "-mb-1.5 flex min-h-7 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-(--card-spacing)",
         className
       )}
     >

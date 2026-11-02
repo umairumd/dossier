@@ -1,19 +1,11 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { CalendarDays, Check, Columns3, Flag, Users } from "lucide-react";
+import { CalendarDays, Columns3, Flag, Users } from "lucide-react";
 import { MemberAvatar } from "@/components/mascot/member-avatar";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { QuickDatePanel } from "@/components/shared/date-picker";
+import { PickerPopover, type PickerOption } from "@/components/shared/picker";
 import { shiftReportDate } from "@/lib/helpers/dates";
 import { dueInfo, DUE_TONE_CLASS } from "@/lib/tasks/format";
 import { cn } from "@/lib/utils";
@@ -56,6 +48,7 @@ export function AssigneePicker({
   groups,
   viewerId,
   trigger,
+  single = false,
 }: {
   people: PickPerson[];
   selected: string[];
@@ -65,76 +58,61 @@ export function AssigneePicker({
   groups?: { departments: { id: string; name: string }[]; designations: string[] };
   viewerId: string;
   trigger: ReactNode;
+  /** One person only: the list closes after a pick. */
+  single?: boolean;
 }) {
   const me = people.find((person) => person.id === viewerId);
   const others = people.filter((person) => person.id !== viewerId);
-  // The item's own check mark (data-checked) sits at the far right.
-  const row = (person: PickPerson, label?: string) => (
-    <CommandItem
-      key={person.id}
-      value={`${person.name} ${person.designation ?? ""} ${person.id}`}
-      data-checked={selected.includes(person.id)}
-      onSelect={() => onToggle(person.id)}
-      className="gap-2.5 py-1.5"
-    >
-      <MemberAvatar name={person.name} userId={person.id} avatar={person.avatar} size="sm" />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm">{label ?? person.name}</span>
-        {person.designation && !label ? (
-          <span className="truncate text-xs text-muted-foreground">{person.designation}</span>
-        ) : null}
-      </span>
-    </CommandItem>
+  const personOption = (person: PickPerson, label?: string): PickerOption => ({
+    value: person.id,
+    label: label ?? person.name,
+    description: label ? null : person.designation,
+    keywords: person.name,
+    icon: <MemberAvatar name={person.name} userId={person.id} avatar={person.avatar} size="sm" />,
+  });
+  const groupIcon = (
+    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-fill-active">
+      <Users className="size-3.5" />
+    </span>
   );
+  const canOpen = Boolean(groups && onOpenTo && (groups.departments.length || groups.designations.length));
   return (
-    <Popover>
-      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Search people…" />
-          <CommandList>
-            <CommandEmpty>No match.</CommandEmpty>
-            {me ? <CommandGroup>{row(me, "Me")}</CommandGroup> : null}
-            {others.length ? <CommandGroup heading="People">{others.map((person) => row(person))}</CommandGroup> : null}
-            {groups && onOpenTo && (groups.departments.length || groups.designations.length) ? (
-              <>
-                <CommandSeparator />
-                <CommandGroup heading="Or open it to a group">
-                  {groups.departments.map((dept) => (
-                    <CommandItem
-                      key={dept.id}
-                      value={`dept ${dept.name}`}
-                      data-checked={openTo?.some((rule) => rule.value === dept.id) ?? false}
-                      onSelect={() => onOpenTo({ kind: "department", value: dept.id })}
-                      className="gap-2.5"
-                    >
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-fill-active">
-                        <Users className="size-3.5" />
-                      </span>
-                      <span className="min-w-0 flex-1 truncate">{dept.name}</span>
-                    </CommandItem>
-                  ))}
-                  {groups.designations.map((designation) => (
-                    <CommandItem
-                      key={designation}
-                      value={`designation ${designation}`}
-                      data-checked={openTo?.some((rule) => rule.value === designation) ?? false}
-                      onSelect={() => onOpenTo({ kind: "designation", value: designation })}
-                      className="gap-2.5"
-                    >
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-fill-active">
-                        <Users className="size-3.5" />
-                      </span>
-                      <span className="min-w-0 flex-1 truncate">Any {designation}</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </>
-            ) : null}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <PickerPopover
+      trigger={trigger}
+      width="w-80"
+      multiple={!single}
+      searchPlaceholder="Search people…"
+      selected={[
+        ...selected,
+        ...(openTo ?? []).map((rule) => `${rule.kind === "department" ? "dept" : "desig"}:${rule.value}`),
+      ]}
+      sections={[
+        { options: me ? [personOption(me, "Me")] : [] },
+        { heading: "People", options: others.map((person) => personOption(person)) },
+        {
+          heading: "Or open it to a group",
+          options: canOpen
+            ? [
+                ...groups!.departments.map((dept) => ({
+                  value: `dept:${dept.id}`,
+                  label: dept.name,
+                  icon: groupIcon,
+                })),
+                ...groups!.designations.map((designation) => ({
+                  value: `desig:${designation}`,
+                  label: `Any ${designation}`,
+                  icon: groupIcon,
+                })),
+              ]
+            : [],
+        },
+      ]}
+      onSelect={(value) => {
+        if (value.startsWith("dept:")) onOpenTo?.({ kind: "department", value: value.slice(5) });
+        else if (value.startsWith("desig:")) onOpenTo?.({ kind: "designation", value: value.slice(6) });
+        else onToggle(value);
+      }}
+    />
   );
 }
 
@@ -201,27 +179,25 @@ export function PriorityPicker({
   onChange: (value: TaskPriority) => void;
 }) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <PickerPopover
+      width="w-48"
+      trigger={
         <PropertyChip icon={<Flag className={PRIORITY_TONE[value]} />} muted={value === "normal"}>
           {value === "normal" ? "Priority" : TASK_PRIORITY_LABELS[value]}
         </PropertyChip>
-      </PopoverTrigger>
-      <PopoverContent className="w-44 p-1.5" align="start">
-        {TASK_PRIORITIES.map((priority) => (
-          <button
-            key={priority}
-            type="button"
-            onClick={() => onChange(priority)}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-fill-hover"
-          >
-            <Flag className={cn("size-3.5", PRIORITY_TONE[priority])} />
-            {TASK_PRIORITY_LABELS[priority]}
-            <Check className={cn("ml-auto size-3.5", value === priority ? "opacity-100" : "opacity-0")} />
-          </button>
-        ))}
-      </PopoverContent>
-    </Popover>
+      }
+      selected={[value]}
+      sections={[
+        {
+          options: TASK_PRIORITIES.map((priority) => ({
+            value: priority,
+            label: TASK_PRIORITY_LABELS[priority],
+            icon: <Flag className={cn("size-3.5", PRIORITY_TONE[priority])} />,
+          })),
+        },
+      ]}
+      onSelect={(next) => onChange(next as TaskPriority)}
+    />
   );
 }
 
@@ -239,33 +215,36 @@ export function BoardPicker({
 }) {
   const name =
     value === "auto" ? "Board: automatic" : value ? (boards.find((board) => board.id === value)?.name ?? "Board") : "No board";
-  const option = (key: string | null | "auto", label: string, hint?: string) => (
-    <button
-      key={String(key)}
-      type="button"
-      onClick={() => onChange(key)}
-      className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-fill-hover"
-    >
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate">{label}</span>
-        {hint ? <span className="text-xs text-muted-foreground">{hint}</span> : null}
-      </span>
-      <Check className={cn("mt-0.5 size-3.5 shrink-0", value === key ? "opacity-100" : "opacity-0")} />
-    </button>
-  );
+  // The list works with strings; "none" stands for no board.
+  const current = value === null ? "none" : value;
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <PickerPopover
+      width="w-72"
+      trigger={
         <PropertyChip icon={<Columns3 />} muted={value === "auto" || value === null}>
           {name}
         </PropertyChip>
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-1.5" align="start">
-        {allowAuto ? option("auto", "Automatic", "Your own tasks stay personal; others go on their department's board.") : null}
-        {option(null, "No board", "Only the people on the task see it.")}
-        {boards.length ? <div className="my-1 h-px bg-line" /> : null}
-        {boards.map((board) => option(board.id, board.name))}
-      </PopoverContent>
-    </Popover>
+      }
+      selected={[current]}
+      searchPlaceholder={boards.length > 6 ? "Search boards…" : undefined}
+      sections={[
+        {
+          options: [
+            ...(allowAuto
+              ? [
+                  {
+                    value: "auto",
+                    label: "Automatic",
+                    description: "Your own tasks stay personal; others go on their department's board.",
+                  },
+                ]
+              : []),
+            { value: "none", label: "No board", description: "Only the people on the task see it." },
+          ],
+        },
+        { options: boards.map((board) => ({ value: board.id, label: board.name })) },
+      ]}
+      onSelect={(next) => onChange(next === "none" ? null : next)}
+    />
   );
 }

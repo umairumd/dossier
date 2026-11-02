@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PickerPopover } from "@/components/shared/picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   addTaskComment,
@@ -176,28 +177,33 @@ function Activity({
 // Pickers that only live here
 
 function StatusPicker({ value, onChange, disabled }: { value: TaskStatus; onChange: (s: TaskStatus) => void; disabled?: boolean }) {
+  if (disabled) {
+    return (
+      <PropertyChip icon={<CircleDot />} disabled className={cn("ring-0", STATUS_TONE_CLASS[value])}>
+        {TASK_STATUS_LABELS[value]}
+      </PropertyChip>
+    );
+  }
   return (
-    <Popover>
-      <PopoverTrigger asChild disabled={disabled}>
+    <PickerPopover
+      width="w-48"
+      trigger={
         <PropertyChip icon={<CircleDot />} className={cn("ring-0", STATUS_TONE_CLASS[value])}>
           {TASK_STATUS_LABELS[value]}
         </PropertyChip>
-      </PopoverTrigger>
-      <PopoverContent className="w-44 p-1.5" align="start">
-        {TASK_STATUSES.map((status) => (
-          <button
-            key={status}
-            type="button"
-            onClick={() => onChange(status)}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-fill-hover"
-          >
-            <span className={cn("size-2 rounded-full", STATUS_TONE_CLASS[status].split(" ")[0])} />
-            {TASK_STATUS_LABELS[status]}
-            <Check className={cn("ml-auto size-3.5", value === status ? "opacity-100" : "opacity-0")} />
-          </button>
-        ))}
-      </PopoverContent>
-    </Popover>
+      }
+      selected={[value]}
+      sections={[
+        {
+          options: TASK_STATUSES.map((status) => ({
+            value: status,
+            label: TASK_STATUS_LABELS[status],
+            icon: <span className={cn("size-2 rounded-full", STATUS_TONE_CLASS[status].split(" ")[0])} />,
+          })),
+        },
+      ]}
+      onSelect={(next) => onChange(next as TaskStatus)}
+    />
   );
 }
 
@@ -337,7 +343,10 @@ export function TaskWindow({
   // Newest activity sits next to the comment box.
   const updateCount = task?.updates.length ?? 0;
   useEffect(() => {
-    activityEnd.current?.scrollIntoView({ block: "end" });
+    // Scroll only the activity list (wide screens). On a phone the whole
+    // window is one scroll, which should stay at the top.
+    const list = activityEnd.current?.parentElement;
+    if (list) list.scrollTop = list.scrollHeight;
   }, [updateCount, filter]);
 
   const close = () => {
@@ -415,10 +424,12 @@ export function TaskWindow({
     <Dialog open onOpenChange={(open) => (open ? null : close())}>
       <DialogContent
         showCloseButton={false}
-        className="grid h-[min(90vh,860px)] w-[calc(100vw-1.5rem)] max-w-6xl grid-rows-[minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-w-6xl lg:grid-cols-[minmax(0,1fr)_380px]"
+        // Wide screens: work and activity side by side, each scrolling.
+        // Phones and tablets: one column that scrolls as a whole.
+        className="grid h-[min(90vh,860px)] w-[calc(100vw-1.5rem)] max-w-6xl content-start gap-0 overflow-y-auto p-0 sm:max-w-6xl lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-[minmax(0,1fr)] lg:content-stretch lg:overflow-hidden"
       >
         {/* Work */}
-        <div className="flex min-h-0 flex-col overflow-y-auto">
+        <div className="flex flex-col lg:min-h-0 lg:overflow-y-auto">
           <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-popover/95 px-5 py-3 backdrop-blur md:px-7">
             <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
               {(task ?? preview)?.departmentName ?? "Personal task"}
@@ -863,7 +874,7 @@ export function TaskWindow({
         </div>
 
         {/* Activity */}
-        <aside className="flex min-h-0 flex-col border-t border-line bg-fill-subtle max-lg:max-h-[45vh] lg:border-t-0 lg:border-l">
+        <aside className="flex flex-col border-t border-line bg-fill-subtle lg:min-h-0 lg:border-t-0 lg:border-l">
           <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
             <h3 className="card-title">Activity</h3>
             <div className="flex gap-0.5 text-xs">
@@ -882,7 +893,7 @@ export function TaskWindow({
               ))}
             </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          <div className="px-4 py-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             {task ? (
               <Activity updates={task.updates} viewerId={viewerId} filter={filter} />
             ) : (
@@ -894,7 +905,7 @@ export function TaskWindow({
             <div ref={activityEnd} />
           </div>
           {task ? (
-            <div className="border-t border-line p-3">
+            <div className="border-t border-line bg-fill-subtle p-3 max-lg:sticky max-lg:bottom-0">
               <RichEditor
                 key={commentKey}
                 value={comment}

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { MemberAvatar } from "@/components/mascot/member-avatar";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { PickerPopover } from "@/components/shared/picker";
 import { SegmentedFilter } from "@/components/shared/segmented-filter";
 import { NewTaskDialog, type TaskComposeData } from "@/components/tasks/new-task-dialog";
 import { DueLabel, PersonChip, PriorityMark, StatusPill } from "@/components/tasks/task-bits";
@@ -160,7 +161,6 @@ export function TasksView({
   // Tabs, layout and grouping change on the spot: every list is already here.
   const [view, setView] = useState<TasksViewMode>(initialView);
   const [layout, setLayout] = useState<"list" | "board">(initialLayout);
-  const [filterOpen, setFilterOpen] = useState(false);
   // Team tab: one person's tasks, or everyone's.
   const [personId, setPersonId] = useState<string>("everyone");
   const [viewOpen, setViewOpen] = useState(false);
@@ -181,7 +181,10 @@ export function TasksView({
     set("view", view === "mine" ? null : view);
     set("layout", layout === (view === "team" ? "board" : "list") ? null : layout);
     set("by", by === "status" ? null : by);
-    window.history.replaceState(window.history.state, "", url);
+    // Passing null (not the old state) lets Next take the new address into
+    // its own router state; with the old state, the next refresh or server
+    // action put the previous address back and ?task= disappeared.
+    if (url.href !== window.location.href) window.history.replaceState(null, "", url);
   }, [openTask, view, layout, by]);
 
   const switchView = (next: TasksViewMode) => {
@@ -325,38 +328,29 @@ export function TasksView({
               className="h-9 w-36 pl-8 transition-[width] focus:w-52"
             />
           </div>
-          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-            <PopoverTrigger asChild>
+          <PickerPopover
+            align="end"
+            width="w-52"
+            trigger={
               <Button variant="outline" size="sm" className={cn("h-9", due !== "any" && "border-foreground/30")}>
                 <ListFilter className="size-4" />
                 {due === "any" ? "Filter" : { overdue: "Overdue", week: "This week", none: "No date" }[due]}
               </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-52 p-1.5">
-              <p className="px-2 pt-1 pb-1.5 text-xs text-muted-foreground">Due date</p>
-              {(
-                [
-                  ["any", "Any time"],
-                  ["overdue", "Overdue"],
-                  ["week", "Due this week"],
-                  ["none", "No due date"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => {
-                    setDue(value);
-                    setFilterOpen(false);
-                  }}
-                  className="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm hover:bg-fill-hover"
-                >
-                  {label}
-                  <Check className={cn("ml-auto size-3.5", due === value ? "opacity-100" : "opacity-0")} />
-                </button>
-              ))}
-            </PopoverContent>
-          </Popover>
+            }
+            selected={[due]}
+            sections={[
+              {
+                heading: "Due date",
+                options: [
+                  { value: "any", label: "Any time" },
+                  { value: "overdue", label: "Overdue" },
+                  { value: "week", label: "Due this week" },
+                  { value: "none", label: "No due date" },
+                ],
+              },
+            ]}
+            onSelect={(next) => setDue(next as typeof due)}
+          />
           <Popover open={viewOpen} onOpenChange={setViewOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="h-9" aria-label="View options">

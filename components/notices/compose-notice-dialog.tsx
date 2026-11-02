@@ -229,6 +229,7 @@ export function ComposeNoticeDialog({
                 selected={targetId ? [targetId] : []}
                 onToggle={(id) => setTargetId(id === targetId ? "" : id)}
                 viewerId=""
+                single
                 trigger={
                   <PropertyChip icon={target ? undefined : <UserRound />} muted={!target}>
                     {target ? (

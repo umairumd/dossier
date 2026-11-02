@@ -143,7 +143,8 @@ export function TaskBoard({
       onDragLeave={() => setOver((current) => (current === key ? null : current))}
       onDrop={(event) => drop(status, event)}
       className={cn(
-        "flex min-h-24 flex-col gap-2 rounded-xl p-2 transition-colors",
+        // Empty columns stay short on a phone, where columns stack.
+        "flex flex-col gap-2 rounded-xl p-2 transition-colors md:min-h-24",
         !compact && "bg-fill-subtle ring-1 ring-inset ring-edge",
         over === key && "bg-fill-hover ring-1 ring-inset ring-foreground/20",
       )}

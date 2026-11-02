@@ -4,20 +4,7 @@ import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { MemberAvatar } from "@/components/mascot/member-avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { PickerPopover } from "@/components/shared/picker";
 import {
   Popover,
   PopoverContent,
@@ -40,6 +27,15 @@ export interface PickerPerson extends AudiencePerson {
   full_name: string;
 }
 
+function AddButton({ label, disabled }: { label: string; disabled?: boolean }) {
+  return (
+    <Button type="button" variant="outline" size="sm" disabled={disabled}>
+      <Plus className="size-3.5" />
+      {label}
+    </Button>
+  );
+}
+
 function MenuAdd({
   label,
   options,
@@ -50,21 +46,12 @@ function MenuAdd({
   onPick: (value: string) => void;
 }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button type="button" variant="outline" size="sm" disabled={options.length === 0}>
-          <Plus className="size-3.5" />
-          {label}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
-        {options.map((option) => (
-          <DropdownMenuItem key={option.value} onSelect={() => onPick(option.value)}>
-            {option.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <PickerPopover
+      trigger={<AddButton label={label} disabled={options.length === 0} />}
+      searchPlaceholder={options.length > 8 ? `Search…` : undefined}
+      sections={[{ options }]}
+      onSelect={onPick}
+    />
   );
 }
 
@@ -81,59 +68,33 @@ function SearchAdd({
   allowFreeText?: boolean;
   onPick: (value: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const typed = search.trim();
   const exact = options.some(
     (option) => normaliseDesignation(option.label) === normaliseDesignation(typed),
   );
-
-  const pick = (value: string) => {
-    onPick(value);
-    setSearch("");
-    setOpen(false);
-  };
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="sm">
-          <Plus className="size-3.5" />
-          {label}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-72 p-0" align="start">
-        <Command>
-          <CommandInput placeholder={placeholder} value={search} onValueChange={setSearch} />
-          <CommandList>
-            <CommandEmpty>{allowFreeText ? "Type to add a new one." : "No match."}</CommandEmpty>
-            {allowFreeText && typed && !exact ? (
-              <CommandGroup>
-                <CommandItem value={`add ${typed}`} onSelect={() => pick(typed)}>
-                  Add “{typed}”
-                </CommandItem>
-              </CommandGroup>
-            ) : null}
-            <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={`${option.label} ${option.hint ?? ""} ${option.value}`}
-                  onSelect={() => pick(option.value)}
-                >
-                  <span className="truncate">{option.label}</span>
-                  {option.hint ? (
-                    <span className="ml-auto truncate text-xs text-muted-foreground">
-                      {option.hint}
-                    </span>
-                  ) : null}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <PickerPopover
+      width="w-72"
+      trigger={<AddButton label={label} />}
+      searchPlaceholder={placeholder}
+      query={search}
+      onQueryChange={setSearch}
+      empty={allowFreeText ? "Type to add a new one." : "No match."}
+      sections={[
+        {
+          options:
+            allowFreeText && typed && !exact
+              ? [{ value: `+add:${typed}`, label: `Add “${typed}”`, keywords: typed }]
+              : [],
+        },
+        { options: options.map((option) => ({ value: option.value, label: option.label, description: option.hint })) },
+      ]}
+      onSelect={(value) => {
+        onPick(value.startsWith("+add:") ? value.slice(5) : value);
+        setSearch("");
+      }}
+    />
   );
 }
 
