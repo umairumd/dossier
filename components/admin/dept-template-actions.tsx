@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { FileText, Plus } from "lucide-react";
+import { FileText, MoreHorizontal, Plus } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogBody,
@@ -28,6 +34,8 @@ interface DeptTemplateActionsProps {
   templates: ReportTemplate[];
   canCreate?: boolean;
   showCurrentName?: boolean;
+  /** "menu": a ⋯ button with the same actions, for page headers. */
+  variant?: "buttons" | "menu";
 }
 
 export function DeptTemplateActions({
@@ -37,6 +45,7 @@ export function DeptTemplateActions({
   templates,
   canCreate = false,
   showCurrentName = true,
+  variant = "buttons",
 }: DeptTemplateActionsProps) {
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -91,6 +100,21 @@ export function DeptTemplateActions({
 
   return (
     <>
+      {variant === "menu" ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="outline" size="icon" className="size-8" aria-label="More department actions">
+              <MoreHorizontal className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-52">
+            <DropdownMenuItem onSelect={() => handleOpenChange(true)}>Change report template</DropdownMenuItem>
+            {canCreate ? (
+              <DropdownMenuItem onSelect={() => setCreateOpen(true)}>Create a template</DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
       <div className="flex items-center gap-2">
         {showCurrentName && (
           <span className="text-sm text-muted-foreground">{currentName}</span>
@@ -115,6 +139,7 @@ export function DeptTemplateActions({
           </Button>
         )}
       </div>
+      )}
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent>

@@ -1,6 +1,6 @@
 import { AnnouncementsView } from "@/components/notices/announcements-view";
 import { todayInTimezone } from "@/lib/helpers/dates";
-import { getPostingRights, loadAudiencePool } from "@/lib/notices/server";
+import { getNoticeProgress, getPostingRights, loadAudiencePool } from "@/lib/notices/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAnnouncementsFeed } from "@/lib/supabase/queries/notices";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
@@ -60,13 +60,20 @@ export default async function AnnouncementsPage() {
     };
   }
 
-  const { data: allDepartments } = await createAdminClient().from("departments").select("id, name");
+  const leader = me.role === "owner" || me.role === "admin";
+  const [{ data: allDepartments }, progress] = await Promise.all([
+    createAdminClient().from("departments").select("id, name"),
+    leader || feed.some((notice) => notice.createdBy === me.id)
+      ? loadAudiencePool(me.organization_id).then((pool) => getNoticeProgress(feed, me, pool))
+      : Promise.resolve({}),
+  ]);
 
   return (
     <AnnouncementsView
       notices={feed}
       viewerId={me.id}
-      leader={me.role === "owner" || me.role === "admin"}
+      leader={leader}
+      progress={progress}
       today={todayInTimezone(settings.timezone)}
       departmentNames={Object.fromEntries((allDepartments ?? []).map((row) => [row.id, row.name]))}
       compose={compose}

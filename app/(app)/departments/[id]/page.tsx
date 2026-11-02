@@ -12,8 +12,12 @@ import {
 import { getSubmissionStatus } from "@/lib/reports/submission-status";
 import { todayInTimezone } from "@/lib/helpers/dates";
 import { completionWindows } from "@/lib/helpers/completion-trend";
-import { formatInCount, partitionReporters } from "@/lib/helpers/report-stats";
-import { CompletionLineChart } from "@/components/analytics/completion-line-chart";
+import { partitionReporters } from "@/lib/helpers/report-stats";
+import Link from "next/link";
+import { CompletionBars } from "@/components/analytics/completion-bars";
+import { MemberAvatar } from "@/components/mascot/member-avatar";
+import { getDepartmentBoard } from "@/lib/supabase/queries/tasks";
+import { cn } from "@/lib/utils";
 import { DataList, DataListRow, PersonCell } from "@/components/shared/data-list";
 import { GroupHeading } from "@/components/shared/person-card";
 import { PageHeader } from "@/components/shared/page-header";
@@ -39,12 +43,13 @@ export default async function DepartmentDetailPage({
 }) {
   const { id } = await params;
 
-  const [detail, allManagers, employees, settings, templates] = await Promise.all([
+  const [detail, allManagers, employees, settings, templates, boardTasks] = await Promise.all([
     getDepartmentDetail(id),
     getManagerCandidates(),
     getAllEmployees(),
     getOrganizationSettings(),
     getOrgTemplates(),
+    getDepartmentBoard(id).catch(() => []),
   ]);
 
   if (!detail) {
@@ -117,15 +122,46 @@ export default async function DepartmentDetailPage({
     getSubmissionStatus(null, deadline.deadlineHourUtc, deadline, today) === "missed";
   const { trend, previousAverage } = completionWindows(detail.trend, today, deadlinePassed);
 
-  // At most one middle dot: the department, then today.
-  const who = `${detail.members.length} ${detail.members.length === 1 ? "person" : "people"}, ${detail.manager ? `managed by ${detail.manager.full_name}` : "no manager"}`;
-  const description = hasReportingMembers
-    ? `${who} · ${formatInCount(submittedToday, expectedToday, awayToday)}${
-        missingToday > 0 && deadlinePassed && expectedToday > 0
-          ? `, ${missingToday} missing`
-          : ""
-      }`
-    : who;
+  const average =
+    trend.length > 0 ? Math.round(trend.reduce((sum, point) => sum + point.completionPercentage, 0) / trend.length) : null;
+  const delta = average != null && previousAverage != null ? average - previousAverage : null;
+  const openTasks = boardTasks.filter((task) => task.status !== "done");
+  const overdueTasks = openTasks.filter((task) => task.dueDate && task.dueDate < today).length;
+  const statusOf = (memberId: string) =>
+    getSubmissionStatus(
+      detail.submittedAtByMemberId[memberId] ?? null,
+      deadline.deadlineHourUtc,
+      deadline,
+      today,
+      onLeaveIds.has(memberId),
+    );
+  // Short names under the faces; two words where first names repeat
+  // ("Muhammad Umer", "Muhammad Wasif").
+  const firstCounts = new Map<string, number>();
+  for (const member of reportingMembers) {
+    const first = member.full_name.trim().split(/\s+/)[0];
+    firstCounts.set(first, (firstCounts.get(first) ?? 0) + 1);
+  }
+  const shortName = (fullName: string) => {
+    const words = fullName.trim().split(/\s+/);
+    return (firstCounts.get(words[0]) ?? 0) > 1 && words[1] ? `${words[0]} ${words[1]}` : words[0];
+  };
+  const FACE_DOT: Record<string, string> = {
+    on_time: "bg-ok",
+    late: "bg-warn",
+    missed: "bg-danger",
+    pending: "bg-fill-active",
+    on_leave: "bg-info",
+    off: "bg-fill-active",
+  };
+  const FACE_LABEL: Record<string, string> = {
+    on_time: "Reported",
+    late: "Reported late",
+    missed: "Missed",
+    pending: "Not yet",
+    on_leave: "On leave",
+    off: "Day off",
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -134,78 +170,135 @@ export default async function DepartmentDetailPage({
         title={detail.name}
         description={
           <>
-            {detail.archived_at && <Badge variant="neutral" className="mr-1.5">Archived</Badge>}
-            {description}
+            <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {detail.archived_at && <Badge variant="neutral">Archived</Badge>}
+              <span>{detail.members.length} {detail.members.length === 1 ? "person" : "people"}</span>
+              {detail.manager ? (
+                <Link
+                  href={`/employees/${detail.manager.id}`}
+                  className="inline-flex items-center gap-1.5 hover:text-foreground"
+                >
+                  <MemberAvatar
+                    userId={detail.manager.id}
+                    name={detail.manager.full_name}
+                    avatar={detail.manager.avatar}
+                    size="xs"
+                  />
+                  Managed by {detail.manager.full_name}
+                </Link>
+              ) : (
+                <span>No manager yet</span>
+              )}
+              <span>Report template: {currentTemplate ? currentTemplate.name : "organization default"}</span>
+            </span>
           </>
         }
-        action={<DepartmentDetailActions variant="edit" {...actionProps} />}
+        action={
+          <div className="flex items-center gap-2">
+            <DepartmentDetailActions variant="edit" {...actionProps} />
+            <DeptTemplateActions
+              departmentId={detail.id}
+              departmentName={detail.name}
+              currentTemplateId={detail.template_id}
+              templates={templates}
+              canCreate
+              variant="menu"
+            />
+          </div>
+        }
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Card>
-          <CardTitleHeader
-            title="Manager"
-            aside={
-              <DepartmentDetailActions
-                variant={detail.manager ? "change-manager" : "assign-manager"}
-                {...actionProps}
-              />
-            }
-          />
-          <CardContent>
-            {detail.manager ? (
-              <PersonCell
-                id={detail.manager.id}
-                name={detail.manager.full_name}
-                avatar={detail.manager.avatar}
-                detail={detail.manager.designation ?? undefined}
-                href={`/employees/${detail.manager.id}`}
-              />
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="surface-card flex min-w-0 flex-col gap-1 rounded-xl bg-card px-3 py-3 sm:px-5 sm:py-4">
+          <span className="text-xs text-muted-foreground sm:text-[13px]">Reported today</span>
+          <span className="text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">
+            {hasReportingMembers ? (
+              <>
+                {submittedToday} <span className="text-base font-normal text-muted-foreground">of {expectedToday}</span>
+              </>
             ) : (
-              <p className="text-sm text-muted-foreground">No manager assigned</p>
+              "None expected"
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardTitleHeader
-            title="Report template"
-            aside={
-              <DeptTemplateActions
-                departmentId={detail.id}
-                departmentName={detail.name}
-                currentTemplateId={detail.template_id}
-                templates={templates}
-                canCreate
-                showCurrentName={false}
-              />
-            }
-          />
-          <CardContent>
-            {currentTemplate ? (
-              <div className="flex flex-col gap-0.5">
-                <p className="text-sm font-medium">{currentTemplate.name}</p>
-                <p className="text-[13px] text-muted-foreground">
-                  {currentTemplate.fieldCount ?? 0}{" "}
-                  {(currentTemplate.fieldCount ?? 0) === 1 ? "question" : "questions"}
-                  {currentTemplate.isDefault ? " · organization default" : ""}
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Using the organization default</p>
-            )}
-          </CardContent>
-        </Card>
+          </span>
+          <span className="text-xs text-muted-foreground max-sm:hidden">
+            {[
+              deadlinePassed
+                ? missingToday > 0
+                  ? `${missingToday} missing`
+                  : "Everyone reported"
+                : expectedToday - submittedToday > 0
+                  ? `${expectedToday - submittedToday} still to report`
+                  : "Everyone reported",
+              awayToday > 0 ? `${awayToday} away` : null,
+            ]
+              .filter(Boolean)
+              .join(", ")}
+          </span>
+        </div>
+        <div className="surface-card flex min-w-0 flex-col gap-1 rounded-xl bg-card px-3 py-3 sm:px-5 sm:py-4">
+          <span className="text-xs text-muted-foreground sm:text-[13px]">30-day completion</span>
+          <span className="text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">{average != null ? `${average}%` : "None yet"}</span>
+          <span className={cn("text-xs max-sm:hidden", delta == null ? "text-muted-foreground" : delta >= 0 ? "text-ok" : "text-danger")}>
+            {delta == null ? "Working days only" : `${delta >= 0 ? "Up" : "Down"} ${Math.abs(delta)} pts on the 30 days before`}
+          </span>
+        </div>
+        <Link
+          href={`/tasks?view=team&board=${detail.id}`}
+          className="surface-card flex min-w-0 flex-col gap-1 rounded-xl bg-card px-3 py-3 sm:px-5 sm:py-4 transition-colors hover:bg-fill-subtle"
+        >
+          <span className="text-xs text-muted-foreground sm:text-[13px]">Open tasks</span>
+          <span className="text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">{openTasks.length}</span>
+          <span className={cn("text-xs max-sm:hidden", overdueTasks ? "text-danger" : "text-muted-foreground")}>
+            {overdueTasks ? `${overdueTasks} overdue` : "Open the board"}
+          </span>
+        </Link>
       </div>
 
-      {hasReportingMembers && (
-        <CompletionLineChart
-          title="Department completion"
-          trend={trend}
-          previousAverage={previousAverage}
-          today={today}
-        />
-      )}
+      {reportingMembers.length > 0 ? (
+        <Card>
+          <CardTitleHeader title="Today" aside={<span className="max-sm:hidden">Click someone to open their profile</span>} />
+          <CardContent>
+            <ul className="grid grid-cols-4 gap-x-1 gap-y-4 sm:flex sm:flex-wrap sm:gap-x-2">
+              {reportingMembers.map((member) => {
+                const status = statusOf(member.id);
+                return (
+                  <li key={member.id} className="min-w-0 sm:w-24">
+                    <Link
+                      href={`/employees/${member.id}`}
+                      className="flex flex-col items-center gap-1.5 rounded-lg p-1 text-center hover:bg-fill-hover"
+                    >
+                      <span className="relative">
+                        <MemberAvatar
+                          userId={member.id}
+                          name={member.full_name}
+                          avatar={member.avatar}
+                          size="lg"
+                          className={status === "on_leave" ? "opacity-60" : undefined}
+                        />
+                        <span
+                          className={cn("absolute -right-0.5 -bottom-0.5 size-3.5 rounded-full ring-2 ring-card", FACE_DOT[status])}
+                          aria-hidden
+                        />
+                      </span>
+                      <span className="line-clamp-2 w-full text-xs leading-tight font-medium">{shortName(member.full_name)}</span>
+                      <span className="text-[11px] text-muted-foreground">{FACE_LABEL[status]}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {hasReportingMembers && trend.length > 0 ? (
+        <Card>
+          <CardTitleHeader title="Report completion" aside="Last 30 working days" />
+          <CardContent>
+            <CompletionBars trend={trend} />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">

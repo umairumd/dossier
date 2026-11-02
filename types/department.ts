@@ -6,6 +6,8 @@ export interface DepartmentListItem {
   manager_name: string | null;
   manager_avatar: unknown | null;
   employee_count: number;
+  /** Active members, by name, for the faces on the department card. */
+  members?: { id: string; name: string; avatar: unknown | null }[];
   archived_at: string | null;
   created_at: string;
   template_id: string | null;

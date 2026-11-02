@@ -27,9 +27,11 @@ export interface PickerPerson extends AudiencePerson {
   full_name: string;
 }
 
-function AddButton({ label, disabled }: { label: string; disabled?: boolean }) {
+// Passes everything on to the button: the picker's popup trigger adds its
+// click handler and ref through these props.
+function AddButton({ label, ...props }: { label: string } & React.ComponentProps<typeof Button>) {
   return (
-    <Button type="button" variant="outline" size="sm" disabled={disabled}>
+    <Button type="button" variant="outline" size="sm" {...props}>
       <Plus className="size-3.5" />
       {label}
     </Button>

@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { AudiencePerson } from "@/lib/handbook/audience";
+import { matchesHandbookAudience, type AudiencePerson } from "@/lib/handbook/audience";
+import type { Notice, NoticeProgress } from "@/types/notice";
 import type { Profile } from "@/types/profile";
 
 // Server-only helpers for notices: the people an audience can reach, and
@@ -80,4 +81,55 @@ export async function getPostingRights(me: Profile): Promise<PostingRights> {
 
 export function canPostAnything(rights: PostingRights): boolean {
   return rights.all || rights.departmentIds.length > 0 || rights.personIds.length > 0;
+}
+
+/**
+ * For each notice the viewer may manage (their own, or any for owners and
+ * admins): how many people it reaches, how many saw it and how many confirmed.
+ */
+export async function getNoticeProgress(
+  notices: Notice[],
+  viewer: Profile,
+  pool: PoolPerson[],
+): Promise<Record<string, NoticeProgress>> {
+  const leader = viewer.role === "owner" || viewer.role === "admin";
+  const mine = notices.filter((notice) => leader || notice.createdBy === viewer.id);
+  if (mine.length === 0) return {};
+  const { data: receipts } = await createAdminClient()
+    .from("notice_receipts")
+    .select("notice_id, profile_id, seen_at, acknowledged_at")
+    .in(
+      "notice_id",
+      mine.map((notice) => notice.id),
+    );
+  const byNotice = new Map<string, Map<string, { seen: boolean; acked: boolean }>>();
+  for (const row of receipts ?? []) {
+    const map = byNotice.get(row.notice_id) ?? new Map();
+    map.set(row.profile_id, { seen: Boolean(row.seen_at), acked: Boolean(row.acknowledged_at) });
+    byNotice.set(row.notice_id, map);
+  }
+  const result: Record<string, NoticeProgress> = {};
+  for (const notice of mine) {
+    const people =
+      notice.kind === "personal"
+        ? pool.filter((person) => person.id === notice.targetProfileId)
+        : pool.filter(
+            (person) =>
+              person.id !== notice.createdBy &&
+              matchesHandbookAudience(person, { kind: "policy", jdDesignation: null, audiences: notice.audiences }),
+          );
+    const states = byNotice.get(notice.id) ?? new Map();
+    const waiting = people.filter((person) => {
+      const state = states.get(person.id);
+      return notice.requiresAck ? !state?.acked : !state?.seen;
+    });
+    result[notice.id] = {
+      total: people.length,
+      seen: people.filter((person) => states.get(person.id)?.seen).length,
+      acknowledged: people.filter((person) => states.get(person.id)?.acked).length,
+      waitingNames: waiting.slice(0, 3).map((person) => person.full_name.trim().split(/\s+/)[0]),
+      waitingCount: waiting.length,
+    };
+  }
+  return result;
 }

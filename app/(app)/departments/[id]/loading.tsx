@@ -1,11 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  CardSkeleton,
-  CompletionChartSkeleton,
-  DataListSkeleton,
-  LoadingNote,
-  SkeletonLine,
-} from "@/components/shared/skeletons";
+import { DataListSkeleton, LoadingNote, SkeletonLine } from "@/components/shared/skeletons";
 
 export default function DepartmentLoading() {
   return (
@@ -14,30 +8,38 @@ export default function DepartmentLoading() {
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 flex-col gap-1">
           <SkeletonLine size="2xl" className="w-48" />
-          <SkeletonLine className="w-72" />
+          <SkeletonLine className="w-56" />
         </div>
-        <Skeleton className="h-9 w-20 rounded-lg" />
+        <Skeleton className="h-9 w-16 rounded-lg" />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <CardSkeleton label="Manager" aside={<Skeleton className="h-3 w-14" />}>
-          <span className="flex items-center gap-3">
-            <Skeleton className="size-8 shrink-0 rounded-full" />
-            <span className="flex flex-col">
-              <SkeletonLine className="w-28" />
-              <SkeletonLine size="13" className="w-20" />
-            </span>
-          </span>
-        </CardSkeleton>
-        <CardSkeleton label="Report template" aside={<Skeleton className="h-3 w-14" />}>
-          <div className="flex flex-col gap-0.5">
-            <SkeletonLine className="w-32" />
-            <SkeletonLine size="13" className="w-44" />
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        {[0, 1, 2].map((index) => (
+          <div key={index} className="surface-card flex flex-col gap-2 rounded-xl bg-card px-3 py-3 sm:px-5 sm:py-4">
+            <SkeletonLine size="13" className="w-24" />
+            <Skeleton className="h-7 w-14" />
           </div>
-        </CardSkeleton>
+        ))}
       </div>
 
-      <CompletionChartSkeleton title="Department completion" />
+      <Skeleton className="h-12 w-full rounded-xl" />
+
+      <div className="surface-card flex flex-col gap-4 rounded-xl bg-card p-5">
+        <SkeletonLine className="w-16" />
+        <div className="flex flex-wrap gap-6">
+          {[0, 1, 2, 3, 4].map((index) => (
+            <div key={index} className="flex flex-col items-center gap-1.5">
+              <Skeleton className="size-10 rounded-full" />
+              <SkeletonLine size="13" className="w-12" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="surface-card flex flex-col gap-3 rounded-xl bg-card p-5">
+        <SkeletonLine className="w-36" />
+        <Skeleton className="h-24 w-full" />
+      </div>
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">

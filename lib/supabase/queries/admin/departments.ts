@@ -51,7 +51,7 @@ export const getAllDepartments = cache(
         .order("name", { ascending: true }),
       supabase
         .from("profile_departments")
-        .select("department_id, profiles(archived_at, is_active)"),
+        .select("department_id, profiles(id, full_name, avatar, archived_at, is_active)"),
     ]);
 
     if (departmentsError) {
@@ -62,20 +62,28 @@ export const getAllDepartments = cache(
       logAndThrow("Failed to load department employee counts.", countsError);
     }
 
+    type MemberProfile = {
+      id: string;
+      full_name: string;
+      avatar: unknown | null;
+      archived_at: string | null;
+      is_active: boolean;
+    };
     const countByDepartment = new Map<string, number>();
+    const membersByDepartment = new Map<string, { id: string; name: string; avatar: unknown | null }[]>();
     for (const row of memberships ?? []) {
-      const embedded = row.profiles as unknown as
-        | { archived_at: string | null; is_active: boolean }
-        | { archived_at: string | null; is_active: boolean }[]
-        | null;
+      const embedded = row.profiles as unknown as MemberProfile | MemberProfile[] | null;
       const profile = Array.isArray(embedded) ? embedded[0] : embedded;
-      if (profile?.archived_at || !profile?.is_active) {
+      if (!profile || profile.archived_at || !profile.is_active) {
         continue;
       }
       countByDepartment.set(
         row.department_id,
         (countByDepartment.get(row.department_id) ?? 0) + 1,
       );
+      const list = membersByDepartment.get(row.department_id) ?? [];
+      list.push({ id: profile.id, name: profile.full_name, avatar: profile.avatar });
+      membersByDepartment.set(row.department_id, list);
     }
 
     interface DepartmentRow {
@@ -99,6 +107,7 @@ export const getAllDepartments = cache(
       manager_name: department.manager?.full_name ?? null,
       manager_avatar: department.manager?.avatar ?? null,
       employee_count: countByDepartment.get(department.id) ?? 0,
+      members: (membersByDepartment.get(department.id) ?? []).sort((a, b) => a.name.localeCompare(b.name)),
       archived_at: department.archived_at,
       created_at: department.created_at,
       template_id: department.template_id,

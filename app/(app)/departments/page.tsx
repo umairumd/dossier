@@ -2,14 +2,16 @@ import {
   getAllDepartments,
   getManagerCandidates,
 } from "@/lib/supabase/queries/admin/departments";
+import { getDeptCompletionToday } from "@/lib/supabase/queries/admin/dept-completion";
 import { CreateDepartmentDialog } from "@/components/admin/create-department-dialog";
 import { DepartmentList } from "@/components/admin/department-list";
 import { PageHeader } from "@/components/shared/page-header";
 
 export default async function DepartmentsPage() {
-  const [departments, managerCandidates] = await Promise.all([
+  const [departments, managerCandidates, completion] = await Promise.all([
     getAllDepartments(),
     getManagerCandidates(),
+    getDeptCompletionToday(),
   ]);
 
   return (
@@ -27,6 +29,9 @@ export default async function DepartmentsPage() {
       <DepartmentList
         departments={departments}
         managerCandidates={managerCandidates}
+        completion={Object.fromEntries(
+          completion.map((row) => [row.departmentId, { submitted: row.submitted, total: row.total }]),
+        )}
       />
     </div>
   );

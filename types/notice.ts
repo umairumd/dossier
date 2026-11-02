@@ -13,6 +13,8 @@ export interface Notice {
   bodyMd: string;
   createdBy: string | null;
   createdByName: string | null;
+  /** Raw profiles.avatar json of the author, for their buddy. */
+  createdByAvatar?: unknown;
   targetProfileId: string | null;
   targetName: string | null;
   requiresAck: boolean;
@@ -56,4 +58,15 @@ export interface AutoNotice {
   /** Avatar to show instead of an icon. */
   personId?: string;
   dismissible: boolean;
+}
+
+/** How an announcement is landing, for its author, owners and admins. */
+export interface NoticeProgress {
+  /** People it's addressed to (the author not counted). */
+  total: number;
+  seen: number;
+  acknowledged: number;
+  /** First names of people who still need to confirm (or haven't seen it). */
+  waitingNames: string[];
+  waitingCount: number;
 }

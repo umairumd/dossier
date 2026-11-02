@@ -46,8 +46,8 @@ async function hydrate(rows: NoticeRow[], viewerId: string): Promise<Notice[]> {
     // Names only, for people RLS may not let this viewer read (an owner who
     // posted, for example).
     personIds.length
-      ? createAdminClient().from("profiles").select("id, full_name").in("id", personIds)
-      : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+      ? createAdminClient().from("profiles").select("id, full_name, avatar").in("id", personIds)
+      : Promise.resolve({ data: [] as { id: string; full_name: string; avatar: unknown }[] }),
   ]);
   const audiencesBy = new Map<string, HandbookAudience[]>();
   for (const row of audienceRows ?? []) {
@@ -57,6 +57,7 @@ async function hydrate(rows: NoticeRow[], viewerId: string): Promise<Notice[]> {
   }
   const receipts = new Map((receiptRows ?? []).map((row) => [row.notice_id as string, row]));
   const nameBy = new Map((names ?? []).map((row) => [row.id as string, row.full_name as string]));
+  const avatarBy = new Map((names ?? []).map((row) => [row.id as string, row.avatar as unknown]));
   return rows.map((row) => {
     const receipt = receipts.get(row.id);
     return {
@@ -66,6 +67,7 @@ async function hydrate(rows: NoticeRow[], viewerId: string): Promise<Notice[]> {
       bodyMd: row.body_md,
       createdBy: row.created_by,
       createdByName: row.created_by ? (nameBy.get(row.created_by) ?? null) : null,
+      createdByAvatar: row.created_by ? (avatarBy.get(row.created_by) ?? null) : null,
       targetProfileId: row.target_profile_id,
       targetName: row.target_profile_id ? (nameBy.get(row.target_profile_id) ?? null) : null,
       requiresAck: row.requires_ack,
