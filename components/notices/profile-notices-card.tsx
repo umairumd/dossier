@@ -36,7 +36,7 @@ export function ProfileNoticesCard({
   const [open, setOpen] = useState(false);
   const firstName = person.full_name.split(" ")[0];
   return (
-    <Card>
+    <Card id="notices" className="scroll-mt-20">
       <CardTitleHeader
         title="Notices"
         aside={

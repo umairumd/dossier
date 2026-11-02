@@ -180,7 +180,7 @@ export function DashboardHero({
   }
   const hide = (key: string) => setDismissed((prev) => (prev.includes(key) ? prev : [...prev, key]));
   const liveNotices = notices.filter((notice) => !dismissed.includes(`notice:${notice.id}`));
-  const { band, rest: rowNotices } = splitNotices(liveNotices);
+  const { band, waiting, rest: rowNotices } = splitNotices(liveNotices);
   const forYou: ForYouItem[] = [
     ...[...groups.values()].map(({ note, ids, notes }) =>
       notificationForYouItem(note, notes, () => ids.forEach(forgetNotification), actorAvatars, userId),
@@ -216,7 +216,7 @@ export function DashboardHero({
       >
         {band ? (
           <div className="md:-mt-1">
-            <NoticeBand notice={band} onDone={() => hide(`notice:${band.id}`)} />
+            <NoticeBand key={band.id} notice={band} waiting={waiting} onDone={() => hide(`notice:${band.id}`)} />
           </div>
         ) : null}
         {/* On a phone the tiles sit 12px from the hero's sides and bottom, the

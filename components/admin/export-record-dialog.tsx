@@ -1,12 +1,12 @@
 "use client";
 
+import { DateRangeField } from "@/components/shared/date-picker";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Download, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { SegmentedFilter } from "@/components/shared/segmented-filter";
 import { MemberAvatar } from "@/components/shared/member-avatar";
@@ -284,25 +284,16 @@ export function ExportRecordDialog({
                 </div>
               )}
               {mode === "custom" && (
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                  <Input
-                    type="date"
-                    aria-label="From"
-                    value={customFrom}
-                    min={joinedOn}
-                    max={today}
-                    onChange={(event) => setCustomFrom(event.target.value)}
-                  />
-                  <span className="text-sm text-muted-foreground">to</span>
-                  <Input
-                    type="date"
-                    aria-label="To"
-                    value={customTo}
-                    min={joinedOn}
-                    max={today}
-                    onChange={(event) => setCustomTo(event.target.value)}
-                  />
-                </div>
+                <DateRangeField
+                  from={customFrom}
+                  to={customTo}
+                  min={joinedOn}
+                  max={today}
+                  onChange={({ from, to }) => {
+                    setCustomFrom(from);
+                    setCustomTo(to);
+                  }}
+                />
               )}
               {message ? (
                 <p

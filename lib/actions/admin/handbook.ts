@@ -71,13 +71,15 @@ function revalidateHandbook(id?: string) {
 }
 
 async function uniqueSlug(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
+  organizationId: string,
   title: string,
 ): Promise<string> {
   const base = slugify(title) || "document";
   const { data } = await supabase
     .from("handbook_docs")
     .select("slug")
+    .eq("organization_id", organizationId)
     .like("slug", `${base}%`);
   const taken = new Set((data ?? []).map((row) => row.slug as string));
   if (!taken.has(base)) return base;
@@ -90,13 +92,18 @@ async function uniqueSlug(
 async function writeDraft(
   input: HandbookDraftInput,
 ): Promise<{ success: true; id: string; slug: string } | { success: false; error: string }> {
+  await requireAdminUser();
   const validation = validateDraft(input);
   if (validation) return { success: false, error: validation };
 
   const me = await getCurrentProfile();
   if (!me?.organization_id) return { success: false, error: "No organization found." };
 
-  const supabase = await createClient();
+  // Writes use the admin client: callers have already checked the person is
+  // an owner or admin, and every query below is scoped to their organization.
+  // Inserting with the user's client fails, because the read rule checked on
+  // the returned row can't see a row that is still being inserted.
+  const supabase = createAdminClient();
   const audiences = normaliseAudiences(input.audiences);
   const fields = {
     title: input.title.trim(),
@@ -116,6 +123,7 @@ async function writeDraft(
       .from("handbook_docs")
       .update(fields)
       .eq("id", id)
+      .eq("organization_id", me.organization_id)
       .is("archived_at", null)
       .select("slug")
       .maybeSingle();
@@ -131,7 +139,7 @@ async function writeDraft(
       return { success: false, error: "Couldn't save who can see it." };
     }
   } else {
-    slug = await uniqueSlug(supabase, fields.title);
+    slug = await uniqueSlug(supabase, me.organization_id, fields.title);
     const { data, error } = await supabase
       .from("handbook_docs")
       .insert({
@@ -172,7 +180,11 @@ export async function saveHandbookDraft(
 }
 
 export async function publishHandbookDoc(
-  input: HandbookDraftInput & { changeNote: string },
+  input: HandbookDraftInput & {
+    changeNote: string;
+    /** Update the published text without a new version, notifications or new confirmations. */
+    smallFix?: boolean;
+  },
 ): Promise<
   ActionResult & { id?: string; version?: number; notified?: number; launched?: boolean }
 > {
@@ -195,7 +207,8 @@ export async function publishHandbookDoc(
     }
     currentVersion = data.version;
   }
-  if (currentVersion > 0 && !changeNote) {
+  const smallFix = Boolean(input.smallFix) && currentVersion > 0;
+  if (currentVersion > 0 && !changeNote && !smallFix) {
     return { success: false, error: "Say what changed in this version." };
   }
   if (changeNote.length > 500) {
@@ -207,6 +220,18 @@ export async function publishHandbookDoc(
 
   const saved = await writeDraft(input);
   if (!saved.success) return saved;
+
+  if (smallFix) {
+    const { error: fixError } = await createAdminClient()
+      .from("handbook_docs")
+      .update({ body_md: input.draftMd })
+      .eq("id", saved.id)
+      .eq("organization_id", me.organization_id)
+      .eq("version", currentVersion);
+    if (fixError) return { success: false, error: "Couldn't save the fix. Try again." };
+    revalidateHandbook(saved.id);
+    return { success: true, id: saved.id, version: currentVersion, notified: 0 };
+  }
 
   const version = currentVersion + 1;
   const { data: published, error } = await supabase

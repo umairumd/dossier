@@ -1,5 +1,6 @@
 "use client";
 
+import { TimeField } from "@/components/shared/date-picker";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -205,49 +206,20 @@ export function OrgAttendanceForm({
         <h3 className={sub}>Shifts</h3>
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="Full-time start" htmlFor="shift-fulltime-start" hint="The grace period counts from here.">
-            <Input
-              id="shift-fulltime-start"
-              type="time"
-              value={shiftFulltimeStart}
-              onChange={(e) => setShiftFulltimeStart(e.target.value)}
-            />
+            <TimeField id="shift-fulltime-start" value={shiftFulltimeStart} onChange={setShiftFulltimeStart} />
           </Field>
           <Field label="Part-time morning" htmlFor="shift-morning-start">
             <div className="flex items-center gap-2">
-              <Input
-                id="shift-morning-start"
-                type="time"
-                aria-label="Morning shift start"
-                value={shiftMorningStart}
-                onChange={(e) => setShiftMorningStart(e.target.value)}
-              />
+              <TimeField id="shift-morning-start" aria-label="Morning shift start" value={shiftMorningStart} onChange={setShiftMorningStart} />
               <span className="text-xs text-muted-foreground">to</span>
-              <Input
-                id="shift-morning-end"
-                type="time"
-                aria-label="Morning shift end"
-                value={shiftMorningEnd}
-                onChange={(e) => setShiftMorningEnd(e.target.value)}
-              />
+              <TimeField id="shift-morning-end" aria-label="Morning shift end" value={shiftMorningEnd} onChange={setShiftMorningEnd} />
             </div>
           </Field>
           <Field label="Part-time evening" htmlFor="shift-evening-start">
             <div className="flex items-center gap-2">
-              <Input
-                id="shift-evening-start"
-                type="time"
-                aria-label="Evening shift start"
-                value={shiftEveningStart}
-                onChange={(e) => setShiftEveningStart(e.target.value)}
-              />
+              <TimeField id="shift-evening-start" aria-label="Evening shift start" value={shiftEveningStart} onChange={setShiftEveningStart} />
               <span className="text-xs text-muted-foreground">to</span>
-              <Input
-                id="shift-evening-end"
-                type="time"
-                aria-label="Evening shift end"
-                value={shiftEveningEnd}
-                onChange={(e) => setShiftEveningEnd(e.target.value)}
-              />
+              <TimeField id="shift-evening-end" aria-label="Evening shift end" value={shiftEveningEnd} onChange={setShiftEveningEnd} />
             </div>
           </Field>
         </div>

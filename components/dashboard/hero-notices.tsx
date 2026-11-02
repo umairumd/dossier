@@ -16,6 +16,7 @@ import { ForYouIcon, type ForYouItem } from "@/components/dashboard/hero-for-you
 import { RichText } from "@/components/shared/rich-text";
 import { Button } from "@/components/ui/button";
 import { acknowledgeNotice, dismissAutoNotice, dismissNotice } from "@/lib/actions/notices";
+import { cn } from "@/lib/utils";
 import type { AutoNotice, Notice, NoticeRuleKey } from "@/types/notice";
 
 const RULE_ICONS: Record<NoticeRuleKey, LucideIcon> = {
@@ -35,10 +36,24 @@ function since(iso: string | null): string {
   return `${days} days ago`;
 }
 
-/** The one notice that needs confirming goes in the band; the rest are rows. */
-export function splitNotices(notices: Notice[]): { band: Notice | null; rest: Notice[] } {
-  const band = notices.find((notice) => notice.kind === "personal" && notice.requiresAck) ?? null;
-  return { band, rest: notices.filter((notice) => notice !== band) };
+/**
+ * Everything waiting for "I understand" goes in the band at the top of Home,
+ * one at a time: personal notices first, then announcements, oldest first.
+ * The rest are rows in For you.
+ */
+export function splitNotices(notices: Notice[]): { band: Notice | null; waiting: number; rest: Notice[] } {
+  const queue = notices
+    .filter((notice) => notice.requiresAck)
+    .sort(
+      (a, b) =>
+        Number(b.kind === "personal") - Number(a.kind === "personal") ||
+        (a.publishedAt ?? "").localeCompare(b.publishedAt ?? ""),
+    );
+  return {
+    band: queue[0] ?? null,
+    waiting: queue.length,
+    rest: notices.filter((notice) => !notice.requiresAck),
+  };
 }
 
 export function noticeForYouItems(
@@ -118,23 +133,46 @@ export function noticeForYouItems(
   return [...fromNotices, ...fromAutos];
 }
 
-/** A personal notice waiting for "I understand", across the top of the hero. */
-export function NoticeBand({ notice, onDone }: { notice: Notice; onDone: () => void }) {
+/** A notice waiting for "I understand", across the top of the hero. */
+export function NoticeBand({
+  notice,
+  waiting = 1,
+  onDone,
+}: {
+  notice: Notice;
+  /** How many are waiting, this one included. */
+  waiting?: number;
+  onDone: () => void;
+}) {
   const [busy, setBusy] = useState(false);
+  const personal = notice.kind === "personal";
   return (
     <section
-      aria-label="Personal notice"
-      className="flex flex-col gap-3 rounded-xl border border-danger/35 bg-danger/[0.07] p-4 md:flex-row md:items-start"
+      aria-label={personal ? "Personal notice" : "Announcement to acknowledge"}
+      className={cn(
+        "flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-start",
+        personal ? "border-danger/35 bg-danger/[0.07]" : "border-info/35 bg-info/[0.07]",
+      )}
     >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-danger/15 text-danger">
-        <CircleAlert className="size-4" />
+      <span
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-lg",
+          personal ? "bg-danger/15 text-danger" : "bg-info/15 text-info",
+        )}
+      >
+        {personal ? <CircleAlert className="size-4" /> : <Megaphone className="size-4" />}
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <p className="text-sm font-semibold">{notice.title}</p>
           <span className="rounded-md bg-fill-active px-1.5 py-0.5 text-[11px] text-muted-foreground">
-            Personal · only you{notice.createdByName ? ` and ${notice.createdByName.split(" ")[0]}` : ""} can see this
+            {personal
+              ? `Personal, only you${notice.createdByName ? ` and ${notice.createdByName.split(" ")[0]}` : ""} can see this`
+              : "Please confirm you've read this"}
           </span>
+          {waiting > 1 ? (
+            <span className="text-[11px] text-muted-foreground tabular-nums">1 of {waiting}</span>
+          ) : null}
         </div>
         {notice.bodyMd ? <RichText text={notice.bodyMd} className="text-[13.5px] text-foreground/85" /> : null}
         <p className="text-xs text-muted-foreground">

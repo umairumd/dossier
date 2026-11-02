@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { MemberAvatar } from "@/components/mascot/member-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -27,11 +28,13 @@ import {
   LOCATION_LABELS,
   ROLE_AUDIENCE_LABELS,
   audienceLabel,
+  describeAudience,
+  matchesHandbookAudience,
   normaliseAudiences,
   normaliseDesignation,
 } from "@/lib/handbook/audience";
 import type { AudiencePerson } from "@/lib/handbook/audience";
-import type { HandbookAudience, HandbookAudienceKind } from "@/types/handbook";
+import type { HandbookAudience, HandbookAudienceKind, HandbookKind } from "@/types/handbook";
 
 export interface PickerPerson extends AudiencePerson {
   full_name: string;
@@ -141,6 +144,9 @@ export function HandbookAudiencePicker({
   people,
   designations,
   allow,
+  matchDoc,
+  note,
+  personChoices,
 }: {
   value: HandbookAudience[];
   onChange: (next: HandbookAudience[]) => void;
@@ -149,6 +155,12 @@ export function HandbookAudiencePicker({
   designations: string[];
   /** Which kinds of rule can be added. All when left out. */
   allow?: HandbookAudienceKind[];
+  /** For job descriptions, whose designation also counts with no rules. */
+  matchDoc?: { kind: HandbookKind; jdDesignation: string | null };
+  /** Extra line under the count, e.g. what a manager can choose. */
+  note?: string;
+  /** Who "+ Person" offers, when narrower than everyone counted. */
+  personChoices?: PickerPerson[];
 }) {
   const can = (kind: HandbookAudienceKind) => !allow || allow.includes(kind);
   const has = (kind: HandbookAudienceKind, ruleValue: string | null = null) =>
@@ -172,6 +184,20 @@ export function HandbookAudiencePicker({
   };
   const unused = <T extends { value: string }>(kind: HandbookAudienceKind, options: T[]) =>
     options.filter((option) => !has(kind, option.value));
+
+  const reached = useMemo(
+    () =>
+      people.filter((person) =>
+        matchesHandbookAudience(person, {
+          kind: matchDoc?.kind ?? "policy",
+          jdDesignation: matchDoc?.jdDesignation ?? null,
+          audiences: value,
+        }),
+      ),
+    [people, value, matchDoc?.kind, matchDoc?.jdDesignation],
+  );
+  const sentence = describeAudience(value, lookups, { maxPeople: 3 });
+  const kinds = new Set(value.filter((rule) => rule.kind !== "profile" && rule.kind !== "everyone").map((rule) => rule.kind));
 
   return (
     <div className="flex flex-col gap-3">
@@ -272,7 +298,7 @@ export function HandbookAudiencePicker({
               placeholder="Search people…"
               options={unused(
                 "profile",
-                people.map((person) => ({
+                (personChoices ?? people).map((person) => ({
                   value: person.id,
                   label: person.full_name,
                   hint: person.designation,
@@ -283,6 +309,41 @@ export function HandbookAudiencePicker({
           ) : null}
         </div>
       )}
+
+      <div className="flex flex-col gap-1">
+        {sentence && sentence !== "Everyone" ? (
+          <p className="text-[13px] text-foreground/85">{sentence}</p>
+        ) : null}
+        <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground" aria-live="polite">
+          <span className="tabular-nums">
+            {reached.length} {reached.length === 1 ? "person" : "people"}
+          </span>
+          {reached.length > 0 ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" className="underline-offset-2 hover:text-foreground hover:underline">
+                  See who
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-64 gap-0 p-1">
+                {reached.map((person) => (
+                  <div key={person.id} className="flex items-center gap-2 rounded-md px-2 py-1.5">
+                    <MemberAvatar name={person.full_name} userId={person.id} avatar={null} size="xs" />
+                    <span className="min-w-0 flex-1 truncate text-sm">{person.full_name}</span>
+                    {person.designation ? (
+                      <span className="max-w-24 truncate text-xs text-muted-foreground">{person.designation}</span>
+                    ) : null}
+                  </div>
+                ))}
+              </PopoverContent>
+            </Popover>
+          ) : null}
+        </p>
+        {kinds.size > 1 ? (
+          <p className="text-xs text-muted-foreground">Different kinds narrow each other. People you add are included too.</p>
+        ) : null}
+        {note ? <p className="text-xs text-muted-foreground">{note}</p> : null}
+      </div>
     </div>
   );
 }

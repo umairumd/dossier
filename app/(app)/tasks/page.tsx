@@ -7,6 +7,7 @@ import { getOrganizationSettings } from "@/lib/supabase/queries/organization-set
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import {
   getDepartmentBoard,
+  getLeaderBoard,
   getMyTasks,
   getOpenTasksForMe,
   getMySubtasks,
@@ -44,8 +45,16 @@ export default async function TasksPage({
   const [rights, boards] = await Promise.all([getTaskRights(me), getTaskBoards()]);
   // The viewer's own department first, so Team opens on their board.
   const ownBoard = boards.find((board) => (me.department_ids ?? []).includes(board.id));
+  // Owners and admins can also see every task, or the ones on no board.
+  const leaderScope = rights.all && (one(params.board) === "all" || one(params.board) === "none")
+    ? (one(params.board) as "all" | "none")
+    : null;
   const boardId =
-    boards.find((board) => board.id === one(params.board))?.id ?? ownBoard?.id ?? boards[0]?.id ?? null;
+    leaderScope ??
+    boards.find((board) => board.id === one(params.board))?.id ??
+    ownBoard?.id ??
+    boards[0]?.id ??
+    null;
 
   // Lists are small; loading all three keeps the tab counts honest.
   const [mine, open, subtasks, assigned, boardTasks, pool, { data: departmentRows }] = await Promise.all([
@@ -53,7 +62,11 @@ export default async function TasksPage({
     getOpenTasksForMe(),
     getMySubtasks(),
     getTasksIAssigned(),
-    boardId ? getDepartmentBoard(boardId) : Promise.resolve([]),
+    leaderScope
+      ? getLeaderBoard(leaderScope)
+      : boardId
+        ? getDepartmentBoard(boardId)
+        : Promise.resolve([]),
     loadAudiencePool(me.organization_id),
     createAdminClient().from("departments").select("id, name").is("archived_at", null).order("name"),
   ]);
@@ -95,6 +108,7 @@ export default async function TasksPage({
       subtasks={subtasks}
       assigned={assigned}
       boards={boards}
+      leaderBoards={rights.all}
       boardId={boardId}
       boardTasks={boardTasks}
       canManageBoard={canManageBoard}

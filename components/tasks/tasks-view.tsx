@@ -20,6 +20,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -126,6 +127,7 @@ export function TasksView({
   subtasks,
   assigned,
   boards,
+  leaderBoards = false,
   boardId,
   boardTasks,
   canManageBoard,
@@ -142,6 +144,9 @@ export function TasksView({
   subtasks: MySubtask[];
   assigned: TaskSummary[];
   boards: { id: string; name: string }[];
+  /** Owners and admins: "All boards" and "No board" as well. */
+  leaderBoards?: boolean;
+  /** A department id, or "all" / "none" for owners and admins. */
   boardId: string | null;
   boardTasks: TaskSummary[];
   canManageBoard: boolean;
@@ -155,6 +160,10 @@ export function TasksView({
   // Tabs, layout and grouping change on the spot: every list is already here.
   const [view, setView] = useState<TasksViewMode>(initialView);
   const [layout, setLayout] = useState<"list" | "board">(initialLayout);
+  const [filterOpen, setFilterOpen] = useState(false);
+  // Team tab: one person's tasks, or everyone's.
+  const [personId, setPersonId] = useState<string>("everyone");
+  const [viewOpen, setViewOpen] = useState(false);
   const [by, setBy] = useState<"status" | "person">(initialBy);
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
@@ -191,11 +200,20 @@ export function TasksView({
     router.push(search ? `${pathname}?${search}` : pathname, { scroll: false });
   };
   const open = (task: TaskSummary) => setOpenTask({ id: task.id, preview: task });
-  const filtering = Boolean(query.trim()) || due !== "any";
+  const filtering = Boolean(query.trim()) || due !== "any" || (view === "team" && personId !== "everyone");
+  // People with a task on the current board, for the person filter.
+  const boardPeople = [
+    ...new Map(
+      boardTasks.filter((task) => task.owner).map((task) => [task.owner!.id, task.owner!.name] as const),
+    ).entries(),
+  ].sort((a, b) => a[1].localeCompare(b[1]));
 
   const end = weekEnd(today);
   const filter = (list: TaskSummary[]) =>
     list.filter((task) => {
+      if (view === "team" && personId !== "everyone") {
+        if (task.owner?.id !== personId && !task.helperIds.includes(personId)) return false;
+      }
       if (query.trim() && !task.title.toLowerCase().includes(query.trim().toLowerCase())) return false;
       if (due === "overdue") return task.status !== "done" && Boolean(task.dueDate && task.dueDate < today);
       if (due === "week") return Boolean(task.dueDate && task.dueDate >= today && task.dueDate <= end);
@@ -250,12 +268,25 @@ export function TasksView({
 
       <div className="flex flex-wrap items-center gap-2">
         <SegmentedFilter label="Whose tasks" value={view} onChange={switchView} options={scopeOptions} />
-        {view === "team" && boards.length > 1 ? (
-          <Select value={boardId ?? undefined} onValueChange={(value) => go({ view: "team", board: value })}>
-            <SelectTrigger className="w-auto max-w-56 gap-2 border-transparent bg-transparent shadow-none hover:bg-fill-hover" aria-label="Department">
+        {view === "team" && (boards.length > 1 || leaderBoards) ? (
+          <Select
+            value={boardId ?? undefined}
+            onValueChange={(value) => {
+              setPersonId("everyone");
+              go({ view: "team", board: value });
+            }}
+          >
+            <SelectTrigger className="w-auto max-w-56 gap-2 border-transparent bg-transparent shadow-none hover:bg-fill-hover" aria-label="Board">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              {leaderBoards ? (
+                <>
+                  <SelectItem value="all">All boards</SelectItem>
+                  <SelectItem value="none">No board</SelectItem>
+                  <SelectSeparator />
+                </>
+              ) : null}
               {boards.map((board) => (
                 <SelectItem key={board.id} value={board.id}>
                   {board.name}
@@ -265,6 +296,22 @@ export function TasksView({
           </Select>
         ) : view === "team" && boards[0] ? (
           <span className="px-1 text-sm text-muted-foreground">{boards[0].name}</span>
+        ) : null}
+        {view === "team" && canManageBoard && boardPeople.length > 1 ? (
+          <Select value={personId} onValueChange={setPersonId}>
+            <SelectTrigger className="w-auto max-w-56 gap-2 border-transparent bg-transparent shadow-none hover:bg-fill-hover" aria-label="Person">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="everyone">Everyone</SelectItem>
+              <SelectSeparator />
+              {boardPeople.map(([id, name]) => (
+                <SelectItem key={id} value={id}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         ) : null}
 
         <div className="ml-auto flex items-center gap-1.5">
@@ -278,7 +325,7 @@ export function TasksView({
               className="h-9 w-36 pl-8 transition-[width] focus:w-52"
             />
           </div>
-          <Popover>
+          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className={cn("h-9", due !== "any" && "border-foreground/30")}>
                 <ListFilter className="size-4" />
@@ -298,7 +345,10 @@ export function TasksView({
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setDue(value)}
+                  onClick={() => {
+                    setDue(value);
+                    setFilterOpen(false);
+                  }}
                   className="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm hover:bg-fill-hover"
                 >
                   {label}
@@ -307,7 +357,7 @@ export function TasksView({
               ))}
             </PopoverContent>
           </Popover>
-          <Popover>
+          <Popover open={viewOpen} onOpenChange={setViewOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="h-9" aria-label="View options">
                 {layout === "board" ? <Columns3 className="size-4" /> : <List className="size-4" />}
@@ -320,7 +370,10 @@ export function TasksView({
                 <SegmentedFilter
                   label="Layout"
                   value={layout}
-                  onChange={setLayout}
+                  onChange={(next) => {
+                    setLayout(next);
+                    setViewOpen(false);
+                  }}
                   className="w-full [&>*]:flex-1"
                   options={[
                     { value: "list", label: "List" },
@@ -334,7 +387,10 @@ export function TasksView({
                   <SegmentedFilter
                     label="Group by"
                     value={by}
-                    onChange={setBy}
+                    onChange={(next) => {
+                      setBy(next);
+                      setViewOpen(false);
+                    }}
                     className="w-full [&>*]:flex-1"
                     options={[
                       { value: "status", label: "Status" },
@@ -527,7 +583,7 @@ export function TasksView({
         data={compose}
         viewerId={viewerId}
         today={today}
-        defaultDepartmentId={view === "team" ? boardId : null}
+        defaultDepartmentId={view === "team" && boardId !== "all" && boardId !== "none" ? boardId : null}
         onCreated={(ids) => {
           if (ids.length === 1) setOpenTask({ id: ids[0], preview: null });
         }}

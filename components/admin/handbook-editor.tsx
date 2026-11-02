@@ -115,12 +115,15 @@ export function HandbookEditor({
   departments,
   people,
   designations,
+  launched,
   aside,
 }: {
   doc?: HandbookDoc;
   departments: { id: string; name: string }[];
   people: PickerPerson[];
   designations: string[];
+  /** Before launch only owners and admins can read it, so nobody is notified. */
+  launched: boolean;
   /** Read progress, rendered on the server. */
   aside?: ReactNode;
 }) {
@@ -132,6 +135,7 @@ export function HandbookEditor({
   const [saving, startSaving] = useTransition();
   const [publishOpen, setPublishOpen] = useState(false);
   const [changeNote, setChangeNote] = useState("");
+  const [smallFix, setSmallFix] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const archive = () => {
@@ -223,16 +227,17 @@ export function HandbookEditor({
       return;
     }
     setChangeNote("");
+    setSmallFix(false);
     setPublishOpen(true);
   };
 
   const publish = () => {
-    if (version > 0 && !changeNote.trim()) {
+    if (version > 0 && !smallFix && !changeNote.trim()) {
       toast.error("Say what changed in this version.");
       return;
     }
     startSaving(async () => {
-      const result = await publishHandbookDoc({ id: doc?.id, ...draft, changeNote });
+      const result = await publishHandbookDoc({ id: doc?.id, ...draft, changeNote, smallFix });
       if (!result.success) {
         toast.error(result.error ?? "Couldn't publish.");
         return;
@@ -240,7 +245,9 @@ export function HandbookEditor({
       setPublishOpen(false);
       setSavedSnapshot(snapshot);
       toast.success(
-        result.launched === false
+        smallFix && version > 0
+          ? "Fix published. Nobody was notified."
+          : result.launched === false
           ? `Published v${result.version}. People will be told when you launch the handbook.`
           : `Published v${result.version}. ${result.notified ?? 0} ${result.notified === 1 ? "person was" : "people were"} notified.`,
       );
@@ -270,7 +277,6 @@ export function HandbookEditor({
     toast.success(`Imported ${file.name}.`);
   };
 
-  const countLabel = `${count} ${count === 1 ? "person" : "people"} can see this`;
 
   const kindPicker = (
     <div role="radiogroup" aria-label="Type" className="grid grid-cols-2 gap-1.5">
@@ -424,14 +430,16 @@ export function HandbookEditor({
                       : "## Section heading\n\nWrite here. Paste from Notion, or import a .md file."
                   }
                   spellCheck
-                  className="min-h-[34rem] resize-y font-mono text-[13px] leading-6 [field-sizing:fixed] md:text-[13px]"
+                  // Fixed height that scrolls inside, so the Write / Split /
+                  // Preview switch stays in view on long documents.
+                  className="scrollbar-visible h-[70vh] min-h-[28rem] resize-none overflow-y-auto font-mono text-[13px] leading-6 [field-sizing:fixed] md:text-[13px]"
                 />
               ) : null}
               {view !== "write" ? (
                 <div
                   className={
-                    "min-h-[34rem] overflow-y-auto rounded-lg p-5 ring-1 ring-inset ring-edge " +
-                    (view === "split" ? "bg-fill-subtle lg:max-h-[48rem]" : "")
+                    "scrollbar-visible h-[70vh] min-h-[28rem] overflow-y-auto rounded-lg p-5 ring-1 ring-inset ring-edge " +
+                    (view === "split" ? "bg-fill-subtle" : "")
                   }
                 >
                   {draft.draftMd.trim() ? (
@@ -482,6 +490,7 @@ export function HandbookEditor({
                 departments={departments}
                 people={people}
                 designations={designations}
+                matchDoc={{ kind: draft.kind, jdDesignation: draft.kind === "jd" ? draft.jdDesignation : null }}
               />
               {draft.audiences.length === 0 ? (
                 <p className="text-[13px] text-muted-foreground">
@@ -490,9 +499,6 @@ export function HandbookEditor({
                     : "No one added yet: only owners and admins can open it."}
                 </p>
               ) : null}
-              <p aria-live="polite" className="text-[13px] font-medium tabular-nums">
-                {countLabel}
-              </p>
             </CardContent>
           </Card>
 
@@ -559,24 +565,42 @@ export function HandbookEditor({
           <DialogHeader>
             <DialogTitle>Publish version {version + 1}</DialogTitle>
             <DialogDescription>
-              {`${count} ${count === 1 ? "person" : "people"} will be notified.`}
-              {draft.requiresAck ? " They'll be asked to confirm they've read it." : ""}
+              {!launched
+                ? "Only owners and admins can see the handbook until it launches, so nobody is notified now."
+                : smallFix && version > 0
+                  ? "Updates the text people see. No new version, no notifications, and nobody is asked to confirm again."
+                  : `${count} ${count === 1 ? "person" : "people"} will be notified.${
+                      draft.requiresAck ? " They'll be asked to confirm they've read it." : ""
+                    }`}
             </DialogDescription>
           </DialogHeader>
-          <Field
-            label={version > 0 ? "What changed" : "Note (optional)"}
-            htmlFor="handbook-change-note"
-            hint={version > 0 ? "Shown to readers who read an earlier version." : undefined}
-          >
-            <Textarea
-              id="handbook-change-note"
-              value={changeNote}
-              onChange={(event) => setChangeNote(event.target.value)}
-              placeholder={version > 0 ? "e.g. Sick leave can now be requested the same day." : ""}
-              maxLength={500}
-              autoFocus
-            />
-          </Field>
+          <div className="flex flex-col gap-4 px-4">
+            {version > 0 ? (
+              <ToggleRow
+                id="handbook-small-fix"
+                label="Small fix"
+                hint={`For typos and wording. Keeps version ${version} and tells nobody.`}
+                checked={smallFix}
+                onChange={setSmallFix}
+              />
+            ) : null}
+            {smallFix && version > 0 ? null : (
+              <Field
+                label={version > 0 ? "What changed" : "Note (optional)"}
+                htmlFor="handbook-change-note"
+                hint={version > 0 ? "Shown to readers who read an earlier version." : undefined}
+              >
+                <Textarea
+                  id="handbook-change-note"
+                  value={changeNote}
+                  onChange={(event) => setChangeNote(event.target.value)}
+                  placeholder={version > 0 ? "e.g. Sick leave can now be requested the same day." : ""}
+                  maxLength={500}
+                  autoFocus
+                />
+              </Field>
+            )}
+          </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setPublishOpen(false)} disabled={saving}>
               Cancel
@@ -584,9 +608,9 @@ export function HandbookEditor({
             <Button
               type="button"
               onClick={publish}
-              disabled={saving || (version > 0 && !changeNote.trim())}
+              disabled={saving || (version > 0 && !smallFix && !changeNote.trim())}
             >
-              {saving ? "Publishing…" : "Publish"}
+              {saving ? "Publishing…" : smallFix && version > 0 ? "Publish fix" : "Publish"}
             </Button>
           </DialogFooter>
         </DialogContent>

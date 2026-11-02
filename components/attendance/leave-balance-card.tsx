@@ -1,5 +1,6 @@
 "use client";
 
+import { MonthField } from "@/components/shared/date-picker";
 import { useState, useTransition } from "react";
 import { CalendarRange, ChevronDown, Scale } from "lucide-react";
 import { toast } from "sonner";
@@ -719,12 +720,7 @@ function ContractStartDialogs({
           <DialogBody>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="contract-start-month">Contract start</Label>
-              <Input
-                id="contract-start-month"
-                type="month"
-                value={monthValue}
-                onChange={(event) => setMonthValue(event.target.value)}
-              />
+              <MonthField id="contract-start-month" value={monthValue} onChange={setMonthValue} />
             </div>
           </DialogBody>
           <DialogFooter>

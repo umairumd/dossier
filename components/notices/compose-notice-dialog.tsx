@@ -9,6 +9,7 @@ import {
   type PickerPerson,
 } from "@/components/admin/handbook-audience-picker";
 import { MemberAvatar } from "@/components/mascot/member-avatar";
+import { QuickDatePanel } from "@/components/shared/date-picker";
 import { RichEditor } from "@/components/shared/rich-editor";
 import { SegmentedFilter } from "@/components/shared/segmented-filter";
 import { AssigneePicker, PropertyChip } from "@/components/tasks/task-pickers";
@@ -16,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { postNotice } from "@/lib/actions/notices";
-import { audienceLabel, matchesHandbookAudience } from "@/lib/handbook/audience";
+import { describeAudience, matchesHandbookAudience } from "@/lib/handbook/audience";
 import { shiftReportDate } from "@/lib/helpers/dates";
 import { cn } from "@/lib/utils";
 import type { HandbookAudience } from "@/types/handbook";
@@ -37,8 +38,8 @@ function shortDate(date: string): string {
   return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
-/** A chip that opens a small list of dates, with "none" at the bottom. */
-function DateChip({
+/** A chip that opens quick choices and a calendar, with "none" at the bottom. */
+export function DateChip({
   icon,
   emptyLabel,
   setLabel,
@@ -55,46 +56,25 @@ function DateChip({
   today: string;
   options: { label: string; days: number }[];
 }) {
+  const [open, setOpen] = useState(false);
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <PropertyChip icon={icon} muted={!value}>
           {value ? setLabel(value) : emptyLabel}
         </PropertyChip>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-1.5" align="start">
-        {options.map((option) => {
-          const date = shiftReportDate(today, option.days);
-          return (
-            <button
-              key={option.label}
-              type="button"
-              onClick={() => onChange(date)}
-              className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-fill-hover"
-            >
-              {option.label}
-              <span className="text-xs text-muted-foreground">{shortDate(date)}</span>
-            </button>
-          );
-        })}
-        <div className="my-1 h-px bg-line" />
-        <input
-          type="date"
-          min={today}
+      <PopoverContent className="w-auto gap-0 p-0" align="start">
+        <QuickDatePanel
+          options={options.map((option) => ({ label: option.label, value: shiftReportDate(today, option.days) }))}
           value={value}
-          onChange={(event) => onChange(event.target.value)}
-          aria-label="Pick a date"
-          className="h-8 w-full rounded-md border border-input bg-transparent px-2 text-sm [color-scheme:dark]"
+          min={today}
+          clearLabel={emptyLabel}
+          onChange={(next) => {
+            onChange(next);
+            setOpen(false);
+          }}
         />
-        {value ? (
-          <button
-            type="button"
-            onClick={() => onChange("")}
-            className="mt-1 w-full rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-fill-hover"
-          >
-            {emptyLabel}
-          </button>
-        ) : null}
       </PopoverContent>
     </Popover>
   );
@@ -148,10 +128,12 @@ export function ComposeNoticeDialog({
     departmentNames: new Map(data.departments.map((dept) => [dept.id, dept.name])),
     personNames: new Map(data.people.map((person) => [person.id, person.full_name])),
   };
-  const audienceSummary =
-    audiences.length === 0 ? "Choose who sees it" : audiences.map((rule) => audienceLabel(rule, lookups)).join(", ");
+  const audienceSummary = audiences.length === 0 ? "Choose who sees it" : describeAudience(audiences, lookups);
   const target = data.personalTargets.find((person) => person.id === targetId) ?? null;
-  const canSubmit = Boolean(title.trim()) && (personal ? Boolean(targetId) : audiences.length > 0) && !pending;
+  const audienceReady = data.restricted
+    ? audiences.some((rule) => rule.kind === "department")
+    : audiences.length > 0;
+  const canSubmit = Boolean(title.trim()) && (personal ? Boolean(targetId) : audienceReady) && !pending;
 
   const submit = () => {
     if (!canSubmit) return;
@@ -276,12 +258,18 @@ export function ComposeNoticeDialog({
                     departments={data.departments}
                     people={data.people}
                     designations={data.designations}
-                    allow={data.restricted ? ["department"] : undefined}
+                    allow={
+                      data.restricted
+                        ? ["department", "role", "designation", "employment_type", "work_location", "profile"]
+                        : undefined
+                    }
+                    personChoices={data.restricted ? data.personalTargets : undefined}
+                    note={
+                      data.restricted
+                        ? "Start with one of your departments, then narrow it if you like."
+                        : undefined
+                    }
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {reach} {reach === 1 ? "person" : "people"}
-                    {data.restricted ? ". You can post to the departments you manage." : ""}
-                  </p>
                 </PopoverContent>
               </Popover>
             )}

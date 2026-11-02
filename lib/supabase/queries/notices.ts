@@ -11,7 +11,7 @@ import type { Notice, NoticeKind, NoticeRuleKey, NoticeRuleSetting } from "@/typ
 import type { Profile } from "@/types/profile";
 
 const NOTICE_SELECT =
-  "id, kind, title, body_md, created_by, target_profile_id, requires_ack, pinned_until, ends_at, published_at, archived_at";
+  "id, kind, title, body_md, created_by, target_profile_id, requires_ack, pinned_until, ends_at, published_at, archived_at, edited_at";
 
 type NoticeRow = {
   id: string;
@@ -24,6 +24,7 @@ type NoticeRow = {
   pinned_until: string | null;
   ends_at: string | null;
   published_at: string | null;
+  edited_at: string | null;
   archived_at: string | null;
 };
 
@@ -71,6 +72,7 @@ async function hydrate(rows: NoticeRow[], viewerId: string): Promise<Notice[]> {
       pinnedUntil: row.pinned_until,
       endsAt: row.ends_at,
       publishedAt: row.published_at,
+      editedAt: row.edited_at,
       archivedAt: row.archived_at,
       audiences: audiencesBy.get(row.id) ?? [],
       seenAt: receipt?.seen_at ?? null,

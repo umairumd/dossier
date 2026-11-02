@@ -12,6 +12,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/queries/profile";
 import { getOrganizationSettings } from "@/lib/supabase/queries/organization-settings";
+import { NOTICE_EDIT_WINDOW_MS } from "@/types/notice";
 import type { HandbookAudience, HandbookAudienceKind } from "@/types/handbook";
 import type { NoticeKind } from "@/types/notice";
 
@@ -90,10 +91,19 @@ export async function postNotice(input: PostNoticeInput): Promise<Result<{ id: s
     );
     if (audiences.length === 0) return { success: false, error: "Choose who sees it." };
     if (!rights.all) {
-      const allowed = audiences.every(
-        (rule) => rule.kind === "department" && rule.value != null && rights.departmentIds.includes(rule.value),
-      );
-      if (!allowed) return { success: false, error: "You can post to the departments you manage." };
+      // Managers: at least one of their departments, which every other kind
+      // then narrows (so nothing reaches outside it), plus people from their
+      // own team.
+      const departments = audiences.filter((rule) => rule.kind === "department");
+      const allowed =
+        departments.length > 0 &&
+        audiences.every((rule) => {
+          if (rule.kind === "everyone") return false;
+          if (rule.kind === "department") return rule.value != null && rights.departmentIds.includes(rule.value);
+          if (rule.kind === "profile") return rule.value != null && rights.personIds.includes(rule.value);
+          return true;
+        });
+      if (!allowed) return { success: false, error: "Choose one of your departments, then narrow it if you like." };
     }
     recipients = pool
       .filter(
@@ -176,6 +186,67 @@ async function canManage(noticeId: string) {
   const leader = me.role === "owner" || me.role === "admin";
   if (!leader && notice.created_by !== me.id) return null;
   return { me, notice };
+}
+
+/**
+ * Change a posted notice. The author can fix the title and message within an
+ * hour of posting; the pin and the Home date can be changed any time by the
+ * author, owners and admins.
+ */
+export async function editNotice(
+  noticeId: string,
+  input: { title?: string; bodyMd?: string; pinnedUntil?: string | null; endsAt?: string | null },
+): Promise<Result> {
+  const allowed = await canManage(noticeId);
+  if (!allowed) return { success: false, error: "You can't change this one." };
+  const { me, notice } = allowed;
+  const { data: row } = await createAdminClient()
+    .from("notices")
+    .select("published_at, kind")
+    .eq("id", noticeId)
+    .maybeSingle();
+  if (!row) return { success: false, error: "That notice is gone." };
+
+  const patch: Record<string, string | null> = {};
+  const changesText = input.title !== undefined || input.bodyMd !== undefined;
+  if (changesText) {
+    const postedAt = row.published_at ? new Date(row.published_at).getTime() : 0;
+    if (notice.created_by !== me.id) return { success: false, error: "Only the author can change the wording." };
+    if (Date.now() - postedAt > NOTICE_EDIT_WINDOW_MS) {
+      return { success: false, error: "It's been more than an hour. Remove it and post again instead." };
+    }
+    if (input.title !== undefined) {
+      const title = input.title.trim();
+      if (!title) return { success: false, error: "Give it a title." };
+      if (title.length > 160) return { success: false, error: "Keep the title under 160 characters." };
+      patch.title = title;
+    }
+    if (input.bodyMd !== undefined) {
+      if (input.bodyMd.length > 20_000) return { success: false, error: "The message is too long." };
+      patch.body_md = input.bodyMd.trim();
+    }
+    patch.edited_at = new Date().toISOString();
+  }
+  if (row.kind === "announcement") {
+    const settings = await getOrganizationSettings();
+    const today = todayInTimezone(settings.timezone);
+    for (const [key, column] of [
+      ["pinnedUntil", "pinned_until"],
+      ["endsAt", "ends_at"],
+    ] as const) {
+      const value = input[key];
+      if (value === undefined) continue;
+      if (value === null || value === "") patch[column] = null;
+      else if (isValidDateString(value) && value >= today) patch[column] = value;
+      else return { success: false, error: "Choose a date from today on." };
+    }
+  }
+  if (Object.keys(patch).length === 0) return { success: true };
+  patch.updated_at = new Date().toISOString();
+  const { error } = await createAdminClient().from("notices").update(patch).eq("id", noticeId);
+  if (error) return { success: false, error: "Couldn't save that." };
+  revalidateNotices();
+  return { success: true };
 }
 
 export async function archiveNotice(noticeId: string): Promise<Result> {

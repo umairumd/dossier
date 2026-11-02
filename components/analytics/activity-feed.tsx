@@ -382,6 +382,22 @@ const EVENT_LABELS: Record<
 };
 
 export function getHref(entry: ActivityLogEntry): string | undefined {
+  // The thing the event is about comes first; the person is the fallback.
+  if (entry.entity_type === "task" && entry.entity_id) {
+    return `/tasks?task=${entry.entity_id}`;
+  }
+  if (entry.entity_type === "notice") {
+    // Personal notices live on the person's profile, which shows whether and
+    // when they acknowledged it. Announcements live on their own page.
+    if (entry.event_type === "notice_acknowledged" && entry.actor_id) {
+      return `/employees/${entry.actor_id}#notices`;
+    }
+    if (entry.target_id) return `/employees/${entry.target_id}#notices`;
+    return entry.entity_id ? `/announcements#notice-${entry.entity_id}` : "/announcements";
+  }
+  if (entry.entity_type === "handbook_doc" && entry.entity_id) {
+    return `/organization/handbook/${entry.entity_id}`;
+  }
   if (entry.target_id) {
     return `/employees/${entry.target_id}`;
   }
@@ -397,15 +413,6 @@ export function getHref(entry: ActivityLogEntry): string | undefined {
   }
   if (entry.entity_type === "handbook") {
     return "/handbook";
-  }
-  if (entry.entity_type === "notice") {
-    return "/announcements";
-  }
-  if (entry.entity_type === "task" && entry.entity_id) {
-    return `/tasks?task=${entry.entity_id}`;
-  }
-  if (entry.entity_type === "handbook_doc" && entry.entity_id) {
-    return `/organization/handbook/${entry.entity_id}`;
   }
   return undefined;
 }

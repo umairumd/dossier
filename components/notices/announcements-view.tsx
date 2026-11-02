@@ -19,9 +19,10 @@ import {
   ComposeNoticeDialog,
   type ComposeData,
 } from "@/components/notices/compose-notice-dialog";
+import { EditNoticeDialog } from "@/components/notices/edit-notice-dialog";
 import { SeenByDialog } from "@/components/notices/seen-by-dialog";
 import { acknowledgeNotice, archiveNotice, markNoticesSeen } from "@/lib/actions/notices";
-import { audienceLabel } from "@/lib/handbook/audience";
+import { describeAudience } from "@/lib/handbook/audience";
 import type { Notice } from "@/types/notice";
 
 function formatDay(iso: string | null): string {
@@ -55,6 +56,7 @@ export function AnnouncementsView({
   const router = useRouter();
   const [composeOpen, setComposeOpen] = useState(false);
   const [seenBy, setSeenBy] = useState<Notice | null>(null);
+  const [editing, setEditing] = useState<Notice | null>(null);
   const [acked, setAcked] = useState<string[]>([]);
   const [, startTransition] = useTransition();
 
@@ -96,11 +98,12 @@ export function AnnouncementsView({
       ? mine && notice.targetName
         ? `Personal, to ${notice.targetName}`
         : "Personal"
-      : notice.audiences.map((rule) => audienceLabel(rule, lookups)).join(", ");
+      : describeAudience(notice.audiences, lookups);
     const meta = [
       [notice.createdByName, formatDay(notice.publishedAt)].filter(Boolean).join(" · "),
       audience,
       isPinned(notice) ? `pinned to ${formatDate(notice.pinnedUntil!)}` : null,
+      notice.editedAt ? "edited" : null,
       ended ? "off Home" : null,
     ]
       .filter(Boolean)
@@ -128,6 +131,7 @@ export function AnnouncementsView({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {personal ? null : <DropdownMenuItem onSelect={() => setEditing(notice)}>Edit</DropdownMenuItem>}
                   <DropdownMenuItem onSelect={() => setSeenBy(notice)}>
                     {notice.requiresAck ? "Who acknowledged" : "Who has seen it"}
                   </DropdownMenuItem>
@@ -215,6 +219,14 @@ export function AnnouncementsView({
       {compose ? (
         <ComposeNoticeDialog open={composeOpen} onOpenChange={setComposeOpen} data={compose} today={today} />
       ) : null}
+      <EditNoticeDialog
+        notice={editing}
+        viewerId={viewerId}
+        today={today}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+      />
       <SeenByDialog
         noticeId={seenBy?.id ?? null}
         title={seenBy?.title ?? ""}

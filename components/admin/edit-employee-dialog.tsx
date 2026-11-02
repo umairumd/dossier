@@ -1,5 +1,6 @@
 "use client";
 
+import { DateField, toDateKey } from "@/components/shared/date-picker";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -206,12 +207,14 @@ export function EditEmployeeDialog({
                     (optional)
                   </span>
                 </Label>
-                <Input
+                <DateField
                   id={`edit-dob-${employee.id}`}
-                  type="date"
+                  birthday
+                  clearable
+                  placeholder="Not set"
                   value={dateOfBirth}
-                  onChange={(event) => setDateOfBirth(event.target.value)}
-                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={setDateOfBirth}
+                  max={toDateKey(new Date())}
                 />
               </div>
             </div>

@@ -97,7 +97,9 @@ function CommandList({
     <CommandPrimitive.List
       data-slot="command-list"
       className={cn(
-        "no-scrollbar max-h-72 scroll-py-1 overflow-x-hidden overflow-y-auto outline-none",
+        // Visible scroll bar so a long list doesn't look cut off, and never
+        // taller than the popover it sits in.
+        "scrollbar-visible max-h-[min(18rem,calc(var(--radix-popover-content-available-height,100dvh)-3.5rem))] scroll-py-1 overflow-x-hidden overflow-y-auto outline-none",
         className
       )}
       {...props}

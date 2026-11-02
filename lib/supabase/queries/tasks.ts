@@ -195,6 +195,24 @@ export async function getDepartmentBoard(departmentId: string): Promise<TaskSumm
   return summarise(supabase, (data ?? []) as TaskRowFull[]);
 }
 
+/**
+ * Owners and admins only: every task in the organization ("all"), or the ones
+ * on no department board ("none": personal tasks and "No board" tasks).
+ */
+export async function getLeaderBoard(scope: "all" | "none"): Promise<TaskSummary[]> {
+  const me = await getCurrentProfile();
+  if (!me || (me.role !== "owner" && me.role !== "admin")) return [];
+  const supabase = await createClient();
+  let query = supabase
+    .from("tasks")
+    .select(TASK_SELECT)
+    .is("archived_at", null)
+    .or(`status.neq.done,done_at.gte.${doneCutoff()}`);
+  if (scope === "none") query = query.is("department_id", null);
+  const { data } = await query.order("position", { ascending: true }).limit(500);
+  return summarise(supabase, (data ?? []) as TaskRowFull[]);
+}
+
 /** Boards the viewer can open: their departments, ones they manage, or all. */
 export const getTaskBoards = cache(async (): Promise<{ id: string; name: string }[]> => {
   const me = await getCurrentProfile();

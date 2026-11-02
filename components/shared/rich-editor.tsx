@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
+import HardBreak from "@tiptap/extension-hard-break";
 import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
@@ -31,6 +32,33 @@ import { cn } from "@/lib/utils";
 // in focus mode the toolbar fades in under the text of the box you are in and
 // acts on the current line,
 // so nothing has to be selected first.
+
+// A line break inside a paragraph (Shift+Enter, pasted lines, older plain
+// text) is saved as a plain new line. Markdown's own form is a backslash at the
+// end of the line, which the report reader would show as text. Text is read
+// back with `breaks: true`, so a plain new line opens as the same break.
+const PlainHardBreak = HardBreak.extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize(
+          state: { write: (text: string) => void },
+          node: { type: unknown },
+          parent: { childCount: number; child: (index: number) => { type: unknown } },
+          index: number,
+        ) {
+          for (let i = index + 1; i < parent.childCount; i += 1) {
+            if (parent.child(i).type !== node.type) {
+              state.write("\n");
+              return;
+            }
+          }
+        },
+        parse: {},
+      },
+    };
+  },
+});
 
 type MarkdownStorage = { markdown?: { getMarkdown: () => string } };
 
@@ -262,15 +290,19 @@ export function RichEditor({
     autofocus: autoFocus ? "end" : false,
     extensions: [
       StarterKit.configure({
+        hardBreak: false,
         heading: { levels: [2, 3] },
         link: { openOnClick: false, autolink: true, linkOnPaste: true, defaultProtocol: "https" },
       }),
       Placeholder.configure({ placeholder: placeholder ?? "" }),
+      PlainHardBreak,
       TaskList,
       TaskItem.configure({ nested: true }),
       Markdown.configure({ breaks: true, linkify: true, transformPastedText: true, tightLists: true }),
     ],
-    content: value,
+    // Older text may end lines with a backslash (Markdown's line break). Each
+    // line already opens as its own line, so the backslash is dropped.
+    content: value.replace(/[ \t]*\\(?=\r?\n|$)/g, ""),
     editorProps: {
       attributes: {
         class: "rich-editor-content outline-none",

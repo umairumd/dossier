@@ -1,5 +1,6 @@
 "use client";
 
+import { DateField, toDateKey } from "@/components/shared/date-picker";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { mascotBus } from "@/components/mascot/mascot-bus";
@@ -96,13 +97,15 @@ export function ProfileForm({
         htmlFor="dob"
         hint="Optional. Used to celebrate your birthday."
       >
-        <Input
+        <DateField
           id="dob"
           name="date_of_birth"
-          type="date"
+          birthday
+          clearable
+          placeholder="Add your birthday"
           value={dateOfBirth}
-          onChange={(event) => setDateOfBirth(event.target.value)}
-          max={new Date().toISOString().slice(0, 10)}
+          onChange={setDateOfBirth}
+          max={toDateKey(new Date())}
           className="sm:max-w-56"
         />
       </Field>

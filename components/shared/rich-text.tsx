@@ -223,7 +223,20 @@ export function splitPoints(
   text: string,
 ): { lines: ReportLine[]; links: { href: string; label?: string }[] } | null {
   if (/^\s*(```|\|)/m.test(text)) return null;
-  const raw = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const raw = text
+    .split(/\r?\n/)
+    .map((line) =>
+      line
+        .trim()
+        // Markdown's line break is a backslash at the end of the line; the
+        // editor used to save it that way. Here every line is its own line.
+        .replace(/\s*\\$/, "")
+        // A quote marker ("> text") reads as plain text in a list of points.
+        .replace(/^((?:[-*+]|\d+[.)])\s+)?>\s?/, "$1")
+        .trim(),
+    )
+    // Drop empty lines and list markers left with nothing after them.
+    .filter((line) => line && !/^(?:[-*+]|\d+[.)]|\[[ xX]?\])$/.test(line));
   const links: { href: string; label?: string }[] = [];
   const kept: string[] = [];
   let afterLink = false;

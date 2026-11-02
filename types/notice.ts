@@ -2,6 +2,9 @@ import type { HandbookAudience } from "@/types/handbook";
 
 export type NoticeKind = "announcement" | "personal";
 
+/** How long after posting the author can still change the title and message. */
+export const NOTICE_EDIT_WINDOW_MS = 60 * 60 * 1000;
+
 /** A posted notice as the reader sees it. */
 export interface Notice {
   id: string;
@@ -16,6 +19,8 @@ export interface Notice {
   pinnedUntil: string | null;
   endsAt: string | null;
   publishedAt: string | null;
+  /** Title or message changed after posting. */
+  editedAt: string | null;
   archivedAt: string | null;
   audiences: HandbookAudience[];
   /** The viewer's own state. */

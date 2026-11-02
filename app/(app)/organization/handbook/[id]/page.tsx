@@ -47,6 +47,7 @@ export default async function EditHandbookDocPage({
         departments={departments.filter((department) => !department.archived)}
         people={pickerPeople(people)}
         designations={designationOptions(people)}
+        launched={Boolean(settings.handbookLaunchedAt)}
         aside={
           progress ? (
             <HandbookReadProgress

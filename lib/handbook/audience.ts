@@ -5,7 +5,8 @@ import type {
   HandbookKind,
 } from "@/types/handbook";
 
-// Same rules as public.can_read_handbook_doc() for people who are not owners
+// Same rules as public.audience_matches() in the database, used by
+// can_read_handbook_doc() and can_read_notice() for people who are not owners
 // or admins. Used for the editor's live count, publish notifications, read
 // progress and the reader's own sections. Keep the two in step.
 
@@ -41,29 +42,38 @@ export function matchesHandbookAudience(
     );
   }
 
-  return doc.audiences.some((rule) => {
-    switch (rule.kind) {
-      case "everyone":
-        return true;
-      case "profile":
-        return rule.value === person.id;
-      case "role":
-        return (
-          rule.value === person.role ||
-          (rule.value === "supervisor" && person.is_supervisor)
-        );
-      case "department":
-        return rule.value != null && person.department_ids.includes(rule.value);
-      case "designation":
-        return designation !== "" && normaliseDesignation(rule.value) === designation;
-      case "employment_type":
-        return rule.value === person.employment_type;
-      case "work_location":
-        return rule.value === (person.is_remote ? "remote" : "on_site");
-      default:
-        return false;
-    }
-  });
+  // Different kinds narrow, the same kind widens, people are added:
+  //   Marketing + Project Manager      = project managers in Marketing
+  //   Marketing + Development          = both departments
+  //   ... + a person                   = that person as well
+  if (doc.audiences.some((rule) => rule.kind === "everyone")) return true;
+  if (doc.audiences.some((rule) => rule.kind === "profile" && rule.value === person.id)) return true;
+
+  const byKind = new Map<HandbookAudienceKind, HandbookAudience[]>();
+  for (const rule of doc.audiences) {
+    if (rule.kind === "everyone" || rule.kind === "profile") continue;
+    byKind.set(rule.kind, [...(byKind.get(rule.kind) ?? []), rule]);
+  }
+  if (byKind.size === 0) return false;
+
+  return [...byKind.values()].every((rules) => rules.some((rule) => ruleMatches(person, rule, designation)));
+}
+
+function ruleMatches(person: AudiencePerson, rule: HandbookAudience, designation: string): boolean {
+  switch (rule.kind) {
+    case "role":
+      return rule.value === person.role || (rule.value === "supervisor" && person.is_supervisor);
+    case "department":
+      return rule.value != null && person.department_ids.includes(rule.value);
+    case "designation":
+      return designation !== "" && normaliseDesignation(rule.value) === designation;
+    case "employment_type":
+      return rule.value === person.employment_type;
+    case "work_location":
+      return rule.value === (person.is_remote ? "remote" : "on_site");
+    default:
+      return false;
+  }
 }
 
 /** Rules in a stable order, without duplicates. */
@@ -135,7 +145,63 @@ export function audienceLabel(
   }
 }
 
-/** "Everyone", "Engineering, Design, Managers", "Engineering and 2 people". */
+function joinOr(list: string[]): string {
+  if (list.length <= 2) return list.join(" or ");
+  return `${list.slice(0, -1).join(", ")} or ${list[list.length - 1]}`;
+}
+
+/**
+ * The rule in words, as the reader will get it:
+ * "Project Manager in Marketing, full-time, plus Umair Umar".
+ */
+export function describeAudience(
+  audiences: HandbookAudience[],
+  lookups: {
+    departmentNames?: Map<string, string>;
+    personNames?: Map<string, string>;
+  } = {},
+  options: { maxPeople?: number } = {},
+): string {
+  const rules = normaliseAudiences(audiences);
+  if (rules.length === 0) return "";
+  if (rules.some((rule) => rule.kind === "everyone")) return "Everyone";
+  const of = (kind: HandbookAudienceKind) =>
+    rules.filter((rule) => rule.kind === kind).map((rule) => audienceLabel(rule, lookups));
+
+  const designations = of("designation");
+  const roles = of("role");
+  const departments = of("department");
+  const extras = [of("employment_type"), of("work_location")]
+    .filter((list) => list.length > 0)
+    .map((list) => joinOr(list).toLowerCase());
+
+  let text = "";
+  if (designations.length || roles.length || departments.length || extras.length) {
+    text =
+      designations.length && roles.length
+        ? `${joinOr(designations)} (${joinOr(roles).toLowerCase()})`
+        : designations.length
+          ? joinOr(designations)
+          : roles.length
+            ? joinOr(roles)
+            : "Everyone";
+    if (departments.length) text += ` in ${joinOr(departments)}`;
+    if (extras.length) text += `, ${extras.join(", ")}`;
+  }
+
+  const people = of("profile");
+  if (people.length) {
+    const max = options.maxPeople ?? 2;
+    const names =
+      people.length <= max
+        ? people.join(" and ")
+        : `${people.slice(0, max).join(", ")} and ${people.length - max} more`;
+    text = text ? `${text}, plus ${names}` : names;
+  }
+  return text;
+}
+
+/** Short form for lists: "Everyone", "Designer in Marketing", "Marketing and 2 more". */
 export function summariseAudience(
   doc: { kind: HandbookKind; jdDesignation: string | null; audiences: HandbookAudience[] },
   lookups: {
@@ -149,17 +215,5 @@ export function summariseAudience(
       ? doc.jdDesignation.trim()
       : "Owners and admins only";
   }
-  if (rules.some((rule) => rule.kind === "everyone")) return "Everyone";
-
-  const people = rules.filter((rule) => rule.kind === "profile");
-  const parts = rules
-    .filter((rule) => rule.kind !== "profile")
-    .map((rule) => audienceLabel(rule, lookups));
-  if (people.length > 0) {
-    const name =
-      people.length === 1 ? lookups.personNames?.get(people[0].value ?? "") : undefined;
-    parts.push(name ?? `${people.length} ${people.length === 1 ? "person" : "people"}`);
-  }
-  if (parts.length <= 3) return parts.join(", ");
-  return `${parts.slice(0, 2).join(", ")} and ${parts.length - 2} more`;
+  return describeAudience(rules, lookups, { maxPeople: 1 });
 }

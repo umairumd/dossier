@@ -1,5 +1,6 @@
 "use client";
 
+import { DateField, toDateKey } from "@/components/shared/date-picker";
 import { useEffect, useState } from "react";
 import { markOnboarded } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/client";
@@ -131,13 +132,15 @@ export default function OnboardingPage() {
           htmlFor="dob"
           hint="Optional. Only used to celebrate your birthday."
         >
-          <Input
+          <DateField
             id="dob"
             name="date_of_birth"
-            type="date"
+            birthday
+            clearable
+            placeholder="Add your birthday"
             value={dateOfBirth}
-            onChange={(event) => setDateOfBirth(event.target.value)}
-            max={new Date().toISOString().slice(0, 10)}
+            onChange={setDateOfBirth}
+            max={toDateKey(new Date())}
           />
         </Field>
 

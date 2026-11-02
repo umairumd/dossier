@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { CalendarDays, Check, Columns3, Flag, Users } from "lucide-react";
 import { MemberAvatar } from "@/components/mascot/member-avatar";
 import {
@@ -13,6 +13,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { QuickDatePanel } from "@/components/shared/date-picker";
 import { shiftReportDate } from "@/lib/helpers/dates";
 import { dueInfo, DUE_TONE_CLASS } from "@/lib/tasks/format";
 import { cn } from "@/lib/utils";
@@ -91,7 +92,7 @@ export function AssigneePicker({
       <PopoverContent className="w-80 p-0" align="start">
         <Command>
           <CommandInput placeholder="Search people…" />
-          <CommandList className="max-h-80">
+          <CommandList>
             <CommandEmpty>No match.</CommandEmpty>
             {me ? <CommandGroup>{row(me, "Me")}</CommandGroup> : null}
             {others.length ? <CommandGroup heading="People">{others.map((person) => row(person))}</CommandGroup> : null}
@@ -153,6 +154,7 @@ export function DuePicker({
   today: string;
   muted?: boolean;
 }) {
+  const [open, setOpen] = useState(false);
   const due = dueInfo(value, today);
   const quick = [
     { label: "Today", value: today },
@@ -161,44 +163,24 @@ export function DuePicker({
     { label: "In a week", value: shiftReportDate(today, 7) },
   ];
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <PropertyChip icon={<CalendarDays />} muted={!value || muted} className={value ? DUE_TONE_CLASS[due.tone] : undefined}>
           {value ? due.label : "Due date"}
         </PropertyChip>
       </PopoverTrigger>
-      <PopoverContent className="w-60 p-1.5" align="start">
-        <div className="flex flex-col">
-          {quick.map((option) => (
-            <button
-              key={option.label}
-              type="button"
-              onClick={() => onChange(option.value)}
-              className="flex items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-fill-hover"
-            >
-              {option.label}
-              <span className="text-xs text-muted-foreground">{dueInfo(option.value, today).label}</span>
-            </button>
-          ))}
-          <div className="my-1 h-px bg-line" />
-          <input
-            type="date"
-            value={value ?? ""}
-            min={today}
-            onChange={(event) => onChange(event.target.value || null)}
-            aria-label="Pick a date"
-            className="h-8 rounded-md border border-input bg-transparent px-2 text-sm [color-scheme:dark]"
-          />
-          {value ? (
-            <button
-              type="button"
-              onClick={() => onChange(null)}
-              className="mt-1 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-fill-hover"
-            >
-              No due date
-            </button>
-          ) : null}
-        </div>
+      <PopoverContent className="w-auto gap-0 p-0" align="start">
+        <QuickDatePanel
+          options={quick}
+          value={value ?? ""}
+          min={today}
+          clearLabel="No due date"
+          hint={(date) => dueInfo(date, today).label}
+          onChange={(next) => {
+            onChange(next || null);
+            setOpen(false);
+          }}
+        />
       </PopoverContent>
     </Popover>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { DateField } from "@/components/shared/date-picker";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -105,12 +105,7 @@ export function AssignShiftDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="effective-from">Effective From</Label>
-            <Input
-              id="effective-from"
-              type="date"
-              value={effectiveFrom}
-              onChange={(e) => setEffectiveFrom(e.target.value)}
-            />
+            <DateField id="effective-from" value={effectiveFrom} onChange={setEffectiveFrom} />
           </div>
         </DialogBody>
 

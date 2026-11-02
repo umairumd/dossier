@@ -1,11 +1,11 @@
 "use client";
 
+import { TimeField } from "@/components/shared/date-picker";
 import { calendarDayToneClass } from "@/lib/helpers/attendance-day-tones";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Clock, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -283,13 +283,7 @@ export function AttendanceCellPopover({
                 <Label htmlFor="check-in-time" className="text-xs">
                   Check-in
                 </Label>
-                <Input
-                  id="check-in-time"
-                  type="time"
-                  value={checkInTime}
-                  onChange={(e) => setCheckInTime(e.target.value)}
-                  className="w-full"
-                />
+                <TimeField id="check-in-time" value={checkInTime} onChange={setCheckInTime} className="w-full" />
               </div>
             </div>
           ) : (
